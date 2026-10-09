@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutify_app/services/auth/web_login_flow.dart';
 import 'package:flutify_app/services/auth/web_token_exception.dart';
@@ -117,6 +118,18 @@ void main() {
     expect(t.flow.stage, WebLoginStage.done);
     expect(t.flow.notice, contains('Web token'));
     expect(t.saved, ['sp_dc-value']);
+  });
+
+  test('TLS 证书错误提示指向代理 / 安全软件的 HTTPS 拦截', () {
+    final notice = webTokenMintNotice(
+      const HandshakeException('CERTIFICATE_VERIFY_FAILED'),
+    );
+    expect(notice, contains('TLS'));
+    expect(notice, contains('拦截 HTTPS'));
+    expect(
+      webTokenMintNotice(StateError('铸造失败')),
+      contains('稍后会自动重试'),
+    );
   });
 
   test('桌面授权失败进入 failed，可 retry 重发', () async {

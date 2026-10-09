@@ -1173,6 +1173,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsProxySystemEmpty => 'システムプロキシは未設定です。直接接続します';
 
   @override
+  String get settingsProxySystemAuto => 'システムは自動プロキシ構成（PAC / 自動検出）を使用しています';
+
+  @override
   String get settingsProxyNoneSubtitle => 'プロキシを使わず、すべてのリクエストを直接接続します';
 
   @override

@@ -22,6 +22,7 @@ class NetworkProxy {
   NetworkProxy({
     Future<SystemProxySettings> Function()? systemReader,
     Future<String> Function()? countryReader,
+    this.autoProxyResolver,
   }) : _systemReader = systemReader ?? SystemProxyReader.read,
        _countryReader = countryReader;
 
@@ -45,6 +46,19 @@ class NetworkProxy {
 
   final Future<SystemProxySettings> Function() _systemReader;
   final Future<String> Function()? _countryReader;
+
+  /// Windows 自动配置（PAC / 自动检测）的逐 URL 求值；测试可注入。
+  /// 为空时退回 [SystemProxyReader.windowsProxyResolver]（原生通道注入）。
+  final Future<String> Function(String url)? autoProxyResolver;
+
+  /// 自动配置结果按主机缓存：PAC 求值要走原生通道，连接前不宜每个请求都打一次。
+  final Map<String, ({ProxyEndpoint? endpoint, DateTime at, Duration ttl})>
+  _autoRoutes = {};
+
+  /// 自动配置成功结果的缓存时长；PRX 求值失败 / 直连结果用更短 [autoProxyFailureTtl]，
+  /// 免得 PAC 服务器一时不可达后整段时间都按直连走。
+  static const Duration autoProxyTtl = Duration(minutes: 5);
+  static const Duration autoProxyFailureTtl = Duration(seconds: 30);
   final _gatewayChanges = StreamController<void>.broadcast(sync: true);
   Stream<void> get gatewayChanges => _gatewayChanges.stream;
   String? gatewayCountry;
@@ -103,6 +117,7 @@ class NetworkProxy {
       _countryCheck = null;
       gatewayChecking = false;
       gatewayLookupFailed = false;
+      _autoRoutes.clear();
     }
     // The stored manual choice is not overwritten by an automatic decision.
     final enabled = gateway.automatic && _configured
@@ -215,7 +230,8 @@ class NetworkProxy {
     }
   }();
 
-  /// [uri] 应经过的代理；null 表示直连。
+  /// [uri] 应经过的代理（静态配置）；null 表示直连。
+  /// 自动配置（PAC / 自动检测）无法同步求值，见 [endpointForAsync]。
   ProxyEndpoint? endpointFor(Uri uri) {
     final host = uri.host;
     if (_isLoopback(host) || isAlwaysDirect(host)) return null;
@@ -230,10 +246,80 @@ class NetworkProxy {
           unawaited(refreshSystem());
         }
         if (_system.bypasses(host)) return null;
-        return uri.scheme == 'http' || uri.scheme == 'ws'
-            ? _system.http
-            : _system.https;
+        return (uri.scheme == 'http' || uri.scheme == 'ws'
+                ? _system.http
+                : _system.https) ??
+            _system.socks;
     }
+  }
+
+  Future<String> Function(String url)? get _autoResolver =>
+      autoProxyResolver ?? SystemProxyReader.windowsProxyResolver;
+
+  /// 是否必须由 [ProxyHttpOverrides] 自建隧道（dart:io 处理不了）：
+  /// 自动配置（PAC / 自动检测）与 SOCKS5 代理。连接前同步判断（不触发原生解析）。
+  bool usesSelfTunnel(Uri uri) {
+    final host = uri.host;
+    if (_isLoopback(host) || isAlwaysDirect(host)) return false;
+    if (_mode == ProxyMode.system && _system.autoProxy) {
+      if (_autoResolver != null) return !_system.bypasses(host);
+    }
+    return endpointFor(uri)?.type == ProxyType.socks5;
+  }
+
+  /// 按 URI 解析代理：[uri] 命中自动配置时用原生 WinHTTP 求值 PAC / 自动检测
+  /// （结果按主机缓存），其余情况与 [endpointFor] 一致。
+  Future<ProxyEndpoint?> endpointForAsync(Uri uri) async {
+    final host = uri.host;
+    if (_isLoopback(host) || isAlwaysDirect(host)) return null;
+    if (_mode != ProxyMode.system || !_system.autoProxy) {
+      return endpointFor(uri);
+    }
+    if (_system.bypasses(host)) return null;
+    final resolver = _autoResolver;
+    if (resolver == null) return endpointFor(uri);
+    final now = DateTime.now();
+    final cached = _autoRoutes[host];
+    if (cached != null && now.difference(cached.at) < cached.ttl) {
+      return cached.endpoint;
+    }
+    ProxyEndpoint? endpoint;
+    Duration ttl = autoProxyTtl;
+    try {
+      endpoint = parseAutoProxyResult(await resolver(uri.toString()));
+      if (endpoint == null) ttl = autoProxyFailureTtl;
+    } catch (_) {
+      // PAC 求值失败：退回静态配置（通常为直连），短缓存等下次重试
+      endpoint = endpointFor(uri);
+      ttl = autoProxyFailureTtl;
+    }
+    _autoRoutes[host] = (endpoint: endpoint, at: now, ttl: ttl);
+    return endpoint;
+  }
+
+  /// WinHTTP / PAC 的代理串：`host:port`、`http://host:port`，可能带 `PROXY` /
+  /// `SOCKS5` 前缀，也可能是空格 / 分号分隔的列表；`DIRECT` 跳过，全直连返回 null。
+  static ProxyEndpoint? parseAutoProxyResult(String raw) {
+    var type = ProxyType.http;
+    for (final token in raw.split(RegExp(r'[;\s]+'))) {
+      final t = token.trim();
+      if (t.isEmpty) continue;
+      final upper = t.toUpperCase();
+      if (upper == 'DIRECT') continue;
+      if (upper == 'PROXY' || upper == 'HTTP' || upper == 'HTTPS') {
+        type = ProxyType.http;
+        continue;
+      }
+      if (upper == 'SOCKS' || upper == 'SOCKS5' || upper == 'SOCKS4') {
+        type = ProxyType.socks5;
+        continue;
+      }
+      final parsed = ProxyEndpoint.tryParse(t);
+      if (parsed != null) {
+        return ProxyEndpoint(parsed.host, parsed.port, type: type);
+      }
+    }
+    return null;
   }
 
   /// HTTPS / WSS 经需要认证的手动代理时，由 [ProxyHttpOverrides] 装的 connectionFactory
@@ -246,13 +332,19 @@ class NetworkProxy {
       _mode == ProxyMode.manual &&
       manualHasCredentials &&
       (uri.isScheme('https') || uri.isScheme('wss')) &&
-      endpointFor(uri) != null;
+      endpointFor(uri)?.type == ProxyType.http;
 
   /// 供 [HttpClient.findProxy] 使用，须与 [ProxyHttpOverrides] 的 connectionFactory 配套：
-  /// 需要认证的 HTTPS 在这里返回 DIRECT，实际经代理隧道（见 [tunnelsSecure]）。
+  /// 需要认证的 HTTPS、SOCKS 与自动配置（PAC）在这里返回 DIRECT，
+  /// 实际由 [ProxyHttpOverrides] 异步解析并自建隧道（见 [usesSelfTunnel] / [tunnelsSecure]）。
   String findProxy(Uri uri) {
+    if (usesSelfTunnel(uri)) return 'DIRECT';
     final endpoint = endpointFor(uri);
-    if (endpoint == null || tunnelsSecure(uri)) return 'DIRECT';
+    if (endpoint == null ||
+        endpoint.type != ProxyType.http ||
+        tunnelsSecure(uri)) {
+      return 'DIRECT';
+    }
     // 明文 HTTP 经认证代理：凭据嵌进代理串（`PROXY user:pass@host:port`），dart:io 随请求带上
     // Proxy-Authorization。明文请求本来就是发给代理的，代理消费这个逐跳头，不会到达目标；
     // 也省掉每个请求先吃一次 407 质询的往返。
@@ -304,9 +396,35 @@ class ProxyHttpOverrides extends HttpOverrides {
   static void install(NetworkProxy proxy) =>
       HttpOverrides.global = ProxyHttpOverrides(proxy);
 
+  /// 证书验证失败时的日志钩子（不改变校验结果，只为定位拦截来源）。
+  /// 纯 Dart 文件不能引入 Flutter 的 debugPrint，由 main 注入。
+  static void Function(String message)? certificateRejectionLogger;
+
+  /// 记录被拒绝的对端证书；始终返回 false（证书依旧被拒绝）。
+  static bool _logRejectedCertificate(
+    X509Certificate certificate,
+    String host,
+    int port,
+  ) {
+    final log = certificateRejectionLogger;
+    if (log != null) {
+      final sha1 = certificate.sha1
+          .map((b) => b.toRadixString(16).padLeft(2, '0'))
+          .join();
+      log(
+        '[TLS] 证书验证失败 $host:$port：subject="${certificate.subject}" '
+        'issuer="${certificate.issuer}" sha1=$sha1',
+      );
+    }
+    return false;
+  }
+
   @override
   HttpClient createHttpClient(SecurityContext? context) {
     final client = super.createHttpClient(context);
+    // 只记录、不改变结论：证书依旧被拒绝，日志能指出是哪个 CA 在拦截。
+    // 自建 TLS 的连接（直连 / 自建隧道）由下面各自传入同一回调，不经这里。
+    client.badCertificateCallback = _logRejectedCertificate;
     return GatewayHttpClient(
       client
         ..findProxy = proxy.findProxy
@@ -319,25 +437,58 @@ class ProxyHttpOverrides extends HttpOverrides {
   /// 装了 connectionFactory 后 dart:io 不再自己建连，其余情况照它原来的方式建：
   /// - 经代理（dart:io 自己发 CONNECT / 明文代理请求）：只连到代理；
   /// - 直连：明文 TCP，HTTPS 在这里完成 TLS（与 dart:io 默认路径一样用客户端的 SecurityContext）；
-  /// - [NetworkProxy.tunnelsSecure]：先经 [ProxyTunnel] 建带认证的 CONNECT 隧道，再在隧道上做 TLS。
+  /// - [NetworkProxy.tunnelsSecure] / SOCKS / 自动配置（PAC）：先经 [ProxyTunnel] 自建隧道，再在隧道上做 TLS。
   Future<ConnectionTask<Socket>> _connect(
     HttpClient client,
     SecurityContext? context,
     Uri uri,
     String? proxyHost,
     int? proxyPort,
-  ) {
+  ) async {
+    // findProxy 对 SOCKS / PAC 统一报 DIRECT，这里的异步解析才是实际选路
+    if (proxy.usesSelfTunnel(uri)) {
+      final endpoint = await proxy.endpointForAsync(uri);
+      if (endpoint == null) return _directConnect(uri, context);
+      return _tunnelConnect(endpoint, uri, context, client);
+    }
     if (proxyHost != null && proxyPort != null) {
       return Socket.startConnect(proxyHost, proxyPort);
     }
+    if (proxy.tunnelsSecure(uri)) {
+      return _tunnelConnect(proxy.endpointFor(uri), uri, context, client);
+    }
+    return _directConnect(uri, context);
+  }
+
+  Future<ConnectionTask<Socket>> _directConnect(
+    Uri uri,
+    SecurityContext? context,
+  ) {
     final secure = uri.isScheme('https') || uri.isScheme('wss');
     final host = uri.host;
     final port = uri.hasPort ? uri.port : (secure ? 443 : 80);
     if (!secure) return Socket.startConnect(host, port);
-    if (!proxy.tunnelsSecure(uri)) {
-      return SecureSocket.startConnect(host, port, context: context);
-    }
+    return SecureSocket.startConnect(
+      host,
+      port,
+      context: context,
+      onBadCertificate: (cert) => _logRejectedCertificate(cert, host, port),
+    );
+  }
 
+  Future<ConnectionTask<Socket>> _tunnelConnect(
+    ProxyEndpoint? endpoint,
+    Uri uri,
+    SecurityContext? context,
+    HttpClient client,
+  ) async {
+    final secure = uri.isScheme('https') || uri.isScheme('wss');
+    if (!secure) {
+      // 自建隧道只能透明转发；明文 HTTP 需要绝对地址形式，dart:io 做不到经 SOCKS/PAC 的代理
+      throw const SocketException('暂不支持通过 SOCKS / PAC 代理的明文 HTTP 连接');
+    }
+    final host = uri.host;
+    final port = uri.hasPort ? uri.port : 443;
     Socket? tunnelSocket;
     var cancelled = false;
     final socket = () async {
@@ -346,6 +497,7 @@ class ProxyHttpOverrides extends HttpOverrides {
         port,
         timeout: client.connectionTimeout ?? tunnelTimeout,
         proxy: proxy,
+        endpoint: endpoint,
         useGateway: false,
       );
       final tcpSocket = tunnel.socket.tcpSocket;
@@ -359,13 +511,16 @@ class ProxyHttpOverrides extends HttpOverrides {
         throw const SocketException('连接已取消');
       }
       // 隧道建立后目标服务器在 ClientHello 之前不会发数据，ProxyTunnel 没有缓冲任何属于 TLS 的字节
-      return SecureSocket.secure(tcpSocket, host: host, context: context);
+      return SecureSocket.secure(
+        tcpSocket,
+        host: host,
+        context: context,
+        onBadCertificate: (cert) => _logRejectedCertificate(cert, host, port),
+      );
     }();
-    return Future.value(
-      ConnectionTask.fromSocket(socket, () {
-        cancelled = true;
-        tunnelSocket?.destroy();
-      }),
-    );
+    return ConnectionTask.fromSocket(socket, () {
+      cancelled = true;
+      tunnelSocket?.destroy();
+    });
   }
 }

@@ -1172,6 +1172,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsProxySystemEmpty => '系统未设置代理，直接连接';
 
   @override
+  String get settingsProxySystemAuto => '系统使用自动代理配置（PAC / 自动检测）';
+
+  @override
   String get settingsProxyNoneSubtitle => '所有请求直接连接，不经过代理';
 
   @override
@@ -2915,6 +2918,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get settingsProxySystemEmpty => '系統未設定代理，直接連接';
+
+  @override
+  String get settingsProxySystemAuto => '系統使用自動代理設定（PAC / 自動偵測）';
 
   @override
   String get settingsProxyNoneSubtitle => '所有請求直接連接，不經過代理';

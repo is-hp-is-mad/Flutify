@@ -163,7 +163,9 @@ class _NetworkSectionState extends State<NetworkSection> {
         proxy == null
             ? null
             : proxy.system.primary == null
-            ? l10n.settingsProxySystemEmpty
+            ? proxy.system.autoProxy
+                  ? l10n.settingsProxySystemAuto
+                  : l10n.settingsProxySystemEmpty
             : l10n.settingsProxySystemDetected('${proxy.system.primary}'),
       ProxyMode.none => l10n.settingsProxyNoneSubtitle,
       ProxyMode.manual => l10n.settingsProxyManualSubtitle,

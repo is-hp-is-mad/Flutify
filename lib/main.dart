@@ -122,9 +122,13 @@ Future<Widget> _initializeApp(ValueChanged<String> reportStage) async {
   await CacheDirectoryAccess.restore();
 
   // 网络代理须在任何网络客户端创建前就位；系统代理最多等 1.5 秒，读不到就先直连、后台补读
-  // macOS GUI 应用读不到 shell 的代理环境变量，须先挂上原生通道读「系统设置 → 网络 → 代理」
+  // macOS GUI 应用读不到 shell 的代理环境变量，须先挂上原生通道读「系统设置 → 网络 → 代理」；
+  // Windows 的 PAC / 自动检测同理，浏览器与 WebView2 会执行，Dart 只能经原生 WinHTTP 逐 URL 求值
   installMacOSSystemProxyReader();
+  installWindowsSystemProxyReader();
   ProxyHttpOverrides.install(NetworkProxy.instance);
+  // 证书被拒绝时记录对端证书（不改变校验结果），用于定位代理 / 安全软件的 HTTPS 拦截
+  ProxyHttpOverrides.certificateRejectionLogger = debugPrint;
   reportStage('配置网络');
   final initialPrefs = AppPreferences.decode(storageService.preferencesJson);
   await NetworkProxy.instance

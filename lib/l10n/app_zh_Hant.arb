@@ -594,6 +594,7 @@
     }
   },
   "settingsProxySystemEmpty": "系統未設定代理，直接連接",
+  "settingsProxySystemAuto": "系統使用自動代理設定（PAC / 自動偵測）",
   "settingsProxyNoneSubtitle": "所有請求直接連接，不經過代理",
   "settingsProxyManualSubtitle": "填寫 HTTP 代理的地址與端口",
   "settingsProxyServer": "代理服務器",

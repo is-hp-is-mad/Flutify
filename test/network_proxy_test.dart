@@ -27,6 +27,14 @@ void main() {
         ProxyEndpoint.tryParse('http://proxy:80'),
         const ProxyEndpoint('proxy', 80),
       );
+      expect(
+        ProxyEndpoint.tryParse('socks5://127.0.0.1:1080')?.type,
+        ProxyType.socks5,
+      );
+      expect(
+        ProxyEndpoint.tryParse('socks://127.0.0.1:1080')?.type,
+        ProxyType.socks5,
+      );
     });
 
     test('rejects missing or invalid port', () {
@@ -57,13 +65,30 @@ void main() {
       expect(SystemProxyReader.parseRegQuery(output).isEmpty, isTrue);
     });
 
-    test('per-protocol server list; socks entry is ignored', () {
+    test('per-protocol server list parses http / https / socks', () {
       final s = SystemProxySettings.fromWindows(
         enabled: true,
         server: 'http=10.0.0.1:80;https=10.0.0.1:443;socks=10.0.0.1:1080',
       );
       expect(s.http, const ProxyEndpoint('10.0.0.1', 80));
       expect(s.https, const ProxyEndpoint('10.0.0.1', 443));
+      expect(
+        s.socks,
+        const ProxyEndpoint('10.0.0.1', 1080, type: ProxyType.socks5),
+      );
+      expect(s.isEmpty, isFalse);
+    });
+
+    test('socks-only config is routed through the SOCKS proxy', () {
+      final s = SystemProxySettings.fromWindows(
+        enabled: true,
+        server: 'socks=127.0.0.1:1080',
+      );
+      expect(s.http, isNull);
+      expect(s.https, isNull);
+      expect(s.socks, const ProxyEndpoint('127.0.0.1', 1080, type: ProxyType.socks5));
+      expect(s.primary, s.socks);
+      expect(s.isEmpty, isFalse);
     });
 
     test('environment variables with leading-dot no_proxy', () {
@@ -255,6 +280,84 @@ void main() {
       expectDirect('none');
     });
 
+    test('system SOCKS proxy is routed through our own tunnel', () async {
+      final socks = SystemProxySettings.fromWindows(
+        enabled: true,
+        server: 'socks=127.0.0.1:1080',
+      );
+      final proxy = NetworkProxy(systemReader: () async => socks);
+      await proxy.configure(mode: ProxyMode.system);
+      expect(proxy.endpointFor(spotify)?.type, ProxyType.socks5);
+      expect(proxy.findProxy(spotify), 'DIRECT');
+      expect(proxy.usesSelfTunnel(spotify), isTrue);
+    });
+
+    test('PAC resolves per URL through the injected resolver and caches', () async {
+      var calls = 0;
+      final proxy = NetworkProxy(
+        systemReader: () async => const SystemProxySettings(autoProxy: true),
+        autoProxyResolver: (url) async {
+          calls++;
+          return url.contains('spotify') ? '127.0.0.1:7890' : '';
+        },
+      );
+      await proxy.configure(mode: ProxyMode.system);
+      // 自动配置无法同步求值：findProxy 一律 DIRECT，实际选路在 endpointForAsync
+      expect(proxy.findProxy(spotify), 'DIRECT');
+      expect(proxy.usesSelfTunnel(spotify), isTrue);
+      expect(
+        await proxy.endpointForAsync(spotify),
+        const ProxyEndpoint('127.0.0.1', 7890),
+      );
+      expect(
+        await proxy.endpointForAsync(spotify),
+        const ProxyEndpoint('127.0.0.1', 7890),
+      );
+      expect(calls, 1, reason: '同一主机的解析结果应缓存');
+      expect(
+        await proxy.endpointForAsync(Uri.parse('https://example.com/x')),
+        isNull,
+        reason: 'PAC 返回直连',
+      );
+    });
+
+    test('PAC failures fall back to the static proxy', () async {
+      final proxy = NetworkProxy(
+        systemReader: () async => const SystemProxySettings(
+          http: ProxyEndpoint('10.1.1.1', 8888),
+          https: ProxyEndpoint('10.1.1.1', 8888),
+          autoProxy: true,
+        ),
+        autoProxyResolver: (_) async => throw StateError('PAC unreachable'),
+      );
+      await proxy.configure(mode: ProxyMode.system);
+      expect(
+        await proxy.endpointForAsync(spotify),
+        const ProxyEndpoint('10.1.1.1', 8888),
+      );
+    });
+
+    test('WinHTTP / PAC proxy strings are parsed', () {
+      expect(
+        NetworkProxy.parseAutoProxyResult('127.0.0.1:7890'),
+        const ProxyEndpoint('127.0.0.1', 7890),
+      );
+      expect(
+        NetworkProxy.parseAutoProxyResult('PROXY 10.0.0.1:8080'),
+        const ProxyEndpoint('10.0.0.1', 8080),
+      );
+      expect(
+        NetworkProxy.parseAutoProxyResult('a:1 b:2'),
+        const ProxyEndpoint('a', 1),
+      );
+      expect(
+        NetworkProxy.parseAutoProxyResult('SOCKS5 1.2.3.4:1080'),
+        const ProxyEndpoint('1.2.3.4', 1080, type: ProxyType.socks5),
+      );
+      expect(NetworkProxy.parseAutoProxyResult('DIRECT'), isNull);
+      expect(NetworkProxy.parseAutoProxyResult(''), isNull);
+    });
+
     test('look-alikes of music.163.com are still proxied', () async {
       final proxy = NetworkProxy(systemReader: () async => system);
       await proxy.configure(
@@ -416,6 +519,125 @@ void main() {
         );
       },
     );
+  });
+
+  group('ProxyTunnel SOCKS5', () {
+    test('handshake connects to the requested host and relays bytes', () async {
+      final server = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(server.close);
+      final handshake = <int>[];
+      var relayed = false;
+      server.listen((client) {
+        final buffer = <int>[];
+        var phase = 0;
+        client.listen((data) {
+          if (relayed) {
+            client.add(data);
+            return;
+          }
+          buffer.addAll(data);
+          if (phase == 0 && buffer.length >= 3) {
+            handshake.addAll(buffer);
+            buffer.clear();
+            client.add([5, 0]); // 免认证
+            phase = 1;
+          }
+          if (phase == 1 && buffer.length >= 5) {
+            final hostLength = buffer[4];
+            if (buffer.length >= 5 + hostLength + 2) {
+              handshake.addAll(buffer);
+              buffer.clear();
+              relayed = true;
+              client.add([5, 0, 0, 1, 127, 0, 0, 1, 0x1f, 0x90]);
+              client.add(utf8.encode('HELLO'));
+            }
+          }
+        });
+      });
+
+      final proxy = NetworkProxy(
+        systemReader: () async => SystemProxySettings.none,
+      );
+      await proxy.configure(mode: ProxyMode.system);
+      final conn = await ProxyTunnel.connect(
+        'api.spotify.com',
+        443,
+        timeout: const Duration(seconds: 5),
+        proxy: proxy,
+        endpoint: ProxyEndpoint(
+          '127.0.0.1',
+          server.port,
+          type: ProxyType.socks5,
+        ),
+      );
+      final received = StringBuffer();
+      final done = Completer<void>();
+      conn.input.listen((d) {
+        received.write(latin1.decode(d));
+        if (received.toString() == 'HELLOpong') done.complete();
+      });
+      conn.socket.add(latin1.encode('pong'));
+      await done.future.timeout(const Duration(seconds: 5));
+      conn.socket.destroy();
+
+      expect(handshake.sublist(0, 3), [5, 1, 0]);
+      final request = handshake.sublist(3);
+      expect(request[0], 5);
+      expect(request[3], 3, reason: '域名寻址');
+      final hostLength = request[4];
+      expect(
+        utf8.decode(request.sublist(5, 5 + hostLength)),
+        'api.spotify.com',
+      );
+      expect(
+        (request[5 + hostLength] << 8) | request[6 + hostLength],
+        443,
+      );
+    });
+
+    test('a rejected reply surfaces a readable error', () async {
+      final server = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(server.close);
+      server.listen((client) {
+        final buffer = <int>[];
+        var greeted = false;
+        client.listen((data) {
+          buffer.addAll(data);
+          if (!greeted && buffer.length >= 3) {
+            greeted = true;
+            buffer.clear();
+            client.add([5, 0]); // 免认证
+          } else if (greeted && buffer.length >= 4) {
+            buffer.clear();
+            client.add([5, 5, 0, 1, 0, 0, 0, 0, 0, 0]); // connection refused
+          }
+        });
+      });
+      final proxy = NetworkProxy(
+        systemReader: () async => SystemProxySettings.none,
+      );
+      await proxy.configure(mode: ProxyMode.system);
+      await expectLater(
+        ProxyTunnel.connect(
+          'api.spotify.com',
+          443,
+          timeout: const Duration(seconds: 5),
+          proxy: proxy,
+          endpoint: ProxyEndpoint(
+            '127.0.0.1',
+            server.port,
+            type: ProxyType.socks5,
+          ),
+        ),
+        throwsA(
+          isA<ProxyTunnelException>().having(
+            (e) => e.toString(),
+            'message',
+            contains('connection refused'),
+          ),
+        ),
+      );
+    });
   });
 
   group('ProxyHttpOverrides', () {
