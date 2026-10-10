@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutify_app/services/network/network_proxy.dart';
 import 'package:flutify_app/services/network/proxy_mode.dart';
+import 'package:flutify_app/services/network/spotify_fallback_roots.dart';
 import 'package:flutify_app/services/network/windows_trust_store.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -96,4 +97,21 @@ void main() {
     messenger.setMockMethodCallHandler(WindowsTrustStore.channel, null);
     expect(await WindowsTrustStore.loadInto(context), 0);
   });
+
+  test(
+    'bundled Spotify fallback roots load even when system roots are unavailable',
+    () async {
+      messenger.setMockMethodCallHandler(WindowsTrustStore.channel, (
+        call,
+      ) async {
+        throw PlatformException(code: 'unavailable');
+      });
+      expect(await WindowsTrustStore.loadInto(SecurityContext()), 0);
+      expect(
+        WindowsTrustStore.loadFallbackInto(SecurityContext()),
+        spotifyFallbackRootsPem.length,
+      );
+      expect(spotifyFallbackRootsPem, hasLength(3));
+    },
+  );
 }
