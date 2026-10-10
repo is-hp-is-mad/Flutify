@@ -29,6 +29,8 @@ void main() {
                     progress: value,
                     chrome: 1,
                     geometry: geometry,
+                    controlsHeightReduction: 24,
+                    footerHeightReduction: 12,
                   ),
                   children: [
                     for (final slot in PlayerSceneSlot.values)
@@ -40,7 +42,8 @@ void main() {
                           height: switch (slot) {
                             PlayerSceneSlot.top => 56,
                             PlayerSceneSlot.title => titleHeight,
-                            PlayerSceneSlot.controls => 100,
+                            PlayerSceneSlot.controls => 124 - 24 * value,
+                            PlayerSceneSlot.footer => 60 - 12 * value,
                             _ => 48,
                           },
                         ),

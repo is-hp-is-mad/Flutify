@@ -44,10 +44,11 @@ final Uint8List kAudioAesIv = Uint8List.fromList([
   0x93,
 ]);
 
-/// 一首「完整版全曲」的音频（已解密，可直接交给播放器）。
+/// 一首「完整版全曲」的可播放音源。
 ///
-/// [stream] 为空时 [file] 是已落盘的缓存文件；非空时曲目仍在下载，应按流播放，
-/// 下载完成后才会写入 [file]。
+/// 普通音源的 [stream] 为空时 [file] 是已落盘的缓存文件；非空时应按流播放，
+/// 下载完成后才会写入 [file]。DRM 音源由 [emeContent] 交给对应引擎，
+/// 加密文件可能仍在后台写入，完整落盘由 [downloadComplete] 标记。
 class LoadedAudio {
   final AudioPlaybackInfo playbackInfo;
   final File file;
@@ -64,6 +65,10 @@ class LoadedAudio {
   /// DRM 曲目的 EME 内容；非空时由 EME 引擎播放（[file] 是加密 fMP4，just_audio 不解）。
   final EmeTrackContent? emeContent;
 
+  /// DRM 音源可在整首落盘前起播；此 Future 在完整下载成功后完成，失败时抛错。
+  /// 为 null 时没有额外的后台下载；普通渐进流的完成信号仍是 [stream.done]。
+  final Future<void>? downloadComplete;
+
   const LoadedAudio({
     this.playbackInfo = const AudioPlaybackInfo(),
     required this.file,
@@ -73,6 +78,7 @@ class LoadedAudio {
     this.normalization,
     this.stream,
     this.emeContent,
+    this.downloadComplete,
   });
 
   String get path => file.path;

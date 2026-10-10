@@ -1003,6 +1003,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Translations from the NetEase Music community';
 
   @override
+  String get lyricsTranslationFromQqMusic => 'Translations from QQ Music';
+
+  @override
   String get settingsLyricsSize => 'Lyrics size';
 
   @override
@@ -1037,7 +1040,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsLyricsBilingualSubtitle =>
-      'Preload Chinese translations when loading lyrics, including for taskbar lyrics. Turning this off still allows the translation button and automatic translation to search. Searches send the song title and artist to NetEase Music.';
+      'Preload Chinese translations from QQ Music, then NetEase for missing or incomplete lyrics, and finally LRCLIB when fallback is enabled. Also used by taskbar lyrics. Turning this off still allows manual and automatic searches. The song title and artist are sent to queried sources.';
 
   @override
   String get settingsTaskbarLyricsSection => 'Taskbar lyrics';
@@ -1626,7 +1629,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsLyricsAutoTranslateSubtitle =>
-      'Find existing translations from lyrics sources. Chinese translations use the song title and artist to search NetEase; LRCLIB is also searched when fallback is enabled. Chinese script follows the interface.';
+      'Find existing translations. Chinese translations search QQ Music first using the song title and artist, then NetEase for missing or incomplete lyrics, and finally LRCLIB when fallback is enabled. More complete results must keep every previously translated line. Chinese script follows the interface.';
 
   @override
   String get settingsLyricsExcludeInterface => 'Skip the interface language';

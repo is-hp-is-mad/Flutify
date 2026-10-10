@@ -1,8 +1,12 @@
+import 'dart:math' as math;
+import 'dart:ui' show lerpDouble;
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/utils/formatters.dart';
 import '../../providers/playback_provider.dart';
+import 'text_metrics.dart';
 
 /// 播放进度条（全屏播放器 / 桌面播放栏共用）。
 ///
@@ -12,6 +16,9 @@ import '../../providers/playback_provider.dart';
 class PlaybackScrubber extends StatefulWidget {
   /// true：桌面样式（时间在两侧，单行）；false：移动端样式（时间在下方）。
   final bool compact;
+  /// Android shared-element morph: 0 = original detail, 1 = lyrics card.
+  /// Null preserves the existing desktop/mobile layout and behavior.
+  final double? compactProgress;
   final Color? activeColor;
   final Color? inactiveColor;
   final Color? labelColor;
@@ -19,10 +26,17 @@ class PlaybackScrubber extends StatefulWidget {
   const PlaybackScrubber({
     super.key,
     this.compact = false,
+    this.compactProgress,
     this.activeColor,
     this.inactiveColor,
     this.labelColor,
   });
+
+  static double expandedLabelHeight(BuildContext context) =>
+      TextMetrics.lineHeight(
+        context,
+        DefaultTextStyle.of(context).style.merge(const TextStyle(fontSize: 11)),
+      );
 
   @override
   State<PlaybackScrubber> createState() => _PlaybackScrubberState();
@@ -44,10 +58,11 @@ class _PlaybackScrubberState extends State<PlaybackScrubber> {
       fontFeatures: const [FontFeature.tabularFigures()],
     );
 
+    final compactness = widget.compactProgress ?? (widget.compact ? 1.0 : 0.0);
     final sliderTheme = SliderTheme.of(context).copyWith(
-      trackHeight: widget.compact ? 3.0 : 3.5,
-      thumbShape: RoundSliderThumbShape(enabledThumbRadius: widget.compact ? 5 : 6),
-      overlayShape: RoundSliderOverlayShape(overlayRadius: widget.compact ? 10 : 14),
+      trackHeight: lerpDouble(3.5, 3, compactness),
+      thumbShape: RoundSliderThumbShape(enabledThumbRadius: lerpDouble(6, 5, compactness)!),
+      overlayShape: RoundSliderOverlayShape(overlayRadius: lerpDouble(14, 10, compactness)!),
       activeTrackColor: widget.activeColor,
       inactiveTrackColor: widget.inactiveColor,
       thumbColor: widget.activeColor,
@@ -75,6 +90,18 @@ class _PlaybackScrubberState extends State<PlaybackScrubber> {
             ),
           );
 
+          final remaining = Duration(milliseconds: (durationMs - valueMs).round().clamp(0, durationMs));
+          if (widget.compactProgress != null) {
+            return _MorphingScrubber(
+              progress: compactness,
+              labelStyle: labelStyle,
+              elapsed: Formatters.formatDuration(shown),
+              remaining: '-${Formatters.formatDuration(remaining)}',
+              total: Formatters.formatDurationMs(durationMs),
+              slider: slider,
+            );
+          }
+
           if (widget.compact) {
             return Row(
               children: [
@@ -93,7 +120,6 @@ class _PlaybackScrubberState extends State<PlaybackScrubber> {
             );
           }
 
-          final remaining = Duration(milliseconds: (durationMs - valueMs).round().clamp(0, durationMs));
           return Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -112,6 +138,88 @@ class _PlaybackScrubberState extends State<PlaybackScrubber> {
           );
         },
       ),
+    );
+  }
+}
+
+/// One slider and stable label subtrees throughout the flight. Reparenting a
+/// Slider between a Column and Row would cancel a live drag and reset its state.
+class _MorphingScrubber extends StatelessWidget {
+  const _MorphingScrubber({
+    required this.progress,
+    required this.labelStyle,
+    required this.elapsed,
+    required this.remaining,
+    required this.total,
+    required this.slider,
+  });
+
+  final double progress;
+  final TextStyle labelStyle;
+  final String elapsed;
+  final String remaining;
+  final String total;
+  final Widget slider;
+
+  @override
+  Widget build(BuildContext context) {
+    final labelHeight = PlaybackScrubber.expandedLabelHeight(context);
+    final painter = TextPainter(
+      text: TextSpan(
+        text: total.length > 5 ? '-00:00:00' : '-00:00',
+        style: DefaultTextStyle.of(context).style.merge(labelStyle),
+      ),
+      textScaler: MediaQuery.textScalerOf(context),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+    )..layout();
+    final labelWidth = math.max(40.0, painter.width);
+    painter.dispose();
+    return LayoutBuilder(
+      builder: (context, box) {
+        final side = math.min(labelWidth, box.maxWidth * 0.35);
+        final inset = (side + 8) * progress;
+        final labelY = lerpDouble(48, (48 - labelHeight) / 2, progress)!;
+        final labelInset = lerpDouble(14, 0, progress)!;
+        return SizedBox(
+          height: 48 + labelHeight * (1 - progress),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned(left: inset, right: inset, top: 0, height: 48, child: slider),
+              Positioned(
+                left: labelInset,
+                top: labelY,
+                width: side,
+                height: labelHeight,
+                child: Align(
+                  alignment: Alignment.lerp(Alignment.centerLeft, Alignment.centerRight, progress)!,
+                  child: Text(elapsed, style: labelStyle, maxLines: 1),
+                ),
+              ),
+              Positioned(
+                right: labelInset,
+                top: labelY,
+                width: side,
+                height: labelHeight,
+                child: Stack(
+                  alignment: Alignment.lerp(Alignment.centerRight, Alignment.centerLeft, progress)!,
+                  children: [
+                    ExcludeSemantics(
+                      excluding: progress >= 0.5,
+                      child: Opacity(opacity: 1 - progress, child: Text(remaining, style: labelStyle, maxLines: 1)),
+                    ),
+                    ExcludeSemantics(
+                      excluding: progress < 0.5,
+                      child: Opacity(opacity: progress, child: Text(total, style: labelStyle, maxLines: 1)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

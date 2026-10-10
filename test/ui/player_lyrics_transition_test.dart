@@ -1,4 +1,5 @@
 import 'package:flutify_app/ui/screens/player/android_player_scene.dart';
+import 'package:flutify_app/ui/screens/player/player_lyrics_motion.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -119,6 +120,7 @@ void main() {
         await tester.pump(const Duration(milliseconds: 3500));
         expect(find.text('Play').hitTestable(), findsNothing);
         final gesture = await tester.startGesture(const Offset(100, 300));
+        await gesture.moveBy(const Offset(0, 60));
         await tester.pump();
         await tester.pump(const Duration(seconds: 5));
         expect(find.text('Play').hitTestable(), findsOneWidget);
@@ -128,7 +130,7 @@ void main() {
           mode.value = true;
           await tester.pump();
         }
-        await gesture.moveTo(const Offset(-20, -20));
+        await gesture.moveTo(const Offset(-20, 420));
         if (cycle == 1) {
           await gesture.cancel();
         } else {
@@ -249,7 +251,7 @@ void main() {
         await tester.pump();
         var previousTop = expanded.top;
         var elapsed = Duration.zero;
-        while (elapsed < const Duration(milliseconds: 300)) {
+        while (elapsed < PlayerLyricsMotion.foldDuration) {
           await tester.pump(step);
           elapsed += step;
           final card = tester.getRect(cardFinder);
@@ -329,7 +331,7 @@ void main() {
   });
 
   testWidgets(
-    'idle hides card and toolbar; first touch wakes without playing',
+    'idle hides card and toolbar; downward swipe reveals without playing',
     (tester) async {
       var presses = 0;
       final mode = await pumpScene(tester, onPlay: () => presses++);
@@ -338,7 +340,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 641));
       final playPosition = tester.getCenter(find.text('Play'));
       await tester.pump(const Duration(milliseconds: 3500));
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(PlayerLyricsMotion.foldDuration);
       expect(find.text('Play').hitTestable(), findsNothing);
       expect(
         find.byKey(const ValueKey('translation')).hitTestable(),
@@ -356,6 +358,10 @@ void main() {
       );
       await tester.pump(const Duration(milliseconds: 300));
       expect(presses, 0);
+      expect(find.text('Play').hitTestable(), findsNothing);
+      await tester.dragFrom(const Offset(100, 300), const Offset(0, 60));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
       expect(find.text('Play').hitTestable(), findsOneWidget);
       expect(
         tester.element(find.byKey(const ValueKey('lyrics'))),
@@ -365,6 +371,91 @@ void main() {
       expect(presses, 1);
     },
   );
+
+  for (final reduced in [false, true]) {
+    testWidgets('folded lyrics only reveal on a downward swipe ($reduced)', (
+      tester,
+    ) async {
+      final mode = await pumpScene(tester, reduceMotion: reduced);
+      mode.value = true;
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 641));
+      await tester.pump(const Duration(milliseconds: 3500));
+      await tester.pump(PlayerLyricsMotion.foldDuration);
+      final card = find.byKey(const ValueKey('lyrics-control-card'));
+      final folded = tester.getRect(card);
+
+      for (final movement in [
+        Offset.zero,
+        const Offset(0, -60),
+        const Offset(60, 4),
+      ]) {
+        final gesture = await tester.startGesture(const Offset(100, 300));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+        expect(tester.getRect(card), folded);
+        await gesture.moveBy(movement);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+        expect(tester.getRect(card), folded);
+        await gesture.up();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+        expect(tester.getRect(card), folded);
+        expect(find.text('Play').hitTestable(), findsNothing);
+      }
+
+      final gesture = await tester.startGesture(const Offset(100, 300));
+      await gesture.moveBy(const Offset(0, 8));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(tester.getRect(card), folded);
+      await gesture.moveBy(const Offset(0, 32));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(tester.getRect(card).top, lessThan(folded.top));
+      expect(find.text('Play').hitTestable(), findsOneWidget);
+      await tester.pump(const Duration(seconds: 5));
+      expect(find.text('Play').hitTestable(), findsOneWidget);
+      await gesture.cancel();
+      await tester.pump(const Duration(milliseconds: 3500));
+      await tester.pump(PlayerLyricsMotion.foldDuration);
+      expect(tester.getRect(card), folded);
+      expect(find.text('Play').hitTestable(), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  for (final reduced in [false, true]) {
+    testWidgets('upward swipes fold the visible lyrics card ($reduced)', (
+      tester,
+    ) async {
+      var lyricDrags = 0;
+      final mode = await pumpScene(
+        tester,
+        reduceMotion: reduced,
+        onLyricsDrag: (_) => lyricDrags++,
+      );
+      mode.value = true;
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 641));
+      final card = find.byKey(const ValueKey('lyrics-control-card'));
+      final expanded = tester.getRect(card);
+      final footer = tester.getRect(find.byKey(const ValueKey('footer')));
+      await tester.dragFrom(const Offset(100, 300), const Offset(0, -60));
+      await tester.pump();
+      await tester.pump(PlayerLyricsMotion.foldDuration);
+      expect(tester.getRect(card).top, footer.top);
+      expect(find.text('Play').hitTestable(), findsNothing);
+      expect(lyricDrags, greaterThan(0));
+      await tester.dragFrom(const Offset(100, 300), const Offset(0, 60));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(tester.getRect(card), expanded);
+      expect(find.text('Play').hitTestable(), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  }
 
   testWidgets('metadata never reverses direction during the card handoff', (
     tester,

@@ -7,17 +7,11 @@ import 'lyrics_disk_cache.dart';
 import 'lyrics_title.dart';
 import 'netease_client.dart';
 import 'translation_merge.dart';
+import 'translation_source.dart';
 
 /// 一次译文查询的结果：[lines] 为 null 表示没找到（含「这首歌没有译文」这种确定结果）；
 /// [networkError] 表示没找到可能只是网络问题，调用方不缓存本次结果。
-class NeteaseTranslationLookup {
-  /// 与查询时的原文行**按下标一一对应**（等长；没配上译文的行 words 为空串，时间轴取原文行的）。
-  /// 按下标而不是按时间对齐：两句原文时间戳相同时不能共用一条译文。
-  final List<LyricLine>? lines;
-  final bool networkError;
-
-  const NeteaseTranslationLookup(this.lines, {this.networkError = false});
-}
+typedef NeteaseTranslationLookup = TranslationSourceLookup;
 
 /// 从网易云音乐补译文（社区翻译 `tlyric`，带时间轴）：只取译文，原文仍以 Spotify / LRCLIB 为准。
 ///
@@ -31,10 +25,14 @@ class NeteaseTranslationLookup {
 ///    整体偏移，再按偏移校正后的时间就近挑，某次副歌缺译文时不会把后面的译文整体前移；
 /// 2. 时间近邻兜底：没锚上的译文按（偏移校正后）±1.5 秒就近贴到还没译文的原文行；
 /// 3. 原文匹配率低于 [_minCoverage] 视为歌配错了，全盘放弃；原样外语不冒充中文译文。
-class NeteaseTranslationSource {
+class NeteaseTranslationSource implements TranslationSource {
+  @override
+  LyricsProvider get provider => LyricsProvider.netease;
+
   final NeteaseClient _client;
 
   /// 本地缓存（可空：测试或不需要持久化时），存的是网易云的 `lrc` / `tlyric` 原文。
+  @override
   final LyricsDiskCache? cache;
   final Future<void> Function(Duration) _sleep;
 
@@ -58,10 +56,12 @@ class NeteaseTranslationSource {
       : 'netease|v3|${q.title} ${q.artist}';
 
   /// 删除这首歌的本地译文缓存（「重新获取歌词」）。
+  @override
   Future<void> forget(LyricsQuery cacheKeyHint) async =>
       cache?.remove(cacheKey(cacheKeyHint));
 
   /// 为 [originals] 查译文；返回的译文行与 [originals] 按下标一一对应（见 [NeteaseTranslationLookup.lines]）。
+  @override
   Future<NeteaseTranslationLookup> find(
     LyricsQuery query,
     List<LyricLine> originals,

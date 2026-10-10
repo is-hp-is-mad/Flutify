@@ -22,6 +22,7 @@ import 'package:flutify_app/ui/screens/player/player_destinations_sheet.dart';
 import 'package:flutify_app/ui/widgets/marquee_text.dart';
 import 'package:flutify_app/ui/widgets/cover_image.dart';
 import 'package:flutify_app/ui/widgets/player_controls.dart';
+import 'package:flutify_app/ui/widgets/playback_scrubber.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -79,6 +80,7 @@ _open(
   SpotifyTrack track = _track,
   bool lyrics = true,
   double width = 390,
+  double height = 844,
   Map<String, Future<SpotifyArtist>> artistDetails = const {},
 }) async {
   debugDefaultTargetPlatformOverride = TargetPlatform.android;
@@ -86,7 +88,7 @@ _open(
   final paletteEnabled = ArtworkPalette.enabled;
   ArtworkPalette.enabled = false;
   addTearDown(() => ArtworkPalette.enabled = paletteEnabled);
-  tester.view.physicalSize = Size(width, 844);
+  tester.view.physicalSize = Size(width, height);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
   SharedPreferences.setMockInitialValues({});
@@ -148,6 +150,118 @@ Future<void> _unmount(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets(
+    'details controls keep their original style and morph into the card',
+    (tester) async {
+      final session = await _open(tester, lyrics: false);
+      final play = _inPlayer(find.byType(PlayPauseButton));
+      final scrubber = _inPlayer(find.byType(PlaybackScrubber));
+      final slider = find.descendant(
+        of: scrubber,
+        matching: find.byType(Slider),
+      );
+      final label = find.descendant(of: scrubber, matching: find.text('0:30'));
+      final playElement = tester.element(play);
+      final sliderElement = tester.element(slider);
+      final scrubberState = tester.state(scrubber);
+      final detail = tester.widget<PlayPauseButton>(play);
+      expect(detail.size, 60);
+      expect(detail.iconSize, 34);
+      expect(detail.background, Colors.white);
+      expect(detail.foreground, Colors.black);
+      expect(detail.backgroundAnimationDuration, Duration.zero);
+      expect(
+        tester.getCenter(label).dy,
+        greaterThan(tester.getCenter(slider).dy + 20),
+      );
+      final detailSlider = tester.getRect(slider);
+
+      await tester.tap(_inPlayer(find.byTooltip('歌词')));
+      await tester.pump();
+      expect(
+        tester.widget<PlayPauseButton>(play).size,
+        60,
+        reason: 'no click-frame style jump',
+      );
+      await tester.pump(const Duration(milliseconds: 120));
+      final moving = tester.widget<PlayPauseButton>(play);
+      expect(moving.size, inExclusiveRange(52, 60));
+      expect(moving.iconSize, inExclusiveRange(34, 44));
+      expect(moving.background.a, inExclusiveRange(0, 1));
+      expect(tester.getRect(slider).width, lessThan(detailSlider.width));
+      final beforeReverse = tester.getRect(slider);
+      await tester.tap(_inPlayer(find.byTooltip('歌词')));
+      await tester.pump();
+      expect(tester.getRect(slider), rectMoreOrLessEquals(beforeReverse));
+      await _frames(tester);
+      expect(tester.widget<PlayPauseButton>(play).background, Colors.white);
+
+      await tester.tap(_inPlayer(find.byTooltip('歌词')));
+      await _frames(tester);
+      final card = tester.widget<PlayPauseButton>(play);
+      expect(card.size, 52);
+      expect(card.iconSize, 44);
+      expect(card.background.a, 0);
+      expect(card.foreground, Colors.white);
+      expect(
+        tester.getCenter(label).dy,
+        closeTo(tester.getCenter(slider).dy, 0.1),
+      );
+      expect(tester.element(play), same(playElement));
+      expect(tester.element(slider), same(sliderElement));
+      expect(tester.state(scrubber), same(scrubberState));
+      expect(session.audio.seeks, isEmpty);
+      expect(session.playback.isPlaying, isTrue);
+      expect(tester.takeException(), isNull);
+      await _unmount(tester);
+    },
+  );
+
+  for (final size in [const Size(320, 568), const Size(740, 390)]) {
+    testWidgets(
+      'real controls reflow and reverse from idle at $size with 2x text',
+      (tester) async {
+        tester.platformDispatcher.textScaleFactorTestValue = 2;
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+        await _open(
+          tester,
+          lyrics: false,
+          width: size.width,
+          height: size.height,
+        );
+        final play = _inPlayer(find.byType(PlayPauseButton));
+        final slider = _inPlayer(find.byType(Slider));
+        final playElement = tester.element(play);
+        final sliderElement = tester.element(slider);
+        await tester.tap(_inPlayer(find.byTooltip('歌词')));
+        await tester.pump();
+        for (var frame = 0; frame < 40; frame++) {
+          await tester.pump(const Duration(milliseconds: 16));
+          expect(tester.element(slider), same(sliderElement));
+          expect(tester.getRect(play).right, lessThanOrEqualTo(size.width));
+          expect(tester.getRect(play).bottom, lessThan(size.height));
+          expect(tester.takeException(), isNull);
+        }
+        // Let the last animation tick settle before starting the idle clock.
+        await tester.pump(const Duration(milliseconds: 16));
+        await tester.pump(const Duration(seconds: 4));
+        await _frames(tester, 4);
+        expect(play.hitTestable(), findsNothing);
+        await tester.tap(_inPlayer(find.byTooltip('歌词')));
+        await tester.pump();
+        for (var frame = 0; frame < 40; frame++) {
+          await tester.pump(const Duration(milliseconds: 16));
+          expect(tester.element(play), same(playElement));
+          expect(tester.takeException(), isNull);
+        }
+        expect(play.hitTestable(), findsOneWidget);
+        await tester.pump(const Duration(milliseconds: 16));
+        expect(tester.widget<PlayPauseButton>(play).size, 60);
+        await _unmount(tester);
+      },
+    );
+  }
+
   for (final width in [320.0, 390.0, 430.0]) {
     testWidgets('folded footer blank space only reveals the card at $width', (
       tester,
@@ -237,8 +351,6 @@ void main() {
         final titleElement = tester.element(title);
         final artistElement = tester.element(artist);
         final originalSize = tester.widget<MarqueeText>(title).style!.fontSize!;
-        final artistTop = tester.getTopLeft(artist).dy;
-        final originalTitleRect = tester.getRect(title);
         final originalArtistRect = tester.getRect(artist);
         final cover = _inPlayer(find.byType(Hero));
         final largeCover = tester.getRect(cover);
@@ -252,7 +364,7 @@ void main() {
         );
         expect(tester.element(title), same(titleElement));
         expect(tester.element(artist), same(artistElement));
-        final samples = <(double, Rect)>[];
+        final samples = <(double, Rect, Rect)>[];
         for (var frame = 0; frame < 40; frame++) {
           await tester.pump(const Duration(milliseconds: 16));
           final progress = tester
@@ -264,24 +376,28 @@ void main() {
             tester.widget<MarqueeText>(title).style!.fontSize,
             closeTo(originalSize * (1 - 0.35 * progress), 0.001),
           );
-          expect(
-            tester.getTopLeft(artist).dy,
-            closeTo(artistTop, 0.001),
-            reason:
-                'artist baseline at frame $frame, progress $progress: '
-                'title $originalTitleRect -> ${tester.getRect(title)}; '
-                'artist $originalArtistRect -> ${tester.getRect(artist)}; '
-                'height ${tester.widget<MarqueeText>(title).style!.height}',
-          );
           expect(tester.element(title), same(titleElement));
           expect(tester.element(artist), same(artistElement));
-          samples.add((progress, tester.getRect(cover)));
+          samples.add((
+            progress,
+            tester.getRect(cover),
+            tester.getRect(artist),
+          ));
         }
         final smallCover = tester.getRect(cover);
-        for (final (progress, rect) in samples) {
+        final cardArtistRect = tester.getRect(artist);
+        for (final (progress, rect, artistRect) in samples) {
           expect(
             rect,
             rectMoreOrLessEquals(Rect.lerp(largeCover, smallCover, progress)!),
+          );
+          expect(
+            artistRect,
+            rectMoreOrLessEquals(
+              Rect.lerp(originalArtistRect, cardArtistRect, progress)!,
+            ),
+            reason:
+                'artist travels with controls; its baseline must not jump during reflow',
           );
         }
 

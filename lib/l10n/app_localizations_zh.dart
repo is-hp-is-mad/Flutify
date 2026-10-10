@@ -971,6 +971,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get lyricsTranslationFromNetease => '译词来自网易云音乐社区';
 
   @override
+  String get lyricsTranslationFromQqMusic => '译词来自 QQ 音乐';
+
+  @override
   String get settingsLyricsSize => '歌词字号';
 
   @override
@@ -1004,7 +1007,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsLyricsBilingualSubtitle =>
-      '加载歌词时预取中文译词，也供任务栏歌词使用。关闭后仍可通过翻译按钮或自动翻译查找译词；查询会发送曲名与歌手到网易云音乐。';
+      '加载歌词时预取中文译词，优先 QQ 音乐，缺失或不完整时查网易云，启用补全时最后查 LRCLIB，也供任务栏歌词使用。关闭后仍可手动或自动查询；曲名与歌手会发送到查询来源。';
 
   @override
   String get settingsTaskbarLyricsSection => '任务栏歌词';
@@ -1549,7 +1552,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsLyricsAutoTranslateSubtitle =>
-      '自动查找歌词源已有的译文。中文译词会按曲名、歌手查询网易云；启用 LRCLIB 补全时也会查找对照版。简繁体跟随界面。';
+      '自动查找已有译文。中文译词按曲名、歌手优先查询 QQ 音乐，缺失或不完整时查网易云，启用补全时最后查 LRCLIB；只采用不丢失已译行的更完整版本。简繁体跟随界面。';
 
   @override
   String get settingsLyricsExcludeInterface => '不自动翻译界面语言';
@@ -2719,6 +2722,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get lyricsTranslationFromNetease => '譯詞來自網易雲音樂社群';
 
   @override
+  String get lyricsTranslationFromQqMusic => '譯詞來自 QQ 音樂';
+
+  @override
   String get settingsLyricsSize => '歌詞字號';
 
   @override
@@ -2752,7 +2758,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get settingsLyricsBilingualSubtitle =>
-      '載入歌詞時預先取得中文譯詞，也供工作列歌詞使用。關閉後仍可透過翻譯按鈕或自動翻譯尋找譯詞；查詢會傳送曲名與歌手至網易雲音樂。';
+      '載入歌詞時預先取得中文譯詞，優先 QQ 音樂，缺失或不完整時查網易雲，啟用補全時最後查 LRCLIB，也供工作列歌詞使用。關閉後仍可手動或自動查詢；曲名與歌手會傳送至查詢來源。';
 
   @override
   String get settingsTaskbarLyricsSection => '任務欄歌詞';
@@ -3296,7 +3302,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get settingsLyricsAutoTranslateSubtitle =>
-      '自動尋找歌詞來源已有的譯文。中文譯詞會依曲名、歌手查詢網易雲；啟用 LRCLIB 補全時也會尋找對照版。簡繁體跟隨介面。';
+      '自動尋找已有譯文。中文譯詞依曲名、歌手優先查詢 QQ 音樂，缺失或不完整時查網易雲，啟用補全時最後查 LRCLIB；只採用不遺失已譯行的更完整版本。簡繁體跟隨介面。';
 
   @override
   String get settingsLyricsExcludeInterface => '不自動翻譯界面語言';

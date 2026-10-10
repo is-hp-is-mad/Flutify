@@ -199,7 +199,7 @@ void main() {
             .element(find.byType(LyricsTranslationButton))
             .read<LyricsTranslationController>();
         await tester.pump(const Duration(seconds: 4));
-        await _frames(tester, 4);
+        await _frames(tester, 5);
         expect(
           find.byType(LyricsTranslationButton).hitTestable(),
           findsNothing,
@@ -211,13 +211,94 @@ void main() {
           findsOneWidget,
           reason: 'the bottom lyrics/device/queue row survives folding',
         );
+        final deviceButton = tester.getRect(
+          find
+              .ancestor(
+                of: find.descendant(
+                  of: player,
+                  matching: find.byIcon(Icons.devices_rounded),
+                ),
+                matching: find.byType(InkWell),
+              )
+              .first,
+        );
+        final lyricsButton = tester.getRect(
+          find.descendant(of: player, matching: find.byTooltip('歌词')),
+        );
+        await tester.tapAt(
+          Offset(
+            (deviceButton.right + lyricsButton.left) / 2,
+            lyricsButton.center.dy,
+          ),
+        );
+        await _frames(tester, 4);
+        expect(
+          tester.getRect(find.byKey(const ValueKey('lyrics-control-card'))),
+          card,
+        );
+        expect(tester.state(find.byType(LyricsView)), same(lyricsState));
+        expect(
+          find.byType(LyricsTranslationButton).hitTestable(),
+          findsOneWidget,
+          reason: 'the folded footer blank space still reveals the card',
+        );
+        await tester.pump(const Duration(seconds: 4));
+        await _frames(tester, 5);
         playback.positionNotifier.value = const Duration(seconds: 24);
         await _frames(tester, 4);
         expect(
           find.byType(LyricsTranslationButton).hitTestable(),
           findsNothing,
         );
+        final scrollable = tester.state<ScrollableState>(
+          find.descendant(
+            of: find.byType(LyricsView),
+            matching: find.byType(Scrollable),
+          ),
+        );
+        final beforeUpwardSwipe = scrollable.position.pixels;
         await tester.dragFrom(const Offset(100, 300), const Offset(0, -60));
+        await _frames(tester, 4);
+        expect(scrollable.position.pixels, greaterThan(beforeUpwardSwipe));
+        expect(
+          find.byType(LyricsTranslationButton).hitTestable(),
+          findsNothing,
+          reason: 'upward lyric browsing must leave the card folded',
+        );
+        final beforeDownwardSwipe = scrollable.position.pixels;
+        await tester.dragFrom(const Offset(100, 300), const Offset(0, 60));
+        await _frames(tester, 4);
+        expect(scrollable.position.pixels, lessThan(beforeDownwardSwipe));
+        expect(
+          find.byType(LyricsTranslationButton).hitTestable(),
+          findsOneWidget,
+        );
+        expect(tester.state(find.byType(LyricsView)), lyricsState);
+        expect(
+          tester
+              .element(find.byType(LyricsTranslationButton))
+              .read<LyricsTranslationController>(),
+          same(translationController),
+        );
+        final beforeActiveUpwardSwipe = scrollable.position.pixels;
+        await tester.dragFrom(const Offset(100, 300), const Offset(0, -60));
+        await _frames(tester, 5);
+        expect(
+          scrollable.position.pixels,
+          greaterThan(beforeActiveUpwardSwipe),
+        );
+        final foldedCard = tester.getRect(
+          find.byKey(const ValueKey('lyrics-control-card')),
+        );
+        expect(foldedCard.top, greaterThan(card.top));
+        expect(foldedCard.bottom, closeTo(card.bottom, 0.01));
+        expect(
+          find.byType(LyricsTranslationButton).hitTestable(),
+          findsNothing,
+          reason: 'upward lyric browsing actively folds a visible card',
+        );
+        expect(tester.state(find.byType(LyricsView)), lyricsState);
+        await tester.dragFrom(const Offset(100, 300), const Offset(0, 60));
         await _frames(tester, 4);
         expect(
           find.byType(LyricsTranslationButton).hitTestable(),
@@ -231,7 +312,7 @@ void main() {
           same(translationController),
         );
         await tester.pump(const Duration(milliseconds: 3500));
-        await _frames(tester, 4);
+        await _frames(tester, 5);
         expect(
           find.byType(LyricsTranslationButton).hitTestable(),
           findsNothing,

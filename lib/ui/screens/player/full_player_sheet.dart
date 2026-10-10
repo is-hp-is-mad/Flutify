@@ -1,3 +1,5 @@
+import 'dart:ui' show lerpDouble;
+
 import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -378,12 +380,16 @@ class _FullPlayerSheetState extends State<FullPlayerSheet> {
           track: track,
           compact: true,
           lyricsProgress: progress,
-          onTap: _view == _PlayerView.lyrics
+          onTap: _view != _PlayerView.artwork
               ? () => _showDestinations(context, track)
               : null,
         ),
       ),
-      controls: PlayerExpansionReveal(
+      controlsHeightReduction: remote
+          ? 0
+          : PlaybackScrubber.expandedLabelHeight(context) + 8,
+      footerHeightReduction: 12,
+      controlsBuilder: (context, progress) => PlayerExpansionReveal(
         animation: widget.expansionAnimation,
         opacityKey: const ValueKey('player-expansion-controls'),
         child: _ControlsGroup(
@@ -391,12 +397,16 @@ class _FullPlayerSheetState extends State<FullPlayerSheet> {
           glass: false,
           remote: remote,
           showTitle: false,
-          compact: true,
+          lyricsProgress: progress,
         ),
       ),
-      footer: PlayerExpansionReveal(
+      footerBuilder: (context, progress) => PlayerExpansionReveal(
         animation: widget.expansionAnimation,
-        child: _BottomBar(view: _view, onToggle: _toggle, compact: true),
+        child: _BottomBar(
+          view: _view,
+          onToggle: _toggle,
+          lyricsProgress: progress,
+        ),
       ),
       artworkBuilder: (context, size, progress) => PlayerArtworkHero(
         imageUrl: track.coverUrl,
@@ -475,33 +485,37 @@ class _ControlsGroup extends StatelessWidget {
   final bool glass;
   final bool remote;
   final bool showTitle;
-  final bool compact;
+  final double? lyricsProgress;
 
   const _ControlsGroup({
     required this.track,
     required this.glass,
     required this.remote,
     this.showTitle = true,
-    this.compact = false,
+    this.lyricsProgress,
   });
 
   @override
   Widget build(BuildContext context) {
+    final compactness = lyricsProgress ?? 0.0;
     final content = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         if (showTitle) _TitleRow(track: track),
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: compact ? 4 : 16),
+          padding: EdgeInsets.symmetric(
+            horizontal: lerpDouble(16, 4, compactness)!,
+          ),
           child: remote
               ? RemoteScrubber(
-                  compact: compact,
+                  compact: false,
+                  compactProgress: lyricsProgress,
                   activeColor: Colors.white,
                   inactiveColor: Colors.white24,
                   labelColor: Colors.white60,
                 )
               : PlaybackScrubber(
-                  compact: compact,
+                  compactProgress: lyricsProgress,
                   activeColor: Colors.white,
                   inactiveColor: Colors.white24,
                   labelColor: Colors.white60,
@@ -509,7 +523,9 @@ class _ControlsGroup extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: compact ? 8 : 20),
+          padding: EdgeInsets.symmetric(
+            horizontal: lerpDouble(20, 8, compactness)!,
+          ),
           child: remote
               ? const RemoteTransportControls(
                   showModes: true,
@@ -521,10 +537,19 @@ class _ControlsGroup extends StatelessWidget {
                     const ShuffleButton(),
                     const SkipButton(next: false),
                     PlayPauseButton(
-                      size: compact ? 52 : 60,
-                      iconSize: compact ? 44 : 34,
-                      background: compact ? Colors.transparent : Colors.white,
-                      foreground: compact ? Colors.white : Colors.black,
+                      size: lerpDouble(60, 52, compactness)!,
+                      iconSize: lerpDouble(34, 44, compactness)!,
+                      background: Colors.white.withValues(
+                        alpha: 1 - compactness,
+                      ),
+                      foreground: Color.lerp(
+                        Colors.black,
+                        Colors.white,
+                        compactness,
+                      )!,
+                      backgroundAnimationDuration: lyricsProgress == null
+                          ? kThemeChangeDuration
+                          : Duration.zero,
                     ),
                     const SkipButton(next: true),
                     const RepeatButton(),
@@ -857,12 +882,12 @@ class _NothingPlaying extends StatelessWidget {
 class _BottomBar extends StatelessWidget {
   final _PlayerView view;
   final ValueChanged<_PlayerView> onToggle;
-  final bool compact;
+  final double? lyricsProgress;
 
   const _BottomBar({
     required this.view,
     required this.onToggle,
-    this.compact = false,
+    this.lyricsProgress,
   });
 
   @override
@@ -902,9 +927,11 @@ class _BottomBar extends StatelessWidget {
     }
 
     return Padding(
-      padding: compact
-          ? const EdgeInsets.symmetric(horizontal: 8)
-          : const EdgeInsets.fromLTRB(20, 4, 12, 8),
+      padding: EdgeInsets.lerp(
+        const EdgeInsets.fromLTRB(20, 4, 12, 8),
+        const EdgeInsets.symmetric(horizontal: 8),
+        lyricsProgress ?? 0,
+      )!,
       child: Row(
         children: [
           Expanded(

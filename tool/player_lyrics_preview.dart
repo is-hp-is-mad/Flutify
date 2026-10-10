@@ -82,7 +82,20 @@ Future<void> main() async {
     FakeSpotifyApiService(storage, lyricsById: {track.id: lyrics}),
     storage,
   );
-  await playback.playTrack(track);
+  await playback.playTrack(
+    track,
+    contextQueue: [
+      track,
+      for (var i = 1; i <= 12; i++)
+        SpotifyTrack(
+          id: 'queue-preview-$i',
+          name: 'Night Walk · 预览曲目 $i',
+          artists: track.artists,
+          album: track.album,
+          durationMs: 180000,
+        ),
+    ],
+  );
   audio.durationController.add(audio.duration);
   audio.stateController.add(PlayerState(true, ProcessingState.ready));
   Timer.periodic(const Duration(milliseconds: 250), (_) => audio.advance());

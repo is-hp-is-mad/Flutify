@@ -24,6 +24,13 @@ import 'http_range_audio.dart';
 class _StreamingDownloadHandle {
   final Completer<void> _ready = Completer<void>();
   Future<void> get readyForPlayback => _ready.future;
+  final Completer<void> _done = Completer<void>();
+  Future<void> get done => _done.future;
+
+  _StreamingDownloadHandle() {
+    // 可能在可起播之前失败，此时还没有 LoadedAudio 的消费者监听完成信号。
+    done.ignore();
+  }
 }
 
 /// EME（Widevine）曲目音频来源：track-playback 取 MP4 → sneaktables 取 HLS 清单 →
@@ -45,6 +52,10 @@ class EmeTrackAudioSource implements TrackAudioSource, AudioCacheStore {
   bool _trimRequested = false;
   bool _disposed = false;
 
+  /// 仅保留下一首的已解析音源，切歌不再重复请求 track-playback / HLS。
+  LoadedAudio? _prefetchedAudio;
+  int _prefetchGeneration = 0;
+
   bool isCacheFileInUse(String path) {
     final audio = path.endsWith('.done')
         ? path.substring(0, path.length - 5)
@@ -54,6 +65,7 @@ class EmeTrackAudioSource implements TrackAudioSource, AudioCacheStore {
     final current = playingPath?.call();
     _recentPaths.removeWhere((_, until) => until.isBefore(DateTime.now()));
     return (current != null && p.equals(audio, current)) ||
+        (_prefetchedAudio != null && p.equals(audio, _prefetchedAudio!.path)) ||
         _loadingPaths.contains(audio) ||
         _recentPaths.containsKey(audio) ||
         StreamingDownloads.of(audio) != null;
@@ -115,7 +127,11 @@ class EmeTrackAudioSource implements TrackAudioSource, AudioCacheStore {
   Future<LoadedAudio> load(
     String trackIdOrUri, {
     void Function(double progress)? progress,
-  }) => _loadUri(trackIdOrUri, progress, streaming: false);
+  }) async {
+    final audio = await _loadUri(trackIdOrUri, progress, streaming: false);
+    await audio.downloadComplete;
+    return audio;
+  }
 
   Future<LoadedAudio> _loadUri(
     String trackIdOrUri,
@@ -126,18 +142,51 @@ class EmeTrackAudioSource implements TrackAudioSource, AudioCacheStore {
     final episode =
         trackIdOrUri.startsWith('spotify:episode:') ||
         trackIdOrUri.contains('/episode/');
+    // 复用预取 / 进行中的下载前，仍检查已有的 Web 登录前提。
+    if (!episode && webSessionReady?.call() == false) {
+      return Future.error(
+        const TrackPlaybackException(
+          TrackPlaybackFailure.webSignInRequired,
+          '全曲播放需要先完成 Web 登录',
+        ),
+      );
+    }
     final key =
-        'eme:${episode ? 'episode' : 'track'}:${id.toBase62()}:${episode && streaming}';
+        '${_dir.path}:eme:${episode ? 'episode' : 'track'}:${id.toBase62()}:${episode && streaming}';
+    final prepared = _prefetchedAudio;
+    if (!episode && prepared?.trackId == id.toBase62()) {
+      final download = StreamingDownloads.of(prepared!.path);
+      if (p.equals(p.dirname(prepared.path), _dir.path) &&
+          prepared.file.existsSync() &&
+          prepared.file.lengthSync() > 0 &&
+          ((download != null && download.error == null) ||
+              File('${prepared.path}.done').existsSync())) {
+        progress?.call(1);
+        return Future.value(prepared);
+      }
+      _prefetchedAudio = null;
+    }
     return _inFlight.putIfAbsent(key, () async {
+      LoadedAudio? audio;
       try {
-        return await _load(
+        audio = await _load(
           id,
           progress,
           episode: episode,
           streaming: streaming,
         );
+        // 首段就绪不代表下载结束：继续合并点播与预取，避免重开并截断同一文件。
+        audio.downloadComplete?.then<void>(
+          (_) {
+            _inFlight.remove(key);
+          },
+          onError: (Object _) {
+            _inFlight.remove(key);
+          },
+        );
+        return audio;
       } finally {
-        _inFlight.remove(key);
+        if (audio?.downloadComplete == null) _inFlight.remove(key);
       }
     });
   }
@@ -149,13 +198,6 @@ class EmeTrackAudioSource implements TrackAudioSource, AudioCacheStore {
     required bool streaming,
   }) async {
     debugPrint('[eme-src] 开始加载 ${id.toBase62()}');
-    // 缺 sp_dc 时铸不出 Web token，license 必失败；在下载前直接报「需要 Web 登录」
-    if (!episode && webSessionReady?.call() == false) {
-      throw const TrackPlaybackException(
-        TrackPlaybackFailure.webSignInRequired,
-        '全曲播放需要先完成 Web 登录',
-      );
-    }
     // 1) track-playback 取 MP4 文件清单
     progress?.call(0.05);
     final TrackPlaybackMedia media;
@@ -286,10 +328,12 @@ class EmeTrackAudioSource implements TrackAudioSource, AudioCacheStore {
       }
 
       // 3) 下载加密 m4a：完整缓存命中直接用；否则后台下载、init 段就绪即返回（流式起播）
+      Future<void>? downloadComplete;
       if (cdnUrls != null) {
         progress?.call(0.25);
         // 后台下载；init 段 + 首段就绪即返回，剩余边下边播
         final dl = _startStreamingDownload(cdnUrls, dest, doneMarker, progress);
+        downloadComplete = dl.done;
         await dl.readyForPlayback; // 等到可起播的字节数
         debugPrint('[eme-src] init 段就绪，流式起播（后台继续下载）');
       } else {
@@ -314,6 +358,7 @@ class EmeTrackAudioSource implements TrackAudioSource, AudioCacheStore {
         ),
         durationMs: media.durationMs > 0 ? media.durationMs : null,
         trackId: id.toBase62(),
+        downloadComplete: downloadComplete,
         emeContent: EmeTrackContent(
           m4aPath: dest.path,
           m3u8: m3u8,
@@ -371,10 +416,12 @@ class EmeTrackAudioSource implements TrackAudioSource, AudioCacheStore {
         await doneMarker.writeAsString('${dest.lengthSync()}');
         if (!handle._ready.isCompleted) handle._ready.complete();
         registration.finish();
+        handle._done.complete();
         debugPrint('[eme-src] 下载完成 ${dest.lengthSync()}B');
       } catch (e) {
         debugPrint('[eme-src] 流式下载失败: $e');
         registration.finish(e);
+        handle._done.completeError(e);
         if (!handle._ready.isCompleted) {
           handle._ready.completeError(
             TrackPlaybackException(
@@ -407,12 +454,21 @@ class EmeTrackAudioSource implements TrackAudioSource, AudioCacheStore {
   @override
   Future<void> prefetch(String trackIdOrUri) async {
     // Long episodes are read on demand; do not download the next whole episode.
-    if (trackIdOrUri.contains(':episode:') ||
-        trackIdOrUri.contains('/episode/'))
+    if (_disposed ||
+        trackIdOrUri.contains(':episode:') ||
+        trackIdOrUri.contains('/episode/')) {
       return;
+    }
+    final generation = ++_prefetchGeneration;
     try {
-      await load(trackIdOrUri);
-    } catch (_) {}
+      final audio = await open(trackIdOrUri);
+      if (!_disposed && generation == _prefetchGeneration) {
+        _prefetchedAudio = audio;
+      }
+      await audio.downloadComplete;
+    } catch (_) {
+      if (generation == _prefetchGeneration) _prefetchedAudio = null;
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -522,6 +578,8 @@ class EmeTrackAudioSource implements TrackAudioSource, AudioCacheStore {
 
   void dispose() {
     _disposed = true;
+    ++_prefetchGeneration;
+    _prefetchedAudio = null;
     _trimTimer?.cancel();
     _client.close();
   }

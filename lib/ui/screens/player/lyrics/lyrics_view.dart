@@ -988,11 +988,15 @@ class _LyricsViewState extends State<LyricsView>
                             ),
                           ),
                         ),
-                      if (_translationIsCurrent && _translation.fromNetease)
+                      if (_translationIsCurrent &&
+                          (_translation.fromNetease ||
+                              _translation.fromQqMusic))
                         Padding(
                           padding: const EdgeInsets.only(top: 28),
                           child: Text(
-                            context.l10n.lyricsTranslationFromNetease,
+                            _translation.fromQqMusic
+                                ? context.l10n.lyricsTranslationFromQqMusic
+                                : context.l10n.lyricsTranslationFromNetease,
                             style: const TextStyle(
                               color: Colors.white54,
                               fontSize: 12,

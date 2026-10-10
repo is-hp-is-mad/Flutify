@@ -3,6 +3,8 @@ import 'dart:ui' show lerpDouble;
 
 import 'package:flutter/widgets.dart';
 
+import 'player_lyrics_motion.dart';
+
 enum PlayerSceneSlot {
   top,
   title,
@@ -52,11 +54,19 @@ class PlayerLyricsLayout extends MultiChildLayoutDelegate {
     required this.progress,
     required this.chrome,
     required this.geometry,
+    this.controlsHeightReduction = 0,
+    this.footerHeightReduction = 0,
+    this.lyricsProgress,
+    this.queueProgress = 0,
   });
 
   final double progress;
   final double chrome;
   final PlayerLyricsGeometry geometry;
+  final double controlsHeightReduction;
+  final double footerHeightReduction;
+  final double? lyricsProgress;
+  final double queueProgress;
 
   void _position(PlayerSceneSlot slot, Offset position) {
     geometry._positions[slot] = position;
@@ -74,6 +84,9 @@ class PlayerLyricsLayout extends MultiChildLayoutDelegate {
         : math.max(0.0, width - margin * 2);
     final cardLeft = width - margin - cardWidth;
     final contentWidth = landscape ? cardLeft - margin : width;
+    final detailWidth = landscape ? cardWidth : width;
+    final detailLeft = landscape ? cardLeft : 0.0;
+    final controlsWidth = lerpDouble(detailWidth, cardWidth, progress)!;
     // Rows containing a Column must receive an unbounded vertical constraint
     // while measuring, just as they did inside the original player Column.
     const loose = BoxConstraints();
@@ -81,25 +94,28 @@ class PlayerLyricsLayout extends MultiChildLayoutDelegate {
     _position(PlayerSceneSlot.top, Offset.zero);
     final footer = layoutChild(
       PlayerSceneSlot.footer,
-      loose.tighten(width: cardWidth),
+      loose.tighten(width: controlsWidth),
     );
     final controls = layoutChild(
       PlayerSceneSlot.controls,
-      loose.tighten(width: cardWidth),
+      loose.tighten(width: controlsWidth),
     );
     final coverSize = width < 360 ? 56.0 : 64.0;
-    final footerY = size.height - 8 - footer.height;
-    final controlsY = footerY - controls.height;
+    // Recover both endpoint heights from the current, interpolated children.
+    // Using their live height as BOTH endpoints makes the cover/text destination
+    // drift while the scrubber compacts, creating a visible bend or reversal.
+    final detailFooterHeight = footer.height + progress * footerHeightReduction;
+    final cardFooterHeight = detailFooterHeight - footerHeightReduction;
+    final detailControlsHeight =
+        controls.height + progress * controlsHeightReduction;
+    final cardControlsHeight = detailControlsHeight - controlsHeightReduction;
+    final detailFooterY = size.height - detailFooterHeight;
+    final cardFooterY = size.height - 8 - cardFooterHeight;
+    final detailControlsY = detailFooterY - detailControlsHeight;
+    final cardControlsY = cardFooterY - cardControlsHeight;
+    final footerY = lerpDouble(detailFooterY, cardFooterY, progress)!;
+    final controlsY = lerpDouble(detailControlsY, cardControlsY, progress)!;
     final contentTop = top.height + 8;
-    double contentHeightFor(double headerHeight) => math.max(
-      0.0,
-      (landscape ? size.height - 16 : controlsY - 8 - headerHeight - 24) -
-          contentTop,
-    );
-    final largeSizeLimit = math.min(
-      math.min(contentWidth * 0.86, 400.0),
-      contentHeightFor(coverSize) * 0.9,
-    );
     // Metadata shares the cover's eased progress without a second timing curve
     // or a moving destination. It must never overshoot and then slide back.
     final titleStart = landscape ? cardLeft + inset : 24.0;
@@ -110,37 +126,65 @@ class PlayerLyricsLayout extends MultiChildLayoutDelegate {
     )!;
     final title = layoutChild(
       PlayerSceneSlot.title,
-      loose.tighten(width: math.max(0, width - titleLeft - 24)),
+      loose.tighten(
+        width: math.max(0, width - titleLeft - lerpDouble(12, 24, progress)!),
+      ),
     );
     final headerHeight = math.max(coverSize, title.height);
     geometry._footerTop = footerY;
-    final headerY = controlsY - 8 - headerHeight;
+    final detailTitleY = detailControlsY - 8 - title.height;
+    final headerY = cardControlsY - 8 - headerHeight;
     final surfaceY = headerY - inset;
-    final hiddenOffset = (footerY - surfaceY) * progress * (1 - chrome);
+    final hiddenOffset = (cardFooterY - surfaceY) * progress * (1 - chrome);
     geometry._retracting = hiddenOffset > 0;
-    final surface = Rect.fromLTWH(
-      cardLeft,
-      surfaceY + hiddenOffset,
-      cardWidth,
-      size.height - 8 - surfaceY - hiddenOffset,
+    final surface = Rect.lerp(
+      Rect.fromLTRB(
+        detailLeft,
+        detailTitleY - 8,
+        detailLeft + detailWidth,
+        size.height,
+      ),
+      Rect.fromLTRB(cardLeft, surfaceY, cardLeft + cardWidth, size.height - 8),
+      progress,
+    )!;
+    final visibleSurface = Rect.fromLTRB(
+      surface.left,
+      surface.top + hiddenOffset,
+      surface.right,
+      surface.bottom,
     );
-    layoutChild(PlayerSceneSlot.surface, BoxConstraints.tight(surface.size));
-    _position(PlayerSceneSlot.surface, surface.topLeft);
-    _position(PlayerSceneSlot.footer, Offset(cardLeft, footerY));
+    layoutChild(
+      PlayerSceneSlot.surface,
+      BoxConstraints.tight(visibleSurface.size),
+    );
+    _position(PlayerSceneSlot.surface, visibleSurface.topLeft);
+    final controlsLeft = lerpDouble(detailLeft, cardLeft, progress)!;
+    _position(PlayerSceneSlot.footer, Offset(controlsLeft, footerY));
     _position(
       PlayerSceneSlot.controls,
-      Offset(cardLeft, controlsY + hiddenOffset),
+      Offset(controlsLeft, controlsY + hiddenOffset),
     );
     _position(
       PlayerSceneSlot.title,
       Offset(
         titleLeft,
-        headerY + (headerHeight - title.height) / 2 + hiddenOffset,
+        lerpDouble(
+              detailTitleY,
+              headerY + (headerHeight - title.height) / 2,
+              progress,
+            )! +
+            hiddenOffset,
       ),
     );
 
-    final contentHeight = contentHeightFor(headerHeight);
-    final largeSize = math.min(largeSizeLimit, contentHeight * 0.9);
+    final contentHeight = math.max(
+      0.0,
+      (landscape ? size.height - 16 : detailTitleY - 8) - contentTop,
+    );
+    final largeSize = math.min(
+      math.min(contentWidth * 0.86, 400.0),
+      contentHeight * 0.9,
+    );
     final large = Rect.fromLTWH(
       (contentWidth - largeSize) / 2,
       contentTop + (contentHeight - largeSize) / 2,
@@ -149,13 +193,17 @@ class PlayerLyricsLayout extends MultiChildLayoutDelegate {
     );
     final small = Rect.fromLTWH(
       cardLeft + inset,
-      headerY + (headerHeight - coverSize) / 2 + hiddenOffset,
+      headerY + (headerHeight - coverSize) / 2,
       coverSize,
       coverSize,
     );
     // The controller already applies Apple easing. Interpolate the whole rect
     // once so its center follows a straight line while size changes in sync.
-    final artwork = Rect.lerp(large, small, progress)!;
+    final artwork = Rect.lerp(
+      large,
+      small,
+      progress,
+    )!.shift(Offset(0, hiddenOffset));
     layoutChild(PlayerSceneSlot.artwork, BoxConstraints.tight(artwork.size));
     _position(PlayerSceneSlot.artwork, artwork.topLeft);
 
@@ -186,19 +234,38 @@ class PlayerLyricsLayout extends MultiChildLayoutDelegate {
       );
       _position(
         PlayerSceneSlot.lyrics,
-        Offset(0, contentTop + (1 - progress) * lyricsHeight),
+        Offset(
+          0,
+          contentTop + (1 - (lyricsProgress ?? progress)) * lyricsHeight,
+        ),
       );
     }
     layoutChild(
       PlayerSceneSlot.queue,
-      BoxConstraints.tight(Size(contentWidth, contentHeight)),
+      BoxConstraints.tight(
+        Size(
+          contentWidth,
+          // Reveal rows in the space released by the retracting card. The top
+          // and row widths stay fixed, preserving the list's scroll anchor.
+          landscape
+              ? contentHeight
+              : math.max(0, surfaceY + hiddenOffset - 8 - contentTop),
+        ),
+      ),
     );
-    _position(PlayerSceneSlot.queue, Offset(0, contentTop));
+    _position(
+      PlayerSceneSlot.queue,
+      Offset(0, contentTop + PlayerQueueMotion.rise * (1 - queueProgress)),
+    );
   }
 
   @override
   bool shouldRelayout(PlayerLyricsLayout oldDelegate) =>
       progress != oldDelegate.progress ||
       chrome != oldDelegate.chrome ||
+      lyricsProgress != oldDelegate.lyricsProgress ||
+      queueProgress != oldDelegate.queueProgress ||
+      controlsHeightReduction != oldDelegate.controlsHeightReduction ||
+      footerHeightReduction != oldDelegate.footerHeightReduction ||
       geometry != oldDelegate.geometry;
 }

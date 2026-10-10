@@ -37,7 +37,7 @@ class LyricLine {
 }
 
 /// 歌词来源：Spotify 官方（color-lyrics），或 Spotify 没有逐行同步歌词时由 LRCLIB 补全。
-enum LyricsProvider { spotify, lrclib, netease }
+enum LyricsProvider { spotify, lrclib, netease, qqMusic }
 
 /// 来源提供的其他语言译词，按下标对应原歌词（包括间奏空行）。
 class LyricsAlternative {

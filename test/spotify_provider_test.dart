@@ -11,6 +11,8 @@ import 'package:flutify_app/services/lyrics/lyrics_disk_cache.dart';
 import 'package:flutify_app/services/lyrics/lyrics_resolver.dart';
 import 'package:flutify_app/services/lyrics/netease_client.dart';
 import 'package:flutify_app/services/lyrics/netease_translation_source.dart';
+import 'package:flutify_app/services/lyrics/qq_music_client.dart';
+import 'package:flutify_app/services/lyrics/qq_translation_source.dart';
 import 'package:flutify_app/services/spotify_api_service.dart';
 import 'package:flutify_app/services/storage_service.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -335,6 +337,35 @@ void main() {
     tearDown(() {
       bilingual.dispose();
       dir.deleteSync(recursive: true);
+    });
+
+    test('clearLyricsCache invalidates QQ and NetEase disk caches', () async {
+      final qqCache = LyricsDiskCache(Directory('${dir.path}/qq'));
+      final qq = QqTranslationSource(
+        QqMusicClient(MockClient((_) async => http.Response('', 500))),
+        cache: qqCache,
+      );
+      final ne = NeteaseTranslationSource(
+        NeteaseClient(MockClient((req) async => netease(req))),
+        cache: translationCache,
+      );
+      final provider = SpotifyProvider(
+        SpotifyApiService(storage, MockClient((req) async => handle(req))),
+        storage,
+        lyrics: LyricsResolver(
+          (_) async => const SpotifyLyrics(),
+          qqTranslation: qq,
+          translation: ne,
+        ),
+      );
+      addTearDown(provider.dispose);
+      await qqCache.write('qq-entry', 'cached');
+      await translationCache.write('netease-entry', 'cached');
+      await provider.clearLyricsCache();
+      expect(await qqCache.count(), 0);
+      expect(await translationCache.count(), 0);
+      expect(qqCache.generation, 1);
+      expect(translationCache.generation, 1);
     });
 
     test('关闭时不向网易云发请求；打开并作废内存歌词后重新解析，挂上译文', () async {

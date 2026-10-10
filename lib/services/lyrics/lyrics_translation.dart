@@ -68,12 +68,14 @@ class LyricsTranslationController extends ChangeNotifier {
   List<String>? get lines => _translation?.lines;
   bool get fromLrclib => _translation?.provider == LyricsProvider.lrclib;
   bool get fromNetease => _translation?.provider == LyricsProvider.netease;
+  bool get fromQqMusic => _translation?.provider == LyricsProvider.qqMusic;
   bool get available => _lyrics != null && _lyrics!.lines.isNotEmpty;
   bool get unavailable =>
       _attempted && !failed && !busy && _translation == null;
 
   static LyricsTranslation? official(SpotifyLyrics lyrics, String target) {
     final normalized = LyricsLanguage.normalize(target);
+    LyricsTranslation? best;
     final alternatives = [...lyrics.alternatives]
       ..sort((a, b) {
         int rank(LyricsAlternative a) =>
@@ -94,21 +96,24 @@ class LyricsTranslationController extends ChangeNotifier {
         lyrics.lines.map((line) => line.words).toList(),
       ))
         continue;
-      return LyricsTranslation(
+      final candidate = LyricsTranslation(
         List.unmodifiable(alternative.lines),
         LyricsProvider.spotify,
       );
+      if (candidate.improvesCoverageOf(best, lyrics)) best = candidate;
+      if (best?.isCompleteFor(lyrics) ?? false) return best;
     }
     final inline = lyrics.lines.map((line) => line.translation).toList();
     final code = LyricsLanguage.of('und', inline.join('\n'));
     if (inline.any((line) => line.trim().isNotEmpty) &&
         LyricsLanguage.matches(code, normalized)) {
-      return LyricsTranslation(
+      final candidate = LyricsTranslation(
         List.unmodifiable(inline),
         lyrics.translationProvider ?? lyrics.provider,
       );
+      if (candidate.improvesCoverageOf(best, lyrics)) best = candidate;
     }
-    return null;
+    return best;
   }
 
   void configure(
