@@ -401,6 +401,7 @@
   "settingsProxyManual": "Manual",
   "settingsProxySystemDetected": "System proxy: {endpoint}",
   "settingsProxySystemEmpty": "No system proxy set — connecting directly",
+  "settingsProxySystemAuto": "System uses an automatic proxy configuration (PAC / auto-detect)",
   "settingsProxyNoneSubtitle": "All requests connect directly, without a proxy",
   "settingsProxyManualSubtitle": "Enter the address and port of an HTTP proxy",
   "settingsProxyServer": "Proxy server",

@@ -12,6 +12,7 @@ add_executable(${BINARY_NAME} WIN32
   "media_controls.cpp"
   "media_identity.cpp"
   "snap_layout.cpp"
+  "system_proxy_windows.cpp"
   "taskbar_lyrics.cpp"
   "taskbar_lyrics_painter.cpp"
   "taskbar_lyrics_window.cpp"
@@ -46,6 +47,7 @@ target_compile_options(${BINARY_NAME} PRIVATE "/utf-8")
 target_link_libraries(${BINARY_NAME} PRIVATE flutter flutter_wrapper_app)
 target_link_libraries(${BINARY_NAME} PRIVATE "dwmapi.lib")
 target_link_libraries(${BINARY_NAME} PRIVATE "crypt32.lib")
+target_link_libraries(${BINARY_NAME} PRIVATE "winhttp.lib")
 target_link_libraries(${BINARY_NAME} PRIVATE "advapi32.lib")
 target_link_libraries(${BINARY_NAME} PRIVATE "shell32.lib" "propsys.lib")
 # 系统媒体控制（SMTC）使用 C++/WinRT

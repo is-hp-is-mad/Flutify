@@ -17,7 +17,8 @@ import 'system_proxy.dart';
 ///
 /// 与 Windows（[SystemProxySettings.fromWindows]）保持同一套取舍：
 /// - HTTPS 未单独开代理时回退用 HTTP 代理（同 [SystemProxySettings.fromEnvironment]）；
-/// - SOCKS、PAC 均不支持，按直连处理（Clash 等工具通常同时填 HTTP/HTTPS，实际不受影响）。
+/// - SOCKS 由 [ProxyTunnel] 自建握手；
+/// - PAC 暂不支持，按直连处理（Clash 等工具通常同时填 HTTP/HTTPS，实际不受影响）。
 ///
 /// 纯 Dart、不依赖 Flutter：命令行探针（tool/）可复用，单元测试直接喂 map。
 SystemProxySettings systemProxySettingsFromMacOS(Map<dynamic, dynamic> map) {
@@ -51,6 +52,14 @@ SystemProxySettings systemProxySettingsFromMacOS(Map<dynamic, dynamic> map) {
 
   final http = endpoint('httpEnabled', 'httpHost', 'httpPort');
   final https = endpoint('httpsEnabled', 'httpsHost', 'httpsPort') ?? http;
+  final socksEndpoint = endpoint('socksEnabled', 'socksHost', 'socksPort');
+  final socks = socksEndpoint == null
+      ? null
+      : ProxyEndpoint(
+          socksEndpoint.host,
+          socksEndpoint.port,
+          type: ProxyType.socks5,
+        );
 
   final bypass = <String>[];
   final exceptions = map['exceptions'];
@@ -61,5 +70,10 @@ SystemProxySettings systemProxySettingsFromMacOS(Map<dynamic, dynamic> map) {
   }
   if (flag('excludeSimpleHostnames')) bypass.add('<local>');
 
-  return SystemProxySettings(http: http, https: https, bypass: bypass);
+  return SystemProxySettings(
+    http: http,
+    https: https,
+    socks: socks,
+    bypass: bypass,
+  );
 }

@@ -46,13 +46,18 @@ void main() {
       expect(s.https, const ProxyEndpoint('10.0.0.2', 3128));
     });
 
-    test('只开 SOCKS 时按直连处理（dart:io 不支持 SOCKS）', () {
+    test('只开 SOCKS 时解析为 SOCKS5（由自建隧道使用）', () {
       final s = systemProxySettingsFromMacOS({
         'socksEnabled': true,
         'socksHost': '127.0.0.1',
         'socksPort': 1080,
       });
-      expect(s.isEmpty, isTrue);
+      expect(
+        s.socks,
+        const ProxyEndpoint('127.0.0.1', 1080, type: ProxyType.socks5),
+      );
+      expect(s.primary, s.socks);
+      expect(s.isEmpty, isFalse);
     });
 
     test('只开 PAC 时按直连处理', () {

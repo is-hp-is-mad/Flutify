@@ -1214,6 +1214,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'No system proxy set — connecting directly';
 
   @override
+  String get settingsProxySystemAuto =>
+      'System uses an automatic proxy configuration (PAC / auto-detect)';
+
+  @override
   String get settingsProxyNoneSubtitle =>
       'All requests connect directly, without a proxy';
 

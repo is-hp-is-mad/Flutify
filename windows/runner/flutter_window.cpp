@@ -33,6 +33,7 @@ bool FlutterWindow::OnCreate() {
 
   auto* messenger = flutter_controller_->engine()->messenger();
   trust_store_ = CreateWindowsTrustStoreChannel(messenger);
+  system_proxy_ = CreateSystemProxyChannel(messenger);
   media_controls_ = std::make_unique<MediaControls>(GetHandle(), messenger);
   snap_layout_ = std::make_unique<SnapLayout>(GetHandle(), flutter_controller_->view()->GetNativeWindow(), messenger);
   taskbar_lyrics_ = std::make_unique<TaskbarLyrics>(GetHandle(), messenger);
@@ -53,6 +54,7 @@ void FlutterWindow::OnDestroy() {
   // 先于引擎释放：它们持有引擎的 MethodChannel
   taskbar_lyrics_ = nullptr;
   trust_store_ = nullptr;
+  system_proxy_ = nullptr;
   snap_layout_ = nullptr;
   media_controls_ = nullptr;
   if (flutter_controller_) {

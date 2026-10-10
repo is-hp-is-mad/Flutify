@@ -2243,6 +2243,12 @@ abstract class AppLocalizations {
   /// **'系统未设置代理，直接连接'**
   String get settingsProxySystemEmpty;
 
+  /// No description provided for @settingsProxySystemAuto.
+  ///
+  /// In zh, this message translates to:
+  /// **'系统使用自动代理配置（PAC / 自动检测）'**
+  String get settingsProxySystemAuto;
+
   /// No description provided for @settingsProxyNoneSubtitle.
   ///
   /// In zh, this message translates to:

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'web_token_exception.dart';
@@ -176,7 +177,7 @@ class WebLoginFlow extends ChangeNotifier {
         invalidateSession();
         return;
       }
-      _notice = 'Web token 暂未取到（$e），稍后会自动重试';
+      _notice = webTokenMintNotice(e);
     }
     if (_finished ||
         revision != _revision ||
@@ -299,6 +300,16 @@ class WebLoginFlow extends ChangeNotifier {
     _notice = null;
     _fail('登录已失效，已清除登录状态，请重新登录');
   }
+}
+
+/// 铸造失败的非致命提示：TLS 证书被拦截时给出可行动的说明，其余原样展示。
+/// 证书详情（issuer 等）由 ProxyHttpOverrides 的日志钩子写进诊断日志。
+String webTokenMintNotice(Object error) {
+  if (error is HandshakeException) {
+    return 'TLS 证书验证失败，无法连接 Spotify（$error）。'
+        '若有代理 / 安全软件在拦截 HTTPS，请为其配置公共证书或先关闭。';
+  }
+  return 'Web token 暂未取到（$error），稍后会自动重试';
 }
 
 /// 统一登录流程所处阶段。

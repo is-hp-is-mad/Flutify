@@ -347,6 +347,7 @@
   "settingsProxyManual": "手動",
   "settingsProxySystemDetected": "システムプロキシ：{endpoint}",
   "settingsProxySystemEmpty": "システムプロキシは未設定です。直接接続します",
+  "settingsProxySystemAuto": "システムは自動プロキシ構成（PAC / 自動検出）を使用しています",
   "settingsProxyNoneSubtitle": "プロキシを使わず、すべてのリクエストを直接接続します",
   "settingsProxyManualSubtitle": "HTTP プロキシのアドレスとポートを入力してください",
   "settingsProxyServer": "プロキシサーバー",
