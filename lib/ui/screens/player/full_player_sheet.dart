@@ -1,3 +1,5 @@
+import 'dart:ui' show lerpDouble;
+
 import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -23,8 +25,10 @@ import '../../widgets/liquid_glass.dart';
 import '../../widgets/marquee_text.dart';
 import '../../widgets/playback_scrubber.dart';
 import '../../widgets/player_controls.dart';
+import '../../widgets/text_metrics.dart';
 import '../../widgets/track_menu.dart';
 import 'device_picker_sheet.dart';
+import 'android_player_scene.dart';
 import 'immersive_lyrics_screen.dart';
 import 'lyrics/glass_icon_button.dart';
 import 'lyrics/lyrics_backdrop.dart';
@@ -32,7 +36,9 @@ import 'lyrics/lyrics_view.dart';
 import 'lyrics/lyrics_translation_controls.dart';
 import 'queue_list.dart';
 import 'player_modal.dart';
+import 'player_destinations_sheet.dart';
 import 'player_expansion.dart';
+import 'player_lyrics_motion.dart';
 import 'widgets/swipeable_artwork.dart';
 import 'widgets/canvas_artwork.dart';
 
@@ -159,9 +165,23 @@ class FullPlayerSheet extends StatefulWidget {
 class _FullPlayerSheetState extends State<FullPlayerSheet> {
   _PlayerView _view = _PlayerView.artwork;
   double _dismissDragDistance = 0;
+  bool _destinationsOpen = false;
 
   void _toggle(_PlayerView view) =>
       setState(() => _view = _view == view ? _PlayerView.artwork : view);
+
+  Future<void> _showDestinations(
+    BuildContext context,
+    SpotifyTrack track,
+  ) async {
+    if (_destinationsOpen) return;
+    setState(() => _destinationsOpen = true);
+    try {
+      await PlayerDestinationsSheet.show(context, track);
+    } finally {
+      if (mounted) setState(() => _destinationsOpen = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -216,88 +236,98 @@ class _FullPlayerSheetState extends State<FullPlayerSheet> {
     }
     final lyricsMode = _view == _PlayerView.lyrics;
 
-    final content = ClipRRect(
-      borderRadius: topRadius,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          PlayerExpansionReveal(
-            animation: widget.expansionAnimation,
-            start: 0,
-            rise: 0,
-            child: _GradientBackground(imageUrl: track.coverUrl),
-          ),
-          // 歌词视图：背景交叉淡入为流动封面（与全屏歌词一致的液态玻璃观感）
-          AnimatedSwitcher(
-            duration: context.motion(const Duration(milliseconds: 420)),
-            child: lyricsMode
-                ? LyricsBackdrop(
-                    key: const ValueKey('liquid'),
+    final content = androidFullscreen
+        ? ClipRRect(
+            borderRadius: topRadius,
+            child: _androidScene(context, track, playbackContext, remote),
+          )
+        : ClipRRect(
+            borderRadius: topRadius,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                PlayerExpansionReveal(
+                  animation: widget.expansionAnimation,
+                  start: 0,
+                  rise: 0,
+                  child: _GradientBackground(
                     imageUrl: track.coverUrl,
-                  )
-                : const SizedBox.expand(key: ValueKey('plain')),
-          ),
-          SafeArea(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                // 横屏手机等极矮空间：中间区域固定高度，整体可滚动，控件不会被挤出屏幕
-                final compact = constraints.maxHeight < 520;
-                final middle = _Middle(
-                  view: _view,
-                  track: track,
-                  remote: remote,
-                  morphArtwork: androidFullscreen,
-                );
-                final column = Column(
-                  children: [
-                    PlayerExpansionReveal(
-                      animation: widget.expansionAnimation,
-                      start: 0.04,
-                      rise: 0.25,
-                      child: _TopBar(
-                        track: track,
-                        playbackContext: playbackContext,
-                      ),
-                    ),
-                    if (compact)
-                      SizedBox(height: 200, child: middle)
-                    else
-                      Expanded(child: middle),
-                    PlayerExpansionReveal(
-                      animation: widget.expansionAnimation,
-                      opacityKey: const ValueKey('player-expansion-controls'),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _ControlsGroup(
-                            track: track,
-                            glass: lyricsMode,
-                            remote: remote,
-                          ),
-                          _BottomBar(view: _view, onToggle: _toggle),
-                        ],
-                      ),
-                    ),
-                  ],
-                );
-
-                return Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 480),
-                    child: compact
-                        ? SingleChildScrollView(
-                            physics: const ClampingScrollPhysics(),
-                            child: column,
-                          )
-                        : column,
+                    curve: Curves.easeOut,
                   ),
-                );
-              },
+                ),
+                // 歌词视图：背景交叉淡入为流动封面（与全屏歌词一致的液态玻璃观感）
+                AnimatedSwitcher(
+                  duration: context.motion(const Duration(milliseconds: 420)),
+                  child: lyricsMode
+                      ? LyricsBackdrop(
+                          key: const ValueKey('liquid'),
+                          imageUrl: track.coverUrl,
+                        )
+                      : const SizedBox.expand(key: ValueKey('plain')),
+                ),
+                SafeArea(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      // 横屏手机等极矮空间：中间区域固定高度，整体可滚动，控件不会被挤出屏幕
+                      final compact = constraints.maxHeight < 520;
+                      final middle = _Middle(
+                        view: _view,
+                        track: track,
+                        remote: remote,
+                        morphArtwork: androidFullscreen,
+                      );
+                      final column = Column(
+                        children: [
+                          PlayerExpansionReveal(
+                            animation: widget.expansionAnimation,
+                            start: 0.04,
+                            rise: 0.25,
+                            child: _TopBar(
+                              track: track,
+                              playbackContext: playbackContext,
+                            ),
+                          ),
+                          if (compact)
+                            SizedBox(height: 200, child: middle)
+                          else
+                            Expanded(child: middle),
+                          PlayerExpansionReveal(
+                            animation: widget.expansionAnimation,
+                            opacityKey: const ValueKey(
+                              'player-expansion-controls',
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _ControlsGroup(
+                                  track: track,
+                                  glass: lyricsMode,
+                                  remote: remote,
+                                ),
+                                _BottomBar(view: _view, onToggle: _toggle),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+
+                      return Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 480),
+                          child: compact
+                              ? SingleChildScrollView(
+                                  physics: const ClampingScrollPhysics(),
+                                  child: column,
+                                )
+                              : column,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
-    );
+          );
     return androidFullscreen
         ? GestureDetector(
             onVerticalDragStart: (_) => _dismissDragDistance = 0,
@@ -315,13 +345,117 @@ class _FullPlayerSheetState extends State<FullPlayerSheet> {
           )
         : content;
   }
+
+  Widget _androidScene(
+    BuildContext context,
+    SpotifyTrack track,
+    PlaybackContext playbackContext,
+    bool remote,
+  ) => LyricsTranslationScope(
+    child: AndroidPlayerScene(
+      lyricsMode: _view == _PlayerView.lyrics,
+      queueMode: _view == _PlayerView.queue,
+      onArtworkTap: () => setState(() => _view = _PlayerView.artwork),
+      interactionSuspended: _destinationsOpen,
+      background: PlayerExpansionReveal(
+        animation: widget.expansionAnimation,
+        start: 0,
+        rise: 0,
+        child: LyricsBackdrop(
+          imageUrl: track.coverUrl,
+          reducedEffects: _view != _PlayerView.lyrics,
+        ),
+      ),
+      // The same native texture keeps flowing across artwork/lyrics/queue.
+      lyricsBackground: const SizedBox.expand(),
+      topBar: PlayerExpansionReveal(
+        animation: widget.expansionAnimation,
+        start: 0.04,
+        rise: 0.25,
+        child: _TopBar(track: track, playbackContext: playbackContext),
+      ),
+      titleBuilder: (context, progress) => PlayerExpansionReveal(
+        animation: widget.expansionAnimation,
+        child: _TitleRow(
+          track: track,
+          compact: true,
+          lyricsProgress: progress,
+          onTap: _view != _PlayerView.artwork
+              ? () => _showDestinations(context, track)
+              : null,
+        ),
+      ),
+      controlsHeightReduction: remote
+          ? 0
+          : PlaybackScrubber.expandedLabelHeight(context) + 8,
+      footerHeightReduction: 12,
+      controlsBuilder: (context, progress) => PlayerExpansionReveal(
+        animation: widget.expansionAnimation,
+        opacityKey: const ValueKey('player-expansion-controls'),
+        child: _ControlsGroup(
+          track: track,
+          glass: false,
+          remote: remote,
+          showTitle: false,
+          lyricsProgress: progress,
+        ),
+      ),
+      footerBuilder: (context, progress) => PlayerExpansionReveal(
+        animation: widget.expansionAnimation,
+        child: _BottomBar(
+          view: _view,
+          onToggle: _toggle,
+          lyricsProgress: progress,
+        ),
+      ),
+      artworkBuilder: (context, size, progress) => PlayerArtworkHero(
+        imageUrl: track.coverUrl,
+        child: TickerMode(
+          enabled: progress == 0 && _view == _PlayerView.artwork,
+          child: ClipRRect(
+            borderRadius: context.tokens.radius(28 - 18 * progress),
+            child: SizedBox.square(
+              dimension: size,
+              // Keep one decoded image throughout the flight. Changing the
+              // decode size every frame causes placeholder flashes and churn.
+              child: FittedBox(
+                child: SwipeableArtwork(
+                  url: track.coverUrl,
+                  size: 400,
+                  child: CanvasArtwork(
+                    track: track,
+                    size: 400,
+                    remote: remote,
+                    borderRadius: BorderRadius.zero,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+      lyrics: LyricsView(
+        appleMusicStyle: true,
+        key: ValueKey((track.id, remote)),
+        track: track,
+        remote: remote,
+        bottomInset: 24,
+      ),
+      translation: const LyricsTranslationButton(),
+      queue: const QueueList(horizontalPadding: 16),
+    ),
+  );
 }
 
 /// 封面 / 队列视图的背景：封面主色 → 近黑的渐变。
 class _GradientBackground extends StatelessWidget {
   final String imageUrl;
+  final Curve curve;
 
-  const _GradientBackground({required this.imageUrl});
+  const _GradientBackground({
+    required this.imageUrl,
+    this.curve = Curves.easeOut,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -330,7 +464,7 @@ class _GradientBackground extends StatelessWidget {
       fallback: const Color(0xFF2C2543),
       builder: (context, artColor) => AnimatedContainer(
         duration: context.motion(const Duration(milliseconds: 500)),
-        curve: Curves.easeOut,
+        curve: curve,
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -350,29 +484,38 @@ class _ControlsGroup extends StatelessWidget {
   final SpotifyTrack track;
   final bool glass;
   final bool remote;
+  final bool showTitle;
+  final double? lyricsProgress;
 
   const _ControlsGroup({
     required this.track,
     required this.glass,
     required this.remote,
+    this.showTitle = true,
+    this.lyricsProgress,
   });
 
   @override
   Widget build(BuildContext context) {
+    final compactness = lyricsProgress ?? 0.0;
     final content = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _TitleRow(track: track),
+        if (showTitle) _TitleRow(track: track),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          padding: EdgeInsets.symmetric(
+            horizontal: lerpDouble(16, 4, compactness)!,
+          ),
           child: remote
-              ? const RemoteScrubber(
+              ? RemoteScrubber(
                   compact: false,
+                  compactProgress: lyricsProgress,
                   activeColor: Colors.white,
                   inactiveColor: Colors.white24,
                   labelColor: Colors.white60,
                 )
-              : const PlaybackScrubber(
+              : PlaybackScrubber(
+                  compactProgress: lyricsProgress,
                   activeColor: Colors.white,
                   inactiveColor: Colors.white24,
                   labelColor: Colors.white60,
@@ -380,20 +523,36 @@ class _ControlsGroup extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+          padding: EdgeInsets.symmetric(
+            horizontal: lerpDouble(20, 8, compactness)!,
+          ),
           child: remote
               ? const RemoteTransportControls(
                   showModes: true,
                   style: RemoteControlsStyle.glassFull,
                 )
-              : const Row(
+              : Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    ShuffleButton(),
-                    SkipButton(next: false),
-                    PlayPauseButton(),
-                    SkipButton(next: true),
-                    RepeatButton(),
+                    const ShuffleButton(),
+                    const SkipButton(next: false),
+                    PlayPauseButton(
+                      size: lerpDouble(60, 52, compactness)!,
+                      iconSize: lerpDouble(34, 44, compactness)!,
+                      background: Colors.white.withValues(
+                        alpha: 1 - compactness,
+                      ),
+                      foreground: Color.lerp(
+                        Colors.black,
+                        Colors.white,
+                        compactness,
+                      )!,
+                      backgroundAnimationDuration: lyricsProgress == null
+                          ? kThemeChangeDuration
+                          : Duration.zero,
+                    ),
+                    const SkipButton(next: true),
+                    const RepeatButton(),
                   ],
                 ),
         ),
@@ -478,6 +637,8 @@ class _InlineLyrics extends StatelessWidget {
         children: [
           Positioned.fill(
             child: LyricsView(
+              appleMusicStyle:
+                  !kIsWeb && defaultTargetPlatform == TargetPlatform.android,
               key: ValueKey((track.id, remote)),
               track: track,
               remote: remote,
@@ -573,54 +734,106 @@ class _TopBar extends StatelessWidget {
 
 class _TitleRow extends StatelessWidget {
   final SpotifyTrack track;
+  final bool compact;
+  final double lyricsProgress;
+  final VoidCallback? onTap;
 
-  const _TitleRow({required this.track});
+  const _TitleRow({
+    required this.track,
+    this.compact = false,
+    this.lyricsProgress = 0,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final titleStyle =
+        theme.textTheme.titleLarge ?? const TextStyle(fontSize: 22);
+    final baseSize = titleStyle.fontSize ?? 22;
+    final titleSize = baseSize * (1 - 0.35 * lyricsProgress);
+    final artist = Text(
+      track.artistNames,
+      style: theme.textTheme.bodyMedium?.copyWith(
+        color: Colors.white70,
+        fontWeight: FontWeight.w500,
+      ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+    final title = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Reserve the unscaled line's measured height. Static text and the
+        // marquee can use different line boxes, especially with large text.
+        SizedBox(
+          height: compact
+              ? TextMetrics.lineHeight(
+                  context,
+                  titleStyle.copyWith(fontWeight: FontWeight.w800),
+                )
+              : null,
+          child: Align(
+            alignment: Alignment.centerLeft,
+            heightFactor: 1,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 220),
+              switchInCurve: compact ? PlayerLyricsMotion.curve : Curves.linear,
+              switchOutCurve: compact
+                  ? PlayerLyricsMotion.curve
+                  : Curves.linear,
+              child: MarqueeText(
+                text: track.name,
+                key: ValueKey(track.id),
+                style: titleStyle.copyWith(
+                  fontSize: compact ? titleSize : null,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 3),
+        MouseRegion(
+          cursor: onTap == null && track.artists.isNotEmpty
+              ? SystemMouseCursors.click
+              : MouseCursor.defer,
+          child: GestureDetector(
+            onTap: onTap != null || track.artists.isEmpty
+                ? null
+                : () => AppRoutes.openArtist(context, track.artists.first),
+            child: artist,
+          ),
+        ),
+      ],
+    );
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 8, 12, 8),
+      padding: compact
+          ? EdgeInsets.zero
+          : const EdgeInsets.fromLTRB(24, 8, 12, 8),
       child: Row(
         children: [
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 220),
-                  child: MarqueeText(
-                    text: track.name,
-                    key: ValueKey(track.id),
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 3),
-                MouseRegion(
-                  cursor: track.artists.isEmpty
-                      ? MouseCursor.defer
-                      : SystemMouseCursors.click,
-                  child: GestureDetector(
-                    onTap: track.artists.isEmpty
-                        ? null
-                        : () =>
-                              AppRoutes.openArtist(context, track.artists.first),
-                    child: Text(
-                      track.artistNames,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.white70,
-                        fontWeight: FontWeight.w500,
+            child: compact
+                ? Semantics(
+                    button: onTap != null,
+                    child: InkWell(
+                      key: const ValueKey('player-card-title'),
+                      onTap: onTap,
+                      canRequestFocus: onTap != null,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(minHeight: 48),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          heightFactor: 1,
+                          child: title,
+                        ),
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                ),
-              ],
-            ),
+                  )
+                : title,
           ),
           LikeButton(track: track, size: 28),
         ],
@@ -669,8 +882,13 @@ class _NothingPlaying extends StatelessWidget {
 class _BottomBar extends StatelessWidget {
   final _PlayerView view;
   final ValueChanged<_PlayerView> onToggle;
+  final double? lyricsProgress;
 
-  const _BottomBar({required this.view, required this.onToggle});
+  const _BottomBar({
+    required this.view,
+    required this.onToggle,
+    this.lyricsProgress,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -709,36 +927,56 @@ class _BottomBar extends StatelessWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 4, 12, 8),
+      padding: EdgeInsets.lerp(
+        const EdgeInsets.fromLTRB(20, 4, 12, 8),
+        const EdgeInsets.symmetric(horizontal: 8),
+        lyricsProgress ?? 0,
+      )!,
       child: Row(
         children: [
           Expanded(
-            child: InkWell(
-              borderRadius: context.tokens.pill,
-              mouseCursor: SystemMouseCursors.click,
-              onTap: () => DevicePickerSheet.show(context),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 8.0,
-                  horizontal: 4.0,
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.devices_rounded, size: 16, color: deviceColor),
-                    const SizedBox(width: 6),
-                    Flexible(
-                      child: Text(
-                        deviceName ?? context.l10n.playerThisDevice,
-                        style: TextStyle(
-                          color: deviceColor,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 11,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+            // Only the icon/label is a device action. The remaining footer
+            // space belongs to the scene's card-reveal gesture.
+            child: Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: InkWell(
+                borderRadius: context.tokens.pill,
+                mouseCursor: SystemMouseCursors.click,
+                onTap: () => DevicePickerSheet.show(context),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    minWidth: 48,
+                    minHeight: 48,
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 8.0,
+                      horizontal: 4.0,
                     ),
-                  ],
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.devices_rounded,
+                          size: 16,
+                          color: deviceColor,
+                        ),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            deviceName ?? context.l10n.playerThisDevice,
+                            style: TextStyle(
+                              color: deviceColor,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 11,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),

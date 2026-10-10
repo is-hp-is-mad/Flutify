@@ -968,6 +968,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get lyricsTranslationFromNetease => '訳詞提供：NetEase Music コミュニティ';
 
   @override
+  String get lyricsTranslationFromQqMusic => '訳詞提供：QQ Music';
+
+  @override
   String get settingsLyricsSize => '歌詞の文字サイズ';
 
   @override
@@ -1001,7 +1004,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsLyricsBilingualSubtitle =>
-      '歌詞の読み込み時に中国語の訳詞を取得し、タスクバー歌詞にも使用します。オフでも翻訳ボタンや自動翻訳で検索できます。検索時は曲名とアーティスト名を NetEase Music に送信します。';
+      '歌詞の読み込み時に QQ Music を優先して中国語の訳詞を取得し、不足時は NetEase、補完が有効なら最後に LRCLIB を検索します。タスクバー歌詞にも使用します。オフでも手動・自動検索は利用でき、曲名とアーティスト名を検索先に送信します。';
 
   @override
   String get settingsTaskbarLyricsSection => 'タスクバー歌詞';
@@ -1552,7 +1555,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsLyricsAutoTranslateSubtitle =>
-      '歌詞ソースにある訳詞を検索します。中国語の訳詞は曲名とアーティスト名で NetEase を検索し、LRCLIB 補完が有効な場合は対訳版も検索します。簡体字・繁体字は表示言語に従います。';
+      '既存の訳詞を検索します。中国語の訳詞は曲名とアーティスト名で QQ Music を優先し、不足時は NetEase、補完が有効なら最後に LRCLIB を検索します。既存の訳詞行を失わず、より完全な結果のみ採用します。簡体字・繁体字は表示言語に従います。';
 
   @override
   String get settingsLyricsExcludeInterface => 'アプリと同じ言語の曲は除外';

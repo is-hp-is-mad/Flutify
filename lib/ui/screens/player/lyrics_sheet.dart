@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../../../core/theme/flutify_tokens.dart';
 import '../../../l10n/l10n.dart';
 import '../../../models/track.dart';
@@ -72,6 +73,9 @@ class LyricsSheet extends StatelessWidget {
                 )
               else
                 LyricsView(
+                  appleMusicStyle:
+                      !kIsWeb &&
+                      defaultTargetPlatform == TargetPlatform.android,
                   key: ValueKey((track.id, remote)),
                   track: track,
                   remote: remote,

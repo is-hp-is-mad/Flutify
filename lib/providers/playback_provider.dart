@@ -111,6 +111,13 @@ class PlaybackProvider extends ChangeNotifier {
 
   /// 已经把音频交给播放器的曲目 id；与当前曲目不一致时，点播放需要（重新）加载。
   String? _loadedTrackId;
+  LoadedAudio? _currentAudio;
+  bool _currentDownloadReady = false;
+  bool _prefetching = false;
+  String? _prefetchedTrackId;
+
+  /// 随机列表循环的下一轮顺序：预取与实际切歌共用，避免切歌时再次洗牌。
+  List<int>? _nextCycleOrder;
   AudioPlaybackInfo _audioPlaybackInfo = const AudioPlaybackInfo();
   AudioPlaybackInfo get audioPlaybackInfo =>
       _loadedTrackId != null && _loadedTrackId == _currentTrack?.id
@@ -184,6 +191,10 @@ class PlaybackProvider extends ChangeNotifier {
   bool _isPlaying = false;
   bool _isBuffering = false;
 
+  // Internal pauses while replacing a source are not user pauses. Keep the
+  // playback session active until the new source reports playing or is cancelled.
+  bool _isStartingPlayback = false;
+
   /// 正在通过协议链路加载曲目（下载 + 解密），此时播放器还没有新音源。
   bool _isLoadingTrack = false;
   Duration _duration = Duration.zero;
@@ -243,6 +254,11 @@ class PlaybackProvider extends ChangeNotifier {
   PlaybackContext get playbackContext => _context;
   bool get isPlaying => _isPlaying;
 
+  /// Playback intent for system media controls, including automatic transitions
+  /// and pending starts. Unlike [isPlaying], this survives internal source pauses
+  /// so Android does not drop its foreground service / wake lock between tracks.
+  bool get isPlaybackActive => _isPlaying || _isStartingPlayback;
+
   /// 缓冲中：播放器自身缓冲，或正在下载 / 解密整首曲目。
   bool get isBuffering => _isBuffering || _isLoadingTrack;
   bool get isLoadingTrack => _isLoadingTrack;
@@ -287,6 +303,7 @@ class PlaybackProvider extends ChangeNotifier {
   set stopAfterCurrent(bool value) {
     if (value == _stopAfterCurrent) return;
     _stopAfterCurrent = value;
+    _prefetchNext();
     notifyListeners();
   }
 
@@ -295,12 +312,19 @@ class PlaybackProvider extends ChangeNotifier {
     ++_playIntent;
     ++_loadGeneration;
     _cancelRetry();
+    _isStartingPlayback = false;
+    if (_isPlaying) _scheduleSave();
+    _isPlaying = false;
+    _isBuffering = false;
     if (_isLoadingTrack) {
       _loadedTrackId = null;
       _resumeAt = position;
-      _setLoading(false);
+      _isLoadingTrack = false;
     }
-    await _audio.pause();
+    // Dispatch before notifying: a listener may issue a newer resume command.
+    final pausing = Future<void>.sync(_audio.pause);
+    notifyListeners();
+    await pausing;
   }
 
   bool isCurrent(String trackId) => _currentTrack?.id == trackId;
@@ -330,12 +354,30 @@ class PlaybackProvider extends ChangeNotifier {
     });
 
     _stateSub = _audio.playerStateStream.listen((state) {
+      final generation = _loadGeneration;
       final ps = state.processingState;
       final playing = state.playing && ps != ProcessingState.completed;
       final buffering =
           ps == ProcessingState.loading || ps == ProcessingState.buffering;
+      final ended = ps == ProcessingState.completed &&
+          _lastProcessingState != ProcessingState.completed;
+      _lastProcessingState = ps;
 
-      if (_isPlaying != playing || _isBuffering != buffering) {
+      // Set continuation intent BEFORE notifying media controls of completion.
+      // Loading the next source (and repeat-one's seek) can take arbitrarily long.
+      final wasStarting = _isStartingPlayback;
+      if (ended) {
+        _isStartingPlayback = !_stopAfterCurrent &&
+            (_repeatMode == SpotifyRepeatMode.track || canSkipNext);
+      } else if (playing &&
+          _loadedTrackId != null &&
+          _loadedTrackId == _currentTrack?.id) {
+        _isStartingPlayback = false;
+      }
+
+      if (_isPlaying != playing ||
+          _isBuffering != buffering ||
+          wasStarting != _isStartingPlayback) {
         // 暂停时记下进度：之后关掉 App 也能从这里继续
         if (_isPlaying && !playing) _scheduleSave();
         _isPlaying = playing;
@@ -344,11 +386,9 @@ class PlaybackProvider extends ChangeNotifier {
       }
 
       // 只在「进入 completed」的那一刻处理，避免重复事件导致连跳多首。
-      if (ps == ProcessingState.completed &&
-          _lastProcessingState != ProcessingState.completed) {
+      if (ended && generation == _loadGeneration) {
         _handleTrackEnded();
       }
-      _lastProcessingState = ps;
     });
 
     // EME 运行期错误（license / HLS fatal 等在加载成功后才暴露）：
@@ -360,20 +400,38 @@ class PlaybackProvider extends ChangeNotifier {
     if (_stopAfterCurrent) {
       // 睡眠定时器「本首结束时」：停在本首开头，不接下一首（单曲循环也停）
       _stopAfterCurrent = false;
-      unawaited(_audio.pause());
+      unawaited(pause());
       seekTo(Duration.zero);
       notifyListeners();
       return;
     }
     if (_repeatMode == SpotifyRepeatMode.track) {
-      seekTo(Duration.zero);
-      unawaited(_audio.play());
+      unawaited(_repeatCurrentTrack());
     } else {
       nextTrack();
     }
   }
 
+  Future<void> _repeatCurrentTrack() async {
+    final track = _currentTrack;
+    if (track == null) return;
+    final generation = ++_loadGeneration;
+    try {
+      await seekTo(Duration.zero);
+      if (generation != _loadGeneration) return;
+      _resumeAudio(track, generation);
+    } catch (error) {
+      if (generation != _loadGeneration) return;
+      await _handleLoadFailure(track, _asPlaybackFailure(error));
+    }
+  }
+
   void _resumeAudio(SpotifyTrack track, int generation) {
+    // just_audio can already be playing after repeat-one's seek. Its no-op
+    // play() then emits no new state, so do not re-arm the pending-start flag.
+    _isStartingPlayback = !_isPlaying;
+    notifyListeners();
+    if (generation != _loadGeneration) return;
     // play() 要到暂停 / 结束才完成；异步起播错误仍需进入可重试的错误状态。
     unawaited(
       _audio.play().catchError((Object error) async {
@@ -404,6 +462,7 @@ class PlaybackProvider extends ChangeNotifier {
   /// 以 [currentIndex] 为当前曲目重建播放顺序。
   /// 随机模式：当前曲目置顶，其余洗牌；顺序模式：自然顺序。
   void _rebuildOrder(int currentIndex) {
+    _nextCycleOrder = null;
     final n = _contextTracks.length;
     if (n == 0) {
       _order = [];
@@ -429,7 +488,11 @@ class PlaybackProvider extends ChangeNotifier {
     Duration? startAt,
     bool deferLoad = false,
   }) async {
-    ++_playIntent;
+    final intent = ++_playIntent;
+    _isStartingPlayback = !deferLoad;
+    if (deferLoad) _isPlaying = false;
+    _currentAudio = null;
+    _nextCycleOrder = null;
     _currentTrack = track;
     _duration = Duration(milliseconds: track.durationMs);
     positionNotifier.value = startAt ?? Duration.zero;
@@ -441,6 +504,7 @@ class PlaybackProvider extends ChangeNotifier {
       _playbackError = null;
     }
     notifyListeners();
+    if (intent != _playIntent) return;
     if (deferLoad) {
       // 只切到这首歌、暂停在 startAt，点播放时才加载（_loadedTrackId 不匹配 → 重新加载）
       ++_loadGeneration;
@@ -467,10 +531,22 @@ class PlaybackProvider extends ChangeNotifier {
     _cancelRetry();
     if (connectionError == null) _networkRetries = 0;
     _loadedTrackId = null;
+    _currentAudio = null;
+    _currentDownloadReady = false;
+    _prefetchedTrackId = null;
+    _isStartingPlayback = true;
     loadProgressNotifier.value = 0;
     _setLoading(true);
+    if (generation != _loadGeneration) return;
     // 新曲目加载期间先停掉上一首，避免「点了新歌还在放旧歌」
-    await _audio.pause();
+    try {
+      await _audio.pause();
+    } catch (error) {
+      if (generation == _loadGeneration) {
+        await _handleLoadFailure(track, _asPlaybackFailure(error));
+      }
+      return;
+    }
     if (generation != _loadGeneration) return;
 
     if (connectionError != null) {
@@ -541,21 +617,25 @@ class PlaybackProvider extends ChangeNotifier {
           await _audio.seek(startPosition!);
           if (generation != _loadGeneration) return;
         }
-        _resumeAudio(track, generation);
-        if (startPosition != null) positionNotifier.value = startPosition;
         _loadedTrackId = track.id;
         _audioPlaybackInfo = audio.playbackInfo;
+        _resumeAudio(track, generation);
+        if (generation != _loadGeneration) return;
+        if (startPosition != null) positionNotifier.value = startPosition;
         _consecutiveSkips = 0;
+        // 等整首下载完再预取；暂停不应丢掉下载完成信号，切歌则丢弃旧结果。
+        // 在 ready 通知前登记，监听器同步切歌时的新状态不能被旧曲目覆盖。
+        _currentAudio = audio;
+        final downloadComplete = audio.downloadComplete ?? stream?.done;
+        _currentDownloadReady = downloadComplete == null;
+        downloadComplete?.then((_) {
+          if (!identical(_currentAudio, audio)) return;
+          _currentDownloadReady = true;
+          _prefetchNext();
+        }, onError: (Object _) {});
         _setLoading(false);
         retryNotifier.value = null;
-        // 边下边播时等当前曲目下载完再预取，避免两路下载抢带宽拖慢起播
-        if (stream == null) {
-          _prefetchNext();
-        } else {
-          stream.done.then((_) {
-            if (generation == _loadGeneration) _prefetchNext();
-          }, onError: (Object _) {});
-        }
+        _prefetchNext();
         return;
       } catch (e) {
         if (generation != _loadGeneration) return;
@@ -609,6 +689,11 @@ class PlaybackProvider extends ChangeNotifier {
       consecutiveFailures: failures,
     );
     _errorController.add(_playbackError!);
+    if (!canSkip) {
+      _isStartingPlayback = false;
+      _isPlaying = false;
+      _isBuffering = false;
+    }
     _setLoading(false);
     if (canSkip) {
       _consecutiveSkips++;
@@ -683,22 +768,55 @@ class PlaybackProvider extends ChangeNotifier {
     });
   }
 
-  /// 预取下一首（用户队列优先，其次上下文顺序）；失败静默。
+  List<int> _prepareNextCycle() {
+    if (_nextCycleOrder == null) {
+      _nextCycleOrder = List.of(_order);
+      if (_shuffle) _nextCycleOrder!.shuffle(_random);
+    }
+    return _nextCycleOrder!;
+  }
+
+  /// 预取下一首（用户队列优先，其次上下文顺序）；只运行一个后台预取。
   void _prefetchNext() {
     final loader = audioLoader;
-    if (loader == null) return;
+    if (loader == null ||
+        _currentAudio == null ||
+        _loadedTrackId != _currentTrack?.id ||
+        !_currentDownloadReady ||
+        _isLoadingTrack ||
+        _stopAfterCurrent ||
+        _repeatMode == SpotifyRepeatMode.track ||
+        _prefetching) {
+      return;
+    }
     SpotifyTrack? next;
     if (_userQueue.isNotEmpty) {
       next = _userQueue.first.track;
     } else if (_orderPos + 1 < _order.length) {
       next = _contextTracks[_order[_orderPos + 1]];
+    } else if (_repeatMode == SpotifyRepeatMode.context && _order.isNotEmpty) {
+      next = _contextTracks[_prepareNextCycle().first];
     }
-    // 单集不预取：音频密钥当前拿不到，预取只会白费一次 metadata 请求
+    // 长播客按需读取，不提前下载整集。
     if (next != null &&
         next.isPlayable &&
         next.id.isNotEmpty &&
+        next.id != _prefetchedTrackId &&
         !next.uri.startsWith('spotify:episode:')) {
-      unawaited(loader.prefetch(next.id));
+      final nextId = next.id;
+      _prefetchedTrackId = nextId;
+      _prefetching = true;
+      unawaited(() async {
+        try {
+          await loader.prefetch(nextId);
+        } catch (_) {
+          // 预取不是播放失败；正式切歌时仍可按原流程重新加载。
+        } finally {
+          _prefetching = false;
+          // 下载期间队列可能已经改变，只追赶最新的下一首。
+          _prefetchNext();
+        }
+      }());
     }
   }
 
@@ -887,8 +1005,7 @@ class PlaybackProvider extends ChangeNotifier {
     _contextTracks = [...history, ...next];
     _order = List.generate(_contextTracks.length, (i) => i);
     _orderPos = history.length;
-    _scheduleSave();
-    notifyListeners();
+    _queueChanged();
   }
 
   /// 从头播放整个上下文（详情页大播放按钮）。随机模式下从随机曲目开始。
@@ -914,7 +1031,7 @@ class PlaybackProvider extends ChangeNotifier {
       await pause();
       return;
     }
-    if (_isPlaying) {
+    if (isPlaybackActive) {
       await pause();
     } else if (_loadedTrackId != track.id) {
       // 还没加载过 / 上次加载失败（重试）
@@ -939,7 +1056,8 @@ class PlaybackProvider extends ChangeNotifier {
     }
 
     if (_repeatMode == SpotifyRepeatMode.context && _order.isNotEmpty) {
-      if (_shuffle) _order.shuffle(_random);
+      _order = _prepareNextCycle();
+      _nextCycleOrder = null;
       _orderPos = 0;
       await _startTrack(_contextTracks[_order[_orderPos]], isRetry: isAutoSkip);
       return;
@@ -981,6 +1099,7 @@ class PlaybackProvider extends ChangeNotifier {
     _shuffle = !_shuffle;
     if (_order.isNotEmpty) _rebuildOrder(_order[_orderPos]);
     _scheduleSave();
+    _prefetchNext();
     notifyListeners();
   }
 
@@ -993,18 +1112,18 @@ class PlaybackProvider extends ChangeNotifier {
   void setRepeatMode(SpotifyRepeatMode mode) {
     if (mode == _repeatMode) return;
     _repeatMode = mode;
+    _nextCycleOrder = null;
     _scheduleSave();
+    _prefetchNext();
     notifyListeners();
   }
 
   void cycleRepeatMode() {
-    _repeatMode = switch (_repeatMode) {
+    setRepeatMode(switch (_repeatMode) {
       SpotifyRepeatMode.off => SpotifyRepeatMode.context,
       SpotifyRepeatMode.context => SpotifyRepeatMode.track,
       SpotifyRepeatMode.track => SpotifyRepeatMode.off,
-    };
-    _scheduleSave();
-    notifyListeners();
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -1088,8 +1207,11 @@ class PlaybackProvider extends ChangeNotifier {
     ++_loadGeneration;
     _cancelRetry();
     _isLoadingTrack = false;
+    _isStartingPlayback = false;
     _loadedTrackId = null;
     _currentTrack = null;
+    _currentAudio = null;
+    _nextCycleOrder = null;
     _context = PlaybackContext.none;
     _contextTracks = [];
     _order = [];
@@ -1186,7 +1308,9 @@ class PlaybackProvider extends ChangeNotifier {
   // ---------------------------------------------------------------------------
   /// 队列变化：通知界面并保存会话。
   void _queueChanged() {
+    _nextCycleOrder = null;
     _scheduleSave();
+    _prefetchNext();
     notifyListeners();
   }
 
@@ -1251,6 +1375,7 @@ class PlaybackProvider extends ChangeNotifier {
   @override
   void dispose() {
     ++_loadGeneration;
+    _currentAudio = null;
     _cancelRetry();
     unawaited(flushSession()); // 快照同步生成，写文件在后台完成
     _posSub?.cancel();

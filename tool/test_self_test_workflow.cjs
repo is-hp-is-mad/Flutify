@@ -42,6 +42,23 @@ test('quality checks run static analysis and every Flutter, Node and Python regr
   assert.doesNotMatch(quality, /no-fatal-warnings|\|\| true/);
 });
 
+test('only the standalone titlebar job is path-scoped, with a fail-safe fallback', () => {
+  const scope = job('scope');
+  assert.match(scope, /runs-on: ubuntu-latest/);
+  assert.match(scope, /fetch-depth: 0/);
+  assert.match(scope, /macos_titlebar: \$\{\{ steps\.scope\.outputs\.macos_titlebar \}\}/);
+  assert.match(scope, /id: scope\n\s+run: node tool\/self_test_scope\.cjs/);
+  const titlebar = job('macos-titlebar');
+  assert.match(titlebar, /needs: scope/);
+  assert.match(titlebar, /!cancelled\(\)/);
+  assert.match(titlebar, /needs\.scope\.result != 'success' \|\| needs\.scope\.outputs\.macos_titlebar != 'false'/);
+  assert.match(titlebar, /swiftc macos\/Runner\/TrafficLightAligner\.swift tool\/test_macos_titlebar\.swift/);
+  assert.match(titlebar, /timeout-minutes: 5/);
+  for (const name of ['quality', 'android', 'macos', 'windows']) {
+    assert.doesNotMatch(job(name), /needs\.scope|needs: scope|^    if:/m);
+  }
+});
+
 test('Android tests release builds using a disposable key and verifies all four APKs', () => {
   const android = job('android');
   assert.match(android, /needs: quality/);

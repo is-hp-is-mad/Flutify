@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show lerpDouble;
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -46,13 +47,14 @@ class _RemoteProgressBuilderState extends State<RemoteProgressBuilder> {
 class RemoteScrubber extends StatefulWidget {
   /// 紧凑模式（桌面播放栏）：细轨道、小圆点。
   final bool compact;
+  final double? compactProgress;
 
   /// 颜色（歌词玻璃控制台用白色）；为 null 时跟随主题。
   final Color? activeColor;
   final Color? inactiveColor;
   final Color? labelColor;
 
-  const RemoteScrubber({super.key, this.compact = true, this.activeColor, this.inactiveColor, this.labelColor});
+  const RemoteScrubber({super.key, this.compact = true, this.compactProgress, this.activeColor, this.inactiveColor, this.labelColor});
 
   @override
   State<RemoteScrubber> createState() => _RemoteScrubberState();
@@ -66,6 +68,7 @@ class _RemoteScrubberState extends State<RemoteScrubber> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final compactness = widget.compactProgress ?? (widget.compact ? 1.0 : 0.0);
     final labelStyle = theme.textTheme.labelSmall?.copyWith(
       color: widget.labelColor ?? colorScheme.onSurfaceVariant,
       fontFeatures: const [FontFeature.tabularFigures()],
@@ -84,9 +87,9 @@ class _RemoteScrubberState extends State<RemoteScrubber> {
             Expanded(
               child: SliderTheme(
                 data: SliderTheme.of(context).copyWith(
-                  trackHeight: widget.compact ? 3 : 4,
-                  thumbShape: RoundSliderThumbShape(enabledThumbRadius: widget.compact ? 5 : 7),
-                  overlayShape: RoundSliderOverlayShape(overlayRadius: widget.compact ? 10 : 16),
+                  trackHeight: lerpDouble(4, 3, compactness),
+                  thumbShape: RoundSliderThumbShape(enabledThumbRadius: lerpDouble(7, 5, compactness)!),
+                  overlayShape: RoundSliderOverlayShape(overlayRadius: lerpDouble(16, 10, compactness)!),
                   activeTrackColor: widget.activeColor,
                   thumbColor: widget.activeColor,
                   inactiveTrackColor: widget.inactiveColor,

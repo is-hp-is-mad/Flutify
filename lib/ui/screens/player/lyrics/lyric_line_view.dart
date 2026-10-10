@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/flutify_tokens.dart';
+import 'apple_music_motion.dart';
 
 /// 单行歌词（Apple Music iOS 风格）。
 ///
@@ -33,6 +34,7 @@ class LyricLineView extends StatelessWidget {
 
   /// 模糊强度倍率（设置页「其他行模糊」）：0 不模糊，1 默认。
   final double blurScale;
+  final bool appleMusicStyle;
 
   const LyricLineView({
     super.key,
@@ -46,6 +48,7 @@ class LyricLineView extends StatelessWidget {
     this.fontSize = 30,
     this.centered = false,
     this.blurScale = 1,
+    this.appleMusicStyle = false,
   });
 
   static const double _maxBlur = 3.5;
@@ -57,15 +60,24 @@ class LyricLineView extends StatelessWidget {
     final isActive = distance == 0;
 
     // 相邻句 1.0、隔一句 2.0 …… 上限 3.5：近处可辨认，远处退为氛围；再乘用户设置的强度
-    final blur = focusAll || isActive
+    final blur = appleMusicStyle || focusAll || isActive
         ? 0.0
         : (d * 1.0).clamp(0.0, _maxBlur) * blurScale;
-    final opacity = focusAll
+    final opacity = appleMusicStyle
+        ? (focusAll || isActive ? .94 : .18)
+        : focusAll
         ? (isActive ? 1.0 : 0.62)
         : isActive
         ? 1.0
         : (0.52 - d * 0.06).clamp(0.2, 0.46);
-    final scale = isActive ? 1.0 : 0.965;
+    final scale = isActive || (appleMusicStyle && focusAll)
+        ? 1.0
+        : appleMusicStyle
+        ? .98
+        : .965;
+    final duration = appleMusicStyle
+        ? Duration(milliseconds: isActive ? 500 : 600)
+        : _duration;
 
     return MouseRegion(
       cursor: onTap == null ? MouseCursor.defer : cursor,
@@ -73,11 +85,19 @@ class LyricLineView extends StatelessWidget {
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: fontSize * 0.4),
+          padding: appleMusicStyle
+              ? const EdgeInsets.only(top: 2, bottom: 30)
+              : EdgeInsets.symmetric(vertical: fontSize * 0.4),
           child: TweenAnimationBuilder<_LineVisual>(
             tween: _LineVisualTween(end: _LineVisual(blur, opacity, scale)),
-            duration: context.motion(_duration),
-            curve: const Cubic(0.22, 1.0, 0.36, 1.0),
+            duration: context.motion(duration),
+            curve: appleMusicStyle
+                ? Interval(
+                    250 / duration.inMilliseconds,
+                    1,
+                    curve: AppleMusicMotion.focusCurve,
+                  )
+                : const Cubic(0.22, 1.0, 0.36, 1.0),
             builder: (context, v, _) {
               // 透明度直接写进文字颜色，省去 Opacity 的离屏图层
               Widget result = _LineText(
@@ -91,17 +111,23 @@ class LyricLineView extends StatelessWidget {
               // ImageFiltered 始终留在树里，sigma 过小时只关掉 enabled（同样不产生离屏层）。
               // 之前按阈值增删这一层，每次对焦动画收尾都会让整行文字卸载重建、
               // 并在「离屏渲染 ↔ 直接绘制」之间跳变一帧，肉眼就是歌词闪一下。
-              result = ImageFiltered(
-                enabled: v.blur > 0.05,
-                imageFilter: ImageFilter.blur(sigmaX: v.blur, sigmaY: v.blur),
-                child: result,
-              );
-              // 每行独立图层：别处（跑马灯、波形、当前句进度）重绘时本行图层原样保留，
-              // 引擎光栅缓存可直接复用已模糊好的结果，不必每帧重做模糊
+              if (!appleMusicStyle) {
+                result = ImageFiltered(
+                  enabled: v.blur > 0.05,
+                  imageFilter: ImageFilter.blur(sigmaX: v.blur, sigmaY: v.blur),
+                  child: result,
+                );
+              }
               return RepaintBoundary(
                 child: Transform.scale(
                   scale: v.scale,
-                  alignment: centered ? Alignment.center : Alignment.centerLeft,
+                  alignment: centered
+                      ? Alignment.center
+                      : appleMusicStyle
+                      ? (Directionality.of(context) == TextDirection.rtl
+                            ? Alignment.bottomRight
+                            : Alignment.bottomLeft)
+                      : Alignment.centerLeft,
                   child: result,
                 ),
               );

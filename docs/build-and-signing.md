@@ -9,6 +9,8 @@
 - 分支推送自动触发（纯文档变更除外），目标为 `main` 的 PR 也会触发；标签推送不触发。工作流进入默认分支后，可在 Actions 页面手动选择分支运行。
 - 首先分析 `lib/`、`test/`，执行全部 Flutter、Node 和 Python 测试。既有 info 级 lint 会展示但不阻断，error 和 warning 仍阻断；`tool/` 下的独立 Dart 探针不属于应用静态分析范围。没有禁用测试或放行测试失败。
 - 质量检查通过后，并行构建 Android、macOS、Windows x64 / ARM64。SDK 与正式流程一致：Mac 3.44.9，其他平台 3.44.0；Mac 再执行一次该平台的 Flutter 测试。
+- 独立的 **macOS native titlebar hit testing** 只在涉及 `macos/`、原生 Swift 测试、CI 工作流/复用 action 或路径判断器时随 PR/功能分支运行。只修改 Android 或共享 Dart 代码不会触发这项独立 Swift 测试，但上面的完整 Flutter 测试和各平台构建仍运行。
+- `main`、仓库默认分支及手动运行始终保留原生标题栏检查。PR 比较整个 merge-base 差异，功能分支推送比较全部推送提交，删除和重命名也计算在内；新分支、历史不足或判断出错时保守地执行，不把检测失败当作无关改动。修改 CI 自身的这一轮也会运行原生检查。这是触发范围优化，不代表修复了原生全屏测试的偶发挂起。
 - Android 在 runner 临时目录生成一次性 PKCS12 密钥，使用随机密码并屏蔽日志；以 **release 编译模式**生成通用包与三个 ABI 拆分包，按本次证书指纹检查签名、versionCode 和媒体图标。任务完成后删除临时私钥，不上传密钥或密码。
 - Mac 输出未做 Developer ID 签名、公证的 `.app` ZIP；Windows 输出经过架构及运行库校验的便携 ZIP，不生成正式安装程序。
 - 产物名称均包含 `self-test`，在该次 Actions 运行的 Artifacts 中保留 7 天；缺少产物会使任务失败。令牌仅有 `contents: read` 权限，checkout 不持久保存凭据。
@@ -18,7 +20,7 @@
 工作流边界和一次性签名的回归测试：
 
 ```sh
-node --test tool/test_self_test_workflow.cjs tool/test_self_test_signing.cjs
+node --test tool/test_self_test_workflow.cjs tool/test_self_test_scope.cjs tool/test_self_test_signing.cjs
 ```
 
 签名测试在临时目录使用 Bash、OpenSSL 与 JDK 17 的 `keytool`，验证可用证书、每次重新生成以及拒绝覆盖现有密钥；不使用本地正式签名文件。

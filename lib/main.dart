@@ -53,6 +53,8 @@ import 'services/lyrics/lyrics_disk_cache.dart';
 import 'services/lyrics/lyrics_resolver.dart';
 import 'services/lyrics/netease_client.dart';
 import 'services/lyrics/netease_translation_source.dart';
+import 'services/lyrics/qq_music_client.dart';
+import 'services/lyrics/qq_translation_source.dart';
 import 'services/media_controls/connect_media_source.dart';
 import 'services/media_controls/media_controls_sync.dart';
 import 'services/media_controls/multi_media_controls.dart';
@@ -253,8 +255,16 @@ Future<Widget> _initializeApp(ValueChanged<String> reportStage) async {
       lock: audioCacheLocation.lock,
     ),
   );
-  // 歌词译文：网易云音乐的社区翻译（只取译文对齐到现有歌词，原文仍以 Spotify / LRCLIB 为准）；
-  // 只在设置开启「双语歌词」时查询（会把曲名与歌手发给网易云），关闭时不发任何请求
+  // 中文译文：QQ 优先、网易云兜底；只取译文，原文仍以 Spotify / LRCLIB 为准。
+  // 预加载由「社区歌词翻译」控制，翻译按钮 / 自动翻译仍可独立查询。
+  final qqLyricsTranslation = QqTranslationSource(
+    QqMusicClient(http.Client()),
+    cache: LyricsDiskCache(
+      audioCacheLocation.lyricsDirectory,
+      directoryProvider: () => audioCacheLocation.lyricsDirectory,
+      lock: audioCacheLocation.lock,
+    ),
+  );
   final lyricsTranslation = NeteaseTranslationSource(
     NeteaseClient(http.Client()),
     cache: LyricsDiskCache(
@@ -308,6 +318,7 @@ Future<Widget> _initializeApp(ValueChanged<String> reportStage) async {
     audioCacheLocation: audioCacheLocation,
     lyricsFallback: lyricsFallback,
     lyricsTranslation: lyricsTranslation,
+    qqLyricsTranslation: qqLyricsTranslation,
     taskbarLyrics: taskbarLyrics,
     updateService: UpdateService(
       storage: storageService,
@@ -346,8 +357,11 @@ class FlutifyApp extends StatelessWidget {
   /// LRCLIB 歌词补全；为空时只用 Spotify 官方歌词（测试默认）。
   final LrclibLyricsSource? lyricsFallback;
 
-  /// 网易云歌词译文；为空时不查译文（测试默认）。
+  /// 网易云歌词译文兜底；为空时不查网易云（测试默认）。
   final NeteaseTranslationSource? lyricsTranslation;
+
+  /// QQ 歌词译文，优先于网易云；为空时不查询 QQ（测试默认）。
+  final QqTranslationSource? qqLyricsTranslation;
 
   /// 任务栏歌词（Windows）；已包含在 [mediaControls] 里，这里供界面层绑定设置与歌词来源。
   final TaskbarLyricsControls? taskbarLyrics;
@@ -368,6 +382,7 @@ class FlutifyApp extends StatelessWidget {
     this.audioCacheLocation,
     this.lyricsFallback,
     this.lyricsTranslation,
+    this.qqLyricsTranslation,
     this.taskbarLyrics,
     this.updateService,
   });
@@ -468,7 +483,8 @@ class FlutifyApp extends StatelessWidget {
                 fallback: lyricsFallback,
                 fallbackEnabled: () => preferences.prefs.lyricsFallback,
                 translation: lyricsTranslation,
-                // 双语歌词关闭时不查译文，不向网易云发任何请求
+                qqTranslation: qqLyricsTranslation,
+                // 关闭时不预加载；翻译按钮 / 自动翻译仍可发起查询。
                 translationEnabled: () => preferences.prefs.lyricsBilingual,
               ),
             );

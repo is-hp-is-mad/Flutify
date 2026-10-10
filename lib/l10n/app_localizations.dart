@@ -1859,6 +1859,12 @@ abstract class AppLocalizations {
   /// **'译词来自网易云音乐社区'**
   String get lyricsTranslationFromNetease;
 
+  /// No description provided for @lyricsTranslationFromQqMusic.
+  ///
+  /// In zh, this message translates to:
+  /// **'译词来自 QQ 音乐'**
+  String get lyricsTranslationFromQqMusic;
+
   /// No description provided for @settingsLyricsSize.
   ///
   /// In zh, this message translates to:
@@ -1922,7 +1928,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsLyricsBilingualSubtitle.
   ///
   /// In zh, this message translates to:
-  /// **'加载歌词时预取中文译词，也供任务栏歌词使用。关闭后仍可通过翻译按钮或自动翻译查找译词；查询会发送曲名与歌手到网易云音乐。'**
+  /// **'加载歌词时预取中文译词，优先 QQ 音乐，缺失或不完整时查网易云，启用补全时最后查 LRCLIB，也供任务栏歌词使用。关闭后仍可手动或自动查询；曲名与歌手会发送到查询来源。'**
   String get settingsLyricsBilingualSubtitle;
 
   /// No description provided for @settingsTaskbarLyricsSection.
@@ -2924,7 +2930,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsLyricsAutoTranslateSubtitle.
   ///
   /// In zh, this message translates to:
-  /// **'自动查找歌词源已有的译文。中文译词会按曲名、歌手查询网易云；启用 LRCLIB 补全时也会查找对照版。简繁体跟随界面。'**
+  /// **'自动查找已有译文。中文译词按曲名、歌手优先查询 QQ 音乐，缺失或不完整时查网易云，启用补全时最后查 LRCLIB；只采用不丢失已译行的更完整版本。简繁体跟随界面。'**
   String get settingsLyricsAutoTranslateSubtitle;
 
   /// No description provided for @settingsLyricsExcludeInterface.

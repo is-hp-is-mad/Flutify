@@ -135,8 +135,9 @@ class MediaControlsSync {
   MediaPlaybackInfo _playbackInfo() {
     if (_remote) return _override!.playbackInfo;
     return MediaPlaybackInfo(
-      playing: playback.isPlaying,
-      buffering: playback.isBuffering,
+      playing: playback.isPlaybackActive,
+      buffering: playback.isBuffering ||
+          (playback.isPlaybackActive && !playback.isPlaying),
       position: playback.position,
       canNext: playback.canSkipNext,
       // 有上一首时直接切歌；没有上一首时回到本曲开头。
@@ -159,9 +160,9 @@ class MediaControlsSync {
     if (_override?.handle(event) ?? false) return;
     switch (event) {
       case MediaButtonEvent(button: MediaButton.play):
-        if (!playback.isPlaying) unawaited(playback.togglePlayPause());
+        if (!playback.isPlaybackActive) unawaited(playback.togglePlayPause());
       case MediaButtonEvent(button: MediaButton.pause || MediaButton.stop):
-        if (playback.isPlaying) unawaited(playback.togglePlayPause());
+        unawaited(playback.pause());
       case MediaButtonEvent(button: MediaButton.toggle):
         unawaited(playback.togglePlayPause());
       case MediaButtonEvent(button: MediaButton.next):

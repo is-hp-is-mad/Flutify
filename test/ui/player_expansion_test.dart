@@ -67,6 +67,19 @@ void main() {
           expect(bounds.bottom, lessThanOrEqualTo(previous.bottom));
           expect(bounds.left, greaterThanOrEqualTo(previous.left));
           expect(bounds.right, lessThanOrEqualTo(previous.right));
+          final compact = find.byKey(
+            const ValueKey('player-expansion-compact'),
+          );
+          final returned = bounds.top / source.top;
+          expect(
+            tester.widget<Opacity>(compact).opacity,
+            closeTo(returned, 0.000001),
+            reason: 'Compact content must share every frame of the return',
+          );
+          expect(
+            (tester.getTopLeft(compact).dy + 16) / (source.top + 16),
+            closeTo(returned, 0.000001),
+          );
           previous = bounds;
         }
         expect(surface().getBounds(), source);

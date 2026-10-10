@@ -16,6 +16,7 @@ class PlayPauseButton extends StatelessWidget {
   final double iconSize;
   final Color background;
   final Color foreground;
+  final Duration backgroundAnimationDuration;
 
   const PlayPauseButton({
     super.key,
@@ -23,6 +24,7 @@ class PlayPauseButton extends StatelessWidget {
     this.iconSize = 34,
     this.background = Colors.white,
     this.foreground = Colors.black,
+    this.backgroundAnimationDuration = kThemeChangeDuration,
   });
 
   @override
@@ -35,6 +37,7 @@ class PlayPauseButton extends StatelessWidget {
       height: size,
       child: Material(
         color: background,
+        animationDuration: backgroundAnimationDuration,
         shape: const CircleBorder(),
         child: InkWell(
           customBorder: const CircleBorder(),

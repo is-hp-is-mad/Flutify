@@ -356,13 +356,11 @@ void main() {
           expect(buttonRect.right, closeTo(cardRect.right, 0.1));
           expect(cardRect.top - buttonRect.bottom, closeTo(6, 0.1));
         } else {
-          final lyricsRect = tester.getRect(
-            find.descendant(
-              of: find.byType(FullPlayerSheet),
-              matching: find.byType(LyricsView),
-            ),
+          final cardRect = tester.getRect(
+            find.byKey(const ValueKey('lyrics-control-card')),
           );
-          expect(buttonRect.right, closeTo(lyricsRect.right - 12, 0.1));
+          expect(buttonRect.right, closeTo(cardRect.right, 0.1));
+          expect(cardRect.top - buttonRect.bottom, closeTo(8, 0.1));
         }
         expect(buttonRect.width, greaterThanOrEqualTo(48));
         expect(buttonRect.height, buttonRect.width);
@@ -411,6 +409,42 @@ void main() {
       await tester.tap(find.byType(LyricsTranslationButton));
       await tester.pumpAndSettle();
       expect(find.text('第一句歌词'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+  }
+
+  for (final provider in [LyricsProvider.qqMusic, LyricsProvider.netease]) {
+    testWidgets('bilingual lyrics attribute the actual provider: $provider', (
+      tester,
+    ) async {
+      await pumpLyrics(
+        tester,
+        source: SpotifyLyrics(
+          language: 'en',
+          translationProvider: provider,
+          lines: const [
+            LyricLine(
+              startTimeMs: 1000,
+              words: 'Paper stars',
+              translation: '纸星星',
+            ),
+            LyricLine(
+              startTimeMs: 4000,
+              words: 'Draw a circle',
+              translation: '画一个圆',
+            ),
+          ],
+        ),
+      );
+      final expected = provider == LyricsProvider.qqMusic
+          ? '译词来自 QQ 音乐'
+          : '译词来自网易云音乐社区';
+      final other = provider == LyricsProvider.qqMusic
+          ? '译词来自网易云音乐社区'
+          : '译词来自 QQ 音乐';
+      expect(find.text(expected), findsOneWidget);
+      expect(find.text(other), findsNothing);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
     });

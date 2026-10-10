@@ -12,6 +12,7 @@ import 'package:flutify_app/services/storage_service.dart';
 import 'package:flutify_app/ui/screens/main_shell.dart';
 import 'package:flutify_app/ui/screens/player/full_player_sheet.dart';
 import 'package:flutify_app/ui/screens/player/player_expansion.dart';
+import 'package:flutify_app/ui/screens/player/player_lyrics_motion.dart';
 import 'package:flutify_app/ui/screens/player/lyrics/lyrics_view.dart';
 import 'package:flutify_app/ui/screens/player/queue_list.dart';
 import 'package:flutify_app/ui/screens/player/widgets/swipeable_artwork.dart';
@@ -237,52 +238,280 @@ void main() {
     expect(find.text('Synthetic One'), findsWidgets);
   });
 
-  testWidgets('full player switches between artwork, lyrics and queue inline', (
+  for (final platform in [TargetPlatform.android, TargetPlatform.iOS]) {
+    testWidgets('$platform player switches between artwork, lyrics and queue', (
+      tester,
+    ) async {
+      debugDefaultTargetPlatformOverride = platform;
+      addTearDown(() => debugDefaultTargetPlatformOverride = null);
+      await pumpPlaying(tester);
+
+      await tester.tap(find.byType(MiniPlayer));
+      await settle(tester);
+      final player = find.byType(FullPlayerSheet);
+      expect(
+        find.descendant(of: player, matching: find.byType(SwipeableArtwork)),
+        findsOneWidget,
+      );
+
+      await tester.tap(
+        find.descendant(of: player, matching: find.byTooltip('播放队列')),
+      );
+      await settle(tester);
+      expect(
+        find.descendant(of: player, matching: find.byType(QueueList)),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: player, matching: find.byType(SwipeableArtwork)),
+        platform == TargetPlatform.android ? findsOneWidget : findsNothing,
+        reason: 'only Android keeps the shared artwork in the queue card',
+      );
+
+      await tester.tap(
+        find.descendant(of: player, matching: find.byTooltip('歌词')),
+      );
+      await settle(tester);
+      expect(
+        find.descendant(of: player, matching: find.byType(LyricsView)),
+        findsOneWidget,
+      );
+      expect(find.byTooltip('全屏歌词'), findsNothing);
+
+      // 再点一次当前视图的按钮回到封面
+      await tester.tap(
+        find.descendant(of: player, matching: find.byTooltip('歌词')),
+      );
+      await settle(tester);
+      expect(
+        find.descendant(of: player, matching: find.byType(SwipeableArtwork)),
+        findsOneWidget,
+      );
+      debugDefaultTargetPlatformOverride = null;
+    });
+  }
+
+  for (final reduced in [false, true]) {
+    testWidgets(
+      'folded lyrics card blank tap reveals only after release ($reduced)',
+      (tester) async {
+        debugDefaultTargetPlatformOverride = TargetPlatform.android;
+        addTearDown(() => debugDefaultTargetPlatformOverride = null);
+        tester.platformDispatcher.accessibilityFeaturesTestValue =
+            FakeAccessibilityFeatures(disableAnimations: reduced);
+        addTearDown(
+          tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
+        );
+        await pumpPlaying(tester);
+        await tester.tap(find.byType(MiniPlayer));
+        await settle(tester);
+        final player = find.byType(FullPlayerSheet);
+        final lyricsButton = find.descendant(
+          of: player,
+          matching: find.byTooltip('歌词'),
+        );
+        await tester.tap(lyricsButton);
+        await settle(tester);
+        final lyricsState = tester.state(find.byType(LyricsView));
+        final card = find.byKey(const ValueKey('lyrics-control-card'));
+        final expanded = tester.getRect(card);
+        await tester.pump(PlayerLyricsMotion.idleDelay);
+        await tester.pump(
+          PlayerLyricsMotion.foldDuration + const Duration(milliseconds: 1),
+        );
+        final folded = tester.getRect(card);
+        final deviceButton = tester.getRect(
+          find
+              .ancestor(
+                of: find.descendant(
+                  of: player,
+                  matching: find.byIcon(Icons.devices_rounded),
+                ),
+                matching: find.byType(InkWell),
+              )
+              .first,
+        );
+        final blank = Offset(
+          (deviceButton.right + tester.getRect(lyricsButton).left) / 2,
+          folded.center.dy,
+        );
+        expect(blank.dx, greaterThan(deviceButton.right));
+        final tap = await tester.startGesture(blank);
+        await tester.pump();
+        expect(tester.getRect(card), folded);
+        await tap.moveBy(const Offset(0, 4));
+        await tester.pump();
+        expect(tester.getRect(card), folded);
+        await tap.up();
+        await tester.pump();
+        await tester.pump(
+          PlayerLyricsMotion.chromeDuration + const Duration(milliseconds: 1),
+        );
+        expect(tester.getRect(card), expanded);
+        expect(tester.state(find.byType(LyricsView)), same(lyricsState));
+        await tester.dragFrom(blank, const Offset(0, -60));
+        await tester.pump();
+        await tester.pump(
+          PlayerLyricsMotion.foldDuration + const Duration(milliseconds: 1),
+        );
+        expect(tester.getRect(card), folded);
+        await tester.dragFrom(blank, const Offset(60, 0));
+        await tester.pump(const Duration(milliseconds: 301));
+        expect(tester.getRect(card), folded);
+        final cancelled = await tester.startGesture(blank);
+        await cancelled.cancel();
+        await tester.pump(const Duration(milliseconds: 301));
+        expect(tester.getRect(card), folded);
+        expect(tester.takeException(), isNull);
+        debugDefaultTargetPlatformOverride = null;
+      },
+    );
+
+    testWidgets(
+      'folded lyrics footer tap enters queue without reopening ($reduced)',
+      (tester) async {
+        debugDefaultTargetPlatformOverride = TargetPlatform.android;
+        tester.platformDispatcher.accessibilityFeaturesTestValue =
+            FakeAccessibilityFeatures(disableAnimations: reduced);
+        addTearDown(
+          tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
+        );
+        try {
+          await pumpPlaying(tester);
+          await tester.tap(find.byType(MiniPlayer));
+          await settle(tester);
+          final player = find.byType(FullPlayerSheet);
+          await tester.tap(
+            find.descendant(of: player, matching: find.byTooltip('歌词')),
+          );
+          await settle(tester);
+          final card = find.byKey(const ValueKey('lyrics-control-card'));
+          final expanded = tester.getRect(card);
+          await tester.pump(const Duration(milliseconds: 3500));
+          await tester.pump(
+            PlayerLyricsMotion.foldDuration + const Duration(milliseconds: 1),
+          );
+          final folded = tester.getRect(card);
+          expect(folded.top, greaterThan(expanded.top));
+          await tester.tap(
+            find.descendant(of: player, matching: find.byTooltip('播放队列')),
+          );
+          await tester.pump();
+          for (var frame = 0; frame < 33; frame++) {
+            await tester.pump(const Duration(milliseconds: 16));
+            expect(
+              tester.getRect(card),
+              folded,
+              reason: 'handoff frame $frame',
+            );
+          }
+          expect(find.byType(QueueList), findsOneWidget);
+          expect(tester.takeException(), isNull);
+        } finally {
+          debugDefaultTargetPlatformOverride = null;
+        }
+      },
+    );
+  }
+
+  testWidgets('android queue card preserves reorder, swipe removal and play', (
     tester,
   ) async {
-    await pumpPlaying(tester);
-
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+    final playback = await pumpPlaying(tester);
     await tester.tap(find.byType(MiniPlayer));
     await settle(tester);
     final player = find.byType(FullPlayerSheet);
-    expect(
-      find.descendant(of: player, matching: find.byType(SwipeableArtwork)),
-      findsOneWidget,
-    );
-
     await tester.tap(
       find.descendant(of: player, matching: find.byTooltip('播放队列')),
     );
     await settle(tester);
-    expect(
-      find.descendant(of: player, matching: find.byType(QueueList)),
-      findsOneWidget,
+    final queue = find.byType(QueueList);
+    final queueElement = tester.element(queue);
+    final handles = find.descendant(
+      of: queue,
+      matching: find.byType(ReorderableDragStartListener),
     );
-    expect(
-      find.descendant(of: player, matching: find.byType(SwipeableArtwork)),
-      findsNothing,
+    expect(handles, findsNWidgets(2));
+    expect(handles.last.hitTestable(), findsOneWidget);
+    final drag = await tester.startGesture(tester.getCenter(handles.last));
+    await tester.pump();
+    for (var step = 0; step < 10; step++) {
+      await drag.moveBy(const Offset(0, -12));
+      await tester.pump(const Duration(milliseconds: 32));
+    }
+    await tester.pump(const Duration(milliseconds: 300));
+    await drag.up();
+    await settle(tester);
+    expect(playback.upNext.map((entry) => entry.track.id), [
+      'synthetic-3',
+      'synthetic-2',
+    ]);
+    final removeRow = find.ancestor(
+      of: find.descendant(of: queue, matching: find.text('Synthetic Two')),
+      matching: find.byType(Dismissible),
     );
-
+    await tester.drag(removeRow, const Offset(-380, 0));
+    await settle(tester);
+    expect(playback.upNext.single.track.id, 'synthetic-3');
     await tester.tap(
-      find.descendant(of: player, matching: find.byTooltip('歌词')),
+      find.descendant(of: queue, matching: find.text('Synthetic Three')),
     );
     await settle(tester);
-    expect(
-      find.descendant(of: player, matching: find.byType(LyricsView)),
-      findsOneWidget,
-    );
-    expect(find.byTooltip('全屏歌词'), findsNothing);
-
-    // 再点一次当前视图的按钮回到封面
-    await tester.tap(
-      find.descendant(of: player, matching: find.byTooltip('歌词')),
-    );
-    await settle(tester);
+    expect(playback.currentTrack?.id, 'synthetic-3');
+    expect(tester.element(queue), same(queueElement));
     expect(
       find.descendant(of: player, matching: find.byType(SwipeableArtwork)),
       findsOneWidget,
     );
+    expect(tester.takeException(), isNull);
+    debugDefaultTargetPlatformOverride = null;
   });
+
+  for (final size in [const Size(320, 480), const Size(740, 390)]) {
+    testWidgets('android queue fits $size with large text and reduced motion', (
+      tester,
+    ) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      addTearDown(() => debugDefaultTargetPlatformOverride = null);
+      tester.platformDispatcher.textScaleFactorTestValue = 1.6;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      tester.platformDispatcher.accessibilityFeaturesTestValue =
+          const FakeAccessibilityFeatures(disableAnimations: true);
+      addTearDown(
+        tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
+      );
+      await pumpPlaying(tester);
+      await tester.tap(find.byType(MiniPlayer));
+      await settle(tester);
+      // Resize the already-open Android full-screen route, including landscape.
+      tester.view.physicalSize = size;
+      await settle(tester);
+      final player = find.byType(FullPlayerSheet);
+      final toggle = find.descendant(
+        of: player,
+        matching: find.byTooltip('播放队列'),
+      );
+      await tester.tap(toggle);
+      await tester.pump();
+      final queue = tester.getRect(find.byType(QueueList));
+      final card = tester.getRect(
+        find.byKey(const ValueKey('lyrics-control-card')),
+      );
+      expect(queue.height, greaterThan(0));
+      expect((Offset.zero & size).contains(queue.topLeft), isTrue);
+      expect(queue.bottom, lessThanOrEqualTo(size.height));
+      expect(queue.overlaps(card), isFalse);
+      expect(card.top, greaterThanOrEqualTo(0));
+      expect(card.bottom, lessThanOrEqualTo(size.height));
+      await tester.tap(toggle);
+      await tester.pump();
+      expect(find.byType(QueueList), findsNothing);
+      expect(tester.takeException(), isNull);
+      debugDefaultTargetPlatformOverride = null;
+    });
+  }
 
   testWidgets('android player expands from the pill and morphs its artwork', (
     tester,
@@ -378,6 +607,70 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  for (final closeMethod in ['button', 'back', 'drag']) {
+    testWidgets('android $closeMethod collapse restores info with artwork', (
+      tester,
+    ) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      addTearDown(() => debugDefaultTargetPlatformOverride = null);
+      await pumpPlaying(tester);
+      final origin = tester.getRect(
+        find.byKey(const ValueKey('mini-player-expansion-source')),
+      );
+      final artworkOrigin = tester.getRect(find.byType(Hero));
+      await tester.tap(find.byType(MiniPlayer));
+      await settle(tester);
+      final expandedArtwork = tester.getRect(
+        find.descendant(
+          of: find.byType(FullPlayerSheet),
+          matching: find.byType(Hero),
+        ),
+      );
+      final close = find.byIcon(Icons.keyboard_arrow_down_rounded);
+      switch (closeMethod) {
+        case 'button':
+          await tester.tap(close);
+        case 'back':
+          await tester.binding.handlePopRoute();
+        case 'drag':
+          await tester.drag(close, const Offset(0, 200));
+      }
+      await tester.pump();
+      await tester.pump();
+
+      // Sample the entire return, including the first 68% when the old compact
+      // row stayed hidden even though the artwork was already moving home.
+      for (var frame = 0; frame < 7; frame++) {
+        await tester.pump(const Duration(milliseconds: 60));
+        final artwork = tester.getRect(
+          find.byKey(const ValueKey('player-artwork-flight')),
+        );
+        final returned =
+            (expandedArtwork.width - artwork.width) /
+            (expandedArtwork.width - artworkOrigin.width);
+        final compact = find.byKey(const ValueKey('player-expansion-compact'));
+        expect(compact, findsOneWidget);
+        expect(
+          tester.widget<Opacity>(compact).opacity,
+          closeTo(returned, 0.001),
+          reason: 'Song info and buttons must fade in as the artwork returns',
+        );
+        final rowReturned =
+            (tester.getTopLeft(compact).dy + 16) / (origin.top + 16);
+        expect(
+          rowReturned,
+          closeTo(returned, 0.001),
+          reason: 'The compact row must travel home on the artwork timeline',
+        );
+      }
+      await settle(tester);
+      expect(find.byType(FullPlayerSheet), findsNothing);
+      expect(tester.getRect(find.byType(Hero)), artworkOrigin);
+      debugDefaultTargetPlatformOverride = null;
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('android player respects reduced motion', (tester) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.android;
     addTearDown(() => debugDefaultTargetPlatformOverride = null);
@@ -398,6 +691,14 @@ void main() {
     expect(
       clip.clipper!.getClip(const Size(390, 844)).getBounds(),
       const Rect.fromLTWH(0, 0, 390, 844),
+    );
+    await tester.tap(find.byIcon(Icons.keyboard_arrow_down_rounded));
+    await tester.pump();
+    await tester.pump();
+    expect(find.byType(FullPlayerSheet), findsNothing);
+    expect(
+      find.byKey(const ValueKey('player-expansion-compact')),
+      findsNothing,
     );
     debugDefaultTargetPlatformOverride = null;
     expect(tester.takeException(), isNull);
@@ -420,11 +721,17 @@ void main() {
         .getClip(const Size(390, 844))
         .getBounds();
     final before = surface();
+    final compact = find.byKey(const ValueKey('player-expansion-compact'));
+    final compactBefore = tester.getRect(compact);
+    final opacityBefore = tester.widget<Opacity>(compact).opacity;
     Navigator.pop(tester.element(find.byType(FullPlayerSheet)));
     await tester.pump();
     expect(surface(), before);
+    expect(tester.getRect(compact), compactBefore);
+    expect(tester.widget<Opacity>(compact).opacity, opacityBefore);
     await tester.pump(const Duration(milliseconds: 16));
     expect(surface().height, lessThan(before.height));
+    expect(tester.widget<Opacity>(compact).opacity, greaterThan(opacityBefore));
     await settle(tester);
     expect(find.byType(FullPlayerSheet), findsNothing);
     debugDefaultTargetPlatformOverride = null;

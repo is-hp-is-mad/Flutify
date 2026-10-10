@@ -21,8 +21,25 @@ env:
   FLUTTER_VERSION_MACOS: '3.44.9'
 
 jobs:
+  scope:
+    name: Select native checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      macos_titlebar: ${{ steps.scope.outputs.macos_titlebar }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: scope
+        run: node tool/self_test_scope.cjs
+
   macos-titlebar:
     name: macOS native titlebar hit testing
+    needs: scope
+    # Only an explicit, successful false may skip this independent native test.
+    if: ${{ !cancelled() && (needs.scope.result != 'success' || needs.scope.outputs.macos_titlebar != 'false') }}
     runs-on: macos-latest
     timeout-minutes: 5
     steps:

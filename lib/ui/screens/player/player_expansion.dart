@@ -145,6 +145,7 @@ class PlayerExpansionTransition extends StatefulWidget {
 class _PlayerExpansionTransitionState extends State<PlayerExpansionTransition> {
   late CurvedAnimation _surface;
   late CurvedAnimation _bottom;
+  late CurvedAnimation _compact;
 
   void _handleAnimationStatus(AnimationStatus status) {
     if (status == AnimationStatus.reverse ||
@@ -162,6 +163,13 @@ class _PlayerExpansionTransitionState extends State<PlayerExpansionTransition> {
       widget.animation,
       PlayerExpansionMotion.bottomCurve,
     );
+    _compact = CurvedAnimation(
+      parent: widget.animation,
+      curve: const Interval(0, 0.32, curve: Curves.easeInOutCubic),
+      // Keep the opening fade, but return with the artwork/surface curve instead
+      // of waiting until the final 32% of the route's closing animation.
+      reverseCurve: PlayerExpansionMotion.curve.flipped,
+    );
     widget.animation.addStatusListener(_handleAnimationStatus);
   }
 
@@ -178,6 +186,7 @@ class _PlayerExpansionTransitionState extends State<PlayerExpansionTransition> {
       oldWidget.animation.removeStatusListener(_handleAnimationStatus);
       _surface.dispose();
       _bottom.dispose();
+      _compact.dispose();
       _createAnimations();
     }
   }
@@ -187,6 +196,7 @@ class _PlayerExpansionTransitionState extends State<PlayerExpansionTransition> {
     widget.animation.removeStatusListener(_handleAnimationStatus);
     _surface.dispose();
     _bottom.dispose();
+    _compact.dispose();
     super.dispose();
   }
 
@@ -214,13 +224,7 @@ class _PlayerExpansionTransitionState extends State<PlayerExpansionTransition> {
           BorderRadius.zero,
           progress,
         )!;
-        final compactOpacity =
-            1 -
-            const Interval(
-              0,
-              0.32,
-              curve: Curves.easeInOutCubic,
-            ).transform(widget.animation.value);
+        final compactOpacity = 1 - _compact.value;
         return ClipPath(
           key: const ValueKey('player-expansion-surface'),
           clipper: _PlayerSurfaceClipper(bounds, radius),

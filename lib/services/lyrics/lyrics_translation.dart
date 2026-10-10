@@ -12,6 +12,32 @@ class LyricsTranslation {
   final LyricsProvider provider;
 
   const LyricsTranslation(this.lines, this.provider);
+
+  /// 空行 / 间奏不需要译文；只要有一句正文缺译，就仍可查询备用源。
+  bool isCompleteFor(SpotifyLyrics lyrics) =>
+      lines.length == lyrics.lines.length &&
+      lyrics.lines.indexed.every(
+        (entry) => !_hasWords(entry.$2) || lines[entry.$1].trim().isNotEmpty,
+      );
+
+  /// 只接受补齐更多正文行、且不丢失已有译文位置的候选。
+  /// 整份替换而不跨来源拼接，保留准确的来源归属和译文风格。
+  bool improvesCoverageOf(LyricsTranslation? previous, SpotifyLyrics lyrics) {
+    if (lines.length != lyrics.lines.length) return false;
+    var added = false;
+    for (final (i, line) in lyrics.lines.indexed) {
+      if (!_hasWords(line)) continue;
+      final next = lines[i].trim().isNotEmpty;
+      final before =
+          previous?.lines.elementAtOrNull(i)?.trim().isNotEmpty ?? false;
+      if (before && !next) return false;
+      added |= next && !before;
+    }
+    return added;
+  }
+
+  static bool _hasWords(LyricLine line) =>
+      line.words.trim().isNotEmpty && line.words.trim() != '♪';
 }
 
 typedef TranslationLookup =
@@ -42,12 +68,14 @@ class LyricsTranslationController extends ChangeNotifier {
   List<String>? get lines => _translation?.lines;
   bool get fromLrclib => _translation?.provider == LyricsProvider.lrclib;
   bool get fromNetease => _translation?.provider == LyricsProvider.netease;
+  bool get fromQqMusic => _translation?.provider == LyricsProvider.qqMusic;
   bool get available => _lyrics != null && _lyrics!.lines.isNotEmpty;
   bool get unavailable =>
       _attempted && !failed && !busy && _translation == null;
 
   static LyricsTranslation? official(SpotifyLyrics lyrics, String target) {
     final normalized = LyricsLanguage.normalize(target);
+    LyricsTranslation? best;
     final alternatives = [...lyrics.alternatives]
       ..sort((a, b) {
         int rank(LyricsAlternative a) =>
@@ -68,21 +96,24 @@ class LyricsTranslationController extends ChangeNotifier {
         lyrics.lines.map((line) => line.words).toList(),
       ))
         continue;
-      return LyricsTranslation(
+      final candidate = LyricsTranslation(
         List.unmodifiable(alternative.lines),
         LyricsProvider.spotify,
       );
+      if (candidate.improvesCoverageOf(best, lyrics)) best = candidate;
+      if (best?.isCompleteFor(lyrics) ?? false) return best;
     }
     final inline = lyrics.lines.map((line) => line.translation).toList();
     final code = LyricsLanguage.of('und', inline.join('\n'));
     if (inline.any((line) => line.trim().isNotEmpty) &&
         LyricsLanguage.matches(code, normalized)) {
-      return LyricsTranslation(
+      final candidate = LyricsTranslation(
         List.unmodifiable(inline),
         lyrics.translationProvider ?? lyrics.provider,
       );
+      if (candidate.improvesCoverageOf(best, lyrics)) best = candidate;
     }
-    return null;
+    return best;
   }
 
   void configure(
@@ -146,7 +177,7 @@ class LyricsTranslationController extends ChangeNotifier {
     _attempted = true;
     final revision = ++_revision;
     _translation = official(lyrics, _target);
-    if (_translation != null) {
+    if (_translation?.isCompleteFor(lyrics) ?? false) {
       notifyListeners();
       return;
     }
@@ -160,11 +191,13 @@ class LyricsTranslationController extends ChangeNotifier {
     try {
       final result = await lookup!(query, lyrics, _target);
       if (_disposed || revision != _revision) return;
-      if (result != null && result.lines.length == lyrics.lines.length)
+      if (result?.improvesCoverageOf(_translation, lyrics) ?? false) {
         _translation = result;
+      }
     } catch (_) {
       if (_disposed || revision != _revision) return;
-      failed = true;
+      // 补缺失败不应把仍可阅读的部分译文变成整首翻译失败。
+      failed = _translation == null;
     }
     if (_disposed || revision != _revision) return;
     busy = false;

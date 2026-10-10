@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui' show lerpDouble;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
@@ -393,6 +394,7 @@ class _WideLayout extends StatelessWidget {
           child: _PanelSwitcher(
             panel: panel,
             lyrics: () => LyricsView(
+              appleMusicStyle: !kIsWeb && defaultTargetPlatform == TargetPlatform.android,
               key: ValueKey((track.id, remote)),
               track: track,
               remote: remote,
@@ -498,6 +500,7 @@ class _NarrowLayout extends StatelessWidget {
           lyrics: () => Padding(
             padding: EdgeInsets.only(top: _headerHeight + topInset - 8),
             child: LyricsView(
+              appleMusicStyle: !kIsWeb && defaultTargetPlatform == TargetPlatform.android,
               key: ValueKey((track.id, remote)),
               track: track,
               remote: remote,

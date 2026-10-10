@@ -10,5 +10,8 @@ class MainActivity : AudioServiceActivity() {
         // Android 原生 DRM 播放引擎（该机型 WebView EME 不可用，走 ExoPlayer + MediaDrm）
         NativeDrmPlugin.register(flutterEngine, this)
         UpdatePlugin.register(flutterEngine, this)
+        if (!flutterEngine.plugins.has(AppleMusicBackgroundPlugin::class.java)) {
+            flutterEngine.plugins.add(AppleMusicBackgroundPlugin())
+        }
     }
 }

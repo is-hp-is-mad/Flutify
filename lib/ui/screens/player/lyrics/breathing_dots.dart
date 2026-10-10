@@ -6,6 +6,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../../../core/theme/flutify_tokens.dart';
+import 'apple_music_motion.dart';
 
 /// 无人声片段（前奏 / 间奏）的三个呼吸点（Apple Music 风格）。
 ///
@@ -32,6 +33,7 @@ class BreathingDots extends StatefulWidget {
 
   /// 歌词居中对齐时以中心缩放，否则以左端缩放（与歌词行一致）。
   final bool centered;
+  final bool appleMusicStyle;
 
   const BreathingDots({
     super.key,
@@ -42,6 +44,7 @@ class BreathingDots extends StatefulWidget {
     required this.dotSize,
     this.leadMs = 0,
     this.centered = false,
+    this.appleMusicStyle = false,
   });
 
   @override
@@ -90,8 +93,12 @@ class _BreathingDotsState extends State<BreathingDots>
     }
     if (oldWidget.position != widget.position ||
         oldWidget.leadMs != widget.leadMs ||
+        oldWidget.startMs != widget.startMs ||
+        oldWidget.endMs != widget.endMs ||
         oldWidget.isPlaying != widget.isPlaying) {
-      _anchorMs = _positionMs;
+      final pausing =
+          widget.appleMusicStyle && oldWidget.isPlaying && !widget.isPlaying;
+      _anchorMs = pausing ? _nowMs : _positionMs;
       _sincePosition = Duration.zero;
     }
     _syncTicker();
@@ -137,6 +144,7 @@ class _BreathingDotsState extends State<BreathingDots>
   @override
   Widget build(BuildContext context) {
     final reduceMotion = context.reduceMotion;
+    if (widget.appleMusicStyle) return _appleDots(reduceMotion);
     final start = widget.startMs;
     final end = math.max(widget.endMs, start + 1);
     final now = _nowMs.clamp(start, end);
@@ -201,6 +209,47 @@ class _BreathingDotsState extends State<BreathingDots>
               ),
             ],
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _appleDots(bool reduceMotion) {
+    final frame = AppleMusicMotion.dots(
+      _nowMs - widget.startMs,
+      widget.endMs - widget.startMs,
+      reduceMotion: reduceMotion,
+    );
+    final rtl = Directionality.of(context) == TextDirection.rtl;
+    return Semantics(
+      label: '•••',
+      child: SizedBox(
+        height: 14,
+        child: Transform.scale(
+          scale: frame.scale,
+          alignment: widget.centered
+              ? Alignment.center
+              : rtl
+              ? Alignment.centerRight
+              : Alignment.centerLeft,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (var i = 0; i < 3; i++) ...[
+                if (i > 0) const SizedBox(width: 6),
+                Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: const Color(
+                      0xFFFFFFFF,
+                    ).withValues(alpha: frame.opacity[i] * frame.fade),
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );

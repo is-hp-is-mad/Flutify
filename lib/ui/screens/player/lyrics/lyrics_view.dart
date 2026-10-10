@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
@@ -21,6 +22,7 @@ import '../../../widgets/connect/connect_actions.dart';
 import '../../../widgets/empty_state.dart';
 import '../../../widgets/skeleton.dart';
 import 'breathing_dots.dart';
+import 'apple_music_motion.dart';
 import 'lyric_line_view.dart';
 
 /// 歌词滚动区。
@@ -28,7 +30,8 @@ import 'lyric_line_view.dart';
 /// 行为（对齐 Apple Music）：
 /// - 当前行顶端停在用户设置的可视区位置，上下句按距离逐级模糊；
 /// - 前奏与间奏（无人声片段）显示三个呼吸点，只在该片段内出现，结束时收起；歌曲末尾的无人声不显示；
-/// - 用户手动拖动时全部行变清晰（[_browsing]）并显示滚动条，停手 3 秒后恢复对焦并滚回当前行；
+/// - 用户手动拖动时全部行变清晰（[_browsing]）并显示滚动条；Apple 模式在手指离开、
+///   惯性滚动结束后等待 5 秒再跟随，其他模式保持 3 秒；
 ///   自动滚动时不显示滚动条；
 /// - 点击任意行跳转到该行时间点；
 /// - 非同步歌词（UNSYNCED）全部清晰显示、不可点击。
@@ -52,6 +55,7 @@ class LyricsView extends StatefulWidget {
   /// 跟随正在遥控的远程设备：进度取 [ConnectProvider.position]，点行跳转发给远程设备。
   /// 创建后不可切换，调用方用包含它的 key 让本地 / 远程切换时重建。
   final bool remote;
+  final bool appleMusicStyle;
 
   /// 可跳转歌词行的鼠标指针；沉浸式传 [MouseCursor.defer]，由外层控制隐藏光标。
   final MouseCursor lineCursor;
@@ -65,6 +69,7 @@ class LyricsView extends StatefulWidget {
     this.horizontalPadding = 28,
     this.remote = false,
     this.lineCursor = SystemMouseCursors.click,
+    this.appleMusicStyle = false,
   });
 
   @override
@@ -72,8 +77,9 @@ class LyricsView extends StatefulWidget {
 }
 
 class _LyricsViewState extends State<LyricsView>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   static const Duration _browseHold = Duration(seconds: 3);
+  static const Duration _appleBrowseHold = Duration(seconds: 5);
 
   /// 提前切行量：进度流约 200ms 一次，加上对焦/滚动动画耗时，
   /// 不提前的话视觉上会比演唱慢半拍（Apple Music 同样提前切行）。
@@ -126,6 +132,33 @@ class _LyricsViewState extends State<LyricsView>
   int _activeIndex = -1;
   bool _browsing = false;
   Timer? _browseTimer;
+  late final AnimationController _move = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 813),
+    value: 1,
+  );
+  Map<int, double> _moveOffsets = {};
+  int _moveFocus = 0;
+  int? _renderedFocus;
+  int? _renderedGap;
+  final Set<int> _touches = {};
+  bool _userScrolling = false;
+  bool _pendingAnchor = false;
+  bool _gapReflowPending = false;
+  bool _appActive = true;
+  bool _tickerEnabled = true;
+
+  bool get _interactionActive => _appActive && _tickerEnabled;
+
+  double _moveOffset(int i) =>
+      (_moveOffsets[i] ?? 0) *
+      AppleMusicMotion.remainingMove(i - _moveFocus, _move.value * 813);
+
+  Map<int, double> _captureRows() => {
+    for (var i = -1; i < _lineKeys.length; i++)
+      if (_boxOf(i < 0 ? _introKey : _lineKeys[i]) case final box?)
+        i: box.localToGlobal(Offset.zero).dy + _moveOffset(i),
+  };
 
   /// 歌词样式（设置页「歌词」分组）；没有 PreferencesProvider（部分测试）时用默认值。
   AppPreferences _style = AppPreferences.defaults;
@@ -138,12 +171,36 @@ class _LyricsViewState extends State<LyricsView>
   /// 用于切行的时间点：固定提前量 + 远程模式下用户设置的提前量（服务端快照推算会有偏差）。
   int get _lookupMs =>
       _position.value.inMilliseconds +
-      _leadMs +
+      (widget.appleMusicStyle ? _appleLeadMs : _leadMs) +
       (widget.remote ? _style.remoteLyricsLeadMs : 0);
+
+  int get _rawMs =>
+      _position.value.inMilliseconds +
+      (widget.remote ? _style.remoteLyricsLeadMs : 0);
+
+  int get _appleLeadMs {
+    final next = _indexFor(_rawMs + 750);
+    if (next > 0 && !_blank[next] && _blank[next - 1]) {
+      var head = next - 1;
+      while (head > 0 && _blank[head - 1]) {
+        head--;
+      }
+      return AppleMusicMotion.leadMs(
+        silentGapMs:
+            _lyrics!.lines[next].startTimeMs - _lyrics!.lines[head].startTimeMs,
+      );
+    }
+    return AppleMusicMotion.leadMs();
+  }
 
   @override
   void initState() {
     super.initState();
+    _appActive =
+        WidgetsBinding.instance.lifecycleState == null ||
+        WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+    WidgetsBinding.instance.addObserver(this);
+    GestureBinding.instance.pointerRouter.addGlobalRoute(_releasePointer);
     final shared = context.read<LyricsTranslationController?>();
     _ownsTranslation = shared == null;
     _translation =
@@ -187,7 +244,15 @@ class _LyricsViewState extends State<LyricsView>
   }
 
   void _setLyrics(SpotifyLyrics lyrics) {
+    _move.value = 1;
+    _moveOffsets = {};
+    _browseTimer?.cancel();
+    _browsing = false;
+    _pendingAnchor = false;
+    _gapReflowPending = false;
     _translationReveal.stop();
+    _translationLyrics = null;
+    _translationTrackUri = null;
     _visibleTranslations = null;
     _translationTarget = 0;
     _translationScrollStart = 0;
@@ -208,7 +273,12 @@ class _LyricsViewState extends State<LyricsView>
       }
     }
     _hasIntro =
-        lines.isNotEmpty && !_blank[0] && lines[0].startTimeMs >= _minIntroMs;
+        lines.isNotEmpty &&
+        !_blank[0] &&
+        lines[0].startTimeMs >=
+            (widget.appleMusicStyle
+                ? AppleMusicMotion.minimumGapMs
+                : _minIntroMs);
     _activeIndex = _indexFor(_lookupMs);
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => _scrollToActive(animate: false),
@@ -259,8 +329,53 @@ class _LyricsViewState extends State<LyricsView>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final tickerEnabled = TickerMode.valuesOf(context).enabled;
+    if (tickerEnabled != _tickerEnabled) {
+      _tickerEnabled = tickerEnabled;
+      _onVisibilityChanged();
+    }
     if (context.reduceMotion && _translationReveal.isAnimating) {
       _translationReveal.value = _translationTarget;
+    }
+    if (context.reduceMotion) _move.value = 1;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _appActive = state == AppLifecycleState.resumed;
+    _onVisibilityChanged();
+  }
+
+  void _onVisibilityChanged() {
+    if (!widget.appleMusicStyle) return;
+    if (!_interactionActive) {
+      _browseTimer?.cancel();
+      // A system interruption or covered route can lose the final pointer event.
+      _touches.clear();
+      _userScrolling = false;
+      _pendingAnchor = true;
+      _move.stop();
+      final position = _scroll.hasClients ? _scroll.position : null;
+      if (position is ScrollPositionWithSingleContext) position.goIdle();
+      return;
+    }
+    if (_browsing) {
+      // Resuming a paused app need not produce a frame; timing is independent
+      // of layout and must not wait indefinitely for one.
+      _scheduleBrowseResume();
+    } else if (_pendingAnchor) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _scrollToActive();
+        }
+      });
+      WidgetsBinding.instance.ensureVisualUpdate();
+    }
+  }
+
+  void _releasePointer(PointerEvent event) {
+    if (event is PointerUpEvent || event is PointerCancelEvent) {
+      _pointerUp(event.pointer);
     }
   }
 
@@ -286,34 +401,47 @@ class _LyricsViewState extends State<LyricsView>
   _Gap? get _currentGap {
     if (!_isSynced || _blank.isEmpty) return null;
     final lines = _lyrics!.lines;
+    final index = widget.appleMusicStyle ? _indexFor(_rawMs) : _activeIndex;
     _Gap? gap;
-    if (_activeIndex < 0) {
+    if (index < 0) {
       if (_blank[0] && _gapEnd[0] != null) {
         gap = _Gap(0, 0, _gapEnd[0]!);
       } else if (_hasIntro) {
         gap = _Gap(-1, 0, lines[0].startTimeMs);
       }
-    } else if (_blank[_activeIndex] && _gapEnd[_activeIndex] != null) {
+    } else if (_blank[index] && _gapEnd[index] != null) {
       // 连续多个空行算同一段间奏，由第一个空行显示呼吸点
-      var head = _activeIndex;
+      var head = index;
       while (head > 0 && _blank[head - 1]) {
         head--;
       }
       gap = _Gap(
         head,
         head == 0 ? 0 : lines[head].startTimeMs,
-        _gapEnd[_activeIndex]!,
+        _gapEnd[index]!,
       );
     }
     if (gap == null) return null;
-    final minMs = gap.entry < 0 ? _minIntroMs : _minGapMs;
+    if (widget.appleMusicStyle && _rawMs >= gap.endMs - 300) return null;
+    final minMs = widget.appleMusicStyle
+        ? AppleMusicMotion.minimumGapMs
+        : gap.entry < 0
+        ? _minIntroMs
+        : _minGapMs;
     return gap.endMs - gap.startMs >= minMs ? gap : null;
   }
 
   /// 对焦项：呼吸点所在项（-1 为前奏）或当前行。前奏阶段没有呼吸点时对焦第一句；
   /// 落在不显示呼吸点的空行（短间奏 / 歌曲末尾）时停在上一句有词的歌词。
   int _focusEntryFor(_Gap? gap) {
-    if (gap != null) return gap.entry;
+    if (gap != null) {
+      if (widget.appleMusicStyle && _rawMs >= gap.endMs - 1300) {
+        for (var i = gap.entry + 1; i < _blank.length; i++) {
+          if (!_blank[i]) return i;
+        }
+      }
+      return gap.entry;
+    }
     if (_activeIndex < 0) return 0;
     if (_activeIndex < _blank.length && _blank[_activeIndex]) {
       for (var i = _activeIndex - 1; i >= 0; i--) {
@@ -324,14 +452,15 @@ class _LyricsViewState extends State<LyricsView>
   }
 
   /// 对焦行顶端的纵坐标：按用户偏好定位在未被控件遮挡的区域内。
-  double get _focusTopY =>
-      (widget.topInset +
-              (_viewportHeight - widget.topInset - widget.bottomInset).clamp(
-                    0.0,
-                    double.infinity,
-                  ) *
-                  _style.lyricsFocusPosition)
-          .clamp(0.0, _viewportHeight);
+  double get _focusTopY => widget.appleMusicStyle
+      ? math.max(widget.topInset, _viewportHeight * .08 - 2)
+      : (widget.topInset +
+                (_viewportHeight - widget.topInset - widget.bottomInset).clamp(
+                      0.0,
+                      double.infinity,
+                    ) *
+                    _style.lyricsFocusPosition)
+            .clamp(0.0, _viewportHeight);
 
   /// 最后一个 startTimeMs <= ms 的行；在第一行之前返回 -1。
   int _indexFor(int ms) {
@@ -352,15 +481,33 @@ class _LyricsViewState extends State<LyricsView>
   void _onPosition() {
     if (!_isSynced) return;
     final index = _indexFor(_lookupMs);
-    if (index == _activeIndex) return;
+    final oldIndex = _activeIndex;
+    _activeIndex = index;
+    final focus = _focusEntryFor(_currentGap);
+    final gap = _currentGap?.entry;
+    final focusChanged = focus != _renderedFocus;
+    final gapChanged = gap != _renderedGap;
+    if (index == oldIndex &&
+        (!widget.appleMusicStyle || (!focusChanged && !gapChanged))) {
+      return;
+    }
+    final before = widget.appleMusicStyle && focusChanged
+        ? _captureRows()
+        : null;
+    // The gap's visual exit and the lyric's early focus are one transition.
+    // Removing the now-invisible spacer only changes layout; compensate during
+    // that layout, without restarting the running per-row cascade.
+    if (widget.appleMusicStyle && gapChanged && !focusChanged) {
+      _gapReflowPending = true;
+    }
     setState(() => _activeIndex = index);
-    if (!_browsing) {
+    if (!_browsing && (!widget.appleMusicStyle || focusChanged)) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         if (_translationReveal.isAnimating) {
           _animateTranslationTo(_translationTarget);
         } else {
-          _scrollToActive();
+          _scrollToActive(before: before);
         }
       });
     }
@@ -388,7 +535,7 @@ class _LyricsViewState extends State<LyricsView>
     // 对焦项之上正在收起的呼吸点：收起动画与滚动同步进行，结束后对焦项会上移它当前的高度，
     // 目标位置预先扣掉，动画全程平滑、终点准确
     var collapsing = 0.0;
-    if (focus >= 0) {
+    if (focus >= 0 && !widget.appleMusicStyle) {
       final first = _offsetOf(viewport, _lineKeys.first);
       final intro = _offsetOf(viewport, _introKey);
       if (first != null && intro != null) collapsing += first - intro;
@@ -413,9 +560,15 @@ class _LyricsViewState extends State<LyricsView>
   }
 
   double? _translationLayoutTarget() {
-    if (!_translationFramePending) return null;
+    if (!_translationFramePending && !_gapReflowPending) return null;
     _translationFramePending = false;
+    _gapReflowPending = false;
     if (!mounted || _browsing || !_isSynced) return null;
+    if (widget.appleMusicStyle &&
+        (!_interactionActive || _touches.isNotEmpty || _userScrolling)) {
+      _pendingAnchor = true;
+      return null;
+    }
     final target = _activeScrollTarget();
     if (target == null) return null;
     final distance = _translationTarget - _translationScrollStart;
@@ -426,10 +579,46 @@ class _LyricsViewState extends State<LyricsView>
     return target - _translationScrollDelta * (1 - progress);
   }
 
-  void _scrollToActive({bool animate = true}) {
+  void _scrollToActive({bool animate = true, Map<int, double>? before}) {
+    if (!mounted) return;
+    if (widget.appleMusicStyle && !_isSynced) return;
+    if (widget.appleMusicStyle &&
+        (!_interactionActive ||
+            _touches.isNotEmpty ||
+            _userScrolling ||
+            _browsing)) {
+      _pendingAnchor = true;
+      return;
+    }
     final target = _activeScrollTarget();
     if (target == null) return;
     final position = _scroll.position;
+    if (widget.appleMusicStyle) {
+      final bounded = target.clamp(
+        position.minScrollExtent,
+        position.maxScrollExtent,
+      );
+      final delta = bounded - position.pixels;
+      final snapshots = before ?? _captureRows();
+      _moveFocus = _focusEntryFor(_currentGap);
+      final offsets = <int, double>{};
+      for (var i = -1; i < _lineKeys.length; i++) {
+        final box = _boxOf(i < 0 ? _introKey : _lineKeys[i]);
+        if (box != null && snapshots.containsKey(i)) {
+          offsets[i] =
+              snapshots[i]! - (box.localToGlobal(Offset.zero).dy - delta);
+        }
+      }
+      _moveOffsets = offsets;
+      position.jumpTo(bounded);
+      _pendingAnchor = false;
+      if (animate && !context.reduceMotion) {
+        _move.forward(from: 0);
+      } else {
+        _move.value = 1;
+      }
+      return;
+    }
     if ((target - position.pixels).abs() < 0.5) return;
     if (animate && !context.reduceMotion) {
       position.animateTo(
@@ -442,17 +631,78 @@ class _LyricsViewState extends State<LyricsView>
     }
   }
 
-  /// 只响应用户手势（程序滚动不会产生 UserScrollNotification）。
-  bool _onUserScroll(UserScrollNotification n) {
+  /// Start browsing only for user input, but wait for the entire ballistic
+  /// scroll to end before starting the inactivity countdown.
+  bool _onScrollNotification(ScrollNotification n) {
     if (!_isSynced || n.depth != 0) return false;
+    if (widget.appleMusicStyle) {
+      if ((n is ScrollStartNotification && n.dragDetails != null) ||
+          (n is UserScrollNotification &&
+              n.direction != ScrollDirection.idle)) {
+        _browseTimer?.cancel();
+        _userScrolling = true;
+        _move.stop();
+        if (!_browsing) setState(() => _browsing = true);
+      } else if (n is ScrollEndNotification) {
+        _userScrolling = false;
+        if (_browsing) {
+          // ScrollEnd is dispatched just before isScrollingNotifier becomes
+          // false. Run after that update even when no other frame is pending.
+          WidgetsBinding.instance.addPostFrameCallback(
+            (_) => _scheduleBrowseResume(),
+          );
+          WidgetsBinding.instance.ensureVisualUpdate();
+        }
+      }
+      return false;
+    }
+    if (n is! UserScrollNotification) return false;
     _browseTimer?.cancel();
     if (!_browsing) setState(() => _browsing = true);
     _browseTimer = Timer(_browseHold, _endBrowsing);
     return false;
   }
 
+  void _scheduleBrowseResume() {
+    if (!mounted) return;
+    _browseTimer?.cancel();
+    if (!_interactionActive ||
+        !_browsing ||
+        _touches.isNotEmpty ||
+        _userScrolling) {
+      return;
+    }
+    if (_scroll.hasClients && _scroll.position.isScrollingNotifier.value) {
+      return;
+    }
+    _browseTimer = Timer(_appleBrowseHold, _endBrowsing);
+  }
+
+  void _pointerUp(int pointer) {
+    if (!_touches.remove(pointer)) return;
+    if (_touches.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (_browsing) {
+          _scheduleBrowseResume();
+        } else if (_pendingAnchor) {
+          _scrollToActive();
+        }
+      });
+      WidgetsBinding.instance.ensureVisualUpdate();
+    }
+  }
+
   void _endBrowsing() {
     if (!mounted) return;
+    if (widget.appleMusicStyle &&
+        (!_interactionActive ||
+            _touches.isNotEmpty ||
+            _userScrolling ||
+            (_scroll.hasClients &&
+                _scroll.position.isScrollingNotifier.value))) {
+      return;
+    }
     setState(() => _browsing = false);
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToActive());
   }
@@ -461,15 +711,22 @@ class _LyricsViewState extends State<LyricsView>
     _browseTimer?.cancel();
     _seek(Duration(milliseconds: line.startTimeMs));
     if (_browsing) setState(() => _browsing = false);
+    if (widget.appleMusicStyle) {
+      _pendingAnchor = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToActive());
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    GestureBinding.instance.pointerRouter.removeGlobalRoute(_releasePointer);
     _translation.removeListener(_onTranslation);
     if (_ownsTranslation) _translation.dispose();
     _browseTimer?.cancel();
     _position.removeListener(_onPosition);
     _translationReveal.dispose();
+    _move.dispose();
     _scroll.dispose();
     super.dispose();
   }
@@ -499,6 +756,7 @@ class _LyricsViewState extends State<LyricsView>
     final target = Localizations.localeOf(context).toLanguageTag();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
+        final translationNeedsSync = !_translationIsCurrent;
         _translationLyrics = _lyrics;
         _translationTrackUri = widget.track.uri;
         _translation.configure(
@@ -507,6 +765,10 @@ class _LyricsViewState extends State<LyricsView>
           target,
           query: LyricsQuery.fromTrack(widget.track),
         );
+        // The shared controller can outlive this view and configure() is a
+        // no-op for cached lyrics. Restore its current state after a remount
+        // or reload without waiting for another translation notification.
+        if (translationNeedsSync) _onTranslation();
       }
     });
     // 歌词缓存被清空或这首歌被要求重新获取：回到加载态重新取
@@ -556,13 +818,16 @@ class _LyricsViewState extends State<LyricsView>
   Widget _buildLines(SpotifyLyrics lyrics, bool isPlaying) {
     final focusY = _focusTopY;
     final centered = _style.lyricsAlign == LyricsAlign.center;
-    final fontSize = widget.fontSize * _style.lyricsScale;
+    final fontSize =
+        (widget.appleMusicStyle ? 30 : widget.fontSize) * _style.lyricsScale;
     final lines = lyrics.lines;
 
     // 同步歌词：空行不再显示「• • •」文字，只有正在进行的那段无人声显示呼吸点，其余收起；
     // 模糊层级按「可见的行」计算，收起的空行不占一级
     final gap = _currentGap;
     final focus = _focusEntryFor(gap);
+    _renderedFocus = focus;
+    _renderedGap = gap?.entry;
     final rank = List<int>.filled(lines.length, 0);
     var visible = gap?.entry == -1 ? 1 : 0;
     for (var i = 0; i < lines.length; i++) {
@@ -571,128 +836,177 @@ class _LyricsViewState extends State<LyricsView>
     }
     final focusRank = focus < 0 ? 0 : rank[focus];
 
-    return NotificationListener<UserScrollNotification>(
-      onNotification: _onUserScroll,
-      child: ShaderMask(
-        // 上下边缘柔和淡出，歌词像从玻璃下方浮现
-        blendMode: BlendMode.dstIn,
-        shaderCallback: (rect) => const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Colors.transparent,
-            Colors.black,
-            Colors.black,
-            Colors.transparent,
-          ],
-          stops: [0.0, 0.14, 0.82, 1.0],
-        ).createShader(rect),
-        // 滚动条只在用户手动浏览时出现，跟随播放的自动滚动不显示
-        child: RawScrollbar(
-          controller: _scroll,
-          thumbColor: Colors.white38,
-          thickness: 5,
-          radius: const Radius.circular(3),
-          notificationPredicate: (n) => n.depth == 0 && _browsing,
-          child: ScrollConfiguration(
-            behavior: ScrollConfiguration.of(
-              context,
-            ).copyWith(scrollbars: false),
-            child: SingleChildScrollView(
+    return Listener(
+      onPointerDown: widget.appleMusicStyle
+          ? (event) {
+              _touches.add(event.pointer);
+              _browseTimer?.cancel();
+            }
+          : null,
+      onPointerUp: widget.appleMusicStyle
+          ? (event) => _pointerUp(event.pointer)
+          : null,
+      onPointerCancel: widget.appleMusicStyle
+          ? (event) => _pointerUp(event.pointer)
+          : null,
+      child: NotificationListener<ScrollNotification>(
+        onNotification: _onScrollNotification,
+        child: ShaderMask(
+          // 上下边缘柔和淡出，歌词像从玻璃下方浮现
+          blendMode: BlendMode.dstIn,
+          shaderCallback: (rect) => widget.appleMusicStyle
+              ? _appleEdgeFade(rect)
+              : const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    Colors.black,
+                    Colors.black,
+                    Colors.transparent,
+                  ],
+                  stops: [0.0, 0.14, 0.82, 1.0],
+                ).createShader(rect),
+          // 滚动条只在用户手动浏览时出现，跟随播放的自动滚动不显示
+          child: ShaderMask(
+            blendMode: BlendMode.dstIn,
+            shaderCallback: (rect) => LinearGradient(
+              colors: widget.appleMusicStyle
+                  ? const [
+                      Colors.transparent,
+                      Colors.black,
+                      Colors.black,
+                      Colors.transparent,
+                    ]
+                  : const [
+                      Colors.black,
+                      Colors.black,
+                      Colors.black,
+                      Colors.black,
+                    ],
+              stops: const [0, .01, .99, 1],
+            ).createShader(rect),
+            child: RawScrollbar(
               controller: _scroll,
-              physics: const BouncingScrollPhysics(),
-              // 上下留出到对焦位置的距离，第一句和最后一句也能停在对焦位置
-              padding: EdgeInsets.fromLTRB(
-                widget.horizontalPadding,
-                focusY,
-                widget.horizontalPadding,
-                _viewportHeight - focusY,
-              ),
-              child: Column(
-                crossAxisAlignment: centered
-                    ? CrossAxisAlignment.center
-                    : CrossAxisAlignment.start,
-                children: [
-                  if (!_isSynced)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: Text(
-                        context.l10n.lyricsUnsynced,
-                        style: const TextStyle(
-                          color: Colors.white60,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
+              thumbColor: Colors.white38,
+              thickness: 5,
+              radius: const Radius.circular(3),
+              notificationPredicate: (n) => n.depth == 0 && _browsing,
+              child: ScrollConfiguration(
+                behavior: ScrollConfiguration.of(
+                  context,
+                ).copyWith(scrollbars: false),
+                child: SingleChildScrollView(
+                  controller: _scroll,
+                  physics: const BouncingScrollPhysics(),
+                  // 上下留出到对焦位置的距离，第一句和最后一句也能停在对焦位置
+                  padding: EdgeInsets.fromLTRB(
+                    widget.appleMusicStyle ? 32 : widget.horizontalPadding,
+                    focusY,
+                    widget.appleMusicStyle ? 32 : widget.horizontalPadding,
+                    _viewportHeight - focusY,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: centered
+                        ? CrossAxisAlignment.center
+                        : CrossAxisAlignment.start,
+                    children: [
+                      if (!_isSynced)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: Text(
+                            context.l10n.lyricsUnsynced,
+                            style: const TextStyle(
+                              color: Colors.white60,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                  if (_isSynced)
-                    KeyedSubtree(
-                      key: _introKey,
-                      child: _gapEntry(
-                        gap?.entry == -1 ? gap : null,
-                        fontSize,
-                        centered,
-                        isPlaying: isPlaying,
-                      ),
-                    ),
-                  for (var i = 0; i < lyrics.lines.length; i++)
-                    if (_isSynced && _blank[i])
-                      KeyedSubtree(
-                        key: _lineKeys[i],
-                        child: _gapEntry(
-                          gap?.entry == i ? gap : null,
-                          fontSize,
-                          centered,
-                          isPlaying: isPlaying,
+                      if (_isSynced)
+                        KeyedSubtree(
+                          key: _introKey,
+                          child: _movingRow(
+                            -1,
+                            _gapEntry(
+                              gap?.entry == -1 ? gap : null,
+                              fontSize,
+                              centered,
+                              isPlaying: isPlaying,
+                            ),
+                          ),
                         ),
-                      )
-                    else
-                      RepaintBoundary(
-                        key: _lineKeys[i],
-                        child: LyricLineView(
-                          text: lyrics.lines[i].words,
-                          translation: _translationIsCurrent
-                              ? _visibleTranslations?.elementAtOrNull(i)
-                              : null,
-                          translationProgress: _translationReveal.value,
-                          fontSize: fontSize,
-                          centered: centered,
-                          blurScale: _style.lyricsBlur,
-                          // 以对焦行为中心：当句清晰，上下句按行距逐级模糊
-                          distance: _isSynced ? rank[i] - focusRank : 0,
-                          focusAll: !_isSynced || _browsing,
-                          cursor: widget.lineCursor,
-                          onTap: _isSynced
-                              ? () => _seekToLine(lyrics.lines[i])
-                              : null,
+                      for (var i = 0; i < lyrics.lines.length; i++)
+                        if (_isSynced && _blank[i])
+                          KeyedSubtree(
+                            key: _lineKeys[i],
+                            child: _movingRow(
+                              i,
+                              _gapEntry(
+                                gap?.entry == i ? gap : null,
+                                fontSize,
+                                centered,
+                                isPlaying: isPlaying,
+                              ),
+                            ),
+                          )
+                        else
+                          RepaintBoundary(
+                            key: _lineKeys[i],
+                            child: _movingRow(
+                              i,
+                              LyricLineView(
+                                appleMusicStyle: widget.appleMusicStyle,
+                                text: lyrics.lines[i].words,
+                                translation: _translationIsCurrent
+                                    ? _visibleTranslations?.elementAtOrNull(i)
+                                    : null,
+                                translationProgress: _translationReveal.value,
+                                fontSize: fontSize,
+                                centered: centered,
+                                blurScale: _style.lyricsBlur,
+                                // 以对焦行为中心：当句清晰，上下句按行距逐级模糊
+                                distance: _isSynced ? rank[i] - focusRank : 0,
+                                focusAll: !_isSynced || _browsing,
+                                cursor: widget.lineCursor,
+                                onTap: _isSynced
+                                    ? () => _seekToLine(lyrics.lines[i])
+                                    : null,
+                              ),
+                            ),
+                          ),
+                      if (lyrics.provider == LyricsProvider.lrclib ||
+                          (_translationIsCurrent && _translation.fromLrclib))
+                        Padding(
+                          padding: const EdgeInsets.only(top: 28),
+                          child: Text(
+                            context.l10n.lyricsFromLrclib,
+                            style: const TextStyle(
+                              color: Colors.white54,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
-                      ),
-                  if (lyrics.provider == LyricsProvider.lrclib ||
-                      (_translationIsCurrent && _translation.fromLrclib))
-                    Padding(
-                      padding: const EdgeInsets.only(top: 28),
-                      child: Text(
-                        context.l10n.lyricsFromLrclib,
-                        style: const TextStyle(
-                          color: Colors.white54,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                      if (_translationIsCurrent &&
+                          (_translation.fromNetease ||
+                              _translation.fromQqMusic))
+                        Padding(
+                          padding: const EdgeInsets.only(top: 28),
+                          child: Text(
+                            _translation.fromQqMusic
+                                ? context.l10n.lyricsTranslationFromQqMusic
+                                : context.l10n.lyricsTranslationFromNetease,
+                            style: const TextStyle(
+                              color: Colors.white54,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                  if (_translationIsCurrent && _translation.fromNetease)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 28),
-                      child: Text(
-                        context.l10n.lyricsTranslationFromNetease,
-                        style: const TextStyle(
-                          color: Colors.white54,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                ],
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
@@ -700,6 +1014,43 @@ class _LyricsViewState extends State<LyricsView>
       ),
     );
   }
+
+  Shader _appleEdgeFade(Rect rect) {
+    final controlTop = (1 - widget.bottomInset / math.max(1, rect.height))
+        .clamp(.07, 1.0);
+    final fadeStart = math.max(.07, controlTop - .2775);
+    return LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: const [
+        Colors.transparent,
+        Colors.black,
+        Colors.black,
+        Color(0x0D000000),
+        Colors.transparent,
+        Colors.transparent,
+      ],
+      stops: [
+        0,
+        .07,
+        fadeStart,
+        fadeStart + (controlTop - fadeStart) * (.24 / .2775),
+        controlTop,
+        1,
+      ],
+    ).createShader(rect);
+  }
+
+  Widget _movingRow(int index, Widget child) => !widget.appleMusicStyle
+      ? child
+      : AnimatedBuilder(
+          animation: _move,
+          child: child,
+          builder: (_, child) => Transform.translate(
+            offset: Offset(0, _moveOffset(index)),
+            child: child,
+          ),
+        );
 
   /// 无人声片段占位：[gap] 非空时展开显示呼吸点，否则收起为零高度。
   /// 展开 / 收起与切行滚动同时长同曲线，配合 [_scrollToActive] 的收起补偿保持位置连贯。
@@ -709,33 +1060,40 @@ class _LyricsViewState extends State<LyricsView>
     bool centered, {
     required bool isPlaying,
   }) {
+    final child = gap == null
+        ? const SizedBox(width: double.infinity)
+        : Padding(
+            padding: EdgeInsets.symmetric(vertical: fontSize * 0.4),
+            child: SizedBox(
+              width: double.infinity,
+              height: fontSize * 1.3,
+              child: Align(
+                alignment: centered
+                    ? Alignment.center
+                    : AlignmentDirectional.centerStart,
+                child: BreathingDots(
+                  appleMusicStyle: widget.appleMusicStyle,
+                  key: ValueKey(gap.startMs),
+                  position: _position,
+                  isPlaying: isPlaying,
+                  leadMs: widget.appleMusicStyle
+                      ? (widget.remote ? _style.remoteLyricsLeadMs : 0)
+                      : _lookupMs - _position.value.inMilliseconds,
+                  startMs: gap.startMs,
+                  endMs: gap.endMs,
+                  dotSize: widget.appleMusicStyle ? 10 : fontSize * 0.4,
+                  centered: centered,
+                ),
+              ),
+            ),
+          );
+    if (widget.appleMusicStyle) return child;
     return AnimatedSize(
       duration: context.motion(_scrollDuration),
       curve: _scrollCurve,
       clipBehavior: Clip.none,
       alignment: Alignment.topCenter,
-      child: gap == null
-          ? const SizedBox(width: double.infinity)
-          : Padding(
-              padding: EdgeInsets.symmetric(vertical: fontSize * 0.4),
-              child: SizedBox(
-                width: double.infinity,
-                height: fontSize * 1.3,
-                child: Align(
-                  alignment: centered ? Alignment.center : Alignment.centerLeft,
-                  child: BreathingDots(
-                    key: ValueKey(gap.startMs),
-                    position: _position,
-                    isPlaying: isPlaying,
-                    leadMs: _lookupMs - _position.value.inMilliseconds,
-                    startMs: gap.startMs,
-                    endMs: gap.endMs,
-                    dotSize: fontSize * 0.4,
-                    centered: centered,
-                  ),
-                ),
-              ),
-            ),
+      child: child,
     );
   }
 }

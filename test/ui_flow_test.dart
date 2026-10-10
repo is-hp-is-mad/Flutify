@@ -16,6 +16,7 @@ import 'package:flutify_app/ui/shell/desktop/now_playing_panel.dart';
 import 'package:flutify_app/ui/shell/desktop/panel_lyrics_card.dart';
 import 'package:flutify_app/ui/shell/shell_layout_controller.dart';
 import 'package:flutify_app/ui/widgets/filter_pill.dart';
+import 'package:flutify_app/ui/widgets/apple_music_background.dart';
 import 'package:flutify_app/ui/widgets/liquid_glass.dart';
 import 'package:flutify_app/ui/widgets/mini_player.dart';
 import 'package:flutter/material.dart';
@@ -124,7 +125,10 @@ void main() {
     expect(find.byType(LiquidGlass), findsNWidgets(2));
     expect(find.byIcon(Icons.translate_rounded), findsOneWidget);
     expect(find.byTooltip('全屏歌词'), findsNothing);
-    expect(find.byType(ImageFiltered), findsWidgets);
+    // Android now uses the native micro-bitmap background and Apple's
+    // line-synced opacity/scale treatment, not distance-based text blur.
+    expect(find.byType(AppleMusicBackground), findsOneWidget);
+    expect(find.byType(ImageFiltered), findsNothing);
     // 0:00 时当前行保持清晰。
     final firstLine = find.text('First synthetic line');
     expect(

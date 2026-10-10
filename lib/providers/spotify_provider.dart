@@ -381,15 +381,18 @@ class SpotifyProvider extends ChangeNotifier {
     final result = cache != null
         ? await cache.clear(clearFiles: clearDisk)
         : await clearDisk?.call() ?? CacheResult();
-    final translationCache = _lyrics.translation?.cache;
-    if (translationCache != null && !identical(translationCache, cache)) {
-      result.add(await translationCache.clear());
+    final cleared = {?cache};
+    for (final source in _lyrics.translationSources) {
+      final translationCache = source.cache;
+      if (translationCache != null && cleared.add(translationCache)) {
+        result.add(await translationCache.clear());
+      }
     }
     if (!_disposed) notifyListeners();
     return result;
   }
 
-  /// 作废内存里已解析的歌词（含进行中的请求），LRCLIB 选词与网易云译文的本地缓存保留：
+  /// 作废内存里已解析的歌词（含进行中的请求），LRCLIB / QQ / 网易云的本地缓存保留：
   /// 开启「双语歌词」时调用——关闭期间解析的歌词没查过译文，已打开的歌词视图随之重新解析。
   void invalidateResolvedLyrics() {
     _lyricsEpoch++;

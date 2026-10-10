@@ -7,17 +7,11 @@ import 'lyrics_disk_cache.dart';
 import 'lyrics_title.dart';
 import 'netease_client.dart';
 import 'translation_merge.dart';
+import 'translation_source.dart';
 
 /// 一次译文查询的结果：[lines] 为 null 表示没找到（含「这首歌没有译文」这种确定结果）；
 /// [networkError] 表示没找到可能只是网络问题，调用方不缓存本次结果。
-class NeteaseTranslationLookup {
-  /// 与查询时的原文行**按下标一一对应**（等长；没配上译文的行 words 为空串，时间轴取原文行的）。
-  /// 按下标而不是按时间对齐：两句原文时间戳相同时不能共用一条译文。
-  final List<LyricLine>? lines;
-  final bool networkError;
-
-  const NeteaseTranslationLookup(this.lines, {this.networkError = false});
-}
+typedef NeteaseTranslationLookup = TranslationSourceLookup;
 
 /// 从网易云音乐补译文（社区翻译 `tlyric`，带时间轴）：只取译文，原文仍以 Spotify / LRCLIB 为准。
 ///
@@ -26,14 +20,19 @@ class NeteaseTranslationLookup {
 ///
 /// 对齐（网易云译文的时间轴对应它自己的原文，与 Spotify 的不一定重合）：
 /// 1. 文本锚定：译文行先按时间贴到网易云原文行，再按歌词文字贴回我们的原文行；
+///    网易云合句可匹配最多三句连续原文，只有译文分隔明确时才拆分，不改原文时间轴；
 ///    同一句歌词出现多次（副歌）时贴到时间最近的那次——先用只出现一次的句子估出两条时间轴的
 ///    整体偏移，再按偏移校正后的时间就近挑，某次副歌缺译文时不会把后面的译文整体前移；
 /// 2. 时间近邻兜底：没锚上的译文按（偏移校正后）±1.5 秒就近贴到还没译文的原文行；
-/// 3. 覆盖率低于 [_minCoverage] 视为歌配错了，全盘放弃（宁可没译文，不上错位的）。
-class NeteaseTranslationSource {
+/// 3. 原文匹配率低于 [_minCoverage] 视为歌配错了，全盘放弃；原样外语不冒充中文译文。
+class NeteaseTranslationSource implements TranslationSource {
+  @override
+  LyricsProvider get provider => LyricsProvider.netease;
+
   final NeteaseClient _client;
 
   /// 本地缓存（可空：测试或不需要持久化时），存的是网易云的 `lrc` / `tlyric` 原文。
+  @override
   final LyricsDiskCache? cache;
   final Future<void> Function(Duration) _sleep;
 
@@ -43,7 +42,7 @@ class NeteaseTranslationSource {
     Future<void> Function(Duration)? sleep,
   }) : _sleep = sleep ?? Future.delayed;
 
-  /// 对齐后译文至少覆盖的非空原文行比例。
+  /// 至少匹配的非空原文行比例。原样保留的外语可确认对齐，但不作为译文显示。
   static const double _minCoverage = 0.4;
 
   /// 中文原文不查译文：网易云上中文歌基本没有 tlyric，跳过能为绝大多数曲目省掉两次请求。
@@ -57,10 +56,12 @@ class NeteaseTranslationSource {
       : 'netease|v3|${q.title} ${q.artist}';
 
   /// 删除这首歌的本地译文缓存（「重新获取歌词」）。
+  @override
   Future<void> forget(LyricsQuery cacheKeyHint) async =>
       cache?.remove(cacheKey(cacheKeyHint));
 
   /// 为 [originals] 查译文；返回的译文行与 [originals] 按下标一一对应（见 [NeteaseTranslationLookup.lines]）。
+  @override
   Future<NeteaseTranslationLookup> find(
     LyricsQuery query,
     List<LyricLine> originals,
@@ -184,7 +185,7 @@ class NeteaseTranslationSource {
     return best;
   }
 
-  /// 把网易云 `tlyric` 对齐到我们的原文行；覆盖不足返回 null。
+  /// 把网易云 `tlyric` 对齐到我们的原文行；匹配不足或没有真正译词返回 null。
   /// 返回与 [originals] 等长、按下标对应的译文行（没有译文的为空串，含原文里的间奏空行）。
   static List<LyricLine>? align(
     String lrc,
@@ -198,23 +199,29 @@ class NeteaseTranslationSource {
     // 非空原文行及其在 originals 里的下标
     final originalIdx = [
       for (final (i, l) in originals.indexed)
-        if (l.words.trim().isNotEmpty) i,
+        if (_normalize(l.words).isNotEmpty) i,
     ];
     final originalLines = [for (final i in originalIdx) originals[i]];
     if (transLines.isEmpty || originalLines.isEmpty) return null;
 
-    final attached = <int, String>{}; // originals 索引 → 译文
+    final attached = <int, String>{}; // originalLines 索引 → 译文
     final usedOriginals = <int>{};
     final usedTrans = <int>{};
 
     // 1. 文本锚定：译文 →（同一时间桶）→ 网易云原文 →（文字相同）→ 我们的原文
-    String normalize(String s) => s
-        .toLowerCase()
-        .replaceAll(RegExp(r'[\s　]+'), '')
-        .replaceAll(RegExp(r'[\.,，、!！?？:：;；"“”()（）\-—…♪]'), '');
-    final byText = <String, List<int>>{}; // 文字 → 我们的原文行（originalLines 下标）
+    final byText = <String, List<({int start, int end})>>{};
     for (var i = 0; i < originalLines.length; i++) {
-      byText.putIfAbsent(normalize(originalLines[i].words), () => []).add(i);
+      var joined = '';
+      // 只跨真正相邻、时间接近的原文，不跨空行 / 间奏，也不拼接整段副歌。
+      for (var end = i; end < originalLines.length && end < i + 3; end++) {
+        if (originalIdx[end] != originalIdx[i] + end - i ||
+            originalLines[end].startTimeMs - originalLines[i].startTimeMs >
+                10000) {
+          break;
+        }
+        joined += _normalize(originalLines[end].words);
+        byText.putIfAbsent(joined, () => []).add((start: i, end: end));
+      }
     }
     // 与网易云原文共享时间桶（0.5 秒）的行即其原文
     final refTexts = [
@@ -224,7 +231,7 @@ class NeteaseTranslationSource {
             if ((r.startTimeMs / 500).round() ==
                     (trans.startTimeMs / 500).round() &&
                 r.words.trim().isNotEmpty)
-              normalize(r.words),
+              _normalize(r.words),
         },
     ];
 
@@ -233,26 +240,38 @@ class NeteaseTranslationSource {
       for (final (ti, trans) in transLines.indexed)
         for (final text in refTexts[ti])
           if (byText[text]?.length == 1)
-            originalLines[byText[text]!.single].startTimeMs - trans.startTimeMs,
+            originalLines[byText[text]!.single.start].startTimeMs -
+                trans.startTimeMs,
     ]..sort();
     final offset = deltas.isEmpty ? 0 : deltas[deltas.length ~/ 2];
 
     for (final (ti, trans) in transLines.indexed) {
       final expected = trans.startTimeMs + offset;
       for (final text in refTexts[ti]) {
-        var best = -1;
-        for (final i in byText[text] ?? const <int>[]) {
-          if (usedOriginals.contains(i)) continue;
-          if (best < 0 ||
-              (originalLines[i].startTimeMs - expected).abs() <
-                  (originalLines[best].startTimeMs - expected).abs()) {
-            best = i;
+        ({int start, int end})? best;
+        for (final span in byText[text] ?? const []) {
+          if ([
+            for (var i = span.start; i <= span.end; i++) i,
+          ].any(usedOriginals.contains)) {
+            continue;
+          }
+          if (best == null ||
+              (originalLines[span.start].startTimeMs - expected).abs() <
+                  (originalLines[best.start].startTimeMs - expected).abs()) {
+            best = span;
           }
         }
-        if (best < 0) continue;
-        usedOriginals.add(best);
+        if (best == null) continue;
         usedTrans.add(ti);
-        attached[best] = trans.words;
+        final parts = _splitTranslation(
+          trans.words,
+          originalLines.sublist(best.start, best.end + 1),
+        );
+        for (var i = best.start; i <= best.end; i++) {
+          // 包括没有译词的英文片段：该位置已匹配，不能再被时间兜底占用。
+          usedOriginals.add(i);
+          attached[i] = parts[i - best.start];
+        }
         break;
       }
     }
@@ -273,11 +292,17 @@ class NeteaseTranslationSource {
       if (best >= 0) {
         usedOriginals.add(best);
         usedTrans.add(ti);
-        attached[best] = trans.words;
+        attached[best] = _translatedText(
+          trans.words,
+          originalLines[best].words,
+        );
       }
     }
 
-    if (attached.length < originalLines.length * _minCoverage) return null;
+    if (usedOriginals.length < originalLines.length * _minCoverage ||
+        attached.values.every((text) => text.isEmpty)) {
+      return null;
+    }
     final byOriginal = {
       for (final e in attached.entries) originalIdx[e.key]: e.value,
     };
@@ -285,5 +310,106 @@ class NeteaseTranslationSource {
       for (final (i, l) in originals.indexed)
         LyricLine(startTimeMs: l.startTimeMs, words: byOriginal[i] ?? ''),
     ];
+  }
+
+  static final _letters = RegExp(r'[\p{L}\p{N}]', unicode: true);
+  static final _nonLetters = RegExp(r'[^\p{L}\p{N}]', unicode: true);
+  static final _clauseBreak = RegExp(r'[\s　，,。！？!?；;／/|]+');
+  static final _edgePunctuation = RegExp(
+    r'^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$',
+    unicode: true,
+  );
+
+  static String _normalize(String text) =>
+      text.toLowerCase().replaceAll(_nonLetters, '');
+
+  /// tlyric 是中文社区译词；原样外语和纯罗马音不是中文翻译。
+  static String _translatedText(String text, String original) =>
+      ScriptCounts.of(text)[Script.han] > 0 &&
+          _normalize(text) != _normalize(original)
+      ? text.trim()
+      : '';
+
+  static List<String> _splitTranslation(
+    String text,
+    List<LyricLine> originals,
+  ) {
+    final result = List.filled(originals.length, '');
+    var start = 0, end = originals.length - 1;
+    var remaining = text.trim();
+    // 合句里未翻译的英文常被原样放在首尾。先按原文证明其边界，
+    // 避免把英文逐词按空格切开，或把下一句英文留在上一句中文下面。
+    while (start < end) {
+      final afterHead = _removeCopiedEdge(remaining, originals[start].words);
+      if (afterHead != null) {
+        remaining = afterHead;
+        start++;
+        continue;
+      }
+      final beforeTail = _removeCopiedEdge(
+        remaining,
+        originals[end].words,
+        tail: true,
+      );
+      if (beforeTail == null) break;
+      remaining = beforeTail;
+      end--;
+    }
+    if (start == end) {
+      result[start] = _translatedText(remaining, originals[start].words);
+      return result;
+    }
+    final clauses = remaining
+        .split(_clauseBreak)
+        .where((part) => _normalize(part).isNotEmpty)
+        .toList();
+    if (clauses.length == end - start + 1 &&
+        clauses.every((part) => ScriptCounts.of(part)[Script.han] > 0)) {
+      for (var i = start; i <= end; i++) {
+        result[i] = _translatedText(clauses[i - start], originals[i].words);
+      }
+    } else {
+      // 没有明确分隔时保留完整译句，不按字数均分或凭空补译。
+      result[start] = _translatedText(remaining, originals[start].words);
+    }
+    return result;
+  }
+
+  static String? _removeCopiedEdge(
+    String text,
+    String original, {
+    bool tail = false,
+  }) {
+    final needle = _normalize(original);
+    final normalized = _normalize(text);
+    if (needle.isEmpty ||
+        !(tail ? normalized.endsWith(needle) : normalized.startsWith(needle))) {
+      return null;
+    }
+    final letters = _letters.allMatches(text).toList();
+    final count = _letters.allMatches(original).length;
+    if (count == 0 || count > letters.length) return null;
+    final cut = tail
+        ? letters[letters.length - count].start
+        : letters[count - 1].end;
+    // Oh（哦）之类是原文加译注，而不是未翻译的 Oh；保留整个词组。
+    if (tail
+        ? RegExp(r'[（(【\[]\s*$').hasMatch(text.substring(0, cut))
+        : RegExp(r'^\s*[（(【\[]').hasMatch(text.substring(cut))) {
+      return null;
+    }
+    // 不把单词后缀（例如 heart 中的 art）误当成独立的未译原文。
+    if (cut > 0 && cut < text.length) {
+      Script? wordScript(int code) =>
+          code >= 0x30 && code <= 0x39 ? Script.latin : scriptOf(code);
+      final left = wordScript(text.codeUnitAt(cut - 1));
+      final right = wordScript(text.codeUnitAt(cut));
+      if (left != null && left == right) return null;
+    }
+    final copied = tail ? text.substring(cut) : text.substring(0, cut);
+    if (_normalize(copied) != needle) return null;
+    return (tail ? text.substring(0, cut) : text.substring(cut))
+        .replaceAll(_edgePunctuation, '')
+        .trim();
   }
 }
