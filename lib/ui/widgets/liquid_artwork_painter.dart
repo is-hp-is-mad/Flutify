@@ -5,79 +5,92 @@ import 'package:flutter/animation.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 
-/// 一块旋转封面的参数：位置、放大倍数、相对相位的角速度与初始角、不透明度。
-class LiquidBlob {
-  final Alignment alignment;
-  final double scale;
-  final double speed;
-  final double offset;
-  final double opacity;
-
-  const LiquidBlob(
-    this.alignment, {
-    required this.scale,
-    required this.speed,
-    required this.offset,
-    this.opacity = 1,
-  });
-}
-
-/// 流动封面背景的绘制器：在低分辨率离屏画布上完成「三块封面 + 大模糊」，再放大铺满。
+/// 流动封面背景的绘制器。配方与 Android 原生背景（AppleMusicBackgroundPlugin.kt）保持一致，
+/// 两端看到的是同一种模糊：
 ///
-/// 规则：
-/// - σ=70 的模糊会抹掉所有高频细节，因此在 1/[downscale] 分辨率下模糊、再双线性放大，
-///   与全分辨率结果肉眼不可分，但像素工作量约为原来的 1/64；
-/// - 离屏画布四周多留 3σ 的余量，让屏幕外的封面像原来一样参与边缘模糊，
-///   边缘不会比原来更暗或更「透」；
-/// - 模糊用 decal：内容之外是透明，露出下面的主色底，与原 ImageFiltered 一致。
+/// - 在 1/[downscale] 分辨率、屏幕 1.3 倍大的离屏画布上合成：黑底 + 三份封面
+///   （边长为画布长边 1.3 倍，周期 -120s / 90s / 70s 各自旋转，后两份有固定偏移），
+///   封面饱和度 [saturation]；
+/// - 再叠一层固定的压暗/提亮（深色 50% 黑 + 5% 白；浅色 30% 黑 + 10% 白）；
+/// - 模糊半径对应 Android RenderScript 的 radius 25（σ≈10.6 个小像素），边缘夹取；
+/// - 放大到屏幕 1.3 倍并居中裁切（-15% 偏移），与原生端的绘制方式相同。
+///
+/// 小分辨率合成 + 双线性放大，像素工作量约为屏幕分辨率下的 1/64。
 class LiquidArtworkPainter extends CustomPainter {
-  static const double sigma = 70;
   static const double downscale = 8;
 
-  static const List<LiquidBlob> blobs = [
-    LiquidBlob(Alignment(-0.6, -0.5), scale: 1.9, speed: 1, offset: 0),
-    LiquidBlob(Alignment(0.7, 0.2), scale: 1.6, speed: -1.3, offset: 1.2),
-    LiquidBlob(Alignment(-0.3, 0.8), scale: 1.4, speed: 0.7, offset: 2.4, opacity: 0.8),
-  ];
+  /// RenderScript `ScriptIntrinsicBlur` 的 σ = 0.4 * radius + 0.6，radius 取其上限 25。
+  static const double blurSigma = 0.4 * 25 + 0.6;
+  static const double saturation = 2.5;
 
+  /// 每份封面的旋转周期（毫秒），负数为逆时针。与原生端一致。
+  static const List<double> periodsMs = [-120000, 90000, 70000];
+
+  /// 与原生端相同的灰度权重（Android ColorMatrix.setSaturation）。
+  static const List<double> _luma = [0.213, 0.715, 0.072];
+
+  /// 相位 = 已流动的秒数（不取模，由绘制器按各自周期换算角度）。
   final ValueListenable<double> phase;
   final Animation<double> fade;
   final ui.Image? image;
 
-  LiquidArtworkPainter({required this.phase, required this.fade, required this.image})
-      : super(repaint: Listenable.merge([phase, fade]));
+  /// 切歌淡入时垫在下面的上一张封面，按 [previousPhase] 冻结在换歌那一刻。
+  final ui.Image? previous;
+  final double previousPhase;
+  final bool dark;
+
+  LiquidArtworkPainter({
+    required this.phase,
+    required this.fade,
+    required this.image,
+    this.previous,
+    this.previousPhase = 0,
+    this.dark = true,
+  }) : super(repaint: Listenable.merge([phase, fade]));
 
   @override
   void paint(Canvas canvas, Size size) {
+    if (size.isEmpty) return;
+    final previous = this.previous;
+    if (previous != null) {
+      _paintBackground(canvas, size, previous, previousPhase, 1);
+    }
     final image = this.image;
-    final alpha = fade.value;
-    if (image == null || alpha <= 0 || size.isEmpty) return;
+    final alpha = fade.value.clamp(0.0, 1.0);
+    if (image == null || alpha <= 0) return;
+    _paintBackground(canvas, size, image, phase.value, alpha);
+  }
 
-    // 1. 离屏小画布：逻辑坐标 (x, y) 映射到 ((x + pad) / k, (y + pad) / k)
-    const pad = sigma * 3;
-    final w = ((size.width + pad * 2) / downscale).ceil();
-    final h = ((size.height + pad * 2) / downscale).ceil();
+  /// 合成并模糊一张背景，再按 [alpha] 铺到 [canvas]。
+  void _paintBackground(
+    Canvas canvas,
+    Size size,
+    ui.Image image,
+    double elapsedSeconds,
+    double alpha,
+  ) {
+    // 离屏画布覆盖屏幕的 1.3 倍（逻辑像素），内部按 1/downscale 缩小
+    final bufW = size.width * 1.3;
+    final bufH = size.height * 1.3;
+    final w = math.max(1, (bufW / downscale).round());
+    final h = math.max(1, (bufH / downscale).round());
+
     final recorder = ui.PictureRecorder();
     final offscreen = Canvas(recorder);
+    // 先建带模糊的图层再缩放坐标：σ 以小像素计
     offscreen.saveLayer(
       Rect.fromLTWH(0, 0, w.toDouble(), h.toDouble()),
       Paint()
         ..imageFilter = ui.ImageFilter.blur(
-          sigmaX: sigma / downscale,
-          sigmaY: sigma / downscale,
-          tileMode: TileMode.decal,
+          sigmaX: blurSigma,
+          sigmaY: blurSigma,
+          tileMode: TileMode.clamp,
         ),
     );
-    offscreen
-      ..scale(1 / downscale)
-      ..translate(pad, pad);
-    final t = phase.value * 2 * math.pi;
-    for (final blob in blobs) {
-      _paintBlob(offscreen, size, image, blob, t * blob.speed + blob.offset, alpha);
-    }
+    offscreen.scale(w / bufW, h / bufH);
+    _compose(offscreen, bufW, bufH, image, elapsedSeconds);
     offscreen.restore();
 
-    // 2. 放大铺满：双线性插值足以还原已被大模糊抹平的画面
     final picture = recorder.endRecording();
     final small = picture.toImageSync(w, h);
     canvas
@@ -86,43 +99,105 @@ class LiquidArtworkPainter extends CustomPainter {
       ..drawImageRect(
         small,
         Rect.fromLTWH(0, 0, w.toDouble(), h.toDouble()),
-        Rect.fromLTWH(-pad, -pad, w * downscale, h * downscale),
-        Paint()..filterQuality = FilterQuality.low,
+        Rect.fromLTWH(-size.width * 0.15, -size.height * 0.15, bufW, bufH),
+        Paint()
+          ..filterQuality = FilterQuality.low
+          ..color = Color.fromRGBO(0, 0, 0, alpha),
       )
       ..restore();
     small.dispose();
     picture.dispose();
   }
 
-  /// 复刻原布局：Align → 宽 75% 的方框（高度不超过画布）→ 绕中心旋转、放大 → cover 填充。
-  void _paintBlob(Canvas canvas, Size size, ui.Image image, LiquidBlob blob, double angle, double alpha) {
-    final boxW = size.width * 0.75;
-    final boxH = math.min(boxW, size.height);
-    final center = Offset(
-      (size.width - boxW) / 2 * (1 + blob.alignment.x) + boxW / 2,
-      (size.height - boxH) / 2 * (1 + blob.alignment.y) + boxH / 2,
+  /// 黑底 + 三份旋转封面 + 固定压暗层，坐标为 [w]×[h] 的逻辑像素。
+  void _compose(
+    Canvas canvas,
+    double w,
+    double h,
+    ui.Image image,
+    double elapsedSeconds,
+  ) {
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, w, h),
+      Paint()..color = const Color(0xFF000000),
     );
-    final dst = Rect.fromCenter(center: Offset.zero, width: boxW, height: boxH);
-    final imageSize = Size(image.width.toDouble(), image.height.toDouble());
-    final fitted = applyBoxFit(BoxFit.cover, imageSize, dst.size);
-    final src = Alignment.center.inscribe(fitted.source, Offset.zero & imageSize);
+    final side = math.max(w, h) * 1.3;
+    final paint = Paint()
+      ..filterQuality = FilterQuality.medium
+      ..colorFilter = ColorFilter.matrix(_saturationMatrix(saturation));
+    final bounds = Rect.fromLTWH(
+      0,
+      0,
+      image.width.toDouble(),
+      image.height.toDouble(),
+    );
+    for (var i = 0; i < 3; i++) {
+      final angle =
+          (elapsedSeconds * 1000 / periodsMs[i]).remainder(1.0) * 2 * math.pi;
+      canvas
+        ..save()
+        ..transform(_layerMatrix(i, angle, w, h, side, image).storage)
+        ..drawImageRect(image, bounds, bounds, paint)
+        ..restore();
+    }
+    // 压暗 + 轻微提亮（与原生端同序同值）
     canvas
-      ..save()
-      ..translate(center.dx, center.dy)
-      ..rotate(angle)
-      ..scale(blob.scale)
-      ..drawImageRect(
-        image,
-        src,
-        dst,
-        Paint()
-          ..filterQuality = FilterQuality.medium
-          ..color = Color.fromRGBO(0, 0, 0, blob.opacity * alpha),
+      ..drawRect(
+        Rect.fromLTWH(0, 0, w, h),
+        Paint()..color = Color(dark ? 0x80000000 : 0x4D000000),
       )
-      ..restore();
+      ..drawRect(
+        Rect.fromLTWH(0, 0, w, h),
+        Paint()..color = Color(dark ? 0x0DFFFFFF : 0x1AFFFFFF),
+      );
+  }
+
+  /// 原生端 `Matrix`：缩放到 side×side → 绕其中心旋转 → 居中到画布，
+  /// 第 2 份再平移 (-.95w, -.7h)，第 3 份平移 (-.5w, .7h) 后绕画布中心再转一次。
+  Matrix4 _layerMatrix(
+    int index,
+    double angle,
+    double w,
+    double h,
+    double side,
+    ui.Image image,
+  ) {
+    Matrix4 about(double cx, double cy) =>
+        Matrix4.translationValues(cx, cy, 0) *
+        Matrix4.rotationZ(angle) *
+        Matrix4.translationValues(-cx, -cy, 0);
+
+    var m = Matrix4.diagonal3Values(side / image.width, side / image.height, 1);
+    m = about(side / 2, side / 2) * m;
+    m = Matrix4.translationValues((w - side) / 2, (h - side) / 2, 0) * m;
+    if (index == 1) {
+      m = Matrix4.translationValues(-0.95 * w, -0.7 * h, 0) * m;
+    }
+    if (index == 2) {
+      m = Matrix4.translationValues(-0.5 * w, 0.7 * h, 0) * m;
+      m = about(w / 2, h / 2) * m;
+    }
+    return m;
+  }
+
+  /// Android `ColorMatrix.setSaturation` 的 4x5 矩阵。
+  static List<double> _saturationMatrix(double s) {
+    final inv = 1 - s;
+    final r = _luma[0] * inv, g = _luma[1] * inv, b = _luma[2] * inv;
+    return [
+      r + s, g, b, 0, 0, //
+      r, g + s, b, 0, 0,
+      r, g, b + s, 0, 0,
+      0, 0, 0, 1, 0,
+    ];
   }
 
   @override
   bool shouldRepaint(LiquidArtworkPainter oldDelegate) =>
-      oldDelegate.image != image || oldDelegate.phase != phase || oldDelegate.fade != fade;
+      oldDelegate.image != image ||
+      oldDelegate.previous != previous ||
+      oldDelegate.previousPhase != previousPhase ||
+      oldDelegate.dark != dark ||
+      oldDelegate.phase != phase ||
+      oldDelegate.fade != fade;
 }
