@@ -5,6 +5,7 @@ import '../../../l10n/l10n.dart';
 import '../../../services/auth/web_token_service.dart';
 import '../../shell/shell_breakpoints.dart';
 import 'sections/about_section.dart';
+import 'sections/animation_debug_section.dart';
 import 'sections/update_section.dart';
 import 'sections/accent_section.dart';
 import 'sections/appearance_section.dart';
@@ -34,7 +35,7 @@ List<Widget> _accountCards(BuildContext context) => [
     ];
 
 /// 设置页（单列顺序）：账号 → 播放 → 歌词 → 外观 → 强调色 → 液态玻璃 → 文字与形状 → 动效
-/// → 语言 → Spotify Connect → 网络 → 存储 → 隐私 → 启动 → 关于。
+/// → 动画调试（临时）→ 语言 → Spotify Connect → 网络 → 存储 → 隐私 → 启动 → 关于。
 ///
 /// 所有设置项修改后即时生效、自动保存，无需「保存」按钮。按窗口形态分两套布局：
 /// - 移动端：iOS「设置」式单列分组，顶部 AppBar 带返回；
@@ -63,6 +64,7 @@ const List<Widget> _singleColumn = [
   GlassSection(),
   TextShapeSection(),
   MotionSection(),
+  AnimationDebugSection(),
   LanguageSection(),
   ConnectSection(),
   NetworkSection(),
@@ -133,6 +135,7 @@ class _DesktopSettings extends StatelessWidget {
                           const AppearanceSection(),
                           const TextShapeSection(),
                           const MotionSection(),
+                          const AnimationDebugSection(),
                           const LyricsSection(),
                           const TaskbarLyricsSection(),
                           const LanguageSection(),

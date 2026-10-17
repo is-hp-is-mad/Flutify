@@ -644,6 +644,27 @@
   "updatesFailed": "Update failed. Retry or visit the release page.",
   "updatesPermission": "Allow Flutify to install unknown apps, then return and tap “Install APK” again.",
   "updatesUnsupported": "In-app installation is unavailable on this platform. Use the release page to update manually.",
-  "updatesDetails": "View update"
+  "updatesDetails": "View update",
+  "webLoginRegionChecking": "Checking network region…",
+  "webLoginRegionCheckingHint": "Confirming where your network exits before the sign-in page loads, so sign-in doesn't fail in an unsupported region.",
+  "webLoginRegionBlockedTitle": "Your network exits in mainland China",
+  "webLoginRegionBlockedBody": "Spotify isn't available in mainland China, so signing in will likely fail or be restricted. Turn on a proxy, switch to an overseas node, then check again.",
+  "webLoginRegionRecheck": "Check again",
+  "webLoginRegionForceSkip": "Skip anyway",
+  "settingsAnimDebugSection": "Animation debugging (temporary)",
+  "settingsAnimDebugFooter": "Applies to this run only and resets when the app restarts. Use it to find what drops frames: turn items off one by one and see which one makes it smooth.",
+  "settingsAnimDebugResetAll": "Restore all",
+  "settingsAnimDebugAllMotion": "Turn off all transition animations",
+  "settingsAnimDebugAllMotionSubtitle": "Same as the system “remove animations”: UI transitions and the flowing background stop",
+  "settingsAnimDebugLyricsLine": "Turn off lyric line focus animation",
+  "settingsAnimDebugLyricsLineSubtitle": "Scale, blur and opacity changes switch instantly instead of easing",
+  "settingsAnimDebugLyricsScroll": "Turn off lyric line-change scrolling",
+  "settingsAnimDebugLyricsScrollSubtitle": "The list jumps straight to position when the line changes, with no movement transition",
+  "settingsAnimDebugLyricsMask": "Turn off lyric edge fade mask",
+  "settingsAnimDebugLyricsMaskSubtitle": "Removes the full-area offscreen mask used to fade the top and bottom edges",
+  "settingsAnimDebugGlass": "Turn off glass background blur",
+  "settingsAnimDebugGlassSubtitle": "Glass cards and buttons stop blurring what's behind them every frame",
+  "settingsAnimDebugBackground": "Turn off flowing background",
+  "settingsAnimDebugBackgroundSubtitle": "The lyrics background stays on a still frame"
 
 }

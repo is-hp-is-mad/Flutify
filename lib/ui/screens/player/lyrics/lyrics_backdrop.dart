@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 
+import '../../../../core/debug_toggles.dart';
 import '../../../../core/theme/flutify_tokens.dart';
 import '../../../widgets/liquid_artwork_background.dart';
 import '../../../widgets/apple_music_background.dart';
@@ -30,7 +31,10 @@ class LyricsBackdrop extends StatelessWidget {
     // 非歌词视图（封面/队列）只显示静态模糊封面，与 Android 的 reducedEffects 一致，
     // 切到歌词时再恢复流动，避免在 Windows 上整个播放器持续重绘。
     final animate =
-        !context.reduceMotion && !context.tokens.powerSaving && !reducedEffects;
+        !context.reduceMotion &&
+        !context.tokens.powerSaving &&
+        !reducedEffects &&
+        !DebugToggles.of(context).isOff(DebugToggle.flowingBackground);
     // 与 Android 原生背景同一配方：黑底、同样的旋转/饱和度/压暗/模糊
     return LiquidArtworkBackground(
       imageUrl: imageUrl,

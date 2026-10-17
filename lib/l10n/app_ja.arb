@@ -644,6 +644,27 @@
   "updatesFailed": "更新に失敗しました。再試行するかリリースページを開いてください。",
   "updatesPermission": "Flutify に不明なアプリのインストールを許可し、戻って「APK をインストール」をもう一度押してください。",
   "updatesUnsupported": "このプラットフォームではアプリ内インストールに対応していません。リリースページから手動で更新してください。",
-  "updatesDetails": "更新を表示"
+  "updatesDetails": "更新を表示",
+  "webLoginRegionChecking": "ネットワークの地域を確認しています…",
+  "webLoginRegionCheckingHint": "ログインページを読み込む前にネットワークの出口を確認し、利用できない地域でのログイン失敗を避けます。",
+  "webLoginRegionBlockedTitle": "ネットワークの出口が中国本土です",
+  "webLoginRegionBlockedBody": "Spotify は中国本土では利用できないため、ログインに失敗または制限される可能性が高いです。プロキシをオンにして海外ノードに切り替え、もう一度確認してください。",
+  "webLoginRegionRecheck": "もう一度確認",
+  "webLoginRegionForceSkip": "確認せず続行",
+  "settingsAnimDebugSection": "アニメーションのデバッグ（一時）",
+  "settingsAnimDebugFooter": "今回の起動中のみ有効で、アプリを再起動すると元に戻ります。コマ落ちの原因特定に使います。1 つずつオフにして、どれで滑らかになるか確認してください。",
+  "settingsAnimDebugResetAll": "すべて元に戻す",
+  "settingsAnimDebugAllMotion": "すべてのトランジションをオフ",
+  "settingsAnimDebugAllMotionSubtitle": "システムの「アニメーションを削除」と同じで、画面遷移と流れる背景が止まります",
+  "settingsAnimDebugLyricsLine": "歌詞行のフォーカスアニメをオフ",
+  "settingsAnimDebugLyricsLineSubtitle": "拡大・ぼかし・透明度の変化を補間せず即時に切り替えます",
+  "settingsAnimDebugLyricsScroll": "歌詞の行切り替えスクロールをオフ",
+  "settingsAnimDebugLyricsScrollSubtitle": "行が変わるとリストが直接位置に移り、移動アニメーションがなくなります",
+  "settingsAnimDebugLyricsMask": "歌詞の端フェードマスクをオフ",
+  "settingsAnimDebugLyricsMaskSubtitle": "歌詞エリア上下端のフェードに使う全面オフスクリーンマスクを外します",
+  "settingsAnimDebugGlass": "ガラスの背景ぼかしをオフ",
+  "settingsAnimDebugGlassSubtitle": "ガラスのカードやボタンが毎フレーム背面をぼかさなくなります",
+  "settingsAnimDebugBackground": "流れる背景をオフ",
+  "settingsAnimDebugBackgroundSubtitle": "歌詞の背景が静止画のままになります"
 
 }

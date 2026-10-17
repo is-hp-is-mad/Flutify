@@ -2,7 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
-import '../../core/perf_flags.dart';
+import '../../core/debug_toggles.dart';
 import '../../core/theme/flutify_tokens.dart';
 import '../shell/desktop/desktop_window.dart';
 
@@ -75,7 +75,8 @@ class LiquidGlass extends StatelessWidget {
         ),
       );
     }
-    if (!backdrop || PerfFlags.noBackdrop) {
+    if (!backdrop ||
+        DebugToggles.of(context).isOff(DebugToggle.glassBackdrop)) {
       return ClipRRect(borderRadius: radius, child: body);
     }
     return ClipRRect(

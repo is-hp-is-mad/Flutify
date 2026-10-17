@@ -1829,4 +1829,74 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get updatesDetails => '更新を表示';
+  @override
+  String get webLoginRegionChecking => 'ネットワークの地域を確認しています…';
+
+  @override
+  String get webLoginRegionCheckingHint =>
+      'ログインページを読み込む前にネットワークの出口を確認し、利用できない地域でのログイン失敗を避けます。';
+
+  @override
+  String get webLoginRegionBlockedTitle => 'ネットワークの出口が中国本土です';
+
+  @override
+  String get webLoginRegionBlockedBody =>
+      'Spotify は中国本土では利用できないため、ログインに失敗または制限される可能性が高いです。プロキシをオンにして海外ノードに切り替え、もう一度確認してください。';
+
+  @override
+  String get webLoginRegionRecheck => 'もう一度確認';
+
+  @override
+  String get webLoginRegionForceSkip => '確認せず続行';
+
+  @override
+  String get settingsAnimDebugSection => 'アニメーションのデバッグ（一時）';
+
+  @override
+  String get settingsAnimDebugFooter =>
+      '今回の起動中のみ有効で、アプリを再起動すると元に戻ります。コマ落ちの原因特定に使います。1 つずつオフにして、どれで滑らかになるか確認してください。';
+
+  @override
+  String get settingsAnimDebugResetAll => 'すべて元に戻す';
+
+  @override
+  String get settingsAnimDebugAllMotion => 'すべてのトランジションをオフ';
+
+  @override
+  String get settingsAnimDebugAllMotionSubtitle =>
+      'システムの「アニメーションを削除」と同じで、画面遷移と流れる背景が止まります';
+
+  @override
+  String get settingsAnimDebugLyricsLine => '歌詞行のフォーカスアニメをオフ';
+
+  @override
+  String get settingsAnimDebugLyricsLineSubtitle =>
+      '拡大・ぼかし・透明度の変化を補間せず即時に切り替えます';
+
+  @override
+  String get settingsAnimDebugLyricsScroll => '歌詞の行切り替えスクロールをオフ';
+
+  @override
+  String get settingsAnimDebugLyricsScrollSubtitle =>
+      '行が変わるとリストが直接位置に移り、移動アニメーションがなくなります';
+
+  @override
+  String get settingsAnimDebugLyricsMask => '歌詞の端フェードマスクをオフ';
+
+  @override
+  String get settingsAnimDebugLyricsMaskSubtitle =>
+      '歌詞エリア上下端のフェードに使う全面オフスクリーンマスクを外します';
+
+  @override
+  String get settingsAnimDebugGlass => 'ガラスの背景ぼかしをオフ';
+
+  @override
+  String get settingsAnimDebugGlassSubtitle => 'ガラスのカードやボタンが毎フレーム背面をぼかさなくなります';
+
+  @override
+  String get settingsAnimDebugBackground => '流れる背景をオフ';
+
+  @override
+  String get settingsAnimDebugBackgroundSubtitle => '歌詞の背景が静止画のままになります';
+
 }

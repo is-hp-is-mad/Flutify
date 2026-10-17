@@ -921,6 +921,27 @@
   "updatesFailed": "更新失敗，請重試或前往發布頁面。",
   "updatesPermission": "請允許 Flutify 安裝未知來源應用程式，返回後再次點選「安裝 APK」。",
   "updatesUnsupported": "此平台暫不提供應用程式內安裝，請透過發布頁面手動更新。",
-  "updatesDetails": "查看更新"
+  "updatesDetails": "查看更新",
+  "webLoginRegionChecking": "正在偵測網路地區…",
+  "webLoginRegionCheckingHint": "登入頁載入前先確認目前的網路出口，避免在無法使用的地區登入失敗",
+  "webLoginRegionBlockedTitle": "目前網路出口位於中國大陸",
+  "webLoginRegionBlockedBody": "Spotify 在中國大陸無法使用，登入很可能會失敗或受限。請開啟代理並切換到海外節點，然後重新偵測。",
+  "webLoginRegionRecheck": "重新偵測",
+  "webLoginRegionForceSkip": "強制跳過",
+  "settingsAnimDebugSection": "動畫除錯（暫時）",
+  "settingsAnimDebugFooter": "僅本次執行有效，重新啟動應用程式後自動恢復。用於定位卡頓：逐項關閉，看關掉哪一項後變流暢。",
+  "settingsAnimDebugResetAll": "全部恢復",
+  "settingsAnimDebugAllMotion": "關閉所有轉場動畫",
+  "settingsAnimDebugAllMotionSubtitle": "等同系統「移除動畫」：介面轉場與流動背景都會停止",
+  "settingsAnimDebugLyricsLine": "關閉歌詞行對焦動畫",
+  "settingsAnimDebugLyricsLineSubtitle": "行的放大、模糊、透明度漸變改為直接切換",
+  "settingsAnimDebugLyricsScroll": "關閉歌詞換行捲動動畫",
+  "settingsAnimDebugLyricsScrollSubtitle": "切換歌詞行時列表直接跳到位置，沒有位移轉場",
+  "settingsAnimDebugLyricsMask": "關閉歌詞邊緣漸隱遮罩",
+  "settingsAnimDebugLyricsMaskSubtitle": "移除歌詞區上下邊緣的整塊離屏遮罩層",
+  "settingsAnimDebugGlass": "關閉玻璃背景模糊",
+  "settingsAnimDebugGlassSubtitle": "玻璃卡片與按鈕不再每幀模糊下方畫面",
+  "settingsAnimDebugBackground": "關閉流動背景動畫",
+  "settingsAnimDebugBackgroundSubtitle": "歌詞背景停在靜態畫面"
 
 }

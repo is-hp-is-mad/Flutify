@@ -8,6 +8,7 @@ import '../../../l10n/l10n.dart';
 
 import '../../../core/platform/flutify_platform.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../services/auth/login_region_check.dart';
 import '../../../services/auth/web_login_flow.dart';
 import '../../../services/auth/web_token_service.dart';
 import '../../../services/eme/eme_player.dart';
@@ -29,7 +30,10 @@ export '../../../services/auth/web_login_flow.dart' show WebLoginStage;
 /// 性能说明：这是**用户主动打开的一次性登录页**，不是后台常驻渲染 open.spotify.com；
 /// 登录完成即销毁 WebView。
 class WebLoginScreen extends StatefulWidget {
-  const WebLoginScreen({super.key});
+  const WebLoginScreen({super.key, this.regionProbe});
+
+  /// 登录前的网络地区检测；默认在 WebView 里读 Cloudflare trace（见 [LoginRegionCheck]），测试可注入。
+  final LoginRegionProbe? regionProbe;
 
   /// 打开统一登录页。返回登录结果（用户取消 / 跳过返回 null）。
   static Future<WebLoginResult?> open(BuildContext context) {
@@ -68,6 +72,22 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
   bool _preparingLogin = false;
   String? _preparationError;
   int _pageRevision = 0;
+
+  /// 登录前的网络地区检测：最近一次结果、是否检测中、用户是否选择了强制跳过。
+  LoginRegion? _region;
+  bool _regionChecking = false;
+  bool _regionSkipped = false;
+  Timer? _regionWatchTimer;
+
+  /// 登录期间复查出口地区的间隔：中途切到大陆出口时立即销毁 WebView 并提示。
+  static const Duration _regionWatchInterval = Duration(seconds: 45);
+
+  bool get _regionBlocked =>
+      !_regionSkipped && (_region?.isMainlandChina ?? false);
+
+  LoginRegionProbe get _probeRegion =>
+      widget.regionProbe ??
+      () => LoginRegionCheck.detect(environment: EmePlayer.cachedEnvironment);
 
   Timer? _pollTimer;
   Timer? _consentTimer;
@@ -126,7 +146,11 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
       const Duration(milliseconds: 900),
       (_) => _tryAutoApprove(),
     );
-    // 清理上次失效会话的 Cookie 后才允许创建 WebView。
+    _regionWatchTimer = Timer.periodic(
+      _regionWatchInterval,
+      (_) => _watchRegion(),
+    );
+    // 清理上次失效会话的 Cookie、确认出口地区之后才允许创建 WebView。
     unawaited(_prepareLoginPage());
   }
 
@@ -135,6 +159,7 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
     _pollTimer?.cancel();
     _consentTimer?.cancel();
     _revealTimer?.cancel();
+    _regionWatchTimer?.cancel();
     _flow.removeListener(_onFlowChanged);
     _auth?.removeListener(_onAuthChanged);
     _tokens.sessionInvalidated.removeListener(_onSessionInvalidated);
@@ -194,6 +219,8 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
       if (!mounted || _done || revision != _pageRevision) return;
       await EmePlayer.ensureEnvironment();
       if (!mounted || _done || revision != _pageRevision) return;
+      // 加载登录页之前先确认出口地区；大陆出口时不创建 WebView，等用户选择
+      if (!_regionSkipped && !await _checkRegion(revision)) return;
       setState(() {
         _sessionRejected = false;
         _webViewReady = true;
@@ -212,6 +239,88 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
     } finally {
       _preparingLogin = false;
     }
+  }
+
+  /// 检测出口地区（在 WebView 里执行脚本）。返回 true 表示可以继续加载登录页；
+  /// 返回 false 表示已被拦下（大陆出口，已显示提示）或页面状态已变化。
+  Future<bool> _checkRegion(int revision) async {
+    if (mounted && !_done) setState(() => _regionChecking = true);
+    LoginRegion region;
+    try {
+      region = await _probeRegion();
+    } catch (_) {
+      region = const LoginRegion.unknown();
+    }
+    if (!mounted || _done) return false;
+    if (revision != _pageRevision) {
+      setState(() => _regionChecking = false);
+      return false;
+    }
+    setState(() {
+      _regionChecking = false;
+      _region = region;
+      if (region.isMainlandChina) {
+        _webViewReady = false;
+        _controller = null;
+      }
+    });
+    return !region.isMainlandChina;
+  }
+
+  /// 登录期间的静默复查：检测到切换成大陆出口就立刻销毁登录 WebView（从树里移除即销毁）并提示。
+  Future<void> _watchRegion() async {
+    if (_done ||
+        _regionSkipped ||
+        _regionChecking ||
+        _preparingLogin ||
+        !_webViewReady ||
+        _flow.stage != WebLoginStage.webSignIn) {
+      return;
+    }
+    final revision = _pageRevision;
+    LoginRegion region;
+    try {
+      region = await _probeRegion();
+    } catch (_) {
+      return;
+    }
+    if (!mounted ||
+        _done ||
+        _regionSkipped ||
+        revision != _pageRevision ||
+        !region.isMainlandChina) {
+      return;
+    }
+    setState(() {
+      _region = region;
+      _webViewReady = false;
+      _controller = null;
+    });
+  }
+
+  void _enterWebView() {
+    setState(() {
+      _sessionRejected = false;
+      _webViewReady = true;
+      _preparationError = null;
+    });
+  }
+
+  /// 「重新检测」：只重跑地区检测，通过后再创建登录 WebView。
+  Future<void> _recheckRegion() async {
+    if (_regionChecking || _preparingLogin || _done) return;
+    if (!await _checkRegion(_pageRevision)) return;
+    if (!mounted || _done) return;
+    _enterWebView();
+    await _flow.poll();
+  }
+
+  /// 「强制跳过」：不再检测，直接创建登录 WebView。
+  void _skipRegionCheck() {
+    if (!mounted || _done) return;
+    _regionSkipped = true;
+    _enterWebView();
+    unawaited(_flow.poll());
   }
 
   /// AuthProvider 状态 → 流程：已登录即桌面授权完成；失败带错误信息回流程。
@@ -297,6 +406,7 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
     final stage = _flow.stage;
     final showOverlay =
         !_revealed &&
+        !_regionBlocked &&
         (stage == WebLoginStage.preparing ||
             stage == WebLoginStage.desktopAuthorize);
 
@@ -360,7 +470,15 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                         _onNav(url?.toString()),
                     onLoadStop: (_, url) => _onNav(url?.toString()),
                   ),
-                if (showOverlay) _ProgressOverlay(stage: stage),
+                if (showOverlay)
+                  _ProgressOverlay(stage: stage, checkingRegion: _regionChecking),
+                if (_regionBlocked)
+                  _RegionBlockedView(
+                    code: _region?.code ?? '',
+                    checking: _regionChecking,
+                    onRecheck: _recheckRegion,
+                    onSkip: _skipRegionCheck,
+                  ),
               ],
             ),
           ),
@@ -380,13 +498,18 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
 /// 后台收尾阶段盖住 WebView 的进度浮层：用户只看到「登录完成，正在收尾」。
 class _ProgressOverlay extends StatelessWidget {
   final WebLoginStage stage;
-  const _ProgressOverlay({required this.stage});
+
+  /// 正在检测出口地区（登录页加载之前）。
+  final bool checkingRegion;
+  const _ProgressOverlay({required this.stage, this.checkingRegion = false});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final text = switch (stage) {
+    final text = checkingRegion
+        ? context.l10n.webLoginRegionChecking
+        : switch (stage) {
       WebLoginStage.preparing => context.l10n.webLoginPreparing,
       WebLoginStage.desktopAuthorize => context.l10n.webLoginAuthorizing,
       _ => context.l10n.webLoginFinishing,
@@ -411,12 +534,104 @@ class _ProgressOverlay extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              context.l10n.webLoginBackgroundHint,
+              checkingRegion
+                  ? context.l10n.webLoginRegionCheckingHint
+                  : context.l10n.webLoginBackgroundHint,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 检测到大陆出口后盖住整个页面的提示（此时登录 WebView 已销毁）。
+class _RegionBlockedView extends StatelessWidget {
+  final String code;
+  final bool checking;
+  final VoidCallback onRecheck;
+  final VoidCallback onSkip;
+  const _RegionBlockedView({
+    required this.code,
+    required this.checking,
+    required this.onRecheck,
+    required this.onSkip,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final l10n = context.l10n;
+    return Positioned.fill(
+      child: ColoredBox(
+        color: colorScheme.surface,
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.public_off_rounded,
+                    size: 56,
+                    color: colorScheme.error,
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    l10n.webLoginRegionBlockedTitle,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    code,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: colorScheme.error,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    l10n.webLoginRegionBlockedBody,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  FilledButton.icon(
+                    onPressed: checking ? null : onRecheck,
+                    icon: checking
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.refresh_rounded),
+                    label: Text(
+                      checking
+                          ? l10n.webLoginRegionChecking
+                          : l10n.webLoginRegionRecheck,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: checking ? null : onSkip,
+                    child: Text(l10n.webLoginRegionForceSkip),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );

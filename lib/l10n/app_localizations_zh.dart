@@ -1814,6 +1814,71 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get updatesDetails => '查看更新';
+  @override
+  String get webLoginRegionChecking => '正在检测网络地区…';
+
+  @override
+  String get webLoginRegionCheckingHint => '登录页加载前先确认当前网络出口，避免在不可用的地区登录失败';
+
+  @override
+  String get webLoginRegionBlockedTitle => '当前网络出口位于中国大陆';
+
+  @override
+  String get webLoginRegionBlockedBody =>
+      'Spotify 在中国大陆不可用，登录大概率会失败或被限制。请开启代理并切换到海外节点，然后重新检测。';
+
+  @override
+  String get webLoginRegionRecheck => '重新检测';
+
+  @override
+  String get webLoginRegionForceSkip => '强制跳过';
+
+  @override
+  String get settingsAnimDebugSection => '动画调试（临时）';
+
+  @override
+  String get settingsAnimDebugFooter =>
+      '仅本次运行有效，重启应用后自动恢复。用于定位卡顿：逐项关闭，看关掉哪一项后变流畅。';
+
+  @override
+  String get settingsAnimDebugResetAll => '全部恢复';
+
+  @override
+  String get settingsAnimDebugAllMotion => '关闭所有过渡动画';
+
+  @override
+  String get settingsAnimDebugAllMotionSubtitle => '等同系统“移除动画”：界面过渡与流动背景都会停止';
+
+  @override
+  String get settingsAnimDebugLyricsLine => '关闭歌词行对焦动画';
+
+  @override
+  String get settingsAnimDebugLyricsLineSubtitle => '行的放大、模糊、透明度渐变改为直接切换';
+
+  @override
+  String get settingsAnimDebugLyricsScroll => '关闭歌词切行滚动动画';
+
+  @override
+  String get settingsAnimDebugLyricsScrollSubtitle => '切换歌词行时列表直接跳到位置，没有位移过渡';
+
+  @override
+  String get settingsAnimDebugLyricsMask => '关闭歌词边缘渐隐遮罩';
+
+  @override
+  String get settingsAnimDebugLyricsMaskSubtitle => '去掉歌词区上下边缘的整块离屏遮罩层';
+
+  @override
+  String get settingsAnimDebugGlass => '关闭玻璃背景模糊';
+
+  @override
+  String get settingsAnimDebugGlassSubtitle => '玻璃卡片与按钮不再每帧模糊下方画面';
+
+  @override
+  String get settingsAnimDebugBackground => '关闭流动背景动画';
+
+  @override
+  String get settingsAnimDebugBackgroundSubtitle => '歌词背景停在静态画面';
+
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -3625,4 +3690,69 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get updatesDetails => '查看更新';
+  @override
+  String get webLoginRegionChecking => '正在偵測網路地區…';
+
+  @override
+  String get webLoginRegionCheckingHint => '登入頁載入前先確認目前的網路出口，避免在無法使用的地區登入失敗';
+
+  @override
+  String get webLoginRegionBlockedTitle => '目前網路出口位於中國大陸';
+
+  @override
+  String get webLoginRegionBlockedBody =>
+      'Spotify 在中國大陸無法使用，登入很可能會失敗或受限。請開啟代理並切換到海外節點，然後重新偵測。';
+
+  @override
+  String get webLoginRegionRecheck => '重新偵測';
+
+  @override
+  String get webLoginRegionForceSkip => '強制跳過';
+
+  @override
+  String get settingsAnimDebugSection => '動畫除錯（暫時）';
+
+  @override
+  String get settingsAnimDebugFooter =>
+      '僅本次執行有效，重新啟動應用程式後自動恢復。用於定位卡頓：逐項關閉，看關掉哪一項後變流暢。';
+
+  @override
+  String get settingsAnimDebugResetAll => '全部恢復';
+
+  @override
+  String get settingsAnimDebugAllMotion => '關閉所有轉場動畫';
+
+  @override
+  String get settingsAnimDebugAllMotionSubtitle => '等同系統「移除動畫」：介面轉場與流動背景都會停止';
+
+  @override
+  String get settingsAnimDebugLyricsLine => '關閉歌詞行對焦動畫';
+
+  @override
+  String get settingsAnimDebugLyricsLineSubtitle => '行的放大、模糊、透明度漸變改為直接切換';
+
+  @override
+  String get settingsAnimDebugLyricsScroll => '關閉歌詞換行捲動動畫';
+
+  @override
+  String get settingsAnimDebugLyricsScrollSubtitle => '切換歌詞行時列表直接跳到位置，沒有位移轉場';
+
+  @override
+  String get settingsAnimDebugLyricsMask => '關閉歌詞邊緣漸隱遮罩';
+
+  @override
+  String get settingsAnimDebugLyricsMaskSubtitle => '移除歌詞區上下邊緣的整塊離屏遮罩層';
+
+  @override
+  String get settingsAnimDebugGlass => '關閉玻璃背景模糊';
+
+  @override
+  String get settingsAnimDebugGlassSubtitle => '玻璃卡片與按鈕不再每幀模糊下方畫面';
+
+  @override
+  String get settingsAnimDebugBackground => '關閉流動背景動畫';
+
+  @override
+  String get settingsAnimDebugBackgroundSubtitle => '歌詞背景停在靜態畫面';
+
 }

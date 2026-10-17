@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../core/perf_flags.dart';
+import '../../core/debug_toggles.dart';
 import '../../core/theme/flutify_tokens.dart';
 
 /// A tiny native Canvas texture, enlarged by Flutter rather than blurred at
@@ -172,7 +172,7 @@ class _AppleMusicBackgroundState extends State<AppleMusicBackground>
         _foreground &&
         TickerMode.valuesOf(context).enabled &&
         !reducedMotion &&
-        !PerfFlags.staticBackground &&
+        !DebugToggles.of(context).isOff(DebugToggle.flowingBackground) &&
         !context.tokens.powerSaving;
     final dark = Theme.of(context).brightness == Brightness.dark;
     return ExcludeSemantics(

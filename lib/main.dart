@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'core/debug_toggles.dart';
 import 'core/perf_flags.dart';
 import 'core/utils/file_log.dart';
 import 'core/utils/local_device_name.dart';
@@ -810,28 +811,33 @@ class _ThemedApp extends StatelessWidget {
         // 实际生效的界面语言决定请求 Spotify 时的 Accept-Language（主页文案等随之本地化）
         AppLocale.resolved(Localizations.localeOf(context));
         final media = MediaQuery.of(context);
-        return MediaQuery(
-          data: media.copyWith(
-            // 用户字号与系统字号相乘
-            textScaler: AppTextScaler(media.textScaler, settings.fontScale),
-            disableAnimations: media.disableAnimations || settings.reduceMotion,
-          ),
-          // 状态栏 / 导航栏图标随深浅色切换；全屏播放器等深色沉浸页面自行覆盖为浅色图标
-          child: AnnotatedRegion<SystemUiOverlayStyle>(
-            value: systemBarsStyle(Theme.of(context).brightness),
-            // 桌面：窗口按钮 / 窄窗口标题条覆盖在所有路由之上
-            // macOS 原生菜单栏常驻于此（卸载会清空系统菜单），主界面动作由 MainShell 注册
-            child: ExcludeSemantics(
-              excluding: _excludeWindowsSemantics,
-              child: Listener(
-                behavior: HitTestBehavior.translucent,
-                onPointerDown: _onMouseNavigation,
-                child: MacMenuBar(
-                  child: TaskbarLyricsBinding(child: WindowFrame(child: child!)),
+        return DebugTogglesBinding(
+          builder: (context, motionOff) {
+            return MediaQuery(
+              data: media.copyWith(
+                // 用户字号与系统字号相乘
+                textScaler: AppTextScaler(media.textScaler, settings.fontScale),
+                disableAnimations:
+                    media.disableAnimations || settings.reduceMotion || motionOff,
+              ),
+              // 状态栏 / 导航栏图标随深浅色切换；全屏播放器等深色沉浸页面自行覆盖为浅色图标
+              child: AnnotatedRegion<SystemUiOverlayStyle>(
+                value: systemBarsStyle(Theme.of(context).brightness),
+                // 桌面：窗口按钮 / 窄窗口标题条覆盖在所有路由之上
+                // macOS 原生菜单栏常驻于此（卸载会清空系统菜单），主界面动作由 MainShell 注册
+                child: ExcludeSemantics(
+                  excluding: _excludeWindowsSemantics,
+                  child: Listener(
+                    behavior: HitTestBehavior.translucent,
+                    onPointerDown: _onMouseNavigation,
+                    child: MacMenuBar(
+                      child: TaskbarLyricsBinding(child: WindowFrame(child: child!)),
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
       home: const UpdatePromptBinding(child: MainShell()),

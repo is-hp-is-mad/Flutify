@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import '../../../../core/debug_toggles.dart';
 import '../../../../core/theme/flutify_tokens.dart';
 import 'apple_music_motion.dart';
 
@@ -87,7 +88,9 @@ class LyricLineView extends StatelessWidget {
               : EdgeInsets.symmetric(vertical: fontSize * 0.4),
           child: TweenAnimationBuilder<_LineVisual>(
             tween: _LineVisualTween(end: _LineVisual(blur, opacity, scale)),
-            duration: context.motion(duration),
+            duration: DebugToggles.of(context).isOff(DebugToggle.lyricsLineMotion)
+                ? Duration.zero
+                : context.motion(duration),
             curve: appleMusicStyle
                 ? Interval(
                     250 / duration.inMilliseconds,

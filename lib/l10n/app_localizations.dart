@@ -3448,6 +3448,132 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'查看更新'**
   String get updatesDetails;
+  /// No description provided for @webLoginRegionChecking.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在检测网络地区…'**
+  String get webLoginRegionChecking;
+
+  /// No description provided for @webLoginRegionCheckingHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'登录页加载前先确认当前网络出口，避免在不可用的地区登录失败'**
+  String get webLoginRegionCheckingHint;
+
+  /// No description provided for @webLoginRegionBlockedTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前网络出口位于中国大陆'**
+  String get webLoginRegionBlockedTitle;
+
+  /// No description provided for @webLoginRegionBlockedBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'Spotify 在中国大陆不可用，登录大概率会失败或被限制。请开启代理并切换到海外节点，然后重新检测。'**
+  String get webLoginRegionBlockedBody;
+
+  /// No description provided for @webLoginRegionRecheck.
+  ///
+  /// In zh, this message translates to:
+  /// **'重新检测'**
+  String get webLoginRegionRecheck;
+
+  /// No description provided for @webLoginRegionForceSkip.
+  ///
+  /// In zh, this message translates to:
+  /// **'强制跳过'**
+  String get webLoginRegionForceSkip;
+
+  /// No description provided for @settingsAnimDebugSection.
+  ///
+  /// In zh, this message translates to:
+  /// **'动画调试（临时）'**
+  String get settingsAnimDebugSection;
+
+  /// No description provided for @settingsAnimDebugFooter.
+  ///
+  /// In zh, this message translates to:
+  /// **'仅本次运行有效，重启应用后自动恢复。用于定位卡顿：逐项关闭，看关掉哪一项后变流畅。'**
+  String get settingsAnimDebugFooter;
+
+  /// No description provided for @settingsAnimDebugResetAll.
+  ///
+  /// In zh, this message translates to:
+  /// **'全部恢复'**
+  String get settingsAnimDebugResetAll;
+
+  /// No description provided for @settingsAnimDebugAllMotion.
+  ///
+  /// In zh, this message translates to:
+  /// **'关闭所有过渡动画'**
+  String get settingsAnimDebugAllMotion;
+
+  /// No description provided for @settingsAnimDebugAllMotionSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'等同系统“移除动画”：界面过渡与流动背景都会停止'**
+  String get settingsAnimDebugAllMotionSubtitle;
+
+  /// No description provided for @settingsAnimDebugLyricsLine.
+  ///
+  /// In zh, this message translates to:
+  /// **'关闭歌词行对焦动画'**
+  String get settingsAnimDebugLyricsLine;
+
+  /// No description provided for @settingsAnimDebugLyricsLineSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'行的放大、模糊、透明度渐变改为直接切换'**
+  String get settingsAnimDebugLyricsLineSubtitle;
+
+  /// No description provided for @settingsAnimDebugLyricsScroll.
+  ///
+  /// In zh, this message translates to:
+  /// **'关闭歌词切行滚动动画'**
+  String get settingsAnimDebugLyricsScroll;
+
+  /// No description provided for @settingsAnimDebugLyricsScrollSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'切换歌词行时列表直接跳到位置，没有位移过渡'**
+  String get settingsAnimDebugLyricsScrollSubtitle;
+
+  /// No description provided for @settingsAnimDebugLyricsMask.
+  ///
+  /// In zh, this message translates to:
+  /// **'关闭歌词边缘渐隐遮罩'**
+  String get settingsAnimDebugLyricsMask;
+
+  /// No description provided for @settingsAnimDebugLyricsMaskSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'去掉歌词区上下边缘的整块离屏遮罩层'**
+  String get settingsAnimDebugLyricsMaskSubtitle;
+
+  /// No description provided for @settingsAnimDebugGlass.
+  ///
+  /// In zh, this message translates to:
+  /// **'关闭玻璃背景模糊'**
+  String get settingsAnimDebugGlass;
+
+  /// No description provided for @settingsAnimDebugGlassSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'玻璃卡片与按钮不再每帧模糊下方画面'**
+  String get settingsAnimDebugGlassSubtitle;
+
+  /// No description provided for @settingsAnimDebugBackground.
+  ///
+  /// In zh, this message translates to:
+  /// **'关闭流动背景动画'**
+  String get settingsAnimDebugBackground;
+
+  /// No description provided for @settingsAnimDebugBackgroundSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'歌词背景停在静态画面'**
+  String get settingsAnimDebugBackgroundSubtitle;
+
 }
 
 class _AppLocalizationsDelegate

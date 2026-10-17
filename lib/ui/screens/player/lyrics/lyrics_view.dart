@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 
-import '../../../../core/perf_flags.dart';
+import '../../../../core/debug_toggles.dart';
 import '../../../../core/theme/flutify_tokens.dart';
 import '../../../../l10n/l10n.dart';
 import '../../../../models/app_preferences.dart';
@@ -595,6 +595,11 @@ class _LyricsViewState extends State<LyricsView>
   void _scrollToActive({bool animate = true, Map<int, double>? before}) {
     if (!mounted) return;
     if (widget.appleMusicStyle && !_isSynced) return;
+    // 设置里「动画调试」可临时关掉切行滚动动画（直接跳到位置），用于定位掉帧
+    final smooth =
+        animate &&
+        !context.reduceMotion &&
+        !DebugToggles.instance.isOff(DebugToggle.lyricsScroll);
     if (widget.appleMusicStyle &&
         (!_interactionActive ||
             _touches.isNotEmpty ||
@@ -625,7 +630,7 @@ class _LyricsViewState extends State<LyricsView>
       _moveOffsets = offsets;
       position.jumpTo(bounded);
       _pendingAnchor = false;
-      if (animate && !context.reduceMotion) {
+      if (smooth) {
         _move.forward(from: 0);
       } else {
         _move.value = 1;
@@ -633,7 +638,7 @@ class _LyricsViewState extends State<LyricsView>
       return;
     }
     if ((target - position.pixels).abs() < 0.5) return;
-    if (animate && !context.reduceMotion) {
+    if (smooth) {
       position.animateTo(
         target,
         duration: _scrollDuration,
@@ -868,7 +873,7 @@ class _LyricsViewState extends State<LyricsView>
       child: NotificationListener<ScrollNotification>(
         onNotification: _onScrollNotification,
         child: _EdgeMask(
-          enabled: !PerfFlags.noLyricsMask,
+          enabled: !DebugToggles.of(context).isOff(DebugToggle.lyricsMask),
           // 上下边缘柔和淡出，歌词像从玻璃下方浮现
           shaderCallback: (rect) => widget.appleMusicStyle
               ? _appleEdgeFade(rect)
