@@ -609,6 +609,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get lyricsFromNetease => '歌词来自网易云音乐';
 
   @override
+  String get lyricsFromSpotify => '歌词来自 Spotify';
+
+  @override
   String get lyricsImmersive => '沉浸式歌词';
 
   @override
@@ -1814,6 +1817,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get updatesDetails => '查看更新';
+
   @override
   String get webLoginRegionChecking => '正在检测网络地区…';
 
@@ -1878,7 +1882,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsAnimDebugBackgroundSubtitle => '歌词背景停在静态画面';
-
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -2484,6 +2487,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get lyricsFromNetease => '歌詞來自網易雲音樂';
+
+  @override
+  String get lyricsFromSpotify => '歌詞來自 Spotify';
 
   @override
   String get lyricsImmersive => '沉浸式歌詞';
@@ -3690,6 +3696,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get updatesDetails => '查看更新';
+
   @override
   String get webLoginRegionChecking => '正在偵測網路地區…';
 
@@ -3754,5 +3761,4 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get settingsAnimDebugBackgroundSubtitle => '歌詞背景停在靜態畫面';
-
 }

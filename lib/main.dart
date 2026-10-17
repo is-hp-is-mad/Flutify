@@ -89,6 +89,7 @@ import 'ui/widgets/automatic_gateway_binding.dart';
 import 'ui/widgets/playback_session_keeper.dart';
 import 'ui/widgets/taskbar_lyrics_binding.dart';
 import 'ui/widgets/update_prompt.dart';
+
 Future<void> main() async {
   // 必须先于任何其他 binding 创建：帧率上限在帧调度入口生效
   FrameRateBinding.ensureInitialized();
@@ -336,7 +337,9 @@ Future<Widget> _initializeApp(ValueChanged<String> reportStage) async {
     taskbarLyrics: taskbarLyrics,
     updateService: UpdateService(
       storage: storageService,
-      installer: PlatformUpdateInstaller(closeWindows: DesktopWindow.closeForUpdate),
+      installer: PlatformUpdateInstaller(
+        closeWindows: DesktopWindow.closeForUpdate,
+      ),
     ),
   );
 }
@@ -685,17 +688,13 @@ void _startConnectReceiver(
   }
 
   host.handOver = handOver;
-  host.onLocalOptions = (shuffle, repeat) {
-    unawaited(
-      connect
-          .setReceiverOptions(
-            shuffle: shuffle,
-            repeatContext: repeat != SpotifyRepeatMode.off,
-            repeatTrack: repeat == SpotifyRepeatMode.track,
-          )
-          .catchError((Object e) => debugPrint('[Receiver] 同步随机 / 循环失败：$e')),
-    );
-  };
+  // 返回给 host：它在等服务端确认本机刚改的随机 / 循环，确认一到（true）或被拒（false）
+  // 就解除等待，让服务端的值重新生效。
+  host.onLocalOptions = (shuffle, repeat) => connect.setReceiverOptions(
+    shuffle: shuffle,
+    repeatContext: repeat != SpotifyRepeatMode.off,
+    repeatTrack: repeat == SpotifyRepeatMode.track,
+  );
 
   // 「启动时同步播放状态」：每次启动只做一次。注册后要等设备出现在 cluster 里（推送有延迟），
   // 本机未播放、其他设备也没在出声时，把上次的曲目以暂停状态同步出去
@@ -818,7 +817,9 @@ class _ThemedApp extends StatelessWidget {
                 // 用户字号与系统字号相乘
                 textScaler: AppTextScaler(media.textScaler, settings.fontScale),
                 disableAnimations:
-                    media.disableAnimations || settings.reduceMotion || motionOff,
+                    media.disableAnimations ||
+                    settings.reduceMotion ||
+                    motionOff,
               ),
               // 状态栏 / 导航栏图标随深浅色切换；全屏播放器等深色沉浸页面自行覆盖为浅色图标
               child: AnnotatedRegion<SystemUiOverlayStyle>(
@@ -831,7 +832,9 @@ class _ThemedApp extends StatelessWidget {
                     behavior: HitTestBehavior.translucent,
                     onPointerDown: _onMouseNavigation,
                     child: MacMenuBar(
-                      child: TaskbarLyricsBinding(child: WindowFrame(child: child!)),
+                      child: TaskbarLyricsBinding(
+                        child: WindowFrame(child: child!),
+                      ),
                     ),
                   ),
                 ),

@@ -1187,6 +1187,12 @@ abstract class AppLocalizations {
   /// **'歌词来自网易云音乐'**
   String get lyricsFromNetease;
 
+  /// No description provided for @lyricsFromSpotify.
+  ///
+  /// In zh, this message translates to:
+  /// **'歌词来自 Spotify'**
+  String get lyricsFromSpotify;
+
   /// No description provided for @lyricsImmersive.
   ///
   /// In zh, this message translates to:
@@ -3448,6 +3454,7 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'查看更新'**
   String get updatesDetails;
+
   /// No description provided for @webLoginRegionChecking.
   ///
   /// In zh, this message translates to:
@@ -3573,7 +3580,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'歌词背景停在静态画面'**
   String get settingsAnimDebugBackgroundSubtitle;
-
 }
 
 class _AppLocalizationsDelegate

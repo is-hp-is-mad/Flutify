@@ -344,9 +344,11 @@
   "lyricsUnavailableTitle": "暫無歌詞",
   "lyricsUnavailableMessage": "這首歌還沒有歌詞。\n盡情享受音樂吧！",
   "lyricsUnsynced": "這些歌詞尚未與歌曲同步。",
-  "lyricsFromLrclib": "歌詞來自 LRCLIB",
+  "lyricsFromLrclib": "歌詞來自 LRCLIB",
+
   "lyricsFromQqMusic": "歌詞來自 QQ 音樂",
   "lyricsFromNetease": "歌詞來自網易雲音樂",
+  "lyricsFromSpotify": "歌詞來自 Spotify",
   "lyricsImmersive": "沉浸式歌詞",
   "lyricsExpand": "放大歌詞",
   "lyricsCollapse": "收起歌詞",

@@ -66,9 +66,14 @@ class LyricsTranslationController extends ChangeNotifier {
   LyricsTranslation? _translation;
 
   List<String>? get lines => _translation?.lines;
-  bool get fromLrclib => _translation?.provider == LyricsProvider.lrclib;
-  bool get fromNetease => _translation?.provider == LyricsProvider.netease;
-  bool get fromQqMusic => _translation?.provider == LyricsProvider.qqMusic;
+
+  /// 当前译文实际来自哪个服务：自带译文取 [LyricsProvider.spotify]。
+  /// 用它展示「译词来源」，不要按原文来源推断（同源合并展示的依据）。
+  LyricsProvider? get source => _translation?.provider;
+
+  bool get fromLrclib => source == LyricsProvider.lrclib;
+  bool get fromNetease => source == LyricsProvider.netease;
+  bool get fromQqMusic => source == LyricsProvider.qqMusic;
   bool get available => _lyrics != null && _lyrics!.lines.isNotEmpty;
   bool get unavailable =>
       _attempted && !failed && !busy && _translation == null;

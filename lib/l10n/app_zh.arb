@@ -368,9 +368,11 @@
   "lyricsUnavailableTitle": "暂无歌词",
   "lyricsUnavailableMessage": "这首歌还没有歌词。\n尽情享受音乐吧！",
   "lyricsUnsynced": "这些歌词尚未与歌曲同步。",
-  "lyricsFromLrclib": "歌词来自 LRCLIB",
+  "lyricsFromLrclib": "歌词来自 LRCLIB",
+
   "lyricsFromQqMusic": "歌词来自 QQ 音乐",
   "lyricsFromNetease": "歌词来自网易云音乐",
+  "lyricsFromSpotify": "歌词来自 Spotify",
   "lyricsImmersive": "沉浸式歌词",
   "lyricsExpand": "放大歌词",
   "lyricsCollapse": "收起歌词",

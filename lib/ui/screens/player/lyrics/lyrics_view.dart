@@ -25,6 +25,7 @@ import '../../../widgets/skeleton.dart';
 import 'breathing_dots.dart';
 import 'apple_music_motion.dart';
 import 'lyric_line_view.dart';
+import 'lyrics_source_label.dart';
 
 /// 歌词滚动区。
 ///
@@ -101,6 +102,9 @@ class _LyricsViewState extends State<LyricsView>
   /// 切行滚动与间奏收起 / 展开共用的时长与曲线（两者同步，位置才不会跳）。
   static const Duration _scrollDuration = Duration(milliseconds: 560);
   static const Curve _scrollCurve = Cubic(0.22, 1.0, 0.36, 1.0);
+
+  /// 「歌词来源」小字字号。
+  static const double _sourceLabelFontSize = 12;
 
   /// 歌词区可视高度（由 LayoutBuilder 写入），用于定位当前行。
   double _viewportHeight = 0;
@@ -981,59 +985,33 @@ class _LyricsViewState extends State<LyricsView>
                             ),
                           ),
                         ),
-                    if (lyrics.provider == LyricsProvider.lrclib ||
-                        (_translationIsCurrent && _translation.fromLrclib))
-                      Padding(
-                        padding: const EdgeInsets.only(top: 28),
-                        child: Text(
-                          context.l10n.lyricsFromLrclib,
-                          style: const TextStyle(
-                            color: Colors.white54,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    if (lyrics.provider == LyricsProvider.qqMusic ||
-                        lyrics.provider == LyricsProvider.netease)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 28),
-                        child: Text(
-                          lyrics.provider == LyricsProvider.qqMusic
-                              ? context.l10n.lyricsFromQqMusic
-                              : context.l10n.lyricsFromNetease,
-                          style: const TextStyle(
-                            color: Colors.white54,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    if (_translationIsCurrent &&
-                        lyrics.provider != LyricsProvider.qqMusic &&
-                        lyrics.provider != LyricsProvider.netease &&
-                        (_translation.fromNetease ||
-                            _translation.fromQqMusic))
-                      Padding(
-                        padding: const EdgeInsets.only(top: 28),
-                        child: Text(
-                          _translation.fromQqMusic
-                              ? context.l10n.lyricsTranslationFromQqMusic
-                              : context.l10n.lyricsTranslationFromNetease,
-                          style: const TextStyle(
-                            color: Colors.white54,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
+                      _sourceLabel(context, lyrics.provider),
+                    ],
+                  ),
               ),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  /// 歌词来源小字：原文与译词同源（如都来自 QQ 音乐）时合并成一段，异源时拆成两段。
+  ///
+  /// 它和歌词同在一颗滚动子树里，所以滑动的起点和歌词完全一致；文字本身的变化用与切行
+  /// 滚动相同的时长与曲线做交叉淡入淡出，不再和歌词各自动画。
+  Widget _sourceLabel(BuildContext context, LyricsProvider provider) {
+    final source = _translationIsCurrent ? _translation.source : null;
+    final lines = [
+      LyricsSourceLabel.textOf(context, provider),
+      if (source != null && source != provider)
+        LyricsSourceLabel.translationOf(context, source),
+    ].whereType<String>().toList();
+    return LyricsSourceLabel(
+      lines: lines,
+      fontSize: _sourceLabelFontSize,
+      duration: context.motion(_scrollDuration),
+      curve: _scrollCurve,
     );
   }
 

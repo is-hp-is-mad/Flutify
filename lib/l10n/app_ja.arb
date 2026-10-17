@@ -168,9 +168,11 @@
   "lyricsUnavailableTitle": "歌詞がありません",
   "lyricsUnavailableMessage": "この曲の歌詞はまだありません。\n音楽をお楽しみください！",
   "lyricsUnsynced": "この歌詞は曲と同期していません。",
-  "lyricsFromLrclib": "歌詞の提供：LRCLIB",
+  "lyricsFromLrclib": "歌詞の提供：LRCLIB",
+
   "lyricsFromQqMusic": "歌詞の提供：QQ Music",
   "lyricsFromNetease": "歌詞の提供：NetEase Music",
+  "lyricsFromSpotify": "歌詞の提供：Spotify",
   "lyricsImmersive": "歌詞に集中",
   "lyricsExpand": "歌詞を展開",
   "lyricsCollapse": "歌詞を折りたたむ",

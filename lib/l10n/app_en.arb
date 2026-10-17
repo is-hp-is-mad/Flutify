@@ -215,9 +215,11 @@
   "lyricsUnavailableTitle": "Lyrics aren't available",
   "lyricsUnavailableMessage": "We don't have lyrics for this song yet.\nEnjoy the music!",
   "lyricsUnsynced": "These lyrics aren't synced to the song yet.",
-  "lyricsFromLrclib": "Lyrics from LRCLIB",
+  "lyricsFromLrclib": "Lyrics from LRCLIB",
+
   "lyricsFromQqMusic": "Lyrics from QQ Music",
   "lyricsFromNetease": "Lyrics from NetEase Music",
+  "lyricsFromSpotify": "Lyrics from Spotify",
   "lyricsImmersive": "Immersive lyrics",
   "lyricsExpand": "Expand lyrics",
   "lyricsCollapse": "Collapse lyrics",

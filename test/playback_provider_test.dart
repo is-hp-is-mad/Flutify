@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:flutify_app/models/playback_context.dart';
+import 'package:flutify_app/models/playback_retry.dart';
 import 'package:flutify_app/models/playback_state.dart';
 import 'package:flutify_app/providers/playback_provider.dart';
 import 'package:flutify_app/services/protocol/track_playback_exception.dart';
@@ -247,40 +248,55 @@ void main() {
   });
 
   group('播放错误', () {
-    testWidgets(
-      'offline retries ten times with increasing delays, then stops',
-      (tester) async {
-        loader.failures[a.id] = const SocketException('Network is unreachable');
-        final attempts = <int>[];
-        playback.retryNotifier.addListener(() {
-          final retry = playback.retryNotifier.value;
-          if (retry != null && !retry.waiting) attempts.add(retry.attempt);
-        });
-        final pending = playback.playTrack(
-          a,
-          contextQueue: [a, b],
-          context: ctx,
-        );
-        await tester.pump();
-        expect(loader.loaded, [a.id]);
-        for (var i = 1; i <= 10; i++) {
-          expect(playback.retryNotifier.value?.attempt, i);
-          expect(playback.retryNotifier.value?.delay, Duration(seconds: i));
-          await tester.pump(Duration(milliseconds: i * 1000 - 1));
-          expect(loader.loaded.length, i);
-          await tester.pump(const Duration(milliseconds: 1));
-        }
-        await pending;
-        expect(attempts, List.generate(10, (i) => i + 1));
-        expect(loader.loaded.length, 11);
-        expect(playback.currentTrack?.id, a.id);
-        expect(playback.playbackError?.kind, TrackPlaybackFailure.network);
-        expect(playback.retryNotifier.value, isNull);
-        expect(playback.isBuffering, isFalse);
-        await tester.pump(const Duration(minutes: 1));
-        expect(loader.loaded.length, 11);
-      },
-    );
+    testWidgets('offline backs off, replays once, then stops', (tester) async {
+      loader.failures[a.id] = const SocketException('Network is unreachable');
+      final attempts = <int>[];
+      playback.retryNotifier.addListener(() {
+        final retry = playback.retryNotifier.value;
+        if (retry != null && !retry.waiting) attempts.add(retry.attempt);
+      });
+      final pending = playback.playTrack(a, contextQueue: [a, b], context: ctx);
+      await tester.pump();
+      expect(loader.loaded, [a.id]);
+
+      // 第一轮：退避等待逐次加长（1+2+…+limit 秒）。
+      for (var i = 1; i <= PlaybackRetry.limit; i++) {
+        expect(playback.retryNotifier.value?.attempt, i);
+        expect(playback.retryNotifier.value?.delay, Duration(seconds: i));
+        await tester.pump(Duration(milliseconds: i * 1000 - 1));
+        expect(loader.loaded.length, i);
+        await tester.pump(const Duration(milliseconds: 1));
+      }
+      // 预算用光：整首歌重放一次（第 limit+1 次加载），然后再走一轮退避。
+      for (var i = 1; i <= PlaybackRetry.limit; i++) {
+        await tester.pump(Duration(seconds: i));
+      }
+      await pending;
+
+      // 两轮后收手：不再自己重放，把预算留给用户点「重试」。
+      expect(
+        loader.loaded.length,
+        1 + PlaybackRetry.limit * 2,
+        reason: '退避重试一轮后重放，重放一轮后收手，不能越挫越勇',
+      );
+      expect(playback.currentTrack?.id, a.id);
+      expect(playback.playbackError?.kind, TrackPlaybackFailure.network);
+      expect(playback.retryNotifier.value, isNull);
+      expect(playback.isBuffering, isFalse);
+      expect(
+        attempts,
+        List.generate(
+          PlaybackRetry.limit * 2,
+          (i) => i % PlaybackRetry.limit + 1,
+        ),
+      );
+      await tester.pump(const Duration(minutes: 1));
+      expect(
+        loader.loaded.length,
+        1 + PlaybackRetry.limit * 2,
+        reason: '报错之后再等多久也不会自己再来一轮',
+      );
+    });
 
     testWidgets(
       'connection recovery plays the same song at the requested position',

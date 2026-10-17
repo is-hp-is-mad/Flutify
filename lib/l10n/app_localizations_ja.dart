@@ -600,6 +600,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get lyricsFromNetease => '歌詞の提供：NetEase Music';
 
   @override
+  String get lyricsFromSpotify => '歌詞の提供：Spotify';
+
+  @override
   String get lyricsImmersive => '歌詞に集中';
 
   @override
@@ -1829,6 +1832,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get updatesDetails => '更新を表示';
+
   @override
   String get webLoginRegionChecking => 'ネットワークの地域を確認しています…';
 
@@ -1898,5 +1902,4 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsAnimDebugBackgroundSubtitle => '歌詞の背景が静止画のままになります';
-
 }

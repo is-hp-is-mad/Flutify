@@ -89,6 +89,9 @@ class _PlaybackErrorListenerState extends State<PlaybackErrorListener> {
 
   void _show(PlaybackError error) {
     if (!mounted) return;
+    // 播放器还在这首歌上退避重放（「正在重试」提示条已经说明了情况）：
+    // 这次不弹错误条，免得一断流就盖住重试提示。
+    if (error.retryable) return;
     final l10n = context.l10n;
     final track = error.track.name;
     final playback = context.read<PlaybackProvider>();

@@ -18,6 +18,12 @@ class PlaybackError {
   /// 截至本次，连续无法播放的曲目数（含本首）。
   final int consecutiveFailures;
 
+  /// 播放器正在同一首上退避重放，还没放弃这首歌。
+  ///
+  /// 这类错误不代表「这次播放结束了」，只代表「这一下没加载上」：订阅 [playbackErrors]
+  /// 的一方可以据此只提示一次（或干脆不提示），把连续几次网络抖动合成一条。
+  final bool retryable;
+
   const PlaybackError({
     required this.serial,
     required this.track,
@@ -25,6 +31,7 @@ class PlaybackError {
     required this.skipped,
     this.autoPaused = false,
     this.consecutiveFailures = 1,
+    this.retryable = false,
   });
 
   TrackPlaybackFailure get kind => exception.kind;
@@ -33,5 +40,6 @@ class PlaybackError {
   String get message => exception.message;
 
   /// 带曲名的完整提示，如「Blinding Lights：这首歌暂时无法播放…」。
-  String get messageWithTrack => track.name.isEmpty ? message : '${track.name}：$message';
+  String get messageWithTrack =>
+      track.name.isEmpty ? message : '${track.name}：$message';
 }

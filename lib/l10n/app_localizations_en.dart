@@ -626,6 +626,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lyricsFromNetease => 'Lyrics from NetEase Music';
 
   @override
+  String get lyricsFromSpotify => 'Lyrics from Spotify';
+
+  @override
   String get lyricsImmersive => 'Immersive lyrics';
 
   @override
@@ -1910,6 +1913,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get updatesDetails => 'View update';
+
   @override
   String get webLoginRegionChecking => 'Checking network region…';
 
@@ -1984,5 +1988,4 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsAnimDebugBackgroundSubtitle =>
       'The lyrics background stays on a still frame';
-
 }
