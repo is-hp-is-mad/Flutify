@@ -54,6 +54,17 @@ void main() {
     }
   }
 
+  /// 关掉弹层并在「每次 pump 都推进」的条件下等它开合完成。
+  ///
+  /// [settle] 内是固定次数的 pump，即使树已经稳定也照样推进时间；弹层关闭动画
+  /// 因此必然结束，不会有残影留在下一帧的命中测试列表里。
+  Future<void> closeOverlay(WidgetTester tester) async {
+    await tester.pump();
+    for (var i = 0; i < 12; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+  }
+
   // 高度给足：移动端设置页是懒加载单列，一屏放下全部分组，测试无需滚动
   Future<void> pumpApp(
     WidgetTester tester, {
@@ -99,13 +110,35 @@ void main() {
 
   AppPreferences savedPrefs() => AppPreferences.decode(storage.preferencesJson);
 
+  /// 在语言菜单里选中 [label]。
+  ///
+  /// 菜单项按 [label] 定位，按钮本身不加文字限制——无论按钮标题里恰好有哪个
+  /// 语言名，命中的都只会是菜单里那一项，不会误点到按钮或别处的同名文字。
+  ///
+  /// 开菜单走键盘：按钮拿到焦点后回车展开。不用点按钮——菜单锚在按钮上、宽度又与
+  /// 按钮相同时，展开后的第一项正好盖住按钮中心，落在中心（乃至左缘）的真实点击都
+  /// 可能被菜单项或菜单自己的 TapRegion 吃掉：看着「刚开就关」，下一步什么都找不到。
+  /// 键盘路径没有指针事件，也就没有这层竞争。
+  ///
+  /// 菜单开合都要等到动画走完：残留的弹层会留在命中测试列表里，下一次
+  /// `find.text(...).last` 就可能落到正在淡出的旧文字上。
   Future<void> selectLanguage(WidgetTester tester, String label) async {
     final dropdown = find.byKey(const ValueKey('interface-language'));
     await tester.ensureVisible(dropdown);
     await settle(tester);
-    await tester.tap(dropdown);
+    tester.widget<FilledButton>(dropdown).focusNode!.requestFocus();
     await settle(tester);
-    await tapText(tester, label);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await closeOverlay(tester);
+    final item = find.descendant(
+      of: find.ancestor(of: find.text(label), matching: find.byType(MenuItemButton)),
+      matching: find.text(label),
+    );
+    expect(item, findsOneWidget, reason: '语言菜单里应恰好有一项「$label」');
+    await tester.ensureVisible(item);
+    await settle(tester);
+    await tester.tap(item);
+    await closeOverlay(tester);
   }
 
   int currentTab(WidgetTester tester) => tester

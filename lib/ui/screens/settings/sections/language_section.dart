@@ -38,6 +38,25 @@ class _LanguageSectionState extends State<LanguageSection> {
     );
   }
 
+  /// 按钮点击：开合语言菜单。
+  ///
+  /// 只信 [MenuController] 自己的状态，不看本地的 [_open]——两者一旦不一致
+  /// （例如菜单被外部关闭后 overlay 先于 `onClose` 掉落），本地状态会把这一次点击
+  /// 当成「关闭」，于是按钮看着没反应：菜单不开、界面也不换语言。
+  ///
+  /// 菜单锚在按钮上，展开后第一项正对按钮中心：命中测试里菜单项会盖住按钮，落在
+  /// 中心点的真实点击由菜单项吃掉。所以按钮在整个展开期间都收不到点击，开合只能
+  /// 交给菜单项和 [MenuAnchor] 自己的 `onClose`。`_open` 也要在开启时立刻置位，
+  /// 别等回调——否则箭头图标会晚一帧才翻转。
+  void _toggleMenu(MenuController controller) {
+    if (controller.isOpen) {
+      controller.close();
+      return;
+    }
+    _open = true;
+    controller.open();
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
@@ -111,9 +130,7 @@ class _LanguageSectionState extends State<LanguageSection> {
                 child: FilledButton(
                   key: const ValueKey('interface-language'),
                   focusNode: _focusNode,
-                  onPressed: () => controller.isOpen
-                      ? controller.close()
-                      : controller.open(),
+                  onPressed: () => _toggleMenu(controller),
                   style:
                       FilledButton.styleFrom(
                         backgroundColor: colors.surfaceContainerHighest,
