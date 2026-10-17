@@ -167,11 +167,15 @@ class _FullPlayerSheetState extends State<FullPlayerSheet> {
 
     final content = ClipRRect(
       borderRadius: radius,
-      child: PlayerSceneView(
-        track: track,
-        playbackContext: playbackContext,
-        remote: remote,
-        expansionAnimation: widget.expansionAnimation,
+      // 控制卡片与歌词页的玻璃按钮共用同一次背景采样（沉浸式歌词页已是这样），
+      // 否则每个 LiquidGlass 各复制一次下方画面。
+      child: BackdropGroup(
+        child: PlayerSceneView(
+          track: track,
+          playbackContext: playbackContext,
+          remote: remote,
+          expansionAnimation: widget.expansionAnimation,
+        ),
       ),
     );
     return _closeOnEscape(

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'core/perf_flags.dart';
 import 'core/utils/file_log.dart';
 import 'core/utils/local_device_name.dart';
 import 'core/widgets/app_startup.dart';
@@ -794,6 +795,7 @@ class _ThemedApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutify',
       debugShowCheckedModeBanner: false,
+      showPerformanceOverlay: PerfFlags.overlay,
       // 默认简体中文，可在设置里改为跟随系统 / English；系统组件文案由 Global*Localizations 提供
       locale: AppLocale.localeFor(language),
       supportedLocales: AppLocale.supportedLocales,

@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import '../../core/perf_flags.dart';
 import '../../core/theme/flutify_tokens.dart';
 import '../shell/desktop/desktop_window.dart';
 
@@ -74,7 +75,9 @@ class LiquidGlass extends StatelessWidget {
         ),
       );
     }
-    if (!backdrop) return ClipRRect(borderRadius: radius, child: body);
+    if (!backdrop || PerfFlags.noBackdrop) {
+      return ClipRRect(borderRadius: radius, child: body);
+    }
     return ClipRRect(
       borderRadius: radius,
       // 系统全屏切换期间引擎合成器对 BackdropFilter 会访问冲突（详见 DesktopWindow.fullscreenTransition），

@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../core/perf_flags.dart';
 import '../../../../core/theme/flutify_tokens.dart';
 import '../../../../l10n/l10n.dart';
 import '../../../../models/app_preferences.dart';
@@ -866,9 +867,9 @@ class _LyricsViewState extends State<LyricsView>
           : null,
       child: NotificationListener<ScrollNotification>(
         onNotification: _onScrollNotification,
-        child: ShaderMask(
+        child: _EdgeMask(
+          enabled: !PerfFlags.noLyricsMask,
           // 上下边缘柔和淡出，歌词像从玻璃下方浮现
-          blendMode: BlendMode.dstIn,
           shaderCallback: (rect) => widget.appleMusicStyle
               ? _appleEdgeFade(rect)
               : const LinearGradient(
@@ -883,164 +884,145 @@ class _LyricsViewState extends State<LyricsView>
                   stops: [0.0, 0.14, 0.82, 1.0],
                 ).createShader(rect),
           // 滚动条只在用户手动浏览时出现，跟随播放的自动滚动不显示
-          child: ShaderMask(
-            blendMode: BlendMode.dstIn,
-            shaderCallback: (rect) => LinearGradient(
-              colors: widget.appleMusicStyle
-                  ? const [
-                      Colors.transparent,
-                      Colors.black,
-                      Colors.black,
-                      Colors.transparent,
-                    ]
-                  : const [
-                      Colors.black,
-                      Colors.black,
-                      Colors.black,
-                      Colors.black,
-                    ],
-              stops: const [0, .01, .99, 1],
-            ).createShader(rect),
-            child: RawScrollbar(
-              controller: _scroll,
-              thumbColor: Colors.white38,
-              thickness: 5,
-              radius: const Radius.circular(3),
-              notificationPredicate: (n) => n.depth == 0 && _browsing,
-              child: ScrollConfiguration(
-                behavior: ScrollConfiguration.of(
-                  context,
-                ).copyWith(scrollbars: false),
-                child: SingleChildScrollView(
-                  controller: _scroll,
-                  physics: const BouncingScrollPhysics(),
-                  // 上下留出到对焦位置的距离，第一句和最后一句也能停在对焦位置
-                  padding: EdgeInsets.fromLTRB(
-                    widget.appleMusicStyle
-                        ? widget.applePadding
-                        : widget.horizontalPadding,
-                    focusY,
-                    widget.appleMusicStyle
-                        ? widget.applePadding
-                        : widget.horizontalPadding,
-                    _viewportHeight - focusY,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: centered
-                        ? CrossAxisAlignment.center
-                        : CrossAxisAlignment.start,
-                    children: [
-                      if (!_isSynced)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: Text(
-                            context.l10n.lyricsUnsynced,
-                            style: const TextStyle(
-                              color: Colors.white60,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
+          child: RawScrollbar(
+            controller: _scroll,
+            thumbColor: Colors.white38,
+            thickness: 5,
+            radius: const Radius.circular(3),
+            notificationPredicate: (n) => n.depth == 0 && _browsing,
+            child: ScrollConfiguration(
+              behavior: ScrollConfiguration.of(
+                context,
+              ).copyWith(scrollbars: false),
+              child: SingleChildScrollView(
+                controller: _scroll,
+                physics: const BouncingScrollPhysics(),
+                // 上下留出到对焦位置的距离，第一句和最后一句也能停在对焦位置
+                padding: EdgeInsets.fromLTRB(
+                  widget.appleMusicStyle
+                      ? widget.applePadding
+                      : widget.horizontalPadding,
+                  focusY,
+                  widget.appleMusicStyle
+                      ? widget.applePadding
+                      : widget.horizontalPadding,
+                  _viewportHeight - focusY,
+                ),
+                child: Column(
+                  crossAxisAlignment: centered
+                      ? CrossAxisAlignment.center
+                      : CrossAxisAlignment.start,
+                  children: [
+                    if (!_isSynced)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: Text(
+                          context.l10n.lyricsUnsynced,
+                          style: const TextStyle(
+                            color: Colors.white60,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                      if (_isSynced)
+                      ),
+                    if (_isSynced)
+                      KeyedSubtree(
+                        key: _introKey,
+                        child: _movingRow(
+                          -1,
+                          _gapEntry(
+                            gap?.entry == -1 ? gap : null,
+                            fontSize,
+                            centered,
+                            isPlaying: isPlaying,
+                          ),
+                        ),
+                      ),
+                    for (var i = 0; i < lyrics.lines.length; i++)
+                      if (_isSynced && _blank[i])
                         KeyedSubtree(
-                          key: _introKey,
+                          key: _lineKeys[i],
                           child: _movingRow(
-                            -1,
+                            i,
                             _gapEntry(
-                              gap?.entry == -1 ? gap : null,
+                              gap?.entry == i ? gap : null,
                               fontSize,
                               centered,
                               isPlaying: isPlaying,
                             ),
                           ),
-                        ),
-                      for (var i = 0; i < lyrics.lines.length; i++)
-                        if (_isSynced && _blank[i])
-                          KeyedSubtree(
-                            key: _lineKeys[i],
-                            child: _movingRow(
-                              i,
-                              _gapEntry(
-                                gap?.entry == i ? gap : null,
-                                fontSize,
-                                centered,
-                                isPlaying: isPlaying,
-                              ),
-                            ),
-                          )
-                        else
-                          RepaintBoundary(
-                            key: _lineKeys[i],
-                            child: _movingRow(
-                              i,
-                              LyricLineView(
-                                appleMusicStyle: widget.appleMusicStyle,
-                                text: lyrics.lines[i].words,
-                                translation: _translationIsCurrent
-                                    ? _visibleTranslations?.elementAtOrNull(i)
-                                    : null,
-                                translationProgress: _translationReveal.value,
-                                fontSize: fontSize,
-                                centered: centered,
-                                // 以对焦行为中心：当句清晰，上下句按行距逐级模糊
-                                distance: _isSynced ? rank[i] - focusRank : 0,
-                                focusAll: !_isSynced || _browsing,
-                                cursor: widget.lineCursor,
-                                onTap: _isSynced
-                                    ? () => _seekToLine(lyrics.lines[i])
-                                    : null,
-                              ),
-                            ),
-                          ),
-                      if (lyrics.provider == LyricsProvider.lrclib ||
-                          (_translationIsCurrent && _translation.fromLrclib))
-                        Padding(
-                          padding: const EdgeInsets.only(top: 28),
-                          child: Text(
-                            context.l10n.lyricsFromLrclib,
-                            style: const TextStyle(
-                              color: Colors.white54,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
+                        )
+                      else
+                        RepaintBoundary(
+                          key: _lineKeys[i],
+                          child: _movingRow(
+                            i,
+                            LyricLineView(
+                              appleMusicStyle: widget.appleMusicStyle,
+                              text: lyrics.lines[i].words,
+                              translation: _translationIsCurrent
+                                  ? _visibleTranslations?.elementAtOrNull(i)
+                                  : null,
+                              translationProgress: _translationReveal.value,
+                              fontSize: fontSize,
+                              centered: centered,
+                              // 以对焦行为中心：当句清晰，上下句按行距逐级模糊
+                              distance: _isSynced ? rank[i] - focusRank : 0,
+                              focusAll: !_isSynced || _browsing,
+                              cursor: widget.lineCursor,
+                              onTap: _isSynced
+                                  ? () => _seekToLine(lyrics.lines[i])
+                                  : null,
                             ),
                           ),
                         ),
-                      if (lyrics.provider == LyricsProvider.qqMusic ||
-                          lyrics.provider == LyricsProvider.netease)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 28),
-                          child: Text(
-                            lyrics.provider == LyricsProvider.qqMusic
-                                ? context.l10n.lyricsFromQqMusic
-                                : context.l10n.lyricsFromNetease,
-                            style: const TextStyle(
-                              color: Colors.white54,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
+                    if (lyrics.provider == LyricsProvider.lrclib ||
+                        (_translationIsCurrent && _translation.fromLrclib))
+                      Padding(
+                        padding: const EdgeInsets.only(top: 28),
+                        child: Text(
+                          context.l10n.lyricsFromLrclib,
+                          style: const TextStyle(
+                            color: Colors.white54,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                      if (_translationIsCurrent &&
-                          lyrics.provider != LyricsProvider.qqMusic &&
-                          lyrics.provider != LyricsProvider.netease &&
-                          (_translation.fromNetease ||
-                              _translation.fromQqMusic))
-                        Padding(
-                          padding: const EdgeInsets.only(top: 28),
-                          child: Text(
-                            _translation.fromQqMusic
-                                ? context.l10n.lyricsTranslationFromQqMusic
-                                : context.l10n.lyricsTranslationFromNetease,
-                            style: const TextStyle(
-                              color: Colors.white54,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
+                      ),
+                    if (lyrics.provider == LyricsProvider.qqMusic ||
+                        lyrics.provider == LyricsProvider.netease)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 28),
+                        child: Text(
+                          lyrics.provider == LyricsProvider.qqMusic
+                              ? context.l10n.lyricsFromQqMusic
+                              : context.l10n.lyricsFromNetease,
+                          style: const TextStyle(
+                            color: Colors.white54,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                    ],
-                  ),
+                      ),
+                    if (_translationIsCurrent &&
+                        lyrics.provider != LyricsProvider.qqMusic &&
+                        lyrics.provider != LyricsProvider.netease &&
+                        (_translation.fromNetease ||
+                            _translation.fromQqMusic))
+                      Padding(
+                        padding: const EdgeInsets.only(top: 28),
+                        child: Text(
+                          _translation.fromQqMusic
+                              ? context.l10n.lyricsTranslationFromQqMusic
+                              : context.l10n.lyricsTranslationFromNetease,
+                          style: const TextStyle(
+                            color: Colors.white54,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),
@@ -1056,25 +1038,42 @@ class _LyricsViewState extends State<LyricsView>
     final fadeStart = math.max(.07, controlTop - .2775);
     // 对焦位置上移到渐隐区内时，顶部渐隐随之缩短，避免当前行被淡掉
     final topFade = (_focusTopY / math.max(1, rect.height)).clamp(0.0, .07);
+    final stops = <double>[
+      0,
+      topFade,
+      fadeStart,
+      fadeStart + (controlTop - fadeStart) * (.24 / .2775),
+      controlTop,
+      1,
+    ];
+    const alphas = <double>[0, 1, 1, 0x0D / 255, 0, 0];
+    double alphaAt(double t) {
+      for (var i = 0; i < stops.length - 1; i++) {
+        if (t <= stops[i + 1]) {
+          final span = stops[i + 1] - stops[i];
+          if (span <= 0) return alphas[i + 1];
+          final k = ((t - stops[i]) / span).clamp(0.0, 1.0);
+          return alphas[i] + (alphas[i + 1] - alphas[i]) * k;
+        }
+      }
+      return alphas.last;
+    }
+
+    // 上下各 1% 的边缘淡入淡出原先是外面另套的一层 ShaderMask；每层 ShaderMask 都是
+    // 一次覆盖整个歌词区的离屏合成，滚动时每帧重做。dstIn 只看 alpha，
+    // 两层遮罩相乘等价于一条渐变，这里合成一条，只保留一层。
+    const edge = .01;
+    double edgeAt(double t) =>
+        math.min(1.0, t / edge) * math.min(1.0, (1 - t) / edge);
+    final knots = <double>{...stops, edge, 1 - edge}.toList()..sort();
     return LinearGradient(
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
-      colors: const [
-        Colors.transparent,
-        Colors.black,
-        Colors.black,
-        Color(0x0D000000),
-        Colors.transparent,
-        Colors.transparent,
+      colors: [
+        for (final t in knots)
+          Colors.black.withValues(alpha: alphaAt(t) * edgeAt(t)),
       ],
-      stops: [
-        0,
-        topFade,
-        fadeStart,
-        fadeStart + (controlTop - fadeStart) * (.24 / .2775),
-        controlTop,
-        1,
-      ],
+      stops: knots,
     ).createShader(rect);
   }
 
@@ -1223,4 +1222,26 @@ class _LoadingLines extends StatelessWidget {
       ),
     );
   }
+}
+
+/// 歌词区上下边缘渐隐用的 dstIn 遮罩；[enabled] 为 false 时不套任何图层（仅诊断用）。
+class _EdgeMask extends StatelessWidget {
+  const _EdgeMask({
+    required this.enabled,
+    required this.shaderCallback,
+    required this.child,
+  });
+
+  final bool enabled;
+  final ShaderCallback shaderCallback;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => enabled
+      ? ShaderMask(
+          blendMode: BlendMode.dstIn,
+          shaderCallback: shaderCallback,
+          child: child,
+        )
+      : child;
 }
