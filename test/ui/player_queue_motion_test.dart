@@ -1,5 +1,6 @@
 import 'package:flutify_app/ui/screens/player/android_player_scene.dart';
 import 'package:flutify_app/ui/screens/player/player_lyrics_motion.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -122,6 +123,63 @@ void main() {
     await tester.pump(const Duration(milliseconds: 3500));
     await tester.pump(PlayerLyricsMotion.foldDuration);
     expect(tester.getRect(card).top, footerBefore.top);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('scrolling the folded queue never reopens its card', (
+    tester,
+  ) async {
+    final scroll = ScrollController();
+    addTearDown(scroll.dispose);
+    var taps = 0;
+    final mode = await scene(tester, scroll: scroll, onQueueTap: () => taps++);
+    final card = find.byKey(const ValueKey('lyrics-control-card'));
+    final footer = find.byKey(const ValueKey('footer'));
+    final list = find.byKey(const ValueKey('queue'));
+    mode.value = _View.queue;
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 501));
+    await tester.pump();
+    final expanded = tester.getRect(card);
+    await tester.pump(PlayerLyricsMotion.foldDuration);
+    final folded = tester.getRect(card);
+    expect(folded.top, greaterThan(expanded.top));
+
+    for (final dy in [-300.0, 200.0, -150.0]) {
+      final gesture = await tester.startGesture(tester.getCenter(list));
+      for (var step = 0; step < 6; step++) {
+        await gesture.moveBy(Offset(0, dy / 6));
+        await tester.pump(const Duration(milliseconds: 16));
+        expect(tester.getRect(card), folded, reason: 'drag $dy step $step');
+      }
+      await gesture.up();
+      await tester.pump(const Duration(seconds: 1));
+      expect(tester.getRect(card), folded);
+    }
+    expect(scroll.offset, greaterThan(0));
+    await tester.fling(list, const Offset(0, -400), 2000);
+    await tester.pump(const Duration(seconds: 2));
+    await tester.fling(list, const Offset(0, 400), 2000);
+    await tester.pump(const Duration(seconds: 2));
+    tester.binding.handlePointerEvent(
+      PointerScrollEvent(
+        position: tester.getCenter(list),
+        scrollDelta: const Offset(0, 200),
+      ),
+    );
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    addTearDown(mouse.removePointer);
+    await mouse.addPointer(location: tester.getCenter(list));
+    await mouse.moveTo(tester.getCenter(footer));
+    await tester.pump(const Duration(seconds: 5));
+    expect(tester.getRect(card), folded);
+    expect(taps, 0, reason: 'scrolling cannot play a queued song');
+
+    await tester.tapAt(tester.getCenter(footer));
+    await tester.pump();
+    await tester.pump(PlayerLyricsMotion.chromeDuration);
+    expect(tester.getRect(card), expanded, reason: 'the card tap reopens it');
+    expect(taps, 0);
     expect(tester.takeException(), isNull);
   });
 

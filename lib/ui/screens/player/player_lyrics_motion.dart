@@ -86,9 +86,9 @@ class PlayerLyricsController extends ChangeNotifier {
     final queueFlight = queue || _queue;
     // A footer onTap changes views after pointer-down. Retain
     // that gesture's origin even with reduced motion, where chrome snaps to 1.
+    // Another held finger cannot reopen the queue card either.
     final keepFolded =
         queue &&
-        _pointers.isEmpty &&
         !_accessibleNavigation &&
         !_interactionSuspended &&
         (_idle || _gestureStartedFolded);
@@ -156,10 +156,13 @@ class PlayerLyricsController extends ChangeNotifier {
     _scheduleIdle();
   }
 
+  /// Hover and wheel input; like touches, it cannot reopen a folded queue.
+  void passiveActivity() => _queue ? _scheduleIdle() : activity();
+
   void pointerDown(int pointer) {
     if (_pointers.isEmpty) _gestureStartedFolded = _idle;
     _pointers[pointer] = Offset.zero;
-    if (!_lyrics || !_idle) activity();
+    _touch();
   }
 
   void pointerMove(int pointer, Offset delta) {
@@ -181,13 +184,24 @@ class PlayerLyricsController extends ChangeNotifier {
       }
       return;
     }
-    if (!_lyrics || !_idle) activity();
+    _touch();
   }
 
   void pointerUp(int pointer) {
     // Global release/cancel recovery also observes unrelated pointers.
     if (_pointers.remove(pointer) == null) return;
-    if (!_lyrics || !_idle) activity();
+    _touch();
+  }
+
+  void _touch() {
+    // Queue touches and scrolls only keep a visible card awake; a card tap
+    // ([activity]) is the sole way to reopen it, and they do not cancel the
+    // default fold after entry, which runs once every finger is released.
+    if (_queue) {
+      _scheduleIdle();
+    } else if (!_lyrics || !_idle) {
+      activity();
+    }
   }
 
   /// 固定控制区：不再因静止或上滑而收起成底部小条。
@@ -215,7 +229,13 @@ class PlayerLyricsController extends ChangeNotifier {
     _timer?.cancel();
     _pointers.clear();
     _gestureStartedFolded = false;
-    if (active) activity();
+    if (!active) return;
+    // Returning to the queue keeps a folded card folded.
+    if (_queue) {
+      _scheduleIdle();
+    } else {
+      activity();
+    }
   }
 
   void _scheduleIdle() {

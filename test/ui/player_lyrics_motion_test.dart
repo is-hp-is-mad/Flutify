@@ -98,7 +98,7 @@ void main() {
     },
   );
 
-  testWidgets('queue entry cannot fold while a second pointer is still held', (
+  testWidgets('a held second pointer cannot reopen folded lyrics in queue', (
     tester,
   ) async {
     final motion = PlayerLyricsController(vsync: const TestVSync());
@@ -111,13 +111,14 @@ void main() {
       motion.pointerDown(2);
       motion.pointerUp(1);
       motion.setView(lyrics: false, queue: true);
-      await tester.pump(const Duration(seconds: 5));
-      expect(motion.controlsVisible, isTrue);
-      motion.pointerUp(2);
-      await tester.pump(const Duration(milliseconds: 3499));
-      expect(motion.controlsVisible, isTrue);
-      await tester.pump(const Duration(milliseconds: 1));
       expect(motion.controlsVisible, isFalse);
+      motion.pointerMove(2, const Offset(0, 60));
+      await tester.pump(const Duration(seconds: 5));
+      expect(motion.controlsVisible, isFalse);
+      motion.pointerUp(2);
+      await tester.pump(const Duration(seconds: 5));
+      expect(motion.controlsVisible, isFalse);
+      expect(motion.chrome.value, 0);
     } finally {
       motion.dispose();
     }
@@ -141,12 +142,13 @@ void main() {
         expect(motion.controlsVisible, isTrue);
         if (modal) {
           motion.setInteractionSuspended(false);
+          await tester.pump(const Duration(milliseconds: 3499));
+          expect(motion.controlsVisible, isTrue);
+          await tester.pump(const Duration(milliseconds: 1));
         } else {
+          // Backgrounding never cancelled the default fold; resuming runs it.
           motion.setActive(true);
         }
-        await tester.pump(const Duration(milliseconds: 3499));
-        expect(motion.controlsVisible, isTrue);
-        await tester.pump(const Duration(milliseconds: 1));
         expect(motion.controlsVisible, isFalse);
       } finally {
         motion.dispose();
@@ -163,13 +165,19 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
       motion.pointerDown(7);
+      motion.pointerMove(7, const Offset(0, 60));
       await tester.pump(const Duration(seconds: 5));
-      expect(motion.controlsVisible, isTrue);
+      expect(
+        motion.controlsVisible,
+        isTrue,
+        reason: 'the card never folds under a held finger',
+      );
       motion.pointerUp(7);
-      await tester.pump(const Duration(milliseconds: 3499));
-      expect(motion.controlsVisible, isTrue);
-      await tester.pump(const Duration(milliseconds: 1));
-      expect(motion.controlsVisible, isFalse);
+      expect(
+        motion.controlsVisible,
+        isFalse,
+        reason: 'scrolling during entry does not cancel the default fold',
+      );
 
       motion.configure(reduceMotion: true, accessibleNavigation: true);
       await tester.pump(const Duration(seconds: 5));
@@ -187,6 +195,74 @@ void main() {
       expect(motion.controlsVisible, isTrue);
     },
   );
+
+  for (final reduced in [false, true]) {
+    testWidgets('folded queue only reopens on a card tap ($reduced)', (
+      tester,
+    ) async {
+      final motion = PlayerLyricsController(vsync: const TestVSync());
+      addTearDown(motion.dispose);
+      motion.configure(reduceMotion: reduced, accessibleNavigation: false);
+      motion.setView(lyrics: false, queue: true);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 501));
+      await tester.pump();
+      await tester.pump(PlayerLyricsMotion.foldDuration);
+      expect(motion.controlsVisible, isFalse);
+      expect(motion.chrome.value, 0);
+
+      for (final dy in [60.0, -60.0, 60.0]) {
+        motion.pointerDown(1);
+        motion.pointerMove(1, Offset(0, dy));
+        motion.pointerMove(1, Offset(0, -2 * dy));
+        motion.pointerUp(1);
+      }
+      motion.pointerDown(2);
+      motion.pointerUp(2);
+      motion.passiveActivity();
+      motion.setActive(false);
+      motion.setActive(true);
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 5));
+      expect(motion.controlsVisible, isFalse);
+      expect(motion.chrome.value, 0);
+
+      motion.activity();
+      await tester.pump();
+      await tester.pump(PlayerLyricsMotion.chromeDuration);
+      expect(motion.chrome.value, 1);
+      motion.pointerDown(1);
+      motion.pointerMove(1, const Offset(0, -60));
+      await tester.pump(const Duration(seconds: 5));
+      expect(motion.controlsVisible, isTrue, reason: 'held while open');
+      motion.pointerUp(1);
+      await tester.pump(
+        PlayerLyricsMotion.idleDelay - const Duration(milliseconds: 1),
+      );
+      expect(motion.controlsVisible, isTrue);
+      await tester.pump(const Duration(milliseconds: 1));
+      expect(motion.controlsVisible, isFalse);
+      await tester.pump();
+      await tester.pump(
+        PlayerLyricsMotion.foldDuration + const Duration(milliseconds: 1),
+      );
+      expect(motion.chrome.value, 0);
+    });
+  }
+
+  testWidgets('wheel and hover still wake folded lyrics', (tester) async {
+    final motion = PlayerLyricsController(vsync: const TestVSync());
+    addTearDown(motion.dispose);
+    motion.configure(reduceMotion: true, accessibleNavigation: false);
+    motion.setLyrics(true);
+    await tester.pump(PlayerLyricsMotion.idleDelay);
+    expect(motion.controlsVisible, isFalse);
+    motion.passiveActivity();
+    expect(motion.controlsVisible, isTrue);
+    motion.setLyrics(false);
+    motion.passiveActivity();
+    expect(motion.controlsVisible, isTrue);
+  });
 
   testWidgets(
     'three-way retargeting keeps pane weights bounded and continuous',

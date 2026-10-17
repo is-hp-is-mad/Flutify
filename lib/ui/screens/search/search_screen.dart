@@ -66,10 +66,29 @@ class _SearchScreenState extends State<SearchScreen> {
       selection: TextSelection.collapsed(offset: query.length),
     );
     context.read<SpotifyProvider>().performSearch(query);
+    // 选中最近搜索会立刻发起查询；清空只是准备重新输入，输入法留着。
+    if (query.trim().isNotEmpty) _dismissKeyboard();
     setState(() {});
   }
 
   void _commit() => context.read<SpotifyProvider>().commitRecentSearch(_searchController.text);
+
+  /// 一次搜索被确认后收起输入法。输入框若继续持有焦点，返回搜索页时路由会把焦点还回去，输入法再次弹出。
+  /// 逐字输入不收起，否则无法继续打字。
+  void _dismissKeyboard() {
+    _focusNode.unfocus();
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
+
+  void _submitSearch() {
+    _commit();
+    _dismissKeyboard();
+  }
+
+  void _onResultTap() {
+    _dismissKeyboard();
+    _commit();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -105,7 +124,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       context.read<SpotifyProvider>().performSearch(val);
                       setState(() {});
                     },
-                    onSubmitted: (_) => _commit(),
+                    onSubmitted: (_) => _submitSearch(),
                     decoration: InputDecoration(
                       hintText: l10n.searchHint,
                       prefixIcon: const Icon(Icons.search_rounded, size: 24),
@@ -146,7 +165,7 @@ class _SearchScreenState extends State<SearchScreen> {
             Expanded(
               child: isQueryEmpty
                   ? _BrowseView(onRecentTap: _setQuery)
-                  : _SearchResults(filterIndex: _searchFilterIndex, onResultTap: _commit),
+                  : _SearchResults(filterIndex: _searchFilterIndex, onResultTap: _onResultTap),
             ),
           ],
         ),

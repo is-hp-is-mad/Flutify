@@ -181,7 +181,7 @@ class _AndroidPlayerSceneState extends State<AndroidPlayerScene>
         if ((Offset.zero & box.size).contains(local)) return;
       }
     }
-    _motion.activity();
+    _motion.passiveActivity();
   }
 
   @override
@@ -293,7 +293,7 @@ class _AndroidPlayerSceneState extends State<AndroidPlayerScene>
     onPointerMove: (event) => _motion.pointerMove(event.pointer, event.delta),
     onPointerUp: (event) => _motion.pointerUp(event.pointer),
     onPointerCancel: (event) => _motion.pointerUp(event.pointer),
-    onPointerSignal: (_) => _motion.activity(),
+    onPointerSignal: (_) => _motion.passiveActivity(),
     child: MouseRegion(
       onHover: _hover,
       child: AnimatedBuilder(

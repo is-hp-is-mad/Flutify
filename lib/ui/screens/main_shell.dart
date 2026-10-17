@@ -189,8 +189,10 @@ class _MainShellState extends State<MainShell> {
     context.read<SpotifyProvider>().performSearch(query);
   }
 
-  void _onSearchSubmitted(String query) =>
-      context.read<SpotifyProvider>().commitRecentSearch(query);
+  void _onSearchSubmitted(String query) {
+    _searchFocus.unfocus();
+    context.read<SpotifyProvider>().commitRecentSearch(query);
+  }
 
   /// 桌面快捷键（与 Spotify 桌面端一致）。输入框聚焦时空格会被 TextField 拦截，不会误触。
   /// 播放类按键在远程模式下控制正在播放的其他设备（[PlaybackShortcuts]）。

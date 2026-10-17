@@ -7,6 +7,7 @@ import 'package:flutify_app/providers/playback_provider.dart';
 import 'package:flutify_app/providers/spotify_provider.dart';
 import 'package:flutify_app/services/spotify_api_service.dart';
 import 'package:flutify_app/services/storage_service.dart';
+import 'package:flutify_app/ui/screens/detail/artist_detail_screen.dart';
 import 'package:flutify_app/ui/screens/search/search_screen.dart';
 import 'package:flutify_app/ui/widgets/filter_pill.dart';
 import 'package:flutify_app/ui/widgets/track_tile.dart';
@@ -180,24 +181,122 @@ void main() {
     expect(find.byIcon(Icons.wifi_off_rounded), findsNothing);
     expect(find.text('Retry'), findsNothing);
   });
+
+  // 返回搜索页时路由会把焦点还给上次聚焦的输入框，若输入框仍持有焦点，输入法会再次弹出。
+  testWidgets('opening a result does not bring the keyboard back on return', (
+    tester,
+  ) async {
+    final api = await pumpSearch(tester, 390);
+    api.requests.single.result.complete(
+      page(
+        artists: const [SpotifyArtist(id: 'artist', name: 'Found artist')],
+      ),
+    );
+    await tester.pump();
+    await tester.showKeyboard(find.byType(TextField));
+    expect(tester.testTextInput.isVisible, isTrue);
+
+    await tester.tap(find.text('Found artist'));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.byType(ArtistDetailScreen), findsOneWidget);
+
+    tester.state<NavigatorState>(find.byType(Navigator)).pop();
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.byType(ArtistDetailScreen), findsNothing);
+    expect(tester.testTextInput.isVisible, isFalse);
+  });
+
+  testWidgets('the keyboard search action dismisses the keyboard', (
+    tester,
+  ) async {
+    final api = await pumpSearch(tester, 390);
+    api.requests.single.result.complete(page(tracks: tracks(0, 1)));
+    await tester.pump();
+    await tester.showKeyboard(find.byType(TextField));
+    expect(tester.testTextInput.isVisible, isTrue);
+
+    await tester.testTextInput.receiveAction(TextInputAction.search);
+    await tester.pump();
+    expect(tester.testTextInput.isVisible, isFalse);
+
+    final navigator = tester.state<NavigatorState>(find.byType(Navigator));
+    navigator.push(MaterialPageRoute<void>(builder: (_) => const Scaffold()));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    navigator.pop();
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    expect(tester.testTextInput.isVisible, isFalse);
+  });
+
+  testWidgets('choosing a recent search dismisses the keyboard', (
+    tester,
+  ) async {
+    final api = await pumpSearch(
+      tester,
+      390,
+      query: '',
+      recent: const ['radiohead'],
+    );
+    await tester.pump();
+    await tester.showKeyboard(find.byType(TextField));
+    expect(tester.testTextInput.isVisible, isTrue);
+
+    await tester.tap(find.text('radiohead'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(api.requests.single.query, 'radiohead');
+    expect(tester.testTextInput.isVisible, isFalse);
+  });
+
+  testWidgets('playing a song result dismisses the keyboard', (tester) async {
+    final api = await pumpSearch(tester, 390);
+    api.requests.single.result.complete(page(tracks: tracks(0, 1)));
+    await tester.pump();
+    await tester.showKeyboard(find.byType(TextField));
+    expect(tester.testTextInput.isVisible, isTrue);
+
+    await tester.tap(find.text('Track 0'));
+    await tester.pump();
+    expect(tester.testTextInput.isVisible, isFalse);
+
+    // 播放后打开其他页面（如全屏播放器）再返回，输入法也不会再弹出
+    final navigator = tester.state<NavigatorState>(find.byType(Navigator));
+    navigator.push(
+      MaterialPageRoute<void>(builder: (_) => const Scaffold()),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    navigator.pop();
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    expect(tester.testTextInput.isVisible, isFalse);
+  });
 }
 
 Future<ControlledSearchApi> pumpSearch(
   WidgetTester tester,
   double width, {
   bool signedIn = true,
+  String query = 'music',
+  List<String> recent = const [],
 }) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = Size(width, 900);
   addTearDown(tester.view.reset);
   SharedPreferences.setMockInitialValues({});
   final storage = await StorageService.init();
+  for (final item in recent) {
+    await storage.addRecentSearch(item);
+  }
   final api = ControlledSearchApi(storage, signedIn: signedIn);
   final spotify = SpotifyProvider(api, storage);
   final audio = FakeAudioPlayerService();
   final playback = PlaybackProvider(audio, storage);
   final library = LibraryProvider(storage);
-  final controller = TextEditingController(text: 'music');
+  final controller = TextEditingController(text: query);
   addTearDown(() {
     spotify.dispose();
     playback.dispose();
@@ -208,6 +307,7 @@ Future<ControlledSearchApi> pumpSearch(
   await tester.pumpWidget(
     MultiProvider(
       providers: [
+        Provider<SpotifyApiService>.value(value: api),
         ChangeNotifierProvider.value(value: spotify),
         ChangeNotifierProvider.value(value: playback),
         ChangeNotifierProvider.value(value: library),
@@ -220,7 +320,7 @@ Future<ControlledSearchApi> pumpSearch(
       ),
     ),
   );
-  spotify.performSearch('music');
+  if (query.isNotEmpty) spotify.performSearch(query);
   await tester.pump(const Duration(milliseconds: 350));
   return api;
 }
