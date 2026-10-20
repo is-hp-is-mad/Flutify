@@ -1,0 +1,27 @@
+name: frb-template
+on:
+  push:
+    branches: [scratch/frb-template]
+permissions:
+  contents: write
+jobs:
+  gen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.0'
+          channel: stable
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo install flutter_rust_bridge_codegen --locked
+      - run: flutter_rust_bridge_codegen --version
+      - run: |
+          cd /tmp && flutter_rust_bridge_codegen create frb_scratch
+          rm -rf frb_scratch/.git frb_scratch/rust/target frb_scratch/build frb_scratch/.dart_tool
+          mkdir -p $GITHUB_WORKSPACE/scratch_out
+          cp -r frb_scratch/. $GITHUB_WORKSPACE/scratch_out/
+      - run: |
+          git config user.name ci && git config user.email ci@example.com
+          git add -f scratch_out && git commit -qm "scratch: frb template output" && git push origin HEAD:scratch/frb-template-out
