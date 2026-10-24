@@ -14,6 +14,7 @@ import '../widgets/proxy_server_fields.dart';
 import '../widgets/gateway_settings.dart';
 import '../widgets/settings_section.dart';
 import '../widgets/settings_segmented.dart';
+import '../../../widgets/flutify_progress.dart';
 
 /// 网络：代理模式（系统代理 / 不使用 / 手动）+ 手动代理的地址与认证 + 测试连接。
 ///
@@ -231,7 +232,7 @@ class _NetworkSectionState extends State<NetworkSection> {
             trailing: switch (_probe) {
               _ProbeState.running => const SizedBox.square(
                 dimension: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
+                child: FlutifySpinner(size: 20),
               ),
               _ProbeState.ok => Icon(
                 Icons.check_circle_rounded,

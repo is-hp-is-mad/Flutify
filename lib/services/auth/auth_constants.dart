@@ -19,6 +19,14 @@ class SpotifyAuthConstants {
   static const String desktopUserAgent = 'Spotify/$desktopBuildNumber $desktopPlatform/0 (PC desktop)';
 
   // 端点
+  /// Web 播放器（open.spotify.com）身份：client_id 取自 web-player 前端包，
+  /// 版本号取自首页内嵌的 appServerConfig.clientVersion（2026-10-23 构建）。
+  static const String webClientId = 'd8a5ed958d274c2e8ee717e6a4b0971d';
+  static const String webClientVersion = '1.3.8.509.g26b6eac7300d';
+  static const String webPlatform = 'WebPlayer';
+  static const String webUserAgent =
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36';
+
   static const String clientTokenEndpoint = 'https://clienttoken.spotify.com/v1/clienttoken';
 
   /// 生成 40 位十六进制的设备 ID（Spotify device_id 格式）。

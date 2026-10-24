@@ -21,6 +21,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../fakes/fake_audio_player_service.dart';
 import '../fakes/fake_spotify_api_service.dart';
 import '../fakes/fake_track_audio_source.dart';
+import 'package:material_3_expressive/material_3_expressive.dart' show M3ESwitch;
 
 void main() {
   Future<void> settle(WidgetTester tester) async {
@@ -164,7 +165,7 @@ void main() {
       await tester.pump();
       expect(enabled, isTrue);
       expect(changes, 1);
-      await tester.tap(find.byType(Switch));
+      await tester.tap(find.byType(M3ESwitch));
       await tester.pump();
       expect(enabled, isFalse);
       expect(changes, 2);

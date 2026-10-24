@@ -93,6 +93,7 @@ Icon=flutify
 Terminal=false
 Categories=Audio;AudioVideo;Player;
 StartupWMClass=com.flutify.music.flutify_app
+MimeType=x-scheme-handler/spotify;
 DESKTOP
 icon="$repo/assets/brand/flutify_logo_1024.png"
 if [[ -f "$icon" ]]; then

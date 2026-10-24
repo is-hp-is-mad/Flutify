@@ -2327,6 +2327,30 @@ abstract class AppLocalizations {
   /// **'下次启动时还原；显示器变化导致窗口不可见时回到屏幕中央'**
   String get settingsRememberWindowSubtitle;
 
+  /// No description provided for @settingsSpotifyLinks.
+  ///
+  /// In zh, this message translates to:
+  /// **'用 Flutify 打开 Spotify 链接'**
+  String get settingsSpotifyLinks;
+
+  /// No description provided for @settingsSpotifyLinksSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'浏览器或其他程序里点开 spotify: 链接时直接在 Flutify 中播放'**
+  String get settingsSpotifyLinksSubtitle;
+
+  /// No description provided for @settingsSpotifyLinksOther.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前由 {app} 打开'**
+  String settingsSpotifyLinksOther(String app);
+
+  /// No description provided for @settingsSpotifyLinksSystem.
+  ///
+  /// In zh, this message translates to:
+  /// **'Windows「默认应用」里已为 spotify: 链接选择了其他程序，请在系统设置中改为 Flutify'**
+  String get settingsSpotifyLinksSystem;
+
   /// No description provided for @settingsConnectSection.
   ///
   /// In zh, this message translates to:
@@ -3640,6 +3664,186 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'歌词背景停在静态画面'**
   String get settingsAnimDebugBackgroundSubtitle;
+
+  /// No description provided for @settingsExternalLyricsSection.
+  ///
+  /// In zh, this message translates to:
+  /// **'车机与状态栏歌词'**
+  String get settingsExternalLyricsSection;
+
+  /// No description provided for @settingsBluetoothLyrics.
+  ///
+  /// In zh, this message translates to:
+  /// **'蓝牙歌词'**
+  String get settingsBluetoothLyrics;
+
+  /// No description provided for @settingsBluetoothLyricsSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'连接蓝牙音频设备时，把媒体信息的标题换成当前歌词行，艺人与专辑换成「歌名 - 艺人」，车机屏幕即可逐句显示歌词'**
+  String get settingsBluetoothLyricsSubtitle;
+
+  /// No description provided for @bluetoothLyricsOff.
+  ///
+  /// In zh, this message translates to:
+  /// **'关闭'**
+  String get bluetoothLyricsOff;
+
+  /// No description provided for @bluetoothLyricsCar.
+  ///
+  /// In zh, this message translates to:
+  /// **'车载设备'**
+  String get bluetoothLyricsCar;
+
+  /// No description provided for @bluetoothLyricsAll.
+  ///
+  /// In zh, this message translates to:
+  /// **'所有设备'**
+  String get bluetoothLyricsAll;
+
+  /// No description provided for @settingsBluetoothLyricsTranslation.
+  ///
+  /// In zh, this message translates to:
+  /// **'附带译文'**
+  String get settingsBluetoothLyricsTranslation;
+
+  /// No description provided for @settingsBluetoothLyricsTranslationSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'有译文时标题显示为「原文 / 译文」'**
+  String get settingsBluetoothLyricsTranslationSubtitle;
+
+  /// No description provided for @settingsBluetoothPermission.
+  ///
+  /// In zh, this message translates to:
+  /// **'允许识别蓝牙设备'**
+  String get settingsBluetoothPermission;
+
+  /// No description provided for @settingsBluetoothPermissionSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'识别车载设备需要「附近的设备」权限'**
+  String get settingsBluetoothPermissionSubtitle;
+
+  /// No description provided for @settingsBluetoothPermissionGrant.
+  ///
+  /// In zh, this message translates to:
+  /// **'授权'**
+  String get settingsBluetoothPermissionGrant;
+
+  /// No description provided for @settingsBluetoothDevices.
+  ///
+  /// In zh, this message translates to:
+  /// **'已连接的蓝牙设备'**
+  String get settingsBluetoothDevices;
+
+  /// No description provided for @settingsBluetoothDevicesEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前没有连接蓝牙音频设备'**
+  String get settingsBluetoothDevicesEmpty;
+
+  /// No description provided for @bluetoothDeviceUnnamed.
+  ///
+  /// In zh, this message translates to:
+  /// **'未命名设备'**
+  String get bluetoothDeviceUnnamed;
+
+  /// No description provided for @bluetoothDeviceCar.
+  ///
+  /// In zh, this message translates to:
+  /// **'已识别为车载设备，自动显示歌词'**
+  String get bluetoothDeviceCar;
+
+  /// No description provided for @bluetoothDeviceAll.
+  ///
+  /// In zh, this message translates to:
+  /// **'所有设备模式下自动显示歌词'**
+  String get bluetoothDeviceAll;
+
+  /// No description provided for @bluetoothDeviceManual.
+  ///
+  /// In zh, this message translates to:
+  /// **'在此设备上也显示歌词'**
+  String get bluetoothDeviceManual;
+
+  /// No description provided for @settingsFlymeLyrics.
+  ///
+  /// In zh, this message translates to:
+  /// **'Flyme 状态栏歌词'**
+  String get settingsFlymeLyrics;
+
+  /// No description provided for @settingsFlymeLyricsSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'播放时在魅族 Flyme 的状态栏显示当前歌词行'**
+  String get settingsFlymeLyricsSubtitle;
+
+  /// No description provided for @audioOutputTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'本机音频设备'**
+  String get audioOutputTitle;
+
+  /// No description provided for @audioOutputSystemDefault.
+  ///
+  /// In zh, this message translates to:
+  /// **'系统默认设备'**
+  String get audioOutputSystemDefault;
+
+  /// No description provided for @audioOutputSelected.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在输出'**
+  String get audioOutputSelected;
+
+  /// No description provided for @audioOutputSystemSwitcher.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择输出设备'**
+  String get audioOutputSystemSwitcher;
+
+  /// No description provided for @audioOutputSystemSwitcherSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'打开系统输出面板：手机扬声器、蓝牙、有线耳机'**
+  String get audioOutputSystemSwitcherSubtitle;
+
+  /// No description provided for @audioOutputSystemUnavailable.
+  ///
+  /// In zh, this message translates to:
+  /// **'此系统没有可用的输出切换面板'**
+  String get audioOutputSystemUnavailable;
+
+  /// No description provided for @audioOutputWebViewNote.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前由浏览器内核播放，暂不支持切换，使用系统默认设备'**
+  String get audioOutputWebViewNote;
+
+  /// 设备面板里显示当前实际出声的播放引擎
+  ///
+  /// In zh, this message translates to:
+  /// **'当前播放引擎：{engine}'**
+  String playbackEngineCurrent(String engine);
+
+  /// No description provided for @playbackEngineLocal.
+  ///
+  /// In zh, this message translates to:
+  /// **'本机播放器'**
+  String get playbackEngineLocal;
+
+  /// No description provided for @playbackEngineWebView.
+  ///
+  /// In zh, this message translates to:
+  /// **'WebView（浏览器内核）'**
+  String get playbackEngineWebView;
+
+  /// No description provided for @playbackEngineAndroid.
+  ///
+  /// In zh, this message translates to:
+  /// **'Android 原生播放'**
+  String get playbackEngineAndroid;
 }
 
 class _AppLocalizationsDelegate

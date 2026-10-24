@@ -48,6 +48,7 @@ class LibraryProvider extends ChangeNotifier {
   SpotifyPlaylist? _likedSongsCache;
 
   bool _isLoading = false;
+  bool _disposed = false;
   String? _loadError;
   String? _syncError;
   int _refreshGeneration = 0;
@@ -55,6 +56,12 @@ class LibraryProvider extends ChangeNotifier {
   LibraryProvider(this._storage, {this._source}) {
     _load();
     if (_source != null) unawaited(refresh());
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
   }
 
   // ---------------------------------------------------------------------------
@@ -329,8 +336,63 @@ class LibraryProvider extends ChangeNotifier {
     return nameA.isNotEmpty && nameA == nameB;
   }
 
+  /// 批量点赞（备份一键导入用）：本地一次合并、只写一次存储、只通知一次界面；
+  /// 同步到 Spotify 在后台逐首进行，不并发轰炸接口，也不阻塞界面。返回新增数量。
+  int likeTracks(List<SpotifyTrack> tracks) {
+    final now = DateTime.now();
+    final seen = <String>{..._likedIds};
+    final added = <SpotifyTrack>[
+      for (final t in tracks)
+        if (t.id.isNotEmpty && seen.add(t.id)) t.copyWith(addedAt: now),
+    ];
+    if (added.isEmpty) return 0;
+    _likedTracks = [...added, ..._likedTracks];
+    _likedIds = seen;
+    _likedSongsCache = null;
+    _storage.writeJsonList(StorageService.keyLibraryLikedTracks, _likedTracks.map((t) => t.toJson()));
+    notifyListeners();
+    final source = _source;
+    if (source != null && source.isSignedIn) {
+      final account = source.accountId;
+      unawaited(() async {
+        for (final t in added) {
+          // 逐首同步期间：退出 / 换号就停；用户中途取消了收藏的歌不再写回账号
+          if (_disposed || !source.isSignedIn || source.accountId != account) return;
+          if (!_likedIds.contains(t.id)) continue;
+          try {
+            await source.setTrackLiked(t, true);
+          } catch (e) {
+            if (_disposed) return;
+            _syncError = e is LibrarySourceException ? e.toString() : '同步失败：$e';
+            notifyListeners();
+            return;
+          }
+        }
+      }());
+    }
+    return added.length;
+  }
+
+  /// 批量合并备份歌单（一键导入用）：逐个按 [upsertLocalPlaylist] 的规则合并，只落盘、通知一次。
+  void upsertLocalPlaylists(List<SpotifyPlaylist> playlists) {
+    if (playlists.isEmpty) return;
+    for (final p in playlists) {
+      _mergeLocalPlaylist(p);
+    }
+    _rebuildPlaylists();
+    _persistPlaylists();
+    notifyListeners();
+  }
+
   /// 将备份的歌单合并到本机歌单（同 ID 或同名歌单已存在时合并去重曲目，否则插到顶部并落盘）。
   void upsertLocalPlaylist(SpotifyPlaylist playlist) {
+    _mergeLocalPlaylist(playlist);
+    _rebuildPlaylists();
+    _persistPlaylists();
+    notifyListeners();
+  }
+
+  void _mergeLocalPlaylist(SpotifyPlaylist playlist) {
     final localIdx = _localPlaylists.indexWhere(
       (p) => _isSamePlaylist(p, playlist),
     );
@@ -349,9 +411,6 @@ class LibraryProvider extends ChangeNotifier {
     } else {
       _localPlaylists = [playlist, ..._localPlaylists];
     }
-    _rebuildPlaylists();
-    _persistPlaylists();
-    notifyListeners();
   }
 
   /// 新建歌单（仅保存在本机），返回创建结果。

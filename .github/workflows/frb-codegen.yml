@@ -1,0 +1,29 @@
+name: frb-codegen
+# 手动 / 分支推送触发：运行 flutter_rust_bridge 代码生成并把结果提交回当前分支。
+# 生成文件（lib/src/rust、rust/flutify_core/src/frb_generated.rs）需要入库，常规 CI 不再依赖 codegen 工具。
+on:
+  workflow_dispatch:
+  push:
+    branches: [feat/rust-ffi]
+    paths: ['rust/flutify_core/src/api/**', 'flutter_rust_bridge.yaml', '.github/workflows/frb-codegen.yml']
+permissions:
+  contents: write
+jobs:
+  gen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.0'
+          channel: stable
+          cache: true
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo install flutter_rust_bridge_codegen --version 2.13.0 --locked
+      - run: flutter pub get
+      - run: flutter_rust_bridge_codegen generate
+      - run: |
+          git config user.name "frb-codegen" && git config user.email "frb-codegen@users.noreply.github.com"
+          git add -A lib/src/rust rust/flutify_core/src rust/flutify_core/Cargo.lock pubspec.lock
+          git diff --cached --quiet || (git commit -m "chore: regenerate flutter_rust_bridge bindings" && git push)

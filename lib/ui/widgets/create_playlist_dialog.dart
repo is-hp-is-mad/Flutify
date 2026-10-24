@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/l10n.dart';
+import 'package:material_3_expressive/material_3_expressive.dart' show M3EButton;
+import 'flutify_dialog.dart';
 
 /// 「为歌单命名」对话框。返回输入的名称，取消时返回 null。
 ///
@@ -37,19 +39,18 @@ class _CreatePlaylistDialogState extends State<CreatePlaylistDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    return AlertDialog(
-      title: Text(l10n.createPlaylistTitle),
-      content: TextField(
+    return FlutifyDialog(
+      title: l10n.createPlaylistTitle,
+      content: Material(type: MaterialType.transparency, child: TextField(
         controller: _controller,
         autofocus: true,
         textInputAction: TextInputAction.done,
         onSubmitted: (_) => _submit(),
         decoration: InputDecoration(hintText: l10n.createPlaylistHint),
-      ),
+      )),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.commonCancel)),
-        FilledButton(onPressed: _submit, child: Text(l10n.commonCreate)),
-      ],
-    );
+        M3EButton.text(onPressed: () => Navigator.pop(context), child: Text(l10n.commonCancel)),
+        M3EButton.filled(onPressed: _submit, child: Text(l10n.commonCreate)),
+      ]);
   }
 }

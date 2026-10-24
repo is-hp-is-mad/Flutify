@@ -4,29 +4,21 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'web_token_exception.dart';
 
-/// 统一登录流程：**Web 登录 → 自动取所需凭据 → 后台无感完成桌面 OAuth**。
+/// 统一登录流程：**Web 登录 → 自动取所需凭据**。
 ///
-/// 三段全自动，用户只在第一段（WebView 里登录）有感知：
+/// 两段全自动，用户只在第一段（WebView 里登录）有感知：
 /// 1. `webSignIn`：轮询 WebView cookie，读到 `sp_dc`（Web 会话凭据，httpOnly，只有
 ///    Cookie API 能读到）；登录跳转链里 Set-Cookie 有先后，读不到就继续等；
 /// 2. `preparing`：保存 sp_dc 并铸 Web token（`sp_dc + TOTP → open.spotify.com/api/token`），
-///    顺带验证 sp_dc 有效——这就是「自动获取需要的内容」；
-/// 3. `desktopAuthorize`：若桌面 OAuth 还没做，后台无感补上——同一个 WebView 会话里
-///    打开授权页（已登录会自动过），回环收 code、换令牌，全程不需要用户操作。
+///    顺带验证 sp_dc 有效，随后建立全局登录态。
 ///
-/// 与 UI 解耦：cookie 读取、凭据保存、桌面授权的发起均由调用方注入；
-/// 界面只负责按 [stage] 渲染、把 WebView 事件转进来（[onDesktopAuthorized] 等）。
+/// 与 UI 解耦：cookie 读取、凭据保存、登录态建立均由调用方注入；界面只负责按 [stage] 渲染。
 class WebLoginFlow extends ChangeNotifier {
   WebLoginFlow({
     required this.readSpDc,
     required this.saveSpDc,
     required this.prepareWebToken,
-    required this.desktopSignedIn,
-    required this.beginDesktopOAuth,
-    this.cancelDesktopOAuth,
-    this.onAuthorizeUrl,
     this.onFinished,
-    this.now,
   });
 
   /// 从 WebView cookie 存储读 `sp_dc`；读不到返回 null。
@@ -37,36 +29,18 @@ class WebLoginFlow extends ChangeNotifier {
   /// 保存 sp_dc（经插件持久化）。
   final Future<void> Function(String spDc) saveSpDc;
 
-  /// 铸 Web token（顺带验证 sp_dc）；401 终止登录，其他失败提示后继续。
+  /// 铸 Web token 并建立登录态（顺带验证 sp_dc）；401 终止登录，其他失败提示后继续。
   final Future<void> Function() prepareWebToken;
-
-  /// 桌面 OAuth 是否已完成（实时查询，不缓存）。
-  final bool Function() desktopSignedIn;
-
-  /// 开始桌面 OAuth（起本机回环监听），返回授权页地址；
-  /// 返回 null 表示已登录或无法开始。
-  final Future<Uri?> Function() beginDesktopOAuth;
-
-  /// 取消进行中的桌面授权（关页清理，可选）。
-  final Future<void> Function()? cancelDesktopOAuth;
-
-  /// 拿到授权页地址后回调（UI 装载进 WebView / 隐藏 WebView）。
-  final void Function(Uri authorizeUrl)? onAuthorizeUrl;
 
   /// 全部完成后的回调（UI 关页）。
   final void Function(WebLoginFlow flow)? onFinished;
-
-  /// 可注入时钟（测试用）。
-  final DateTime Function()? now;
 
   WebLoginStage _stage = WebLoginStage.webSignIn;
   String? _error;
   String? _notice;
   bool _busy = false;
-  bool _desktopDone = false;
   bool _finished = false;
   int _revision = 0;
-  DateTime? _desktopStartedAt;
 
   WebLoginStage get stage => _stage;
 
@@ -79,22 +53,8 @@ class WebLoginFlow extends ChangeNotifier {
   /// 已捕获的 sp_dc。
   String? spDc;
 
-  /// 桌面授权页地址（[WebLoginStage.desktopAuthorize] 期间有值）。
-  Uri? desktopAuthorizeUrl;
-
   bool get webSignedIn => spDc != null && spDc!.isNotEmpty;
-  bool get desktopAuthorized => _desktopDone;
   bool get isDone => _stage == WebLoginStage.done;
-
-  /// 正在等桌面授权完成（UI 据此决定何时兜底露出 WebView）。
-  bool get waitingForDesktop => _stage == WebLoginStage.desktopAuthorize;
-
-  /// 桌面授权阶段已持续时长（UI 据此决定兜底露出）。
-  Duration get desktopElapsed {
-    final started = _desktopStartedAt;
-    if (started == null) return Duration.zero;
-    return (now?.call() ?? DateTime.now()).difference(started);
-  }
 
   // ---------------------------------------------------------------------------
 
@@ -121,7 +81,6 @@ class WebLoginFlow extends ChangeNotifier {
       case WebLoginStage.webSignIn:
         await _captureWebSession();
       case WebLoginStage.preparing:
-      case WebLoginStage.desktopAuthorize:
       case WebLoginStage.done:
       case WebLoginStage.failed:
         break;
@@ -184,77 +143,17 @@ class WebLoginFlow extends ChangeNotifier {
         _stage != WebLoginStage.preparing) {
       return;
     }
-    await _startDesktop();
-  }
-
-  /// 第三段：桌面 OAuth 没做就后台无感补上。
-  Future<void> _startDesktop() async {
-    final revision = _revision;
-    if (_finished || _stage == WebLoginStage.failed) return;
-    if (desktopSignedIn()) {
-      _desktopDone = true;
-      _complete();
-      return;
-    }
-    _stage = WebLoginStage.desktopAuthorize;
-    _desktopStartedAt = now?.call() ?? DateTime.now();
-    notifyListeners();
-    Uri? url;
-    try {
-      url = await beginDesktopOAuth();
-    } catch (e) {
-      if (_finished || revision != _revision) return;
-      _fail('无法开始桌面授权：$e');
-      return;
-    }
-    if (_finished ||
-        revision != _revision ||
-        _stage != WebLoginStage.desktopAuthorize) {
-      return;
-    }
-    if (desktopSignedIn()) {
-      _desktopDone = true;
-      _complete();
-      return;
-    }
-    if (url == null) {
-      _fail('无法开始桌面授权，请重试');
-      return;
-    }
-    desktopAuthorizeUrl = url;
-    notifyListeners();
-    onAuthorizeUrl?.call(url);
-  }
-
-  /// UI 通知：桌面 OAuth 已完成（AuthProvider 转为已登录）。
-  void onDesktopAuthorized() {
-    if (_finished || _stage != WebLoginStage.desktopAuthorize) return;
-    _desktopDone = true;
     _complete();
   }
 
-  /// UI 通知：桌面 OAuth 失败（回环超时 / 用户拒绝 / 令牌换取失败）。
-  void onDesktopFailed(String message) {
-    if (_finished || _stage != WebLoginStage.desktopAuthorize) return;
-    _fail(message);
-  }
-
-  /// 失败后重试：Web 会话已到手时直接重发桌面授权（先取消上一次挂着的回环）。
+  /// 失败后重试：Web 会话已到手时重新铸 token，否则回到等待 Web 登录。
   Future<void> retry() async {
     if (_busy || _finished) return;
-    final revision = _revision;
     _busy = true;
     try {
       _error = null;
       if (webSignedIn) {
-        try {
-          await cancelDesktopOAuth?.call();
-        } catch (_) {}
-        if (_finished || revision != _revision) return;
-        desktopAuthorizeUrl = null;
-        _stage = WebLoginStage.preparing;
-        notifyListeners();
-        await _startDesktop();
+        await _prepare();
       } else {
         _stage = WebLoginStage.webSignIn;
         notifyListeners();
@@ -264,14 +163,10 @@ class WebLoginFlow extends ChangeNotifier {
     }
   }
 
-  /// 关页清理：取消进行中的桌面授权。
+  /// 关页清理：之后到达的异步结果一律丢弃。
   Future<void> cancel() async {
     ++_revision;
-    if (_finished) return;
     _finished = true;
-    try {
-      await cancelDesktopOAuth?.call();
-    } catch (_) {}
   }
 
   void _complete() {
@@ -291,12 +186,10 @@ class WebLoginFlow extends ChangeNotifier {
   }
 
   /// A rejected account session must return to Web login, never continue with
-  /// the captured cookie or a late OAuth completion.
+  /// the captured cookie.
   void invalidateSession() {
     ++_revision;
     spDc = null;
-    _desktopDone = false;
-    desktopAuthorizeUrl = null;
     _notice = null;
     _fail('登录已失效，已清除登录状态，请重新登录');
   }
@@ -320,9 +213,6 @@ enum WebLoginStage {
   /// sp_dc 已到手：保存 + 铸 Web token。
   preparing,
 
-  /// 后台桌面授权中（授权页已装载，等回环回调）。
-  desktopAuthorize,
-
   /// 全部完成。
   done,
 
@@ -345,21 +235,6 @@ bool isConsentPageUrl(String? url) {
   final uri = Uri.tryParse(url ?? '');
   if (uri == null || !isSpotifyAccountsPageUrl(url)) return false;
   return uri.pathSegments.any((s) => s == 'authorize' || s == 'consent');
-}
-
-/// 回环回调判定：`http://127.0.0.1:<port><path>?code=…`（授权码已在路上）。
-bool isLoopbackRedirect(
-  String? url, {
-  int port = 8898,
-  String path = '/login',
-}) {
-  final uri = Uri.tryParse(url ?? '');
-  if (uri == null) return false;
-  return uri.scheme == 'http' &&
-      uri.userInfo.isEmpty &&
-      (uri.host == '127.0.0.1' || uri.host == 'localhost') &&
-      uri.port == port &&
-      uri.path == path;
 }
 
 /// 多语言授权确认：匹配完整文字，检查可见 / 可点击状态；同一节点只点击一次。

@@ -327,10 +327,10 @@ class StorageService {
   String get email => _prefs.getString(_keyEmail) ?? '';
   Future<bool> setEmail(String value) => _prefs.setString(_keyEmail, value);
 
-  /// 是否已登录：桌面版会话且持有 refresh_token。
+  /// 是否已登录：桌面版或 Web 统一会话且持有 refresh_token 或 sp_dc。
   bool get isLoggedIn =>
       _prefs.getString(_keyAuthMethod) == _desktopSession &&
-      refreshToken.isNotEmpty;
+      (refreshToken.isNotEmpty || spDc.isNotEmpty);
 
   /// 清除全部登录态（登出）。device_id 保留（client-token 与之绑定）。
   Future<void> clearLogin() async {

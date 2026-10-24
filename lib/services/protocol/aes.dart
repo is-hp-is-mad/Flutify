@@ -1,5 +1,8 @@
 import 'dart:typed_data';
 
+import '../../core/rust_core.dart';
+import '../../src/rust/api/protocol.dart' as rust;
+
 /// AES 分组密码（纯 Dart，FIPS-197）+ CTR 工作模式。
 ///
 /// 用途：Spotify 音频文件解密 = AES-128-CTR（key = 音频密钥，IV 为协议固定常量，
@@ -27,10 +30,11 @@ class AesCipher {
 
   static const List<int> _rcon = [0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36];
 
+  final Uint8List _key;
   final int _rounds;
   final Uint8List _roundKeys; // 16 字节 × (rounds + 1)
 
-  AesCipher._(this._rounds, this._roundKeys);
+  AesCipher._(this._key, this._rounds, this._roundKeys);
 
   /// [key] 长度必须为 16 / 24 / 32 字节（AES-128/192/256）。
   factory AesCipher(Uint8List key) {
@@ -62,11 +66,16 @@ class AesCipher {
         expanded[4 * i + b] = expanded[4 * (i - nk) + b] ^ temp[b];
       }
     }
-    return AesCipher._(rounds, expanded);
+    return AesCipher._(Uint8List.fromList(key), rounds, expanded);
   }
 
   /// 单块加密（16 字节）。
   Uint8List encryptBlock(Uint8List block) {
+    if (RustCore.ready) {
+      try {
+        return rust.aesEncryptBlock(key: _key, block: block);
+      } catch (_) {}
+    }
     final s = Uint8List.fromList(block);
     encryptInPlace(s);
     return s;
@@ -140,6 +149,8 @@ class AesCipher {
 /// 用法：按文件字节流顺序反复调用 [process]（原地 XOR），可跨块增量处理，
 /// 等价于一次性处理整个文件。
 class AesCtr {
+  final Uint8List _key;
+  final Uint8List _iv;
   final AesCipher _cipher;
   final Uint8List _counter;
   final Uint8List _keystream = Uint8List(16);
@@ -147,7 +158,9 @@ class AesCtr {
   int _offset = 0;
 
   AesCtr(Uint8List key, Uint8List iv)
-      : _cipher = AesCipher(key),
+      : _key = Uint8List.fromList(key),
+        _iv = Uint8List.fromList(iv),
+        _cipher = AesCipher(key),
         _counter = Uint8List.fromList(iv) {
     if (iv.length != 16) throw ArgumentError('CTR IV must be 16 bytes');
   }
@@ -169,6 +182,21 @@ class AesCtr {
 
   /// XOR 加/解密 [data]（原地）。可任意分块调用。
   void process(Uint8List data) {
+    if (data.isEmpty) return;
+    if (RustCore.ready) {
+      try {
+        final out = rust.aesCtrProcessAtOffset(
+          key: _key,
+          iv: _iv,
+          offset: _offset,
+          data: data,
+        );
+        data.setAll(0, out);
+        _offset += data.length;
+        _syncDartState();
+        return;
+      } catch (_) {}
+    }
     final keystream = _keystream;
     var pos = _keystreamPos;
     for (var i = 0; i < data.length; i++) {
@@ -180,6 +208,20 @@ class AesCtr {
     }
     _keystreamPos = pos;
     _offset += data.length;
+  }
+
+  /// Rust 路径只推进 [_offset]；这里把 Dart 侧计数器 / 密钥流对齐到同一位置，
+  /// 之后哪怕某块回退到纯 Dart 实现，解密结果也与从头连续处理一致。
+  void _syncDartState() {
+    _counter.setAll(0, _iv);
+    _addToCounter(_offset ~/ 16);
+    final rem = _offset % 16;
+    if (rem > 0) {
+      _nextKeystreamBlock();
+      _keystreamPos = rem;
+    } else {
+      _keystreamPos = 16;
+    }
   }
 
   /// 已处理的字节数（含 [AesCtr.atOffset] 的起始偏移）。

@@ -121,7 +121,7 @@ class PlayerSceneView extends StatefulWidget {
   /// 固定控制区：不再因静止而收成底部迷你栏。
   final bool pinned;
 
-  /// 非空时在底栏提供「固定」按钮（仅控制卡片在左的横屏），点击时回调新状态。
+  /// 非空时在底栏提供「固定」按钮（横竖屏卡片视图均支持固定不收起），点击时回调新状态。
   final ValueChanged<bool>? onPinnedChanged;
 
   /// 横屏 + [controlsOnLeft] 时，一进来就是放大的控制卡片（大封面）。
@@ -237,6 +237,14 @@ class _PlayerSceneViewState extends State<PlayerSceneView> {
                 playbackContext: widget.playbackContext!,
                 onConnect: () =>
                     PlayerSceneView.toggleDevices(context, _devicesOpen),
+                pin: !widget.controlsOnLeft &&
+                        widget.onPinnedChanged != null &&
+                        _view != PlayerView.artwork
+                    ? _PinButton(
+                        pinned: widget.pinned,
+                        onChanged: widget.onPinnedChanged!,
+                      )
+                    : null,
               ),
             ),
         titleBuilder: (context, progress) => PlayerExpansionReveal(
@@ -547,11 +555,13 @@ class _TopBar extends StatelessWidget {
   final SpotifyTrack track;
   final PlaybackContext playbackContext;
   final VoidCallback onConnect;
+  final Widget? pin;
 
   const _TopBar({
     required this.track,
     required this.playbackContext,
     required this.onConnect,
+    this.pin,
   });
 
   @override
@@ -594,6 +604,7 @@ class _TopBar extends StatelessWidget {
               ],
             ),
           ),
+          ?pin,
           Builder(
             // 独立 context：桌面对话框中菜单锚定在按钮下方
             builder: (buttonContext) => IconButton(

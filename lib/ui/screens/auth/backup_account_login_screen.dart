@@ -1,3 +1,4 @@
+import 'package:material_3_expressive/material_3_expressive.dart';
 import 'dart:async';
 import 'dart:collection';
 import 'dart:convert';
@@ -350,6 +351,7 @@ return '';
         title: const Text('登录要备份的 Spotify 账号'),
         leading: IconButton(
           icon: const Icon(Icons.close_rounded),
+          tooltip: l10n.commonClose,
           onPressed: () => _finish(null),
         ),
       ),
@@ -358,7 +360,7 @@ return '';
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const CircularProgressIndicator(),
+                  const M3ELoadingIndicator(),
                   const SizedBox(height: 16),
                   Text(l10n.webLoginRegionChecking),
                 ],
@@ -383,7 +385,7 @@ return '';
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 20),
-                    FilledButton(
+                    M3EButton.filled(
                       onPressed: _skipRegionAndContinue,
                       child: Text(l10n.regionCheckSkipThisRun),
                     ),
@@ -392,7 +394,7 @@ return '';
               ),
             )
           : !_envReady
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: M3ELoadingIndicator())
           : InAppWebView(
               webViewEnvironment: _environment,
               initialUrlRequest: URLRequest(url: WebUri(_loginUrl)),

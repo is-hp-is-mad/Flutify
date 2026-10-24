@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/md3e_shapes.dart';
 import '../../../l10n/l10n.dart';
 import 'queue_list.dart';
+import 'package:material_3_expressive/material_3_expressive.dart' show M3EButton;
 
 /// 播放队列底部面板（移动端）：拖拽把手 + 标题「播放队列 / 完成」+ [QueueList]。
 class QueueSheet extends StatelessWidget {
@@ -54,7 +55,7 @@ class QueueSheet extends StatelessWidget {
                       ),
                     ),
                   ),
-                  TextButton(
+                  M3EButton.text(
                     onPressed: () => Navigator.pop(context),
                     child: Text(
                       l10n.commonDone,

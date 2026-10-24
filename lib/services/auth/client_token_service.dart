@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
@@ -22,6 +23,7 @@ class ClientTokenService {
 
   /// 以 [profile] 的客户端身份申请 client-token。失败抛异常。
   Future<GrantedClientToken> request(String deviceId, [SpotifyClientProfile profile = SpotifyClientProfile.desktop]) async {
+    if (profile == SpotifyClientProfile.web) return _requestWeb(deviceId, profile);
     final body = _buildClientDataRequest(deviceId, profile);
     var response = await _post(body, profile);
 
@@ -44,6 +46,43 @@ class ClientTokenService {
     }
 
     throw StateError('client-token 申请失败：多次挑战应答均未通过');
+  }
+
+  /// Web 播放器的申请方式（对齐 open.spotify.com 前端）：JSON 请求体
+  /// `{client_data:{client_version, client_id, js_sdk_data:{…}}}`，响应取 `granted_token`。
+  /// Web 前端不处理挑战，这里也一样：没拿到令牌即失败。
+  Future<GrantedClientToken> _requestWeb(String deviceId, SpotifyClientProfile profile) async {
+    final res = await _client.post(
+      Uri.parse(SpotifyAuthConstants.clientTokenEndpoint),
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'User-Agent': profile.userAgent,
+      },
+      body: jsonEncode({
+        'client_data': {
+          'client_version': profile.clientVersion,
+          'client_id': profile.clientId,
+          'js_sdk_data': profile.jsSdkData(deviceId),
+        },
+      }),
+    );
+    if (res.statusCode != 200) {
+      throw StateError('client-token HTTP ${res.statusCode}');
+    }
+    final body = jsonDecode(utf8.decode(res.bodyBytes));
+    final granted = body is Map ? body['granted_token'] : null;
+    final token = granted is Map ? granted['token'] : null;
+    if (token is! String || token.isEmpty) {
+      throw StateError('client-token 申请失败：未返回令牌（${body is Map ? body['response_type'] : 'invalid'}）');
+    }
+    int seconds(Object? v, int fallback) => v is num ? v.toInt() : fallback;
+    final refreshAfter = seconds(granted['refresh_after_seconds'], 1209600);
+    return GrantedClientToken(
+      token: token,
+      expiresAfterSeconds: seconds(granted['expires_after_seconds'], refreshAfter),
+      refreshAfterSeconds: refreshAfter,
+    );
   }
 
   Future<Uint8List> _post(Uint8List body, SpotifyClientProfile profile) async {

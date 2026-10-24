@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutify_app/core/widgets/app_startup.dart';
+import 'package:flutify_app/ui/widgets/flutify_progress.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -21,11 +22,11 @@ void main() {
       await tester.pump();
       expect(find.text('Flutify'), findsNothing);
       expect(find.text('准备缓存目录'), findsNothing);
-      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(_anySpinner, findsNothing);
       pending.complete(const MaterialApp(home: Text('Ready')));
       await tester.pumpAndSettle();
       expect(find.text('Ready'), findsOneWidget);
-      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(_anySpinner, findsNothing);
     },
   );
 
@@ -59,7 +60,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('启动失败：准备缓存目录'), findsOneWidget);
     expect(find.text('Bad state: cache unavailable'), findsOneWidget);
-    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(_anySpinner, findsNothing);
     // File I/O in readLogTail needs real async execution in a widget test.
     await tester.runAsync(() async {
       await tester.tap(find.text('复制诊断信息'));
@@ -85,7 +86,7 @@ void main() {
       );
       await tester.pump(const Duration(seconds: 21));
       expect(find.text('复制诊断信息'), findsNothing);
-      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(_anySpinner, findsNothing);
       await tester.pump(const Duration(seconds: 40));
       expect(find.textContaining('初始化超时'), findsOneWidget);
       expect(find.text('复制诊断信息'), findsOneWidget);
@@ -95,3 +96,11 @@ void main() {
     },
   );
 }
+
+/// 启动期间不应出现任何加载圈（原生或 MD3E 版本）。
+final Finder _anySpinner = find.byWidgetPredicate(
+  (w) =>
+      w is CircularProgressIndicator ||
+      w is FlutifySpinner ||
+      w is FlutifyLoadingIndicator,
+);

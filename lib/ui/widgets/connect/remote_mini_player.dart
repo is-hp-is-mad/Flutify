@@ -216,6 +216,7 @@ class _RemoteMiniRow extends StatelessWidget {
             dimension: 40,
             child: IconButton(
               padding: EdgeInsets.zero,
+              tooltip: context.l10n.shortcutPlayPause,
               icon: Icon(
                 playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
                 size: 26,

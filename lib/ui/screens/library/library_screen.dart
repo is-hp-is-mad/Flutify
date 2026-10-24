@@ -407,11 +407,7 @@ class _ItemCover extends StatelessWidget {
         width: size,
         height: size,
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF450AF5), Color(0xFF8E8EE5)],
-          ),
+          gradient: kLikedSongsGradient,
           borderRadius: context.tokens.radius(MD3EShapes.radiusSmall),
         ),
         child: const Icon(Icons.favorite_rounded, color: Colors.white, size: 28),

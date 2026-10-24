@@ -2,12 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart'
     show CacheObject;
 import 'package:path/path.dart' as p;
 
+import '../../core/file_digest.dart';
 import '../storage_service.dart';
 import 'cache_directory_access.dart';
 
@@ -401,14 +401,14 @@ class CacheLocation extends ChangeNotifier {
         Directory? temp;
         try {
           final size = await entry.length();
-          final digest = await sha256.bind(entry.openRead()).first;
+          final digest = await sha256OfFile(entry);
           if (await FileSystemEntity.type(dest.path, followLinks: false) ==
               FileSystemEntityType.link) {
             throw FileSystemException('Destination is a link', dest.path);
           }
           if (await dest.exists()) {
             if (await dest.length() != size ||
-                await sha256.bind(dest.openRead()).first != digest) {
+                await sha256OfFile(dest) != digest) {
               throw FileSystemException(
                 'Destination differs; original retained',
                 dest.path,
@@ -418,7 +418,7 @@ class CacheLocation extends ChangeNotifier {
             temp = await Directory(target).createTemp('.migrate-');
             final copy = await entry.copy(p.join(temp.path, 'data'));
             if (await copy.length() != size ||
-                await sha256.bind(copy.openRead()).first != digest) {
+                await sha256OfFile(copy) != digest) {
               throw FileSystemException(
                 'Cache copy verification failed',
                 entry.path,

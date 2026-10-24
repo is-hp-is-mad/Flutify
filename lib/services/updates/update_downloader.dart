@@ -2,8 +2,9 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 
-import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
+
+import '../../core/file_digest.dart';
 
 class UpdateCancelled implements Exception {}
 
@@ -145,8 +146,8 @@ class UpdateDownloader {
         await fetch(partial, 0, 0, size - 1, false);
       }
       _checkCancelled();
-      final actual = await sha256.bind(partial.openRead()).first;
-      if (actual.toString() != sha256Hex.toLowerCase()) {
+      final actual = await sha256OfFile(partial);
+      if (actual != sha256Hex.toLowerCase()) {
         throw const FormatException('Update SHA-256 mismatch');
       }
       _checkCancelled();

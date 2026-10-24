@@ -11,6 +11,7 @@ import '../widgets/settings_section.dart';
 import '../widgets/settings_segmented.dart';
 import '../widgets/settings_slider_tile.dart';
 import '../widgets/taskbar_lyrics_preview.dart';
+import 'package:material_3_expressive/material_3_expressive.dart' show M3EButton, M3EButtonStyle;
 
 /// 任务栏歌词（Windows）：开关、文字颜色（自动 / 白 / 黑 / 强调色 / 自定义）、不透明度，顶部带实时预览。
 ///
@@ -140,7 +141,7 @@ class _ColorButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return TextButton.icon(
+    return M3EButton.icon(style: M3EButtonStyle.text,
       onPressed: onTap,
       icon: Container(
         width: 20,

@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
-import '../services/auth/oauth_pkce_service.dart';
+import '../services/auth/session_expired_exception.dart';
 import '../services/auth/spotify_auth_service.dart';
 
 /// 登录流程所处阶段。
@@ -12,14 +12,11 @@ enum AuthStatus {
   /// 未登录（可展示登录页）。
   signedOut,
 
-  /// 已打开浏览器授权页，等待回调。
-  authorizing,
-
   /// 已登录。
   signedIn,
 }
 
-/// Spotify 账号登录态（唯一方式：在浏览器中登录）。
+/// Spotify 账号登录态（唯一方式：Web 登录）。
 ///
 /// UI 只与本类交互：它把 [SpotifyAuthService] 的异步结果翻译成可渲染的状态与中文错误提示。
 /// 登录 / 登出成功后回调 [onSessionChanged]，由外部刷新依赖登录态的数据。
@@ -32,7 +29,6 @@ class AuthProvider extends ChangeNotifier {
   AuthStatus _status;
   String? _error;
   bool _refreshing = false;
-  Uri? _authorizeUrl;
   int _revision = 0;
   bool _disposed = false;
 
@@ -47,7 +43,6 @@ class AuthProvider extends ChangeNotifier {
   void _onSessionInvalidated() {
     ++_revision;
     _status = AuthStatus.signedOut;
-    _authorizeUrl = null;
     _refreshing = false;
     _error = '登录已失效，已清除登录凭据，请重新登录';
     notifyListeners();
@@ -93,14 +88,10 @@ class AuthProvider extends ChangeNotifier {
 
   AuthStatus get status => _status;
   bool get isSignedIn => _status == AuthStatus.signedIn;
-  bool get isAuthorizing => _status == AuthStatus.authorizing;
   bool get isRefreshing => _refreshing;
 
   /// 最近一次操作的错误提示；新的操作开始时清空。
   String? get error => _error;
-
-  /// 浏览器授权页地址（[AuthStatus.authorizing] 时有值，供「复制链接」）。
-  Uri? get authorizeUrl => _authorizeUrl;
 
   String get username => _auth.username;
   String get displayName => _auth.displayName;
@@ -108,66 +99,26 @@ class AuthProvider extends ChangeNotifier {
   DateTime? get accessTokenExpiry => _auth.accessTokenExpiry;
 
   // ---------------------------------------------------------------------------
-  // 浏览器授权
+  // Web 登录
   // ---------------------------------------------------------------------------
 
-  /// 启动浏览器授权并进入等待态，返回授权页地址（由 UI 打开）；失败返回 null。
-  /// 授权完成后状态自动切到 [AuthStatus.signedIn] 并回调 [onSessionChanged]。
-  Future<Uri?> beginOAuth() async {
-    if (_status == AuthStatus.authorizing) return null;
+  /// 用已完成的 Web 会话（`sp_dc` + 铸造的 `webAccessToken`）完成登录。
+  Future<void> completeWebSignIn() async {
     final revision = ++_revision;
     _error = null;
-    final PendingOAuth pending;
     try {
-      pending = await _auth.beginOAuth();
+      await _auth.completeWebSignIn();
     } catch (e) {
-      if (_disposed || revision != _revision) return null;
+      if (_disposed || revision != _revision) return;
       _error = describeError(e);
       notifyListeners();
-      return null;
+      return;
     }
-    if (_disposed || revision != _revision) {
-      unawaited(pending.completion.catchError((Object _) {}));
-      return null;
-    }
-    _authorizeUrl = pending.authorizeUrl;
-    _status = AuthStatus.authorizing;
+    if (_disposed || revision != _revision || !_auth.isLoggedIn) return;
+    _status = AuthStatus.signedIn;
     notifyListeners();
-
-    unawaited(
-      pending.completion
-          .then((_) {
-            if (_disposed || revision != _revision || !_auth.isLoggedIn) return;
-            _authorizeUrl = null;
-            _status = AuthStatus.signedIn;
-            notifyListeners();
-            onSessionChanged?.call();
-            // 登录时资料没拉全（用户名为空）就继续补拉，不必等下次启动
-            unawaited(_backfillProfile());
-          })
-          .catchError((Object e) {
-            // 用户主动取消时状态已被 cancelOAuth 重置，不再覆盖
-            if (_disposed ||
-                revision != _revision ||
-                _status != AuthStatus.authorizing) {
-              return;
-            }
-            _authorizeUrl = null;
-            _status = AuthStatus.signedOut;
-            _error = describeError(e);
-            notifyListeners();
-          }),
-    );
-    return pending.authorizeUrl;
-  }
-
-  Future<void> cancelOAuth() async {
-    if (_status != AuthStatus.authorizing) return;
-    ++_revision;
-    _status = AuthStatus.signedOut;
-    _authorizeUrl = null;
-    notifyListeners();
-    await _auth.cancelOAuth();
+    onSessionChanged?.call();
+    unawaited(_backfillProfile());
   }
 
   // ---------------------------------------------------------------------------
@@ -211,7 +162,7 @@ class AuthProvider extends ChangeNotifier {
   /// 把底层异常翻译为面向用户的中文提示。
   @visibleForTesting
   static String describeError(Object e) {
-    if (e is OAuthException) return e.toString();
+    if (e is SessionExpiredException) return e.toString();
     if (e is SocketException ||
         e is TimeoutException ||
         e is http.ClientException) {

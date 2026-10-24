@@ -9,6 +9,8 @@ import '../widgets/lyrics_source_order_tile.dart';
 import '../widgets/settings_section.dart';
 import '../widgets/settings_segmented.dart';
 import '../widgets/settings_slider_tile.dart';
+import 'package:material_3_expressive/material_3_expressive.dart' show M3EButton;
+import '../../../widgets/flutify_dialog.dart';
 
 /// 歌词：字号、对齐、当前行位置、模糊强度、来源补全、译词预取与全屏偏好。
 ///
@@ -129,9 +131,9 @@ class LyricsSection extends StatelessWidget {
     final l10n = context.l10n;
     final result = await showDialog<List<String>>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.settingsLyricsExcluded),
-        content: Form(
+      builder: (context) => FlutifyDialog(
+        title: l10n.settingsLyricsExcluded,
+        content: Material(type: MaterialType.transparency, child: Form(
           key: form,
           child: TextFormField(
             initialValue: input,
@@ -149,21 +151,20 @@ class LyricsSection extends StatelessWidget {
                 ? null
                 : l10n.settingsLyricsExcludedInvalid,
           ),
-        ),
+        )),
         actions: [
-          TextButton(
+          M3EButton.text(
             onPressed: () => Navigator.pop(context),
             child: Text(MaterialLocalizations.of(context).cancelButtonLabel),
           ),
-          FilledButton(
+          M3EButton.filled(
             onPressed: () {
               if (form.currentState!.validate())
                 Navigator.pop(context, _languages(input));
             },
             child: Text(MaterialLocalizations.of(context).saveButtonLabel),
           ),
-        ],
-      ),
+        ]),
     );
     if (context.mounted && result != null)
       provider.update(

@@ -107,6 +107,9 @@ class SpotifyProvider extends ChangeNotifier {
   List<SpotifyPlaylist> get searchPlaylists => _searchPlaylists;
   List<String> get recentSearches => _recentSearches;
 
+  /// 按 `spotify:track:` URI 或分享链接直接获取单曲。
+  Future<SpotifyTrack?> resolveTrackByUri(String uri) => _api.getTrackByUri(uri);
+
   /// 加载主页数据（用户、主页分区、分类、设备）。登录 / 登出后应再次调用。
   ///
   /// 四个请求互不依赖，并行发出；任意一个失败只影响自己的那部分数据，

@@ -1,3 +1,4 @@
+import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:flutify_app/core/utils/artwork_palette.dart';
 import 'package:flutify_app/main.dart';
 import 'package:flutify_app/models/playback_context.dart';
@@ -96,7 +97,7 @@ void main() {
     final placeholder = find.byType(CollectionErrorPlaceholder);
     expect(placeholder, findsOneWidget);
     expect(find.descendant(of: placeholder, matching: find.text('登录后即可查看这里的内容')), findsOneWidget);
-    expect(find.descendant(of: placeholder, matching: find.widgetWithText(OutlinedButton, '登录')), findsOneWidget);
+    expect(find.descendant(of: placeholder, matching: find.widgetWithText(M3EButton, '登录')), findsOneWidget);
   });
 
   testWidgets('signed out: home asks to sign in rather than blaming the network', (tester) async {

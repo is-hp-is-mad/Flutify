@@ -1,3 +1,6 @@
+import '../../core/rust_core.dart';
+import '../../src/rust/api/lyrics.dart' as rust;
+
 /// 翻译版 / 罗马音 / 对照歌词的标记词：出现在曲名 / 歌手 / 专辑或歌词署名行里的特征字符串。
 /// 供「排除翻译版」（translation_filter.dart）与「拆分双语对照」（translation_merge.dart）共用。
 class TranslationMarkers {
@@ -28,6 +31,9 @@ class TranslationMarkers {
 
   static bool hasMarker(String text) {
     if (text.isEmpty) return false;
+    if (RustCore.ready) {
+      return rust.hasTranslationMarker(text: text);
+    }
     final low = text.toLowerCase();
     return words.any(low.contains);
   }
@@ -38,6 +44,9 @@ class TranslationMarkers {
   /// 只认署名格式，不看是否含标记词：歌词本身可能就唱到 "lost in translation"、「对照」「拼音」，
   /// 那些是正文，不能当署名剔掉。
   static bool isCreditLine(String text) {
+    if (RustCore.ready) {
+      return rust.isTranslationCreditLine(text: text);
+    }
     final t = text.trim();
     if (t.isEmpty) return false;
     return _zhCredit.hasMatch(t) ||

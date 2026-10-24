@@ -1,11 +1,16 @@
+import 'package:material_3_expressive/material_3_expressive.dart';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../l10n/l10n.dart';
+import '../../../models/album.dart';
 import '../../../models/artist.dart';
 import '../../../models/category.dart';
 import '../../../models/playback_context.dart';
 import '../../../models/playlist.dart';
+import '../../../models/share_target.dart';
 import '../../../models/track.dart';
 import '../../../providers/playback_provider.dart';
 import '../../../providers/spotify_provider.dart';
@@ -18,6 +23,7 @@ import '../../widgets/filter_pill.dart';
 import '../../widgets/skeleton.dart';
 import '../../widgets/track_tile.dart';
 import '../detail/widgets/collection_widgets.dart';
+import '../../widgets/flutify_progress.dart';
 
 /// 搜索页：浏览分类 / 最近搜索 / 多类型搜索结果。
 ///
@@ -83,6 +89,44 @@ class _SearchScreenState extends State<SearchScreen> {
   void _submitSearch() {
     _commit();
     _dismissKeyboard();
+    unawaited(_tryOpenSpotifyLink(_searchController.text));
+  }
+
+  Future<void> _tryOpenSpotifyLink(String raw) async {
+    final link = SpotifyLink.parse(raw);
+    if (link == null || !mounted) return;
+    switch (link.kind) {
+      case ShareKind.track:
+        final spotify = context.read<SpotifyProvider>();
+        final playback = context.read<PlaybackProvider?>();
+        if (playback == null) return;
+        SpotifyTrack? track = spotify.searchTracks
+            .where((t) => t.id == link.id)
+            .firstOrNull;
+        track ??= await spotify.resolveTrackByUri(link.uri);
+        if (!mounted || track == null) return;
+        await playback.playTrack(track);
+      case ShareKind.album:
+        AppRoutes.openAlbum(context, SpotifyAlbum(id: link.id, name: ''));
+      case ShareKind.playlist:
+        final spotify = context.read<SpotifyProvider>();
+        final existing = spotify.searchPlaylists
+            .where((p) => p.id == link.id)
+            .firstOrNull;
+        AppRoutes.openPlaylist(
+          context,
+          existing ?? SpotifyPlaylist(id: link.id, name: ''),
+        );
+      case ShareKind.artist:
+        final spotify = context.read<SpotifyProvider>();
+        final existing = spotify.searchArtists
+            .where((a) => a.id == link.id)
+            .firstOrNull;
+        AppRoutes.openArtist(
+          context,
+          existing ?? SpotifyArtist(id: link.id, name: ''),
+        );
+    }
   }
 
   void _onResultTap() {
@@ -200,7 +244,7 @@ class _BrowseView extends StatelessWidget {
                   Expanded(
                     child: Text(l10n.searchRecent, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
                   ),
-                  TextButton(
+                  M3EButton.text(
                     onPressed: () => context.read<SpotifyProvider>().clearRecentSearches(),
                     child: Text(l10n.searchClearAll),
                   ),
@@ -291,7 +335,7 @@ class _SearchResults extends StatelessWidget {
     final spotify = context.watch<SpotifyProvider>();
     final l10n = context.l10n;
     if (spotify.isSearching) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: M3ELoadingIndicator());
     }
     if (spotify.searchError != null) {
       if (spotify.searchRequiresSignIn) {
@@ -479,7 +523,8 @@ class _SearchPageControl extends StatelessWidget {
         child: Center(
           child: SizedBox.square(
             dimension: 24,
-            child: CircularProgressIndicator(
+            child: FlutifySpinner(
+              size: 24,
               key: ValueKey('search-loading-${type.name}'),
               semanticsLabel: l10n.commonLoadMore,
             ),
@@ -498,7 +543,7 @@ class _SearchPageControl extends StatelessWidget {
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodySmall,
             ),
-          TextButton.icon(
+          M3EButton.icon(style: M3EButtonStyle.text, 
             key: ValueKey('search-load-more-${type.name}'),
             onPressed: () => spotify.loadMoreSearch(type),
             icon: Icon(

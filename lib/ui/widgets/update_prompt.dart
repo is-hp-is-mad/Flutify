@@ -7,6 +7,9 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../l10n/l10n.dart';
 import '../../services/updates/update_release.dart';
 import '../../services/updates/update_service.dart';
+import 'package:material_3_expressive/material_3_expressive.dart' show M3EButton, M3EButtonStyle;
+import 'flutify_dialog.dart';
+import 'flutify_progress.dart';
 
 Future<void> showUpdateDialog(BuildContext context, UpdateService service) => showDialog<void>(
   context: context,
@@ -17,10 +20,11 @@ Future<void> showUpdateDialog(BuildContext context, UpdateService service) => sh
       final release = service.release;
       final ready = service.status == UpdateStatus.ready;
       final android = service.target?.platform == UpdatePlatform.android;
-      return AlertDialog(
+      return FlutifyDialog(
         icon: Icon(ready ? Icons.download_done_rounded : Icons.system_update_rounded),
-        title: Text('${ready ? l.updatesReady : l.updatesAvailable} ${release?.tag ?? ''}'),
-        content: SizedBox(
+        title: '${ready ? l.updatesReady : l.updatesAvailable} ${release?.tag ?? ''}',
+        // SelectableText / 进度条需要 Material 祖先
+        content: Material(type: MaterialType.transparency, child: SizedBox(
           width: 520,
           child: SingleChildScrollView(
             child: Column(
@@ -39,7 +43,7 @@ Future<void> showUpdateDialog(BuildContext context, UpdateService service) => sh
                 if (!service.canDownload) Text(l.updatesUnsupported),
                 if (service.needsInstallPermission) Text(l.updatesPermission),
                 if (service.error != null) Text(l.updatesFailed, style: TextStyle(color: Theme.of(context).colorScheme.error)),
-                TextButton.icon(
+                M3EButton.icon(style: M3EButtonStyle.text,
                   onPressed: () => openUpdatePage(context, service),
                   icon: const Icon(Icons.open_in_new_rounded),
                   label: Text(l.updatesPage),
@@ -47,18 +51,18 @@ Future<void> showUpdateDialog(BuildContext context, UpdateService service) => sh
               ],
             ),
           ),
-        ),
+        )),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text(l.updatesLater)),
+          M3EButton.text(onPressed: () => Navigator.pop(context), child: Text(l.updatesLater)),
           if (service.status != UpdateStatus.installing)
-            TextButton(onPressed: () { unawaited(service.skip()); Navigator.pop(context); }, child: Text(l.updatesSkip)),
+            M3EButton.text(onPressed: () { unawaited(service.skip()); Navigator.pop(context); }, child: Text(l.updatesSkip)),
           if (service.status == UpdateStatus.downloading)
-            TextButton(onPressed: service.cancelDownload, child: Text(l.commonCancel)),
+            M3EButton.text(onPressed: service.cancelDownload, child: Text(l.commonCancel)),
           if (ready)
-            FilledButton.icon(onPressed: service.install, icon: const Icon(Icons.install_mobile_rounded),
+            M3EButton.icon(style: M3EButtonStyle.filled,onPressed: service.install, icon: const Icon(Icons.install_mobile_rounded),
               label: Text(android ? l.updatesInstallApk : l.updatesInstall)),
           if (!ready && !service.busy && service.canDownload)
-            FilledButton.icon(onPressed: service.download, icon: const Icon(Icons.download_rounded), label: Text(l.updatesDownload)),
+            M3EButton.icon(style: M3EButtonStyle.filled,onPressed: service.download, icon: const Icon(Icons.download_rounded), label: Text(l.updatesDownload)),
         ],
       );
     },
@@ -86,7 +90,7 @@ class UpdateProgress extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(downloading ? context.l10n.updatesDownloading : context.l10n.updatesInstalling),
         const SizedBox(height: 8),
-        LinearProgressIndicator(value: downloading ? service.progress : null, borderRadius: BorderRadius.circular(8)),
+        FlutifyLinearProgress(value: downloading ? service.progress : null),
         if (downloading) Text('${(service.received / 1048576).toStringAsFixed(1)} / ${(service.total / 1048576).toStringAsFixed(1)} MB'),
       ]),
     );

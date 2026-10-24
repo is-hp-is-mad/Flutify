@@ -65,6 +65,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.2"
+  build_cli_annotations:
+    dependency: transitive
+    description:
+      name: build_cli_annotations
+      sha256: e563c2e01de8974566a1998410d3f6f03521788160a02503b0b1f1a46c7b3d95
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.1.1"
   cached_network_image:
     dependency: "direct main"
     description:
@@ -383,13 +391,12 @@ packages:
     source: hosted
     version: "1.1.2"
   flutter_inappwebview_windows:
-    dependency: transitive
+    dependency: "direct overridden"
     description:
-      name: flutter_inappwebview_windows
-      sha256: "8b4d3a46078a2cdc636c4a3d10d10f2a16882f6be607962dbfff8874d1642055"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.6.0"
+      path: "packages/flutter_inappwebview_windows"
+      relative: true
+    source: path
+    version: "0.6.0+flutify.1"
   flutter_lints:
     dependency: "direct dev"
     description:
@@ -403,6 +410,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  flutter_rust_bridge:
+    dependency: "direct main"
+    description:
+      name: flutter_rust_bridge
+      sha256: ec69331e2335ab4d456c0a9fc700892c2c85b72b9c0cb39df3ecfe8833d5d5c8
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.13.0"
   flutter_test:
     dependency: "direct dev"
     description: flutter
@@ -504,11 +519,10 @@ packages:
   just_audio_media_kit:
     dependency: "direct main"
     description:
-      name: just_audio_media_kit
-      sha256: f3cf04c3a50339709e87e90b4e841eef4364ab4be2bdbac0c54cc48679f84d23
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.1.0"
+      path: "packages/just_audio_media_kit"
+      relative: true
+    source: path
+    version: "2.1.0+flutify.1"
   just_audio_platform_interface:
     dependency: transitive
     description:
@@ -606,7 +620,7 @@ packages:
     source: hosted
     version: "1.2.0"
   media_kit:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: media_kit
       sha256: ae9e79597500c7ad6083a3c7b7b7544ddabfceacce7ae5c9709b0ec16a5d6643
@@ -804,6 +818,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.6.0"
+  rust_lib_flutify:
+    dependency: "direct main"
+    description:
+      path: rust_builder
+      relative: true
+    source: path
+    version: "0.0.1"
   rxdart:
     dependency: transitive
     description:

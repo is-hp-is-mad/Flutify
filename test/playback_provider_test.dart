@@ -114,6 +114,33 @@ void main() {
       expect(playback.currentTrack, isNull);
     });
 
+    test('经 Connect 点歌时随请求带上默认循环方式（切换歌单 / 从头播放），同一歌单内点歌沿用当前', () async {
+      playback.updateDefaultRepeatMode(SpotifyRepeatMode.context);
+      playback.setRepeatMode(SpotifyRepeatMode.off); // 例如被服务端上一次的状态改掉
+      final seen = <SpotifyRepeatMode>[];
+      playback.remotePlay = (_, _, _) async {
+        seen.add(playback.repeatModeForNextPlay);
+        return true;
+      };
+
+      await playback.playTrack(b, contextQueue: [a, b, c], context: ctx);
+      await playback.playContext([a, b, c], ctx);
+      expect(seen, [SpotifyRepeatMode.context, SpotifyRepeatMode.context]);
+      // 交给远程后不残留：之后读到的是当前循环方式
+      expect(playback.repeatModeForNextPlay, SpotifyRepeatMode.off);
+
+      // 同一歌单内换歌（本机在播 ctx）不重置为默认
+      playback.remotePlay = null;
+      await playback.playTrack(a, contextQueue: [a, b, c], context: ctx);
+      playback.setRepeatMode(SpotifyRepeatMode.track);
+      playback.remotePlay = (_, _, _) async {
+        seen.add(playback.repeatModeForNextPlay);
+        return true;
+      };
+      await playback.playTrack(b, contextQueue: [a, b, c], context: ctx);
+      expect(seen.last, SpotifyRepeatMode.track);
+    });
+
     test('declined: plays locally as usual', () async {
       playback.remotePlay = (_, _, _) async => false;
 

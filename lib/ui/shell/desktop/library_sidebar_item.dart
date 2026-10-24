@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../widgets/cover_image.dart';
 import 'library_sidebar_entry.dart';
+import '../../../core/theme/flutify_tokens.dart';
 
 /// 音乐库栏中的一行。
 ///
@@ -122,11 +123,7 @@ class _EntryCover extends StatelessWidget {
         height: size,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(6),
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF450AF5), Color(0xFF8E8EE5), Color(0xFFC4EFD9)],
-          ),
+          gradient: kLikedSongsGradient,
         ),
         child: const Icon(Icons.favorite_rounded, color: Colors.white, size: 20),
       );

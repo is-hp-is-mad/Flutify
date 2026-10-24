@@ -1,3 +1,4 @@
+import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/flutify_tokens.dart';
@@ -112,11 +113,10 @@ class _EmbedCodePanelState extends State<EmbedCodePanel> with CopiedFlash {
         const SizedBox(height: 12),
         Align(
           alignment: AlignmentDirectional.centerEnd,
-          child: FilledButton.icon(
-            style: FilledButton.styleFrom(
-              backgroundColor: tokens.accent,
-              foregroundColor: tokens.onAccent,
-              shape: tokens.pillShape,
+          child: M3EButton.icon(
+            decoration: M3EButtonDecoration(
+              backgroundColor: WidgetStatePropertyAll(tokens.accent),
+              foregroundColor: WidgetStatePropertyAll(tokens.onAccent),
             ),
             onPressed: () => copyAndFlash(_code),
             icon: AnimatedSwitcher(

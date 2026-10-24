@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/l10n.dart';
+import 'package:material_3_expressive/material_3_expressive.dart' show M3EButton;
 
 class ShelfSection extends StatelessWidget {
   final String title;
@@ -56,7 +57,7 @@ class ShelfSection extends StatelessWidget {
                 ),
               ),
               if (onSeeAll != null)
-                TextButton(
+                M3EButton.text(
                   onPressed: onSeeAll,
                   child: Text(
                     context.l10n.commonShowAll,

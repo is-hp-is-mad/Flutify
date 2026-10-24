@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:isolate';
 import 'dart:typed_data';
 
+import '../../../core/rust_core.dart';
 import 'audio_decryptor.dart';
 
 export 'audio_decryptor.dart';
@@ -131,7 +132,7 @@ class _DecryptWorker {
     final exit = ReceivePort('flutify-decrypt-exit');
     final isolate = await Isolate.spawn(
       _workerMain,
-      receive.sendPort,
+      (receive.sendPort, RustCore.ready),
       debugName: 'flutify-decrypt',
       onExit: exit.sendPort,
       onError: exit.sendPort,
@@ -196,7 +197,11 @@ class _DecryptWorker {
 }
 
 /// 后台 Isolate 入口：维护每一路的解密器，按收到的顺序处理并原路返回。
-void _workerMain(SendPort toMain) {
+Future<void> _workerMain((SendPort, bool) args) async {
+  final (toMain, useRust) = args;
+  // Isolate 的静态状态各自独立：主 Isolate 加载过 Rust 核心，这里仍需单独加载，
+  // 否则 AesCtr 永远走纯 Dart 实现。先加载再交出端口，保证每路解密从头到尾用同一实现。
+  if (useRust) await RustCore.initialize(exitOnFailure: false);
   final port = ReceivePort();
   toMain.send(port.sendPort);
   final sessions = <int, AudioDecryptor>{};

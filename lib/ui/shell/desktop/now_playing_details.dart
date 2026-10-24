@@ -13,6 +13,7 @@ import '../../widgets/cover_image.dart';
 import '../../widgets/player_controls.dart';
 import '../shell_layout_controller.dart';
 import 'panel_lyrics_card.dart';
+import 'package:material_3_expressive/material_3_expressive.dart' show M3EButton;
 
 /// 右栏「正在播放」面板（歌词卡未放大时）：大封面 → 歌名 / 艺人 / 点赞 → 歌词卡 → 关于艺人 → 接下来播放。
 ///
@@ -295,7 +296,7 @@ class _NextUpCard extends StatelessWidget {
                   ),
                 ),
               ),
-              TextButton(
+              M3EButton.text(
                 onPressed: () => context
                     .read<ShellLayoutController>()
                     .switchPanel(RightPanel.queue),

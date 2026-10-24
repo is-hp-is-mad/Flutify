@@ -1,3 +1,5 @@
+import '../../core/rust_core.dart';
+import '../../src/rust/api/lyrics.dart' as rust;
 import 'lyric_script.dart';
 import 'zh_script.dart';
 
@@ -31,6 +33,15 @@ class ArtistMatcher {
   static final RegExp _nonWord = RegExp(r'[^\p{L}\p{N}]+', unicode: true);
 
   static ArtistMatch compare(String queryArtist, String candidateArtist) {
+    if (RustCore.ready) {
+      final idx = rust.compareArtists(
+        queryArtist: queryArtist,
+        candidateArtist: candidateArtist,
+      );
+      return idx >= 0 && idx < ArtistMatch.values.length
+          ? ArtistMatch.values[idx]
+          : ArtistMatch.unknown;
+    }
     final a = _normalize(queryArtist), b = _normalize(candidateArtist);
     if (a.isEmpty || b.isEmpty) return ArtistMatch.unknown;
     final langA = detectLang(a), langB = detectLang(b);

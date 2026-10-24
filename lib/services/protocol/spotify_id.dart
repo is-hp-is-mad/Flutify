@@ -1,5 +1,8 @@
 import 'dart:typed_data';
 
+import '../../core/rust_core.dart';
+import '../../src/rust/api/protocol.dart' as rust;
+
 /// Spotify ID（16 字节 GID）与 base62 / base16 / URI 的互转。
 ///
 /// 与 librespot `spotify_id.rs` 一致：base62 为 22 位定长、大端 u128 语义。
@@ -18,6 +21,13 @@ class SpotifyId {
     if (src.length != base62Size) {
       throw FormatException('base62 id must be $base62Size chars', src);
     }
+    if (RustCore.ready) {
+      try {
+        return SpotifyId._(rust.spotifyIdFromBase62(src: src));
+      } catch (_) {
+        throw FormatException('invalid base62 char', src);
+      }
+    }
     var value = BigInt.zero;
     final sixtyTwo = BigInt.from(62);
     for (final code in src.codeUnits) {
@@ -35,6 +45,13 @@ class SpotifyId {
   /// 从 32 位十六进制 GID 解析。
   factory SpotifyId.fromBase16(String src) {
     if (src.length != 32) throw FormatException('base16 id must be 32 chars', src);
+    if (RustCore.ready) {
+      try {
+        return SpotifyId._(rust.spotifyIdFromBase16(src: src));
+      } catch (_) {
+        throw FormatException('invalid base16 id', src);
+      }
+    }
     final out = Uint8List(rawSize);
     for (var i = 0; i < rawSize; i++) {
       out[i] = int.parse(src.substring(i * 2, i * 2 + 2), radix: 16);
@@ -58,6 +75,11 @@ class SpotifyId {
 
   /// 22 位 base62。
   String toBase62() {
+    if (RustCore.ready) {
+      try {
+        return rust.spotifyIdToBase62(raw: raw);
+      } catch (_) {}
+    }
     var value = BigInt.zero;
     for (final b in raw) {
       value = (value << 8) | BigInt.from(b);
@@ -74,6 +96,11 @@ class SpotifyId {
 
   /// 32 位小写十六进制 GID（metadata 等 REST 路径参数用）。
   String toBase16() {
+    if (RustCore.ready) {
+      try {
+        return rust.spotifyIdToBase16(raw: raw);
+      } catch (_) {}
+    }
     final sb = StringBuffer();
     for (final b in raw) {
       sb.write(b.toRadixString(16).padLeft(2, '0'));

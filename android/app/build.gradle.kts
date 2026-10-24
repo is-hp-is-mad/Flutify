@@ -83,4 +83,6 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer:1.11.1")
     implementation("androidx.media3:media3-exoplayer-hls:1.11.1")
     implementation("androidx.media3:media3-datasource:1.11.1")
+    // 畅联「本机音频设备」：打开系统输出切换面板（手机扬声器 / 蓝牙 / 有线耳机），各 Android 版本由它适配
+    implementation("androidx.mediarouter:mediarouter:1.7.0")
 }

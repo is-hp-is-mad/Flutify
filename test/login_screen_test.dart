@@ -1,3 +1,4 @@
+import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:flutify_app/core/utils/artwork_palette.dart';
 import 'package:flutify_app/main.dart';
 import 'package:flutify_app/l10n/app_localizations.dart';
@@ -21,25 +22,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'fakes/fake_audio_player_service.dart';
 
 class _LoginAuth extends Fake with ChangeNotifier implements AuthProvider {
-  bool authorizing = false;
-
   @override
   bool get isSignedIn => false;
 
   @override
-  bool get isAuthorizing => authorizing;
-
-  @override
   String? get error => null;
-
-  @override
-  Uri? get authorizeUrl => null;
-
-  @override
-  Future<void> cancelOAuth() async {
-    authorizing = false;
-    notifyListeners();
-  }
 }
 
 /// 登录页在小屏手机上的冒烟测试：只有「在浏览器中登录」一种方式、无布局溢出、可关闭。
@@ -78,7 +65,6 @@ void main() {
   Future<_LoginAuth> pumpLogin(
     WidgetTester tester, {
     double width = 1280,
-    bool authorizing = false,
     bool enabled = true,
     bool mac = true,
   }) async {
@@ -87,7 +73,7 @@ void main() {
     tester.view.physicalSize = Size(width, 900);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
-    final auth = _LoginAuth()..authorizing = authorizing;
+    final auth = _LoginAuth();
     await tester.pumpWidget(
       ChangeNotifierProvider<AuthProvider>.value(
         value: auth,
@@ -153,7 +139,7 @@ void main() {
 
     expect(find.byType(LoginHero), findsOneWidget);
     expect(find.text('登录 Spotify'), findsOneWidget);
-    expect(find.widgetWithText(FilledButton, '登录'), findsOneWidget);
+    expect(find.widgetWithText(M3EButton, '登录'), findsOneWidget);
     // 其他登录方式已移除
     expect(find.text('账号密码'), findsNothing);
     expect(find.text('更多方式'), findsNothing);
@@ -164,11 +150,11 @@ void main() {
   });
 
   for (final width in [800.0, 1280.0]) {
-    for (final authorizing in [false, true]) {
+    {
       testWidgets(
-        'macOS login header drags and maximizes/restores at width $width, authorizing=$authorizing',
+        'macOS login header drags and maximizes/restores at width $width',
         (tester) async {
-          await pumpLogin(tester, width: width, authorizing: authorizing);
+          await pumpLogin(tester, width: width);
           const blank = Offset(260, 28);
           await tester.dragFrom(
             blank,
@@ -204,7 +190,7 @@ void main() {
         tester.getRect(close).left,
         greaterThanOrEqualTo(DesktopWindow.macTrafficLightsInset),
       );
-      for (final control in [close, find.widgetWithText(FilledButton, '登录')]) {
+      for (final control in [close, find.widgetWithText(M3EButton, '登录')]) {
         await tester.drag(
           control,
           const Offset(40, 30),
@@ -222,20 +208,6 @@ void main() {
       expect(navigator.canPop(), isFalse);
       await tester.pump(const Duration(seconds: 1));
       expect(find.byType(LoginScreen), findsNothing);
-      expect(windowCalls, isEmpty);
-    },
-    variant: TargetPlatformVariant.only(TargetPlatform.macOS),
-  );
-
-  testWidgets(
-    'macOS authorizing back button cancels without dragging or closing login',
-    (tester) async {
-      final auth = await pumpLogin(tester, authorizing: true);
-      await tester.tap(loginBackButton(), kind: PointerDeviceKind.mouse);
-      await settle(tester);
-      expect(auth.isAuthorizing, isFalse);
-      expect(find.byType(LoginScreen), findsOneWidget);
-      expect(find.byTooltip('关闭'), findsOneWidget);
       expect(windowCalls, isEmpty);
     },
     variant: TargetPlatformVariant.only(TargetPlatform.macOS),

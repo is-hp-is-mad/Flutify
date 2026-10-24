@@ -12,6 +12,7 @@ import '../models/image.dart';
 import '../models/lyrics.dart';
 import '../models/playlist.dart';
 import '../models/podcast.dart';
+import '../models/share_target.dart';
 import '../models/track.dart';
 import '../models/track_credits.dart';
 import '../models/user_profile.dart';
@@ -488,14 +489,28 @@ class SpotifyApiService {
     }
   }
 
-  /// 按 URI 取单曲完整信息（Connect 远程曲目补全艺人 / 封面用）。
-  /// 只有桌面版会话可用（与 Connect 一致）；非曲目 URI 或失败时返回 null。
+  /// 按 ID 取单曲完整信息。
+  Future<SpotifyTrack> getTrack(String id) async {
+    if (!isConfigured) throw SpotifyDataException.notSignedIn;
+    if (_useDesktop) {
+      return _desktopLoad(() async {
+        final tracks = await _desktop.tracksByUris(['spotify:track:$id']);
+        return tracks.isEmpty ? null : tracks.first;
+      });
+    }
+    return SpotifyTrack.fromJson(await _getJson('/tracks/$id'));
+  }
+
+  /// 按 URI 或分享链接取单曲完整信息（Connect 远程曲目补全艺人 / 封面、搜索框直达用）。
   Future<SpotifyTrack?> getTrackByUri(String uri) async {
-    if (!isConfigured || !_useDesktop || !uri.startsWith('spotify:track:'))
-      return null;
+    if (!isConfigured) return null;
+    final link = SpotifyLink.parse(uri);
+    final trackId = link?.kind == ShareKind.track
+        ? link!.id
+        : (uri.startsWith('spotify:track:') ? uri.substring(14) : '');
+    if (trackId.isEmpty) return null;
     try {
-      final tracks = await _desktop.tracksByUris([uri]);
-      return tracks.isEmpty ? null : tracks.first;
+      return await getTrack(trackId);
     } catch (_) {
       return null;
     }
@@ -660,6 +675,10 @@ class SpotifyApiService {
       );
     }
     return _catalogLoad(() async {
+      final link = offset == 0 ? SpotifyLink.parse(clean) : null;
+      if (link != null) {
+        return _resolveSpotifyLinkPage(link, type: type);
+      }
       if (_useDesktop) {
         return _desktop.searchPage(clean, offset: offset, limit: limit);
       }
@@ -700,6 +719,51 @@ class SpotifyApiService {
         playlists: section('playlists', SpotifyPlaylist.fromJson),
       );
     });
+  }
+
+  Future<SearchPage> _resolveSpotifyLinkPage(
+    SpotifyLink link, {
+    String? type,
+  }) async {
+    final allTypes = type == null || type == 'all';
+    switch (link.kind) {
+      case ShareKind.track:
+        if (!allTypes && type != 'tracks') return const SearchPage();
+        final track = await getTrack(link.id);
+        return SearchPage(
+          tracks: CatalogPage(items: [track], offset: 0, total: 1),
+        );
+      case ShareKind.artist:
+        final artist = (allTypes || type == 'artists')
+            ? await getArtist(link.id)
+            : null;
+        final topTracks = (allTypes || type == 'tracks')
+            ? await getArtistTopTracks(link.id)
+            : const <SpotifyTrack>[];
+        return SearchPage(
+          artists: artist == null
+              ? const CatalogPage(items: [], offset: 0)
+              : CatalogPage(items: [artist], offset: 0, total: 1),
+          tracks: CatalogPage(
+            items: topTracks,
+            offset: 0,
+            total: topTracks.length,
+          ),
+        );
+      case ShareKind.playlist:
+        if (!allTypes && type != 'playlists') return const SearchPage();
+        final playlist = await getPlaylist(link.id);
+        return SearchPage(
+          playlists: CatalogPage(items: [playlist], offset: 0, total: 1),
+        );
+      case ShareKind.album:
+        if (!allTypes && type != 'tracks') return const SearchPage();
+        final album = await getAlbum(link.id);
+        final tracks = await getAlbumTracks(album);
+        return SearchPage(
+          tracks: CatalogPage(items: tracks, offset: 0, total: tracks.length),
+        );
+    }
   }
 
   // ---------------------------------------------------------------------------

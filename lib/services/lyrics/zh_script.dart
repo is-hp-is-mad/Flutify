@@ -1,9 +1,8 @@
+import '../../core/rust_core.dart';
+import '../../src/rust/api/lyrics.dart' as rust;
 import 'zh_script_table.dart';
 
-/// 简繁字形：判定一段中文偏简体还是繁体，并在两者之间逐字转换。
-///
-/// 映射表由 `tool/gen_zh_script_table.ps1` 从 Windows LCMapStringEx 导出（[zh_script_table.dart]），
-/// 只做字级一对一替换，不处理词汇差异（如「软件 / 軟體」）——歌词对齐字形已经足够。
+/// 简繁字形：判定一段中文偏简体还是繁体，并在两者之间转换（Rust 端走 OpenCC `zhconv` 词组级消歧）。
 class ZhScript {
   ZhScript._();
 
@@ -16,10 +15,20 @@ class ZhScript {
   }
 
   /// 繁体专用字的个数（转简体后会变的字）。
-  static int countTraditional(String text) => _count(text, _toSimp);
+  static int countTraditional(String text) {
+    if (RustCore.ready) {
+      return rust.zhCountTraditional(text: text);
+    }
+    return _count(text, _toSimp);
+  }
 
   /// 简体专用字的个数（转繁体后会变的字）。
-  static int countSimplified(String text) => _count(text, _toTrad);
+  static int countSimplified(String text) {
+    if (RustCore.ready) {
+      return rust.zhCountSimplified(text: text);
+    }
+    return _count(text, _toTrad);
+  }
 
   static int _count(String text, Map<int, int> map) {
     var n = 0;
@@ -29,8 +38,11 @@ class ZhScript {
     return n;
   }
 
-  /// 转为简体（[toSimplified] 为 true）或繁体；不认识的字原样保留。
+  /// 转为简体（[toSimplified] 为 true）或繁体（Rust 端使用 OpenCC 词组级消歧）。
   static String convert(String text, {required bool toSimplified}) {
+    if (RustCore.ready) {
+      return rust.zhConvert(text: text, toSimplified: toSimplified);
+    }
     final map = toSimplified ? _toSimp : _toTrad;
     final units = text.codeUnits;
     List<int>? out;

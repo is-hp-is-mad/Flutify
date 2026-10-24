@@ -29,6 +29,9 @@ void main() {
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({
+      'sp_auth_method': 'desktop',
+      'sp_dc': 'local-sp-dc',
+      'lib_account': 'local_user',
       'sp_username': 'local_user',
       'sp_display_name': 'Local User',
     });
@@ -42,9 +45,10 @@ void main() {
   tearDown(() {
     library.dispose();
     preferences.dispose();
-    if (tempDir.existsSync()) {
-      tempDir.deleteSync(recursive: true);
-    }
+    // 后台落盘可能仍占用文件：清理失败不影响结果，交给系统临时目录回收
+    try {
+      if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+    } on FileSystemException catch (_) {}
   });
 
   test('备份频率强制不低于 20 分钟以防限流，支持 20min/1h/2h/12h/1d', () {
@@ -90,6 +94,7 @@ void main() {
     // 点赞歌曲后立即落盘，无需等待定时轮询
     library.toggleLike(track1);
     expect(service.accounts.first.likedTracks.map((t) => t.id), [track1.id]);
+    await service.pendingPersist;
     expect(diskFile.existsSync(), isTrue);
 
     // 新建歌单并加歌同样立即落盘
@@ -100,6 +105,8 @@ void main() {
       service.accounts.first.playlists.first.tracks.map((t) => t.id),
       [track2.id],
     );
+
+    await service.pendingPersist;
 
     // 重新实例化的服务直接从磁盘恢复备份，不发任何网络请求
     var remoteCalls = 0;
@@ -325,5 +332,104 @@ void main() {
       library.playlists.any((p) => p.name == 'Vault Favorites'),
       isTrue,
     );
+  });
+
+  group('当前账号备份的边界情况', () {
+    PlaylistBackupService autoService() {
+      final service = PlaylistBackupService(
+        storage,
+        library: library,
+        preferences: preferences,
+        diskFile: diskFile,
+      );
+      preferences.update(
+        preferences.prefs.copyWith(
+          backupEnabled: true,
+          backupAutoCurrentAccount: true,
+        ),
+      );
+      return service;
+    }
+
+    Future<void> switchTo(String user) async {
+      await storage.setUsername(user);
+      await storage.setLibraryAccount(user);
+    }
+
+    test('换号后旧账号备份保留为「以前登录的账号」并在设置里显示，当前账号隐藏', () async {
+      final service = autoService();
+      addTearDown(service.dispose);
+      library.toggleLike(track1);
+      expect(service.visibleAccounts, isEmpty);
+
+      await switchTo('other_user');
+      library.toggleLike(track2);
+
+      final ids = service.accounts.map((a) => a.id).toList();
+      expect(ids, ['other_user', 'local_user']);
+      final old = service.accounts.last;
+      expect(old.isCurrentAccount, isFalse);
+      expect(old.likedTracks.map((t) => t.id), [track1.id]);
+      expect(service.visibleAccounts.map((a) => a.id), ['local_user']);
+      await service.pendingPersist;
+    });
+
+    test('关闭自动备份时换号：旧账号备份立即可见，不会一直被隐藏', () async {
+      final service = autoService();
+      addTearDown(service.dispose);
+      library.toggleLike(track1);
+      preferences.update(
+        preferences.prefs.copyWith(backupAutoCurrentAccount: false),
+      );
+
+      await switchTo('other_user');
+      expect(service.visibleAccounts.map((a) => a.id), ['local_user']);
+      await service.pendingPersist;
+    });
+
+    test('媒体库数据不属于当前账号（换号后尚未加载完）时不备份，不把旧数据记到新账号名下', () async {
+      final service = autoService();
+      addTearDown(service.dispose);
+      library.toggleLike(track1);
+
+      await storage.setUsername('other_user'); // 媒体库仍是 local_user 的数据
+      library.toggleLike(track2);
+
+      expect(service.accounts.map((a) => a.id), ['local_user']);
+      expect(service.accounts.single.likedTracks.map((t) => t.id), [track1.id]);
+      await service.pendingPersist;
+    });
+
+    test('一键同步不把当前账号自己的歌单再导入一遍（不产生重复副本）', () async {
+      final service = autoService();
+      addTearDown(service.dispose);
+      final created = library.createPlaylist('Mine');
+      library.addTrackToPlaylist(created.id, track1);
+      final before = library.playlists.length;
+
+      final result = await service.syncToCurrentAccount();
+      expect(result.syncedPlaylists, 0);
+      expect(library.playlists.length, before);
+      await service.pendingPersist;
+    });
+
+    test('主文件缺失时从写好的临时文件恢复', () async {
+      final tmp = File('${diskFile.path}.tmp');
+      tmp.writeAsStringSync(
+        '[{"id":"tmp_user","displayName":"Tmp","likedTracks":[],"playlists":[]}]',
+      );
+      final service = PlaylistBackupService(storage, diskFile: diskFile);
+      addTearDown(service.dispose);
+      expect(service.accounts.map((a) => a.id), ['tmp_user']);
+      await service.pendingPersist;
+      expect(diskFile.existsSync(), isTrue);
+    });
+
+    test('主文件损坏时保留一份 .corrupt 副本', () async {
+      diskFile.writeAsStringSync('{broken');
+      final service = PlaylistBackupService(storage, diskFile: diskFile);
+      addTearDown(service.dispose);
+      expect(File('${diskFile.path}.corrupt').readAsStringSync(), '{broken');
+    });
   });
 }

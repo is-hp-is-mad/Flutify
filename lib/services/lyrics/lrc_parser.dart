@@ -1,4 +1,6 @@
+import '../../core/rust_core.dart';
 import '../../models/lyrics.dart';
+import '../../src/rust/api/lyrics.dart' as rust;
 
 /// LRC 逐行同步歌词解析：`[mm:ss.xx]歌词`，一行可带多个时间标签（副歌复用）。
 ///
@@ -11,6 +13,17 @@ class LrcParser {
 
   static List<LyricLine> parse(String lrc) {
     if (lrc.isEmpty) return const [];
+    if (RustCore.ready) {
+      try {
+        return [for (final l in rust.parseLrc(lrc: lrc)) LyricLine(startTimeMs: l.startTimeMs.toInt(), words: l.words)];
+      } catch (_) {
+        // 回退到下面的 Dart 实现
+      }
+    }
+    return _parseDart(lrc);
+  }
+
+  static List<LyricLine> _parseDart(String lrc) {
     final lines = <LyricLine>[];
     for (final raw in lrc.split('\n')) {
       final line = raw.replaceAll('\r', '');

@@ -4,6 +4,9 @@
 /// 用于在 LRCLIB 的多份候选歌词里挑出原唱语言的那一份（见 `lrclib_selector.dart`）。
 library;
 
+import '../../core/rust_core.dart';
+import '../../src/rust/api/lyrics.dart' as rust;
+
 /// 文字系统（按 UTF-16 码元归类，CJK 扩展 B 以外的字都在 BMP 内）。
 enum Script { han, kana, hangul, cyrillic, greek, thai, arabic, hebrew, latin, other }
 
@@ -63,6 +66,14 @@ class ScriptCounts {
 
 /// 按「出现过哪种文字」判断语言，用于曲名 / 歌手这种短文本：有假名即日文，有谚文即韩文，有汉字即中文。
 LyricLang detectLang(String text) {
+  if (RustCore.ready) {
+    try {
+      final idx = rust.detectLyricLang(text: text);
+      if (idx >= 0 && idx < LyricLang.values.length) {
+        return LyricLang.values[idx];
+      }
+    } catch (_) {}
+  }
   final c = ScriptCounts.of(text);
   if (c[Script.kana] > 0) return LyricLang.ja;
   if (c[Script.hangul] > 0) return LyricLang.ko;
@@ -78,6 +89,14 @@ LyricLang detectLang(String text) {
 
 /// 歌词正文的主语言：日文必夹假名、韩文 / 中文歌常混英文，因此按占比阈值判断而不是简单取最多。
 LyricLang lyricLang(String text) {
+  if (RustCore.ready) {
+    try {
+      final idx = rust.mainLyricLang(text: text);
+      if (idx >= 0 && idx < LyricLang.values.length) {
+        return LyricLang.values[idx];
+      }
+    } catch (_) {}
+  }
   final c = ScriptCounts.of(text);
   final total = c.total;
   if (total < 1) return LyricLang.unknown;
@@ -106,6 +125,11 @@ LyricLang lyricLang(String text) {
 /// 0 ~ 100：歌词文字与目标语言的吻合度。同属 CJK 的给部分分，避免同分时乱选。
 /// 目标语言未知时一律 50。
 double langScore(LyricLang target, String text) {
+  if (RustCore.ready) {
+    try {
+      return rust.scoreLyricLang(target: target.index, text: text);
+    } catch (_) {}
+  }
   final c = ScriptCounts.of(text);
   final total = c.total.toDouble();
   if (total < 1) return 0;
@@ -132,6 +156,11 @@ double langScore(LyricLang target, String text) {
 /// 一行歌词的主导文字大类：0 = CJK（汉字 / 假名 / 谚文），1 = 拉丁，2 = 西里尔，3 = 希腊，
 /// 4 = 泰文，5 = 阿拉伯，6 = 希伯来，7 = 其它；没有字母时为 -1。用于识别中外文对照的翻译版。
 int lineFamily(String text) {
+  if (RustCore.ready) {
+    try {
+      return rust.lyricLineFamily(text: text);
+    } catch (_) {}
+  }
   final fam = List.filled(8, 0);
   var best = -1, bestN = 0;
   for (final c in text.codeUnits) {

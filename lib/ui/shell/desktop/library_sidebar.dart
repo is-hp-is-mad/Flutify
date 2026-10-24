@@ -1,3 +1,4 @@
+import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -434,11 +435,11 @@ class _SignInCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            FilledButton(
+            M3EButton.filled(
               onPressed: () => LoginScreen.open(context),
-              style: FilledButton.styleFrom(
-                backgroundColor: colorScheme.onSurface,
-                foregroundColor: colorScheme.surface,
+              decoration: M3EButtonDecoration(
+                backgroundColor: WidgetStatePropertyAll(colorScheme.onSurface),
+                foregroundColor: WidgetStatePropertyAll(colorScheme.surface),
                 padding: const EdgeInsets.symmetric(
                   horizontal: 20,
                   vertical: 10,

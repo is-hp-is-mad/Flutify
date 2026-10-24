@@ -1,3 +1,4 @@
+import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -14,6 +15,8 @@ import '../../../widgets/cover_image.dart';
 import '../../../widgets/toast/app_toast.dart';
 import '../../auth/backup_account_login_screen.dart';
 import '../widgets/settings_section.dart';
+import '../../../widgets/flutify_dialog.dart';
+import '../../../widgets/flutify_progress.dart';
 
 /// 设置页「歌单备份」分组：
 /// - 显示各个备份账号各自的「已点赞的歌曲」（点击直接查看该账号的已点赞歌曲，不会跳去本机账号）；
@@ -111,6 +114,12 @@ class _BackupSectionState extends State<BackupSection> {
         if (_selectedPlaylistIds.contains(p.id)) p,
     ];
     if (selected.isEmpty) return;
+    // 在后台导入：先提示，界面不等待；完成后再提示结果
+    AppToast.show(
+      context,
+      '正在后台导入 ${selected.length} 个歌单…',
+      icon: Icons.downloading_rounded,
+    );
     final result = await service.importSelectedPlaylists(selected);
     if (!context.mounted) return;
     AppToast.show(
@@ -187,10 +196,12 @@ class _BackupSectionState extends State<BackupSection> {
       );
     }
 
-    final accounts = backupService?.accounts ?? const <BackupAccount>[];
+    // 当前登录账号自己的备份不显示；切换到别的账号后它作为「以前登录的账号」出现
+    final accounts = backupService?.visibleAccounts ?? const <BackupAccount>[];
     final playlists =
         backupService?.allBackedUpPlaylists ?? const <SpotifyPlaylist>[];
     final backingUp = backupService?.isBackingUp ?? false;
+    final importing = backupService?.isImporting ?? false;
 
     if (!_initializedSelection && playlists.isNotEmpty) {
       _initializedSelection = true;
@@ -251,7 +262,7 @@ class _BackupSectionState extends State<BackupSection> {
                   ? const SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      child: FlutifySpinner(size: 20),
                     )
                   : const Icon(Icons.person_add_alt_1_rounded),
               onTap: backingUp
@@ -295,7 +306,7 @@ class _BackupSectionState extends State<BackupSection> {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Checkbox(
+                        M3ECheckbox(
                           value: allSelected,
                           onChanged: (_) {
                             setState(() {
@@ -316,8 +327,9 @@ class _BackupSectionState extends State<BackupSection> {
                         ),
                       ],
                     ),
-                    FilledButton.tonalIcon(
-                      onPressed: selectedCount == 0 || backingUp
+                    M3EButton.icon(
+                      style: M3EButtonStyle.tonal,
+                      onPressed: selectedCount == 0 || backingUp || importing
                           ? null
                           : () => _importSelectedPlaylists(
                               context,
@@ -375,7 +387,10 @@ class _BackupAccountTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final badge = account.isCurrentAccount ? '本机账号' : '外部备份账号';
+    // 没有会话凭据的账号是以前在本机登录过的账号（只保留最后一次的快照，不会再远程刷新）
+    final badge = account.spDc.isEmpty && account.accessToken.isEmpty
+        ? '以前登录的账号'
+        : '外部备份账号';
     return SettingsTile(
       title: '${account.title}（$badge）',
       subtitle:
@@ -385,7 +400,7 @@ class _BackupAccountTile extends StatelessWidget {
         children: [
           Tooltip(
             message: '参与一键同步到本账号',
-            child: Switch.adaptive(
+            child: M3ESwitch(
               value: account.syncToLocal,
               onChanged: onToggleSync,
             ),
@@ -428,6 +443,9 @@ class _BackedUpPlaylistTile extends StatelessWidget {
     final colorScheme = theme.colorScheme;
     final l10n = context.l10n;
     final isLiked = playlist.id.startsWith(BackupAccount.backupLikedPrefix);
+    final backupService = context.read<PlaylistBackupService?>();
+    final isExternalBackupLiked = isLiked &&
+        (backupService?.isExternalBackupLikedPlaylist(playlist.id) ?? true);
     final count = playlist.tracks.isNotEmpty
         ? playlist.tracks.length
         : playlist.totalTracks;
@@ -440,7 +458,7 @@ class _BackedUpPlaylistTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: Row(
           children: [
-            Checkbox(value: selected, onChanged: onSelectedChanged),
+            M3ECheckbox(value: selected, onChanged: onSelectedChanged),
             const SizedBox(width: 4),
             if (isLiked)
               Container(
@@ -448,11 +466,7 @@ class _BackedUpPlaylistTile extends StatelessWidget {
                 height: 48,
                 decoration: BoxDecoration(
                   borderRadius: context.tokens.radius(8),
-                  gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Color(0xFF450AF5), Color(0xFFC4EFD9)],
-                  ),
+                  gradient: kLikedSongsGradient,
                 ),
                 child: const Icon(
                   Icons.favorite_rounded,
@@ -495,7 +509,9 @@ class _BackedUpPlaylistTile extends StatelessWidget {
             if (onPickTracks != null)
               IconButton(
                 icon: const Icon(Icons.checklist_rounded, size: 22),
-                tooltip: '选择部分歌曲一键导入到本账号',
+                tooltip: isExternalBackupLiked
+                    ? '选择部分歌曲一键导入到本账号'
+                    : '多选收藏歌曲',
                 onPressed: onPickTracks,
               ),
             Icon(
@@ -542,13 +558,18 @@ class _TrackImportDialogState extends State<_TrackImportDialog> {
     final allIds = tracks.map((t) => t.id).where((id) => id.isNotEmpty).toSet();
     final allSelected =
         allIds.isNotEmpty && _selectedIds.length == allIds.length;
-    final isBackupLiked =
-        widget.playlist.id.startsWith(BackupAccount.backupLikedPrefix);
+    final isExternalBackupLiked = widget.backupService
+        .isExternalBackupLikedPlaylist(widget.playlist.id);
     final selected = _selectedTracks;
 
-    return AlertDialog(
-      title: Text('选择要导入的歌曲 · ${widget.playlist.name}'),
-      content: SizedBox(
+    return FlutifyDialog(
+      title: isExternalBackupLiked
+          ? '选择要导入的歌曲 · ${widget.playlist.name}'
+          : '多选收藏歌曲 · ${widget.playlist.name}',
+      // CheckboxListTile 需要 Material 祖先
+      content: Material(
+        type: MaterialType.transparency,
+        child: SizedBox(
         width: 520,
         height: 420,
         child: Column(
@@ -556,7 +577,8 @@ class _TrackImportDialogState extends State<_TrackImportDialog> {
           children: [
             Row(
               children: [
-                TextButton.icon(
+                M3EButton.icon(
+                  style: M3EButtonStyle.text,
                   onPressed: () {
                     setState(() {
                       if (allSelected) {
@@ -585,9 +607,19 @@ class _TrackImportDialogState extends State<_TrackImportDialog> {
                 itemBuilder: (context, index) {
                   final track = tracks[index];
                   final checked = _selectedIds.contains(track.id);
-                  return CheckboxListTile(
-                    value: checked,
-                    controlAffinity: ListTileControlAffinity.leading,
+                  void toggle(bool? v) {
+                    setState(() {
+                      if (v == true) {
+                        _selectedIds.add(track.id);
+                      } else {
+                        _selectedIds.remove(track.id);
+                      }
+                    });
+                  }
+
+                  return ListTile(
+                    leading: M3ECheckbox(value: checked, onChanged: toggle),
+                    onTap: () => toggle(!checked),
                     title: Text(
                       track.name,
                       maxLines: 1,
@@ -598,33 +630,28 @@ class _TrackImportDialogState extends State<_TrackImportDialog> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    onChanged: (v) {
-                      setState(() {
-                        if (v == true) {
-                          _selectedIds.add(track.id);
-                        } else {
-                          _selectedIds.remove(track.id);
-                        }
-                      });
-                    },
                   );
                 },
               ),
             ),
           ],
         ),
+        ),
       ),
       actions: [
-        TextButton(
+        M3EButton.text(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('取消'),
         ),
-        if (!isBackupLiked)
-          OutlinedButton.icon(
+        if (isExternalBackupLiked)
+          M3EButton.icon(
+            style: M3EButtonStyle.outlined,
             onPressed: selected.isEmpty
                 ? null
                 : () {
                     final imported = widget.playlist.copyWith(
+                      id: 'imported_${DateTime.now().millisecondsSinceEpoch}',
+                      uri: '',
                       tracks: selected,
                       totalTracks: selected.length,
                     );
@@ -640,7 +667,8 @@ class _TrackImportDialogState extends State<_TrackImportDialog> {
             icon: const Icon(Icons.library_add_rounded, size: 18),
             label: Text('导入所选为歌单（${selected.length}）'),
           ),
-        FilledButton.icon(
+        M3EButton.icon(
+          style: M3EButtonStyle.filled,
           onPressed: selected.isEmpty
               ? null
               : () async {
@@ -650,13 +678,19 @@ class _TrackImportDialogState extends State<_TrackImportDialog> {
                   Navigator.of(context).pop();
                   AppToast.show(
                     context,
-                    '已将所选 ${selected.length} 首歌曲合并导入到本账号「已点赞的歌曲」（新增 $added 首）',
+                    isExternalBackupLiked
+                        ? '已将所选 ${selected.length} 首歌曲合并导入到本账号「已点赞的歌曲」（新增 $added 首）'
+                        : '已收藏所选 ${selected.length} 首歌曲（新增 $added 首）',
                     icon: Icons.favorite_rounded,
                     tone: ToastTone.success,
                   );
                 },
           icon: const Icon(Icons.favorite_rounded, size: 18),
-          label: Text('合并到已点赞歌曲（${selected.length}）'),
+          label: Text(
+            isExternalBackupLiked
+                ? '合并到已点赞歌曲（${selected.length}）'
+                : '收藏所选歌曲（${selected.length}）',
+          ),
         ),
       ],
     );

@@ -19,6 +19,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../fakes/controlled_search_api.dart';
 import '../fakes/fake_audio_player_service.dart';
 import '../fixtures/search_pages.dart';
+import 'package:material_3_expressive/material_3_expressive.dart' show M3EButton;
 
 void main() {
   for (final width in [390.0, 1280.0]) {
@@ -134,7 +135,7 @@ void main() {
     api.requests.last.result.completeError(StateError('offline'));
     await tester.pump();
     expect(find.text('Existing artist'), findsOneWidget);
-    await tester.tap(find.widgetWithText(TextButton, 'Retry'));
+    await tester.tap(find.widgetWithText(M3EButton, 'Retry'));
     await tester.pump();
     expect(api.requests.last.offset, 10);
     api.requests.last.result.complete(
@@ -174,9 +175,9 @@ void main() {
     api.requests.single.result.completeError(SpotifyDataException.notSignedIn);
     await tester.pump();
     expect(find.text("Sign in to see what's here"), findsOneWidget);
-    final signIn = find.widgetWithText(OutlinedButton, 'Sign in');
+    final signIn = find.widgetWithText(M3EButton, 'Sign in');
     expect(signIn, findsOneWidget);
-    expect(tester.widget<OutlinedButton>(signIn).onPressed, isNotNull);
+    expect(tester.widget<M3EButton>(signIn).onPressed, isNotNull);
     expect(find.byIcon(Icons.lock_outline_rounded), findsOneWidget);
     expect(find.byIcon(Icons.wifi_off_rounded), findsNothing);
     expect(find.text('Retry'), findsNothing);

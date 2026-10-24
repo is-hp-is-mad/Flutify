@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../l10n/l10n.dart';
+import 'package:material_3_expressive/material_3_expressive.dart' show M3EButton;
 
 /// 主页分区标题行：[leading]（艺人头像）+ 标题 / 副标题 + 右侧「显示全部」。
 ///
@@ -50,7 +51,7 @@ class HomeSectionHeader extends StatelessWidget {
             ),
           ),
           if (onShowAll != null)
-            TextButton(
+            M3EButton.text(
               onPressed: onShowAll,
               child: Text(
                 context.l10n.commonShowAll,

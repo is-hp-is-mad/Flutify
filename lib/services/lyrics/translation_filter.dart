@@ -1,4 +1,6 @@
+import '../../core/rust_core.dart';
 import '../../models/lyrics.dart';
+import '../../src/rust/api/lyrics.dart' as rust;
 import 'lrclib_candidate.dart';
 import 'lyric_script.dart';
 import 'translation_markers.dart';
@@ -32,6 +34,11 @@ class TranslationFilter {
 
   /// 第 3 条：整首双语混排（不是逐句对照，拆不出译文才走到这）。
   static bool isMixed(List<LyricLine> lines) {
+    if (RustCore.ready) {
+      return rust.isMixedScriptLines(
+        lines: [for (final l in lines) l.words],
+      );
+    }
     var n = 0, cjk = 0, lat = 0, cyr = 0;
     for (final l in lines) {
       if (l.words.trim().isEmpty) continue;

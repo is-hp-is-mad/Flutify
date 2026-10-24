@@ -3,25 +3,56 @@ import 'dart:io';
 import 'auth_constants.dart';
 import 'proto_codec.dart';
 
-/// 向 Spotify 声明的客户端身份（目前只有 Windows 桌面端）。
+/// 向 Spotify 声明的客户端身份。
 ///
-/// 桌面 OAuth 数据请求共用 client_id、client-token 平台数据及请求头。
-/// Web 播放另有独立身份；协议差异带来的账号风险尚未验证。
+/// 令牌、client-token 与业务请求头必须属于同一个客户端，否则内部接口拒绝请求。
+/// - [web]：Web 播放器（open.spotify.com），登录态（sp_dc 铸造的令牌）所属身份，业务请求都用它；
+/// - [desktop]：Windows 桌面端，只剩 AP（接入点）协议握手使用。
 enum SpotifyClientProfile {
-  /// Windows 桌面端：桌面版浏览器 OAuth。
-  desktop;
+  /// Windows 桌面端（AP 协议握手）。
+  desktop,
 
-  String get clientId => SpotifyAuthConstants.desktopClientId;
+  /// Web 播放器：Web 登录铸造的令牌所属身份。
+  web;
+
+  String get clientId => switch (this) {
+    desktop => SpotifyAuthConstants.desktopClientId,
+    web => SpotifyAuthConstants.webClientId,
+  };
 
   /// client-token 请求中的 client_version。
-  String get clientVersion => SpotifyAuthConstants.desktopVersion;
+  String get clientVersion => switch (this) {
+    desktop => SpotifyAuthConstants.desktopVersion,
+    web => SpotifyAuthConstants.webClientVersion,
+  };
 
-  String get userAgent => SpotifyAuthConstants.desktopUserAgent;
+  String get userAgent => switch (this) {
+    desktop => SpotifyAuthConstants.desktopUserAgent,
+    web => SpotifyAuthConstants.webUserAgent,
+  };
 
   /// 访问内部接口（spclient / identity 等）时附带的客户端头。键统一小写，便于调用方覆盖。
-  Map<String, String> get headers => const {
-    'app-platform': SpotifyAuthConstants.desktopPlatform,
-    'spotify-app-version': SpotifyAuthConstants.desktopVersion,
+  Map<String, String> get headers => switch (this) {
+    desktop => const {
+      'app-platform': SpotifyAuthConstants.desktopPlatform,
+      'spotify-app-version': SpotifyAuthConstants.desktopVersion,
+    },
+    web => const {
+      'app-platform': SpotifyAuthConstants.webPlatform,
+      'spotify-app-version': SpotifyAuthConstants.webClientVersion,
+      'origin': 'https://open.spotify.com',
+      'referer': 'https://open.spotify.com/',
+    },
+  };
+
+  /// Web 播放器 client-token 请求里的 js_sdk_data（对齐 web-player 前端：未定义的字段不发送）。
+  Map<String, String> jsSdkData(String deviceId) => {
+    'device_brand': 'unknown',
+    'device_model': 'unknown',
+    'os': 'windows',
+    'os_version': 'NT 10.0',
+    'device_id': deviceId,
+    'device_type': 'computer',
   };
 
   /// AP keyexchange.proto BuildInfo，与桌面 HTTP 配置共用版本。

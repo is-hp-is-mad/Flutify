@@ -5,6 +5,7 @@ import '../../../l10n/l10n.dart';
 import '../../../providers/playback_provider.dart';
 import '../../widgets/content_bottom_spacer.dart';
 import '../../widgets/cover_image.dart';
+import 'package:material_3_expressive/material_3_expressive.dart' show M3EButton;
 
 /// 播放队列列表：正在播放 / 队列中的下一首 / 接下来播放（上下文）。
 ///
@@ -46,7 +47,7 @@ class QueueList extends StatelessWidget {
           _SectionHeader(
             title: l10n.queueNextInQueue,
             padding: horizontalPadding,
-            action: TextButton(
+            action: M3EButton.text(
               onPressed: playback.clearUserQueue,
               child: Text(l10n.queueClear),
             ),
@@ -178,8 +179,8 @@ class _DismissibleRow extends StatelessWidget {
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 24),
-        color: Colors.redAccent,
-        child: const Icon(Icons.delete_rounded, color: Colors.white),
+        color: Theme.of(context).colorScheme.errorContainer,
+        child: Icon(Icons.delete_rounded, color: Theme.of(context).colorScheme.onErrorContainer),
       ),
       child: Material(
         type: MaterialType.transparency,

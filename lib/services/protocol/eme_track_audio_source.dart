@@ -8,6 +8,7 @@ import '../../models/audio_playback_info.dart';
 
 import '../audio/audio_engine.dart';
 import '../auth/auth_constants.dart';
+import '../auth/client_profile.dart';
 import '../cache/cache_location.dart';
 import '../eme/fairplay.dart';
 import '../eme/segmented_download.dart';
@@ -102,10 +103,9 @@ class EmeTrackAudioSource implements TrackAudioSource, AudioCacheStore {
     final token = await accessToken();
     final h = <String, String>{
       'Authorization': 'Bearer $token',
-      // 桌面端身份（track-playback / sneaktables 用这个）
-      'User-Agent': SpotifyAuthConstants.desktopUserAgent,
-      'app-platform': SpotifyAuthConstants.desktopPlatform,
-      'spotify-app-version': SpotifyAuthConstants.desktopVersion,
+      // 与登录令牌同一身份（Web 播放器），track-playback / sneaktables 校验令牌与客户端一致
+      'User-Agent': SpotifyClientProfile.web.userAgent,
+      ...SpotifyClientProfile.web.headers,
     };
     if (clientToken != null) h['client-token'] = await clientToken!();
     return h;

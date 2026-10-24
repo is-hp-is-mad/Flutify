@@ -15,6 +15,8 @@ import '../../widgets/skeleton.dart';
 import '../../widgets/track_tile.dart';
 import 'widgets/artist_catalog_widgets.dart';
 import 'widgets/collection_widgets.dart';
+import 'package:material_3_expressive/material_3_expressive.dart' show M3EButton, M3EButtonStyle;
+import '../../widgets/flutify_progress.dart';
 
 enum ArtistCatalogKind { albums, songs }
 
@@ -315,9 +317,9 @@ class _ArtistCatalogScreenState extends State<ArtistCatalogScreen> {
                   child: _loading
                       ? const SizedBox.square(
                           dimension: 24,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: FlutifySpinner(size: 24),
                         )
-                      : OutlinedButton.icon(
+                      : M3EButton.icon(style: M3EButtonStyle.outlined,
                           key: const Key('artist-catalog-load-more'),
                           onPressed: _continue,
                           icon: const Icon(Icons.expand_more_rounded),

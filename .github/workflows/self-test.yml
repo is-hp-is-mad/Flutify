@@ -200,7 +200,7 @@ jobs:
       - run: flutter pub get
       - name: Test Windows PowerShell 5.1 update handoff
         run: python tool/test_windows_update.py -v
-      - run: flutter build windows --release --no-pub --dart-define=FLUTIFY_NATIVE_WIDEVINE=${{ matrix.arch == 'x64' }}
+      - run: flutter build windows --release --no-pub
       - name: Verify native binary architecture
         run: python tool/verify_windows_arch.py build/windows/${{ matrix.arch }}/runner/Release ${{ matrix.arch }}
       - name: Verify app-local VC runtime dependencies

@@ -2,6 +2,9 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import '../../core/rust_core.dart';
+import '../../src/rust/api/protocol.dart' as rust;
+
 /// Spotify 音频文件自带的响度数据（音量均衡用）。
 ///
 /// 来源：Ogg 文件开头 0xa7 字节的 Spotify 私有头页里，偏移 144 起连续 4 个小端 float32：
@@ -24,6 +27,14 @@ class AudioNormalization {
   /// 按 librespot 的算法：增益 = 10^(gain_db / 20)，再用峰值限幅避免削波（增益 × 峰值 ≤ 1）。
   /// 播放器音量不能超过 1，所以只做衰减：偏响的歌调低，偏轻的歌保持原样。
   double get volumeFactor {
+    if (RustCore.ready) {
+      try {
+        return rust.normalizationVolumeFactor(
+          trackGainDb: trackGainDb,
+          trackPeak: trackPeak,
+        );
+      } catch (_) {}
+    }
     var gain = math.pow(10, trackGainDb / 20).toDouble();
     if (trackPeak > 0 && gain * trackPeak > 1) gain = 1 / trackPeak;
     return gain.clamp(0.0, 1.0);
@@ -32,6 +43,16 @@ class AudioNormalization {
   /// 从 16 字节数据解析；数值明显不合理（损坏 / 非 Spotify 文件）时返回 null。
   static AudioNormalization? parse(Uint8List bytes) {
     if (bytes.length < byteLength) return null;
+    if (RustCore.ready) {
+      try {
+        final info = rust.parseAudioNormalization(bytes: bytes);
+        if (info == null) return null;
+        return AudioNormalization(
+          trackGainDb: info.trackGainDb,
+          trackPeak: info.trackPeak,
+        );
+      } catch (_) {}
+    }
     final data = ByteData.sublistView(bytes);
     final gain = data.getFloat32(0, Endian.little);
     final peak = data.getFloat32(4, Endian.little);

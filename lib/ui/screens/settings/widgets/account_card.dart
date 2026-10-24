@@ -7,6 +7,8 @@ import '../../../../providers/auth_provider.dart';
 import '../../../widgets/user_avatar.dart';
 import '../../auth/login_screen.dart';
 import '../../auth/widgets/flutify_mark.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
+import '../../../widgets/flutify_dialog.dart';
 
 /// 设置页顶部的 Spotify 账号卡片。
 ///
@@ -61,7 +63,7 @@ class _SignedOut extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 12),
-        FilledButton(onPressed: () => LoginScreen.open(context), child: Text(l10n.accountSignIn)),
+        M3EButton.filled(onPressed: () => LoginScreen.open(context), child: Text(l10n.accountSignIn)),
       ],
     );
   }
@@ -76,18 +78,19 @@ class _SignedIn extends StatelessWidget {
     final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.accountSignOutTitle),
-        content: Text(l10n.accountSignOutMessage),
+      builder: (ctx) => FlutifyDialog(
+        title: l10n.accountSignOutTitle,
+        content: Material(type: MaterialType.transparency, child: Text(l10n.accountSignOutMessage)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.commonCancel)),
-          TextButton(
+          M3EButton.text(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.commonCancel)),
+          M3EButton.text(
             onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: Theme.of(ctx).colorScheme.error),
+            decoration: M3EButtonDecoration(
+              foregroundColor: WidgetStatePropertyAll(Theme.of(ctx).colorScheme.error),
+            ),
             child: Text(l10n.accountSignOutConfirm),
           ),
-        ],
-      ),
+        ]),
     );
     if (confirmed == true) await auth.signOut();
   }
@@ -122,9 +125,11 @@ class _SignedIn extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 12),
-        OutlinedButton(
+        M3EButton.outlined(
           onPressed: () => _confirmSignOut(context),
-          style: OutlinedButton.styleFrom(foregroundColor: colorScheme.error),
+          decoration: M3EButtonDecoration(
+            foregroundColor: WidgetStatePropertyAll(colorScheme.error),
+          ),
           child: Text(l10n.accountSignOut),
         ),
       ],

@@ -1215,6 +1215,22 @@ class AppLocalizationsJa extends AppLocalizations {
       '次回起動時に復元します。前回の画面がない場合は中央に表示します';
 
   @override
+  String get settingsSpotifyLinks => 'Spotify リンクを Flutify で開く';
+
+  @override
+  String get settingsSpotifyLinksSubtitle =>
+      'ブラウザや他のアプリで spotify: リンクを開くと Flutify で再生します';
+
+  @override
+  String settingsSpotifyLinksOther(String app) {
+    return '現在は $app で開きます';
+  }
+
+  @override
+  String get settingsSpotifyLinksSystem =>
+      'Windows の「既定のアプリ」で spotify: リンクに別のアプリが選ばれています。設定で Flutify を選んでください';
+
+  @override
   String get settingsConnectSection => 'Spotify Connect';
 
   @override
@@ -1936,4 +1952,100 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsAnimDebugBackgroundSubtitle => '歌詞の背景が静止画のままになります';
+
+  @override
+  String get settingsExternalLyricsSection => '車載・ステータスバー歌詞';
+
+  @override
+  String get settingsBluetoothLyrics => 'Bluetooth 歌詞';
+
+  @override
+  String get settingsBluetoothLyricsSubtitle =>
+      'Bluetooth オーディオ機器に接続中、メディア情報のタイトルを現在の歌詞行に、アーティストとアルバムを「曲名 - アーティスト」に置き換え、車載ディスプレイに歌詞を表示します';
+
+  @override
+  String get bluetoothLyricsOff => 'オフ';
+
+  @override
+  String get bluetoothLyricsCar => '車載機器';
+
+  @override
+  String get bluetoothLyricsAll => 'すべての機器';
+
+  @override
+  String get settingsBluetoothLyricsTranslation => '訳文を含める';
+
+  @override
+  String get settingsBluetoothLyricsTranslationSubtitle =>
+      '訳文がある場合、タイトルを「原文 / 訳文」で表示します';
+
+  @override
+  String get settingsBluetoothPermission => 'Bluetooth 機器の識別を許可';
+
+  @override
+  String get settingsBluetoothPermissionSubtitle => '車載機器の識別には「付近のデバイス」権限が必要です';
+
+  @override
+  String get settingsBluetoothPermissionGrant => '許可';
+
+  @override
+  String get settingsBluetoothDevices => '接続中の Bluetooth 機器';
+
+  @override
+  String get settingsBluetoothDevicesEmpty => '接続中の Bluetooth オーディオ機器はありません';
+
+  @override
+  String get bluetoothDeviceUnnamed => '名前のない機器';
+
+  @override
+  String get bluetoothDeviceCar => '車載機器として認識済み。歌詞を自動表示します';
+
+  @override
+  String get bluetoothDeviceAll => 'すべての機器モードで歌詞を自動表示します';
+
+  @override
+  String get bluetoothDeviceManual => 'この機器でも歌詞を表示';
+
+  @override
+  String get settingsFlymeLyrics => 'Flyme ステータスバー歌詞';
+
+  @override
+  String get settingsFlymeLyricsSubtitle =>
+      '再生中、Meizu Flyme のステータスバーに現在の歌詞行を表示します';
+
+  @override
+  String get audioOutputTitle => 'このデバイスの音声出力';
+
+  @override
+  String get audioOutputSystemDefault => 'システムの既定';
+
+  @override
+  String get audioOutputSelected => '出力中';
+
+  @override
+  String get audioOutputSystemSwitcher => '出力デバイスを選択';
+
+  @override
+  String get audioOutputSystemSwitcherSubtitle =>
+      'システムの出力パネルを開く：スピーカー、Bluetooth、有線イヤホン';
+
+  @override
+  String get audioOutputSystemUnavailable => 'このシステムには出力切り替えパネルがありません';
+
+  @override
+  String get audioOutputWebViewNote => 'ブラウザエンジンで再生中のため切り替えできません。システムの既定を使用します';
+
+  @override
+  String playbackEngineCurrent(String engine) {
+    return '再生エンジン：$engine';
+  }
+
+  @override
+  String get playbackEngineLocal => 'ローカルプレーヤー';
+
+  @override
+  String get playbackEngineWebView => 'WebView（ブラウザエンジン）';
+
+  @override
+  String get playbackEngineAndroid => 'Android ネイティブ';
 }

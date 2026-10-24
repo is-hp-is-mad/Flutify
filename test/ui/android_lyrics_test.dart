@@ -30,6 +30,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../fakes/fake_audio_player_service.dart';
 import '../fakes/fake_spotify_api_service.dart';
 import '../fakes/fake_track_audio_source.dart';
+import 'package:material_3_expressive/material_3_expressive.dart' show M3ESwitch;
 
 void main() {
   const track = SpotifyTrack(
@@ -814,9 +815,9 @@ void main() {
     expect(find.text('社区歌词翻译'), findsOneWidget);
     final communitySwitch = find.descendant(
       of: find.widgetWithText(SettingsSwitchTile, '社区歌词翻译'),
-      matching: find.byType(Switch),
+      matching: find.byType(M3ESwitch),
     );
-    expect(tester.widget<Switch>(communitySwitch).value, isFalse);
+    expect(tester.widget<M3ESwitch>(communitySwitch).value, isFalse);
     await tester.ensureVisible(communitySwitch);
     await tester.pumpAndSettle();
     await tester.tap(communitySwitch);

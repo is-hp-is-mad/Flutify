@@ -37,6 +37,9 @@ bool FlutterWindow::OnCreate() {
   media_controls_ = std::make_unique<MediaControls>(GetHandle(), messenger);
   snap_layout_ = std::make_unique<SnapLayout>(GetHandle(), flutter_controller_->view()->GetNativeWindow(), messenger);
   taskbar_lyrics_ = std::make_unique<TaskbarLyrics>(GetHandle(), messenger);
+  protocol_ = std::make_unique<protocol_handler::ProtocolChannel>(
+      messenger, std::move(initial_link_));
+  protocol_handler::MarkMainWindow(GetHandle());
 
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
     this->Show();
@@ -53,6 +56,7 @@ bool FlutterWindow::OnCreate() {
 void FlutterWindow::OnDestroy() {
   // 先于引擎释放：它们持有引擎的 MethodChannel
   taskbar_lyrics_ = nullptr;
+  protocol_ = nullptr;
   trust_store_ = nullptr;
   system_proxy_ = nullptr;
   snap_layout_ = nullptr;
@@ -79,6 +83,12 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
   }
   if (taskbar_lyrics_ && taskbar_lyrics_->HandleMessage(message, wparam, lparam)) {
     return 0;
+  }
+  // 第二个实例转发来的链接（可能为空：只是再次打开程序）
+  if (auto link = protocol_handler::ReadForwardedLink(message, lparam)) {
+    protocol_handler::ActivateWindow(hwnd);
+    if (protocol_) protocol_->DeliverLink(*link);
+    return TRUE;
   }
 
   // Give Flutter, including plugins, an opportunity to handle window messages.

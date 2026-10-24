@@ -22,7 +22,7 @@ class AccountProfileService {
     required String username,
     required String accessToken,
     required String clientToken,
-    SpotifyClientProfile profile = SpotifyClientProfile.desktop,
+    SpotifyClientProfile profile = SpotifyClientProfile.web,
   }) async {
     if (username.isEmpty) return null;
     try {
@@ -56,7 +56,7 @@ class AccountProfileService {
   /// 公开 `/v1/me`：响应的 id 即用户名，可在 AP 不可达时补全用户名。失败返回 null。
   Future<AccountProfile?> fetchMe(
     String accessToken, {
-    SpotifyClientProfile profile = SpotifyClientProfile.desktop,
+    SpotifyClientProfile profile = SpotifyClientProfile.web,
   }) async {
     try {
       final res = await _client.get(

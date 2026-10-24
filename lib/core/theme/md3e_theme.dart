@@ -34,7 +34,6 @@ class MD3ETheme {
   }
 
   static ThemeData _build(ColorScheme colorScheme, FlutifyTokens tokens, bool reduceMotion) {
-    final isDark = colorScheme.brightness == Brightness.dark;
     // englishLike 的样式 inherit=false，ThemeData 合并时不会补颜色；
     // FlexibleSpaceBar 等组件会对 titleLarge.color 做非空断言，必须显式着色。
     final textTheme = MD3ETypography.createTextTheme().apply(
@@ -203,14 +202,29 @@ class MD3ETheme {
       ),
 
       // Expressive Slider Theme
+      // Expressive Slider Theme（播放进度条为刻意的紧凑样式：圆点手柄 + 细轨道；
+      // 不启用 year2023: false，否则末端停止点会和各处自定义的圆点手柄混在一起）
       sliderTheme: SliderThemeData(
         activeTrackColor: colorScheme.primary,
         inactiveTrackColor: colorScheme.onSurfaceVariant.withAlpha(50),
-        thumbColor: isDark ? Colors.white : colorScheme.onSurface,
+        thumbColor: colorScheme.brightness == Brightness.dark ? Colors.white : colorScheme.onSurface,
         overlayColor: colorScheme.primary.withAlpha(40),
         trackHeight: 4.0,
         thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0),
         overlayShape: const RoundSliderOverlayShape(overlayRadius: 14.0),
+      ),
+
+      // MD3E 进度指示器：分段留缝 + 停止点
+      // ignore: deprecated_member_use
+      progressIndicatorTheme: const ProgressIndicatorThemeData(year2023: false),
+
+      // MD3E 开关：选中时手柄带对勾
+      switchTheme: SwitchThemeData(
+        thumbIcon: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? const Icon(Icons.check_rounded)
+              : null,
+        ),
       ),
 
       // Expressive SnackBar：悬浮、大圆角、反色表面；操作按钮为浅色调胶囊

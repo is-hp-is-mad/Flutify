@@ -24,6 +24,12 @@ enum LyricsAlign { left, center }
 /// 任务栏歌词的文字颜色：自动（按任务栏背景明暗取黑 / 白）、白、黑、跟随强调色、自定义。
 enum TaskbarLyricsColor { auto, white, black, accent, custom }
 
+/// 连接蓝牙音频设备时把系统媒体信息换成当前歌词行（车机屏幕上显示歌词）。
+/// - [off]：不替换；
+/// - [car]：只对识别为车载（车载音响 / 免提）的设备，以及用户手动加入的设备替换；
+/// - [all]：所有蓝牙音频设备都替换。
+enum BluetoothLyricsMode { off, car, all }
+
 /// 非外观类的界面偏好（外观见 `AppearanceSettings`，播放类偏好由 PlaybackProvider 持有）。
 ///
 /// 不可变；整体序列化为一段 JSON 存在 `app_prefs` 键下。
@@ -117,6 +123,21 @@ class AppPreferences {
   /// 放不下时原生层仍会自动缩小或折行。
   final int taskbarLyricsFontScale;
 
+  /// 蓝牙歌词（Android）：见 [BluetoothLyricsMode]。
+  final BluetoothLyricsMode bluetoothLyrics;
+
+  /// 蓝牙歌词附带译文（「原文 / 译文」）。
+  final bool bluetoothLyricsTranslation;
+
+  /// 手动加入蓝牙歌词的设备（蓝牙 MAC 地址）；[BluetoothLyricsMode.car] 下与自动识别的车载设备一起生效。
+  final List<String> bluetoothLyricsDevices;
+
+  /// 魅族 Flyme 状态栏歌词（Android，仅 Flyme 系统生效）。
+  final bool flymeStatusBarLyrics;
+
+  /// 本机音频输出设备 id；空串为跟随系统默认设备。
+  final String audioOutputDevice;
+
   const AppPreferences({
     this.language = AppLanguage.zh,
     this.lyricsScale = 1.0,
@@ -152,6 +173,11 @@ class AppPreferences {
     this.taskbarLyricsCustomColor = defaultTaskbarLyricsCustomColor,
     this.taskbarLyricsOpacity = 100,
     this.taskbarLyricsFontScale = 100,
+    this.bluetoothLyrics = BluetoothLyricsMode.off,
+    this.bluetoothLyricsTranslation = false,
+    this.bluetoothLyricsDevices = const [],
+    this.flymeStatusBarLyrics = false,
+    this.audioOutputDevice = '',
   });
 
   static const AppPreferences defaults = AppPreferences();
@@ -205,6 +231,11 @@ class AppPreferences {
     int? taskbarLyricsCustomColor,
     int? taskbarLyricsOpacity,
     int? taskbarLyricsFontScale,
+    BluetoothLyricsMode? bluetoothLyrics,
+    bool? bluetoothLyricsTranslation,
+    List<String>? bluetoothLyricsDevices,
+    bool? flymeStatusBarLyrics,
+    String? audioOutputDevice,
   }) {
     return AppPreferences(
       language: language ?? this.language,
@@ -257,6 +288,13 @@ class AppPreferences {
       taskbarLyricsOpacity: taskbarLyricsOpacity ?? this.taskbarLyricsOpacity,
       taskbarLyricsFontScale:
           taskbarLyricsFontScale ?? this.taskbarLyricsFontScale,
+      bluetoothLyrics: bluetoothLyrics ?? this.bluetoothLyrics,
+      bluetoothLyricsTranslation:
+          bluetoothLyricsTranslation ?? this.bluetoothLyricsTranslation,
+      bluetoothLyricsDevices:
+          bluetoothLyricsDevices ?? this.bluetoothLyricsDevices,
+      flymeStatusBarLyrics: flymeStatusBarLyrics ?? this.flymeStatusBarLyrics,
+      audioOutputDevice: audioOutputDevice ?? this.audioOutputDevice,
     );
   }
 
@@ -295,6 +333,11 @@ class AppPreferences {
     'taskbarLyricsCustomColor': taskbarLyricsCustomColor,
     'taskbarLyricsOpacity': taskbarLyricsOpacity,
     'taskbarLyricsFontScale': taskbarLyricsFontScale,
+    'bluetoothLyrics': bluetoothLyrics.name,
+    'bluetoothLyricsTranslation': bluetoothLyricsTranslation,
+    'bluetoothLyricsDevices': bluetoothLyricsDevices,
+    'flymeStatusBarLyrics': flymeStatusBarLyrics,
+    'audioOutputDevice': audioOutputDevice,
   };
 
   factory AppPreferences.fromJson(Map<String, dynamic> json) {
@@ -418,6 +461,30 @@ class AppPreferences {
               maxTaskbarLyricsFontScale,
             )
           : d.taskbarLyricsFontScale,
+      bluetoothLyrics: pick(
+        BluetoothLyricsMode.values,
+        json['bluetoothLyrics'],
+        d.bluetoothLyrics,
+      ),
+      bluetoothLyricsTranslation: flag(
+        json['bluetoothLyricsTranslation'],
+        d.bluetoothLyricsTranslation,
+      ),
+      bluetoothLyricsDevices: json['bluetoothLyricsDevices'] is List
+          ? List.unmodifiable(
+              (json['bluetoothLyricsDevices'] as List)
+                  .whereType<String>()
+                  .where((v) => v.isNotEmpty)
+                  .toSet(),
+            )
+          : d.bluetoothLyricsDevices,
+      flymeStatusBarLyrics: flag(
+        json['flymeStatusBarLyrics'],
+        d.flymeStatusBarLyrics,
+      ),
+      audioOutputDevice: json['audioOutputDevice'] is String
+          ? json['audioOutputDevice'] as String
+          : d.audioOutputDevice,
     );
   }
 
@@ -472,7 +539,12 @@ class AppPreferences {
       other.taskbarLyricsColor == taskbarLyricsColor &&
       other.taskbarLyricsCustomColor == taskbarLyricsCustomColor &&
       other.taskbarLyricsOpacity == taskbarLyricsOpacity &&
-      other.taskbarLyricsFontScale == taskbarLyricsFontScale;
+      other.taskbarLyricsFontScale == taskbarLyricsFontScale &&
+      other.bluetoothLyrics == bluetoothLyrics &&
+      other.bluetoothLyricsTranslation == bluetoothLyricsTranslation &&
+      listEquals(other.bluetoothLyricsDevices, bluetoothLyricsDevices) &&
+      other.flymeStatusBarLyrics == flymeStatusBarLyrics &&
+      other.audioOutputDevice == audioOutputDevice;
 
   @override
   int get hashCode => Object.hashAll([
@@ -510,5 +582,10 @@ class AppPreferences {
     taskbarLyricsCustomColor,
     taskbarLyricsOpacity,
     taskbarLyricsFontScale,
+    bluetoothLyrics,
+    bluetoothLyricsTranslation,
+    Object.hashAll(bluetoothLyricsDevices),
+    flymeStatusBarLyrics,
+    audioOutputDevice,
   ]);
 }

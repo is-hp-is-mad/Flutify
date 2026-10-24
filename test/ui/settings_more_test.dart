@@ -23,6 +23,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../fakes/fake_audio_player_service.dart';
 import '../fakes/fake_spotify_api_service.dart';
 import '../fakes/fake_track_audio_source.dart';
+import 'package:material_3_expressive/material_3_expressive.dart' show M3EButton;
 
 /// 带缓存管理能力的加载器替身（真实 TrackAudioLoader 同时实现两个接口）。
 class _FakeCachingLoader extends FakeTrackAudioSource
@@ -274,7 +275,7 @@ void main() {
 
     await tapText(tester, '清除音频缓存');
     expect(find.text('清除音频缓存？'), findsOneWidget);
-    await tester.tap(find.widgetWithText(FilledButton, '清除'));
+    await tester.tap(find.widgetWithText(M3EButton, '清除'));
     await settle(tester);
     expect(loader.bytes, 0);
     expect(find.text('已释放 3 MB，0 个使用中，0 个未成功'), findsOneWidget);

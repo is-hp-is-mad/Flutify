@@ -18,8 +18,11 @@ import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 
 import 'core/render/frame_rate_binding.dart';
+import 'package:material_3_expressive/material_3_expressive.dart' show M3ETheme;
+import 'core/theme/m3e_theme_bridge.dart';
 import 'core/theme/system_bars.dart';
 import 'core/theme/app_text_scaler.dart';
+import 'core/rust_core.dart';
 import 'core/utils/error_placeholder.dart';
 import 'core/utils/orientation_policy.dart';
 import 'l10n/app_locale.dart';
@@ -46,8 +49,6 @@ import 'services/eme/eme_player.dart';
 import 'services/eme/license_client.dart';
 import 'services/eme/native_drm_audio_engine.dart';
 import 'services/eme/native_drm_player.dart';
-import 'services/eme/windows_native_audio_engine.dart';
-import 'services/eme/windows_native_decryptor.dart';
 import 'services/connect/connect_play_request.dart';
 import 'services/connect/connect_service.dart';
 import 'services/connect/receiver/connect_receiver.dart';
@@ -91,6 +92,10 @@ import 'ui/widgets/dynamic_accent_sync.dart';
 import 'ui/widgets/automatic_gateway_binding.dart';
 import 'ui/widgets/playback_session_keeper.dart';
 import 'ui/widgets/taskbar_lyrics_binding.dart';
+import 'ui/widgets/lyric_bridge_binding.dart';
+import 'services/audio/audio_output_service.dart';
+import 'services/lyric_bridge/lyric_bridge_channel.dart';
+import 'services/lyric_bridge/lyric_metadata_controls.dart';
 import 'ui/widgets/update_prompt.dart';
 
 Future<void> main() async {
@@ -114,6 +119,9 @@ Future<Widget> _initializeApp(ValueChanged<String> reportStage) async {
   // just_audio 自身没有 Windows / Linux 实现，需在创建任何 AudioPlayer 之前
   // 注册 media_kit 后端；Android / iOS 仍使用 just_audio 原生实现。
   JustAudioMediaKit.ensureInitialized();
+
+  // Rust 核心（试点：LRC 解析）；失败时各调用点自动回退到 Dart 实现
+  await RustCore.initialize();
 
   // 系统栏透明、内容铺满（edge-to-edge）；图标深浅由 FlutifyApp 按当前主题设置
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -199,27 +207,9 @@ Future<Widget> _initializeApp(ValueChanged<String> reportStage) async {
         await emePlayer.start();
       },
     );
-    final nativeExperiment =
-        Platform.isWindows &&
-        (const bool.fromEnvironment('FLUTIFY_NATIVE_WIDEVINE') ||
-            Platform.environment['FLUTIFY_NATIVE_WIDEVINE'] == '1');
-    if (nativeExperiment) {
-      debugPrint(
-        '[native-wv] Experimental native DRM enabled; WebView fallback retained',
-      );
-      drmEngine = WindowsNativeAudioEngine(
-        native: AudioPlayerService(),
-        fallback: webEngine,
-        decryptor: WindowsNativeDecryptor(
-          fetchCertificate: licenseClient.fetchCert,
-          postLicense: licenseClient.postLicense,
-        ),
-      );
-    } else {
-      drmEngine = webEngine;
-    }
+    drmEngine = webEngine;
   }
-  // 路由引擎：本地文件/流式 → just_audio；DRM 曲目 → EME / 原生 DRM
+  // 路由引擎：本地文件/流式 → just_audio；DRM 曲目 → EME（Android 为原生 DRM）
   final audioEngine = RoutedAudioEngine(
     local: audioPlayerService,
     eme: drmEngine,
@@ -228,6 +218,10 @@ Future<Widget> _initializeApp(ValueChanged<String> reportStage) async {
   // 上次播放会话（曲目 / 队列 / 进度）：单独的 JSON 文件，不放进 SharedPreferences
   reportStage('读取应用目录');
   final supportDir = await getApplicationSupportDirectory();
+  // 歌单备份写在独立文件（异步、后台编码），不塞进 SharedPreferences
+  PlaylistBackupService.defaultDiskFile = File(
+    '${supportDir.path}${Platform.pathSeparator}playlist_backups.json',
+  );
   final legacyArtworkDirectory =
       '${(await getTemporaryDirectory()).path}${Platform.pathSeparator}libCachedImageData';
   final audioCacheLocation = CacheLocation(
@@ -257,9 +251,14 @@ Future<Widget> _initializeApp(ValueChanged<String> reportStage) async {
   final taskbarLyrics = Platform.isWindows
       ? TaskbarLyricsControls(MethodChannelTaskbarLyrics())
       : null;
+  // Android：蓝牙（车机）歌词与 Flyme 状态栏歌词包在通知栏媒体控制外面
+  final lyricBridge = Platform.isAndroid && systemControls != null
+      ? LyricMetadataControls(systemControls, MethodChannelLyricBridge())
+      : null;
+  final baseControls = lyricBridge ?? systemControls;
   final mediaControls = taskbarLyrics == null
-      ? systemControls
-      : MultiMediaControls([?systemControls, taskbarLyrics]);
+      ? baseControls
+      : MultiMediaControls([?baseControls, taskbarLyrics]);
 
   // 歌词补全：Spotify 没有逐行同步歌词时查 LRCLIB，选中的歌词缓存在应用数据目录
   final lyricsFallback = LrclibLyricsSource(
@@ -352,6 +351,7 @@ Future<Widget> _initializeApp(ValueChanged<String> reportStage) async {
     lyricsTranslation: lyricsTranslation,
     qqLyricsTranslation: qqLyricsTranslation,
     taskbarLyrics: taskbarLyrics,
+    lyricBridge: lyricBridge,
     playbackRegionGate: playbackRegionGate,
     updateService: UpdateService(
       storage: storageService,
@@ -401,6 +401,9 @@ class FlutifyApp extends StatelessWidget {
   /// 任务栏歌词（Windows）；已包含在 [mediaControls] 里，这里供界面层绑定设置与歌词来源。
   final TaskbarLyricsControls? taskbarLyrics;
 
+  /// 蓝牙（车机）歌词 / Flyme 状态栏歌词（Android）；已包含在 [mediaControls] 里，这里供界面层绑定。
+  final LyricMetadataControls? lyricBridge;
+
   /// 起播前的网络出口地区门控；为空时不做地区检测（测试默认）。
   ///
   /// 由 main 创建、和 PlaybackProvider / AutomaticGatewayBinding 共用同一个实例：
@@ -425,6 +428,7 @@ class FlutifyApp extends StatelessWidget {
     this.lyricsTranslation,
     this.qqLyricsTranslation,
     this.taskbarLyrics,
+    this.lyricBridge,
     this.playbackRegionGate,
     this.updateService,
   });
@@ -561,7 +565,26 @@ class FlutifyApp extends StatelessWidget {
             return spotify;
           },
         ),
+        // 畅联「本机音频设备」：Windows / Linux（libmpv）可切换本机输出设备，启动即恢复上次的选择
+        ChangeNotifierProvider<AudioOutputService?>(
+          lazy: false,
+          create: (context) {
+            if (!AudioOutputService.platformSupported) return null;
+            final preferences = context.read<PreferencesProvider>();
+            return AudioOutputService(
+              MediaKitAudioOutputBackend(),
+              initial: preferences.prefs.audioOutputDevice,
+              onSelected: (id) => preferences.update(
+                preferences.prefs.copyWith(audioOutputDevice: id),
+              ),
+              // WebView2 EME 出声时同样切到所选设备（按设备名匹配）
+              labelSink: (label) =>
+                  unawaited(EmePlayer.setOutputDeviceLabel(label)),
+            );
+          },
+        ),
         Provider<TaskbarLyricsControls?>.value(value: taskbarLyrics),
+        Provider<LyricMetadataControls?>.value(value: lyricBridge),
         // 设置页「存储」分组：音频缓存占用 / 上限 / 清除
         Provider<AudioCacheStore?>.value(
           value: trackAudioLoader is AudioCacheStore
@@ -619,7 +642,8 @@ class FlutifyApp extends StatelessWidget {
                   start,
                 );
                 try {
-                  final repeat = playback.repeatMode;
+                  // 切换歌单时为默认循环方式：服务端回推的 replace_state 会按这里的值设置本机
+                  final repeat = playback.repeatModeForNextPlay;
                   await connect.playOnReceiver(
                     request,
                     repeatingContext: repeat != SpotifyRepeatMode.off,
@@ -714,11 +738,16 @@ void _startConnectReceiver(
     debugPrint(
       '[Receiver] 交接给 Connect：${current.name} @${positionMs}ms paused=$paused',
     );
+    // 带上本机当前的循环方式（启动时已按默认循环方式还原）：不带的话服务端沿用它上次记录的
+    // 状态，回推的 replace_state 会把本机的默认循环方式覆盖掉
+    final repeat = playback.repeatMode;
     try {
       await connect.playOnReceiver(
         request,
         seekToMs: positionMs,
         paused: paused,
+        repeatingContext: repeat != SpotifyRepeatMode.off,
+        repeatingTrack: repeat == SpotifyRepeatMode.track,
       );
       return true;
     } catch (e) {
@@ -851,7 +880,11 @@ class _ThemedApp extends StatelessWidget {
         // 实际生效的界面语言决定请求 Spotify 时的 Accept-Language（主页文案等随之本地化）
         AppLocale.resolved(Localizations.localeOf(context));
         final media = MediaQuery.of(context);
-        return DebugTogglesBinding(
+        // material_3_expressive 组件（M3EButton / M3ESwitch / M3EDialog…）读不到 Flutter 的主题，
+        // 这里按当前主题（含强调色 / 封面取色 / 深浅色）显式注入，否则会退回默认紫色与 Roboto
+        return M3ETheme(
+          data: m3eThemeFrom(Theme.of(context)),
+          child: DebugTogglesBinding(
           builder: (context, motionOff) {
             return MediaQuery(
               data: media.copyWith(
@@ -874,7 +907,9 @@ class _ThemedApp extends StatelessWidget {
                     onPointerDown: _onMouseNavigation,
                     child: MacMenuBar(
                       child: TaskbarLyricsBinding(
-                        child: WindowFrame(child: child!),
+                        child: LyricBridgeBinding(
+                          child: WindowFrame(child: child!),
+                        ),
                       ),
                     ),
                   ),
@@ -882,6 +917,7 @@ class _ThemedApp extends StatelessWidget {
               ),
             );
           },
+        ),
         );
       },
       home: const UpdatePromptBinding(child: MainShell()),

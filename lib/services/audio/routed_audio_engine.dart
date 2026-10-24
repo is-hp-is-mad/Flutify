@@ -53,15 +53,26 @@ class RoutedAudioEngine implements AudioEngine {
 
   @override
   Future<void> playFile(String path, {Duration? initialPosition, bool autoplay = true}) =>
-      _activate(_local).playFile(path, initialPosition: initialPosition, autoplay: autoplay);
+      _activateLocal().playFile(path, initialPosition: initialPosition, autoplay: autoplay);
 
   @override
   Future<void> playStream(ProgressiveAudio audio, {Duration? initialPosition, bool autoplay = true}) =>
-      _activate(_local).playStream(audio, initialPosition: initialPosition, autoplay: autoplay);
+      _activateLocal().playStream(audio, initialPosition: initialPosition, autoplay: autoplay);
 
   @override
   Future<void> playEme(EmeTrackContent content, {Duration? initialPosition, bool autoplay = true}) =>
-      _activate(_eme).playEme(content, initialPosition: initialPosition, autoplay: autoplay);
+      // 默认按浏览器 EME；原生 DRM 引擎（Windows / Android）在音源就位后改成自己的类型
+      (_markWebView()).playEme(content, initialPosition: initialPosition, autoplay: autoplay);
+
+  AudioEngine _markWebView() {
+    activePlaybackEngine.value = PlaybackEngineKind.webView;
+    return _activate(_eme);
+  }
+
+  AudioEngine _activateLocal() {
+    activePlaybackEngine.value = PlaybackEngineKind.localPlayer;
+    return _activate(_local);
+  }
 
   AudioEngine get _current => _active ?? _local;
 

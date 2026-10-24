@@ -64,3 +64,28 @@ Filename: "{app}\Flutify.exe"; Description: "{cm:LaunchProgram,Flutify}"; Flags:
 
 ; Only installed program files are removed. User profiles and FlutifyCache are
 ; intentionally absent from UninstallDelete, including portable cache folders.
+
+[Code]
+// spotify: link registration is written by Flutify.exe at runtime (HKCU, see
+// windows/runner/protocol_handler.cpp). On uninstall, hand spotify: links back to
+// the previous handler if Flutify owns them, and drop Flutify's own registration,
+// so clicking a link never points at a deleted executable.
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+var
+  Command, Previous: String;
+begin
+  if CurUninstallStep <> usUninstall then
+    Exit;
+  if RegQueryStringValue(HKCU, 'Software\Classes\spotify\shell\open\command', '', Command) and
+     (Pos(Lowercase(ExpandConstant('{app}\Flutify.exe')), Lowercase(Command)) > 0) then
+  begin
+    if RegQueryStringValue(HKCU, 'Software\Flutify\Protocol', 'Previous', Previous) and
+       (Previous <> '<none>') and (Previous <> '') then
+      RegWriteStringValue(HKCU, 'Software\Classes\spotify\shell\open\command', '', Previous)
+    else
+      RegDeleteKeyIncludingSubkeys(HKCU, 'Software\Classes\spotify');
+  end;
+  RegDeleteKeyIncludingSubkeys(HKCU, 'Software\Classes\Flutify.SpotifyURI');
+  RegDeleteValue(HKCU, 'Software\RegisteredApplications', 'Flutify');
+  RegDeleteKeyIncludingSubkeys(HKCU, 'Software\Flutify');
+end;

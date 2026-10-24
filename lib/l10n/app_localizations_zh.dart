@@ -1213,6 +1213,22 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsRememberWindowSubtitle => '下次启动时还原；显示器变化导致窗口不可见时回到屏幕中央';
 
   @override
+  String get settingsSpotifyLinks => '用 Flutify 打开 Spotify 链接';
+
+  @override
+  String get settingsSpotifyLinksSubtitle =>
+      '浏览器或其他程序里点开 spotify: 链接时直接在 Flutify 中播放';
+
+  @override
+  String settingsSpotifyLinksOther(String app) {
+    return '当前由 $app 打开';
+  }
+
+  @override
+  String get settingsSpotifyLinksSystem =>
+      'Windows「默认应用」里已为 spotify: 链接选择了其他程序，请在系统设置中改为 Flutify';
+
+  @override
   String get settingsConnectSection => 'Spotify Connect';
 
   @override
@@ -1913,6 +1929,99 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsAnimDebugBackgroundSubtitle => '歌词背景停在静态画面';
+
+  @override
+  String get settingsExternalLyricsSection => '车机与状态栏歌词';
+
+  @override
+  String get settingsBluetoothLyrics => '蓝牙歌词';
+
+  @override
+  String get settingsBluetoothLyricsSubtitle =>
+      '连接蓝牙音频设备时，把媒体信息的标题换成当前歌词行，艺人与专辑换成「歌名 - 艺人」，车机屏幕即可逐句显示歌词';
+
+  @override
+  String get bluetoothLyricsOff => '关闭';
+
+  @override
+  String get bluetoothLyricsCar => '车载设备';
+
+  @override
+  String get bluetoothLyricsAll => '所有设备';
+
+  @override
+  String get settingsBluetoothLyricsTranslation => '附带译文';
+
+  @override
+  String get settingsBluetoothLyricsTranslationSubtitle => '有译文时标题显示为「原文 / 译文」';
+
+  @override
+  String get settingsBluetoothPermission => '允许识别蓝牙设备';
+
+  @override
+  String get settingsBluetoothPermissionSubtitle => '识别车载设备需要「附近的设备」权限';
+
+  @override
+  String get settingsBluetoothPermissionGrant => '授权';
+
+  @override
+  String get settingsBluetoothDevices => '已连接的蓝牙设备';
+
+  @override
+  String get settingsBluetoothDevicesEmpty => '当前没有连接蓝牙音频设备';
+
+  @override
+  String get bluetoothDeviceUnnamed => '未命名设备';
+
+  @override
+  String get bluetoothDeviceCar => '已识别为车载设备，自动显示歌词';
+
+  @override
+  String get bluetoothDeviceAll => '所有设备模式下自动显示歌词';
+
+  @override
+  String get bluetoothDeviceManual => '在此设备上也显示歌词';
+
+  @override
+  String get settingsFlymeLyrics => 'Flyme 状态栏歌词';
+
+  @override
+  String get settingsFlymeLyricsSubtitle => '播放时在魅族 Flyme 的状态栏显示当前歌词行';
+
+  @override
+  String get audioOutputTitle => '本机音频设备';
+
+  @override
+  String get audioOutputSystemDefault => '系统默认设备';
+
+  @override
+  String get audioOutputSelected => '正在输出';
+
+  @override
+  String get audioOutputSystemSwitcher => '选择输出设备';
+
+  @override
+  String get audioOutputSystemSwitcherSubtitle => '打开系统输出面板：手机扬声器、蓝牙、有线耳机';
+
+  @override
+  String get audioOutputSystemUnavailable => '此系统没有可用的输出切换面板';
+
+  @override
+  String get audioOutputWebViewNote => '当前由浏览器内核播放，暂不支持切换，使用系统默认设备';
+
+  @override
+  String playbackEngineCurrent(String engine) {
+    return '当前播放引擎：$engine';
+  }
+
+  @override
+  String get playbackEngineLocal => '本机播放器';
+
+  @override
+  String get playbackEngineWebView => 'WebView（浏览器内核）';
+
+  @override
+  String get playbackEngineAndroid => 'Android 原生播放';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -3124,6 +3233,22 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get settingsRememberWindowSubtitle => '下次啟動時還原；顯示器變化導致視窗不可見時回到螢幕中央';
 
   @override
+  String get settingsSpotifyLinks => '用 Flutify 開啟 Spotify 連結';
+
+  @override
+  String get settingsSpotifyLinksSubtitle =>
+      '在瀏覽器或其他程式中點開 spotify: 連結時直接在 Flutify 中播放';
+
+  @override
+  String settingsSpotifyLinksOther(String app) {
+    return '目前由 $app 開啟';
+  }
+
+  @override
+  String get settingsSpotifyLinksSystem =>
+      'Windows「預設應用程式」已為 spotify: 連結選擇其他程式，請在系統設定中改為 Flutify';
+
+  @override
   String get settingsConnectSection => 'Spotify Connect';
 
   @override
@@ -3823,4 +3948,97 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get settingsAnimDebugBackgroundSubtitle => '歌詞背景停在靜態畫面';
+
+  @override
+  String get settingsExternalLyricsSection => '車機與狀態列歌詞';
+
+  @override
+  String get settingsBluetoothLyrics => '藍牙歌詞';
+
+  @override
+  String get settingsBluetoothLyricsSubtitle =>
+      '連接藍牙音訊裝置時，把媒體資訊的標題換成目前歌詞行，藝人與專輯換成「歌名 - 藝人」，車機螢幕即可逐句顯示歌詞';
+
+  @override
+  String get bluetoothLyricsOff => '關閉';
+
+  @override
+  String get bluetoothLyricsCar => '車載裝置';
+
+  @override
+  String get bluetoothLyricsAll => '所有裝置';
+
+  @override
+  String get settingsBluetoothLyricsTranslation => '附帶譯文';
+
+  @override
+  String get settingsBluetoothLyricsTranslationSubtitle => '有譯文時標題顯示為「原文 / 譯文」';
+
+  @override
+  String get settingsBluetoothPermission => '允許識別藍牙裝置';
+
+  @override
+  String get settingsBluetoothPermissionSubtitle => '識別車載裝置需要「附近的裝置」權限';
+
+  @override
+  String get settingsBluetoothPermissionGrant => '授權';
+
+  @override
+  String get settingsBluetoothDevices => '已連接的藍牙裝置';
+
+  @override
+  String get settingsBluetoothDevicesEmpty => '目前沒有連接藍牙音訊裝置';
+
+  @override
+  String get bluetoothDeviceUnnamed => '未命名裝置';
+
+  @override
+  String get bluetoothDeviceCar => '已識別為車載裝置，自動顯示歌詞';
+
+  @override
+  String get bluetoothDeviceAll => '所有裝置模式下自動顯示歌詞';
+
+  @override
+  String get bluetoothDeviceManual => '在此裝置上也顯示歌詞';
+
+  @override
+  String get settingsFlymeLyrics => 'Flyme 狀態列歌詞';
+
+  @override
+  String get settingsFlymeLyricsSubtitle => '播放時在魅族 Flyme 的狀態列顯示目前歌詞行';
+
+  @override
+  String get audioOutputTitle => '本機音訊裝置';
+
+  @override
+  String get audioOutputSystemDefault => '系統預設裝置';
+
+  @override
+  String get audioOutputSelected => '正在輸出';
+
+  @override
+  String get audioOutputSystemSwitcher => '選擇輸出裝置';
+
+  @override
+  String get audioOutputSystemSwitcherSubtitle => '開啟系統輸出面板：手機揚聲器、藍牙、有線耳機';
+
+  @override
+  String get audioOutputSystemUnavailable => '此系統沒有可用的輸出切換面板';
+
+  @override
+  String get audioOutputWebViewNote => '目前由瀏覽器核心播放，暫不支援切換，使用系統預設裝置';
+
+  @override
+  String playbackEngineCurrent(String engine) {
+    return '目前播放引擎：$engine';
+  }
+
+  @override
+  String get playbackEngineLocal => '本機播放器';
+
+  @override
+  String get playbackEngineWebView => 'WebView（瀏覽器核心）';
+
+  @override
+  String get playbackEngineAndroid => 'Android 原生播放';
 }

@@ -18,6 +18,7 @@ class MainFlutterWindow: NSWindow {
     MediaControlsChannel.register(messenger: messenger)
     EditMenuChannel.register(messenger: messenger)
     MouseNavigationChannel.register(messenger: messenger)
+    SpotifyLinks.shared.attach(messenger: messenger)
 
     // 交通灯垂直居中到自绘顶栏（高 56），窗口缩放 / 退出全屏后重新对齐
     trafficLightAligner = TrafficLightAligner(window: self)

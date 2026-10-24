@@ -268,13 +268,18 @@ void main() {
   });
 
   test(
-    'OAuth token endpoint 401 resets without remote logout or retry',
+    'Web token endpoint 401 resets without remote logout or retry',
     () async {
       var calls = 0;
       final auth = SpotifyAuthService(
         storage,
         MockClient((request) async {
+          // 铸造前的服务器时间对齐不算令牌请求
+          if (request.url.path == '/api/server-time') {
+            return http.Response('{"serverTime":1}', 200);
+          }
           calls++;
+          expect(request.url.host, 'open.spotify.com');
           expect(request.url.path, '/api/token');
           return http.Response('{"error":"invalid_client"}', 401);
         }),

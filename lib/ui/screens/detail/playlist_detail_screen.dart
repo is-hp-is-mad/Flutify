@@ -1,3 +1,4 @@
+import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -120,6 +121,9 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
     final isLikedSongs = playlist.id == LibraryProvider.likedSongsId;
     final isBackupLikedSongs =
         playlist.id.startsWith(BackupAccount.backupLikedPrefix);
+    final backupService = context.watch<PlaylistBackupService?>();
+    final isExternalBackupLikedSongs = isBackupLikedSongs &&
+        (backupService?.isExternalBackupLikedPlaylist(playlist.id) ?? true);
     final isOwn = library.isOwnPlaylist(playlist.id);
     final l10n = context.l10n;
     // 「已点赞的歌曲」由 LibraryProvider 生成，名称与简介按界面语言展示
@@ -165,6 +169,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
           summary: summary,
           isLikedSongs: isLikedSongs,
           isBackupLikedSongs: isBackupLikedSongs,
+          isExternalBackupLikedSongs: isExternalBackupLikedSongs,
           isOwn: isOwn,
           isSaved: isSaved,
           playbackContext: playbackContext,
@@ -193,6 +198,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
     required String summary,
     required bool isLikedSongs,
     required bool isBackupLikedSongs,
+    required bool isExternalBackupLikedSongs,
     required bool isOwn,
     required bool isSaved,
     required PlaybackContext playbackContext,
@@ -205,7 +211,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
     return CollectionTintScope(
       imageUrl: (isLikedSongs || isBackupLikedSongs) ? '' : playlist.coverUrl,
       fallback: (isLikedSongs || isBackupLikedSongs)
-          ? const Color(0xFF4A2FB8)
+          ? kLikedSongsTint
           : const Color(0xFF3A3A48),
       child: CustomScrollView(
         slivers: [
@@ -267,8 +273,10 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                               : null,
                         ),
                         tooltip: _selecting
-                            ? '退出选择歌曲'
-                            : '选择部分歌曲一键导入到本账号',
+                            ? '退出多选'
+                            : (isExternalBackupLikedSongs
+                                  ? '选择部分歌曲一键导入到本账号'
+                                  : '多选收藏歌曲'),
                         onPressed: () {
                           setState(() {
                             _selecting = !_selecting;
@@ -313,7 +321,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                 context,
                 playlist: playlist,
                 visible: visible,
-                isBackupLikedSongs: isBackupLikedSongs,
+                isExternalBackupLikedSongs: isExternalBackupLikedSongs,
               ),
             ),
 
@@ -386,7 +394,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
     BuildContext context, {
     required SpotifyPlaylist playlist,
     required List<SpotifyTrack> visible,
-    required bool isBackupLikedSongs,
+    required bool isExternalBackupLikedSongs,
   }) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -401,7 +409,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
         if (_selectedTrackIds.contains(t.id)) t,
     ];
 
-    Future<void> importToLiked() async {
+    Future<void> likeSelectedTracks() async {
       if (selectedTracks.isEmpty) return;
       final backup = context.read<PlaylistBackupService?>();
       final library = context.read<LibraryProvider>();
@@ -419,7 +427,9 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       if (!context.mounted) return;
       AppToast.show(
         context,
-        '已将所选 ${selectedTracks.length} 首歌曲合并导入到本账号「已点赞的歌曲」（新增 $added 首）',
+        isExternalBackupLikedSongs
+            ? '已将所选 ${selectedTracks.length} 首歌曲合并导入到本账号「已点赞的歌曲」（新增 $added 首）'
+            : '已收藏所选 ${selectedTracks.length} 首歌曲（新增 $added 首）',
         icon: Icons.favorite_rounded,
         tone: ToastTone.success,
       );
@@ -429,6 +439,8 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       if (selectedTracks.isEmpty) return;
       final library = context.read<LibraryProvider>();
       final imported = playlist.copyWith(
+        id: 'imported_${DateTime.now().millisecondsSinceEpoch}',
+        uri: '',
         tracks: selectedTracks,
         totalTracks: selectedTracks.length,
       );
@@ -453,7 +465,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
             runSpacing: 8,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              TextButton.icon(
+              M3EButton.icon(style: M3EButtonStyle.text, 
                 onPressed: () {
                   setState(() {
                     if (allSelected) {
@@ -477,13 +489,17 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              FilledButton.icon(
-                onPressed: selectedTracks.isEmpty ? null : importToLiked,
+              M3EButton.icon(style: M3EButtonStyle.filled, 
+                onPressed: selectedTracks.isEmpty ? null : likeSelectedTracks,
                 icon: const Icon(Icons.favorite_rounded, size: 18),
-                label: const Text('一键合并到本账号已点赞歌曲'),
+                label: Text(
+                  isExternalBackupLikedSongs
+                      ? '一键合并到本账号已点赞歌曲'
+                      : '收藏所选歌曲（${selectedTracks.length}）',
+                ),
               ),
-              if (!isBackupLikedSongs)
-                OutlinedButton.icon(
+              if (isExternalBackupLikedSongs)
+                M3EButton.icon(style: M3EButtonStyle.outlined, 
                   onPressed: selectedTracks.isEmpty ? null : importAsPlaylist,
                   icon: const Icon(Icons.library_add_rounded, size: 18),
                   label: const Text('将所选导入为本账号歌单'),
@@ -519,7 +535,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.only(left: 12),
-            child: Checkbox(
+            child: M3ECheckbox(
               value: selected,
               onChanged: (v) {
                 setState(() {
@@ -546,8 +562,8 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 24),
-        color: Colors.redAccent,
-        child: const Icon(Icons.delete_rounded, color: Colors.white),
+        color: Theme.of(context).colorScheme.errorContainer,
+        child: Icon(Icons.delete_rounded, color: Theme.of(context).colorScheme.onErrorContainer),
       ),
       onDismissed: (_) => context
           .read<LibraryProvider>()
@@ -631,11 +647,7 @@ class _LikedSongsCover extends StatelessWidget {
       height: 180,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF450AF5), Color(0xFF8E8EE5), Color(0xFFC4EFD9)],
-        ),
+        gradient: kLikedSongsGradient,
       ),
       child: const Icon(Icons.favorite_rounded, color: Colors.white, size: 72),
     );

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../utils/file_log.dart';
 import '../theme/md3e_theme.dart';
+import 'package:material_3_expressive/material_3_expressive.dart' show M3EButton;
 
 /// Paint a frame before opening plugins or touching persistent storage.
 /// 初始化期间只绘制窗口底色；首个内容页直接进入应用，异常时才显示诊断。
@@ -100,7 +101,7 @@ class _AppStartupState extends State<AppStartup> {
                           const SizedBox(height: 12),
                           Text('请复制诊断信息反馈，然后关闭并重新打开应用。'),
                           const SizedBox(height: 12),
-                          OutlinedButton(
+                          M3EButton.outlined(
                             onPressed: _copyDiagnostics,
                             child: const Text('复制诊断信息'),
                           ),

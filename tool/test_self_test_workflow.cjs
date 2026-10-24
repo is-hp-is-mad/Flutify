@@ -93,7 +93,7 @@ test('Windows self-tests build both native architectures and verify their portab
   assert.match(windows, /559ffa3f75e7402d65a8def9c28389a9b2e6fe42/);
   assert.match(windows, /windows_arm64/);
   assert.match(windows, /flutter build windows --release --no-pub/);
-  assert.match(windows, /--dart-define=FLUTIFY_NATIVE_WIDEVINE=\$\{\{ matrix.arch == 'x64' \}\}/);
+  assert.doesNotMatch(windows, /FLUTIFY_NATIVE_WIDEVINE/);
   assert.match(windows, /python tool\/verify_windows_arch\.py/);
   assert.match(windows, /tool\/verify_windows_runtime\.ps1/);
   assert.match(windows, /THIRD_PARTY_NOTICES\.md/);

@@ -1,3 +1,6 @@
+import '../../core/rust_core.dart';
+import '../../src/rust/api/lyrics.dart' as rust;
+
 /// Remove featured-artist credits without erasing mix/live/version labels.
 class LyricsTitle {
   LyricsTitle._();
@@ -11,9 +14,14 @@ class LyricsTitle {
     caseSensitive: false,
   );
 
-  static String search(String title) => title
-      .replaceAll(_credit, '')
-      .replaceFirst(_trailingCredit, '')
-      .replaceAll(RegExp(r'\s+'), ' ')
-      .trim();
+  static String search(String title) {
+    if (RustCore.ready) {
+      return rust.cleanLyricsSearchTitle(title: title);
+    }
+    return title
+        .replaceAll(_credit, '')
+        .replaceFirst(_trailingCredit, '')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+  }
 }

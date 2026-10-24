@@ -1,3 +1,4 @@
+import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -51,14 +52,9 @@ class LoginIntroView extends StatelessWidget {
         const SizedBox(height: 28),
         SizedBox(
           height: 60,
-          child: FilledButton.icon(
+          child: M3EButton.icon(
+            size: M3EButtonSize.md,
             onPressed: onSignIn,
-            style: FilledButton.styleFrom(
-              shape: const StadiumBorder(),
-              textStyle: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
             icon: const Icon(Icons.login_rounded, size: 22),
             label: Text(context.l10n.accountSignIn),
           ),

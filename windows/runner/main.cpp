@@ -4,6 +4,7 @@
 
 #include "flutter_window.h"
 #include "media_identity.h"
+#include "protocol_handler.h"
 #include "utils.h"
 
 int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
@@ -26,10 +27,20 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
 
   std::vector<std::string> command_line_arguments =
       GetCommandLineArguments();
+  const std::string link =
+      protocol_handler::FindLinkArgument(command_line_arguments);
+
+  // 已在运行：把链接交给那个窗口并激活它，不再开第二个实例
+  if (protocol_handler::ForwardToRunningInstance(link)) {
+    ::CoUninitialize();
+    return EXIT_SUCCESS;
+  }
+  protocol_handler::RegisterHandler();
 
   project.set_dart_entrypoint_arguments(std::move(command_line_arguments));
 
   FlutterWindow window(project);
+  window.SetInitialLink(link);
   Win32Window::Point origin(10, 10);
   Win32Window::Size size(1280, 720);
   if (!window.Create(L"Flutify", origin, size)) {

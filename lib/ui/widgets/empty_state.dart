@@ -1,3 +1,4 @@
+import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:flutter/material.dart';
 
 /// 统一的空状态占位：圆形图标底 + 标题 + 说明 + 可选操作按钮。
@@ -66,11 +67,13 @@ class EmptyState extends StatelessWidget {
           ],
           if (actionLabel != null && onAction != null) ...[
             SizedBox(height: compact ? 12 : 18),
-            OutlinedButton(
-              style: onDark
-                  ? OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      side: const BorderSide(color: Colors.white38),
+            M3EButton.outlined(
+              decoration: onDark
+                  ? const M3EButtonDecoration(
+                      foregroundColor: WidgetStatePropertyAll(Colors.white),
+                      side: WidgetStatePropertyAll(
+                        BorderSide(color: Colors.white38),
+                      ),
                     )
                   : null,
               onPressed: onAction,

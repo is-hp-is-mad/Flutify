@@ -1,10 +1,19 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../../models/album.dart';
 import '../../models/app_preferences.dart';
+import '../../models/artist.dart';
+import '../../models/playlist.dart';
+import '../../models/share_target.dart';
+import '../../models/track.dart';
+import '../../providers/playback_provider.dart';
 import '../../providers/preferences_provider.dart';
 import '../../providers/spotify_provider.dart';
+import '../../services/deep_link/spotify_link_handler.dart';
 import '../../services/storage_service.dart';
 import '../navigation/app_routes.dart';
 import '../navigation/content_history.dart';
@@ -86,9 +95,17 @@ class _MainShellState extends State<MainShell> {
       playback: PlaybackShortcuts.actions(context),
     );
     MacMenuBar.actions.value = _menuActions;
+    // 系统里点开的 spotify: 链接：等首帧（导航器就绪）后再接收
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(SpotifyLinkHandler.attach(_onExternalLink));
+    });
   }
 
   late final MacMenuActions _menuActions;
+
+  void _onExternalLink(String link) {
+    if (mounted) unawaited(_tryOpenSpotifyLink(link));
+  }
 
   // 根部鼠标监听与原生菜单不受模态路由的焦点隔离保护。
   // 弹窗、播放器或全屏歌词覆盖主界面时，保留底下的内容历史。
@@ -127,6 +144,7 @@ class _MainShellState extends State<MainShell> {
 
   @override
   void dispose() {
+    SpotifyLinkHandler.detach(_onExternalLink);
     AppRoutes.contentNavigator = null;
     AppRoutes.navigateBack = null;
     AppRoutes.navigateForward = null;
@@ -192,6 +210,44 @@ class _MainShellState extends State<MainShell> {
   void _onSearchSubmitted(String query) {
     _searchFocus.unfocus();
     context.read<SpotifyProvider>().commitRecentSearch(query);
+    unawaited(_tryOpenSpotifyLink(query));
+  }
+
+  Future<void> _tryOpenSpotifyLink(String raw) async {
+    final link = SpotifyLink.parse(raw);
+    if (link == null || !mounted) return;
+    switch (link.kind) {
+      case ShareKind.track:
+        final spotify = context.read<SpotifyProvider>();
+        final playback = context.read<PlaybackProvider?>();
+        if (playback == null) return;
+        SpotifyTrack? track = spotify.searchTracks
+            .where((t) => t.id == link.id)
+            .firstOrNull;
+        track ??= await spotify.resolveTrackByUri(link.uri);
+        if (!mounted || track == null) return;
+        await playback.playTrack(track);
+      case ShareKind.album:
+        AppRoutes.openAlbum(context, SpotifyAlbum(id: link.id, name: ''));
+      case ShareKind.playlist:
+        final spotify = context.read<SpotifyProvider>();
+        final existing = spotify.searchPlaylists
+            .where((p) => p.id == link.id)
+            .firstOrNull;
+        AppRoutes.openPlaylist(
+          context,
+          existing ?? SpotifyPlaylist(id: link.id, name: ''),
+        );
+      case ShareKind.artist:
+        final spotify = context.read<SpotifyProvider>();
+        final existing = spotify.searchArtists
+            .where((a) => a.id == link.id)
+            .firstOrNull;
+        AppRoutes.openArtist(
+          context,
+          existing ?? SpotifyArtist(id: link.id, name: ''),
+        );
+    }
   }
 
   /// 桌面快捷键（与 Spotify 桌面端一致）。输入框聚焦时空格会被 TextField 拦截，不会误触。

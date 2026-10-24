@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data' show BytesBuilder, Uint8List;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show MethodChannel;
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:http/http.dart' as http;
 
@@ -247,8 +248,12 @@ class EmePlayer {
               : PermissionResponseAction.DENY,
         );
       },
-      onLoadStop: (_, _) {
+      onLoadStop: (controller, _) {
         if (!ready.isCompleted) ready.complete();
+        _live.add(this);
+        unawaited(
+          _allowOutputSelection(controller).then((_) => _applyOutputLabel()),
+        );
       },
       onReceivedError: (_, request, error) {
         if ((request.isForMainFrame ?? true) && !ready.isCompleted) {
@@ -822,6 +827,36 @@ class EmePlayer {
     return _js('emeSetVolume($_volume)');
   }
 
+  /// 本机输出设备名（系统设备友好名，与 libmpv 的设备描述一致）；空串 = 系统默认。
+  /// 进程内所有 EME 页面共用，页面重建后自动补发。
+  static String _outputLabel = '';
+  static final Set<EmePlayer> _live = {};
+
+  static Future<void> setOutputDeviceLabel(String label) async {
+    _outputLabel = label;
+    await Future.wait(_live.map((p) => p._applyOutputLabel()));
+  }
+
+  Future<void> _applyOutputLabel() =>
+      _js('emeSetSink(${jsonEncode(_outputLabel)})');
+
+  /// WebView2：Chromium 只在来源持有麦克风权限时列出输出设备、允许 setSinkId。
+  /// 本地补丁直接设置权限状态（不打开任何采集设备），只对本机回环来源生效。
+  Future<void> _allowOutputSelection(InAppWebViewController controller) async {
+    if (!Platform.isWindows) return;
+    try {
+      final id = controller.getViewId();
+      final ok = await MethodChannel(
+        'com.pichillilorenzo/flutter_inappwebview_$id',
+      ).invokeMethod<bool>('flutifyAllowAudioOutputSelection', {
+        'origin': _origin,
+      });
+      if (ok != true) debugPrint('[eme] 输出设备选择权限设置失败');
+    } catch (e) {
+      debugPrint('[eme] 输出设备选择权限设置异常：$e');
+    }
+  }
+
   /// 执行一段返回 promise 的 JS，取回其解析值（Windows/macOS 走 WebView，Linux 走 Chrome）。
   Future<String?> _callAsync(String body) async {
     final chrome = _chromePage;
@@ -940,6 +975,7 @@ class EmePlayer {
   }
 
   Future<void> dispose() async {
+    _live.remove(this);
     if (_disposed) return;
     _disposed = true;
     await stop();
@@ -971,6 +1007,34 @@ const String emePageHtml = r'''
 let hls = null, audio = null, telemetryTimer = null;
 // 最近一次 emeSetVolume 的音量：每首歌都新建 audio 元素（默认 1.0），建好就沿用它
 let pageVolume = 1;
+// 本机输出设备（按系统设备名匹配；空串 = 系统默认）。每首歌新建 audio 元素后都要重新应用
+let pageSinkLabel = '';
+async function applySink(el) {
+  if (!el || typeof el.setSinkId !== 'function') return;
+  let id = '';
+  if (pageSinkLabel) {
+    try {
+      // 只取输出设备，并去掉 Chromium 给出的「默认值 - xxx」「通信 - xxx」两个别名项
+      const outs = (await navigator.mediaDevices.enumerateDevices()).filter((d) =>
+        d.kind === 'audiooutput' && d.deviceId !== 'default' && d.deviceId !== 'communications');
+      // 1) 完整名称精确匹配
+      let hit = outs.find((d) => d.label === pageSinkLabel);
+      // 2) 兜底：系统与 libmpv 的设备名写法略有出入时，比较括号里的硬件名（如「(Realtek(R) Audio)」）；
+      //   只有唯一命中才用，同一声卡有多个输出时宁可回落系统默认也不切错
+      if (!hit) {
+        const hw = (t) => { const i = t.indexOf('('); return i >= 0 ? t.slice(i).trim() : ''; };
+        const key = hw(pageSinkLabel);
+        const same = key ? outs.filter((d) => hw(d.label) === key) : [];
+        if (same.length === 1) hit = same[0];
+      }
+      if (hit) id = hit.deviceId;
+      else send('log', {msg: '输出设备未唯一匹配（可选 ' + outs.length + ' 个），使用系统默认'});
+    } catch (e) {
+      send('log', {msg: '枚举输出设备失败: ' + e});
+    }
+  }
+  try { await el.setSinkId(id); } catch (e) { send('log', {msg: 'setSinkId 失败: ' + e}); }
+}
 // 页面级：createMediaKeys 曾挂起则置真，之后所有 hls 实例不再带 serverCertificateUrl
 //（部分 Android WebView 的 EME 带证书请求时 createMediaKeys 永不 settle；不带也能播）
 let certDegraded = false;
@@ -1138,6 +1202,7 @@ window.emePlayHls = (fairPlay, gen, autoplay = true, revision = 0, position = 0)
     if (audio) { try { audio.pause(); audio.remove(); } catch (e) {} audio = null; }
     audio = document.createElement('audio');
     audio.volume = pageVolume;
+    applySink(audio);
     document.body.appendChild(audio);
     const el = audio;
     el.addEventListener('loadedmetadata', () => { if (position > 0) el.currentTime = position; }, {once: true});
@@ -1282,6 +1347,7 @@ window.emePlayNativeFps = (gen, fileIdHex, autoplay = true, revision = 0, positi
     if (telemetryTimer) { clearInterval(telemetryTimer); telemetryTimer = null; }
     audio = document.createElement('audio');
     audio.volume = pageVolume;
+    applySink(audio);
     document.body.appendChild(audio);
     const el = audio;
     el.addEventListener('loadedmetadata', () => { if (position > 0) el.currentTime = position; }, {once: true});
@@ -1411,6 +1477,10 @@ window.emeStop = (gen, revision) => {
   if (telemetryTimer) { clearInterval(telemetryTimer); telemetryTimer = null; }
 };
 window.emeSeek = (sec) => { if (audio) audio.currentTime = sec; };
+window.emeSetSink = (label) => {
+  pageSinkLabel = typeof label === 'string' ? label : '';
+  if (audio) applySink(audio);
+};
 window.emeSetVolume = (v) => {
   if (!(v >= 0 && v <= 1)) return;
   pageVolume = v;

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
@@ -363,8 +364,8 @@ class SpDcBackupFetcher {
       if (clientToken.isNotEmpty) 'client-token': clientToken,
       'Accept': 'application/json',
       'Accept-Language': AppLocale.spotifyLanguage,
-      'User-Agent': SpotifyClientProfile.desktop.userAgent,
-      ...SpotifyClientProfile.desktop.headers,
+      'User-Agent': SpotifyClientProfile.web.userAgent,
+      ...SpotifyClientProfile.web.headers,
     };
 
     var headers = buildHeaders(token);
@@ -732,6 +733,9 @@ class PlaylistBackupService extends ChangeNotifier {
   final BackupRemoteFetcher? _customRemoteFetcher;
   final SpDcBackupFetcher _sessionFetcher;
   final File? _diskFile;
+
+  /// 生产环境的备份文件（应用数据目录，由 main 在启动时设置）；测试不设置时只用 SharedPreferences。
+  static File? defaultDiskFile;
   final DateTime Function() _now;
   final bool _enablePeriodicTimer;
 
@@ -764,7 +768,7 @@ class PlaylistBackupService extends ChangeNotifier {
        _customRemoteFetcher = remoteFetcher,
        _sessionFetcher =
            sessionFetcher ?? SpDcBackupFetcher(apiService: apiService),
-       _diskFile = diskFile,
+       _diskFile = diskFile ?? defaultDiskFile,
        _now = now ?? DateTime.now,
        _enablePeriodicTimer =
            enablePeriodicTimer ??
@@ -811,6 +815,13 @@ class PlaylistBackupService extends ChangeNotifier {
     return merged;
   }
 
+  /// 判断指定歌单 ID 是否为「外部备份账号的已点赞歌曲」虚拟歌单（排除本机当前账号）。
+  bool isExternalBackupLikedPlaylist(String playlistId) {
+    if (!playlistId.startsWith(BackupAccount.backupLikedPrefix)) return false;
+    final uid = playlistId.substring(BackupAccount.backupLikedPrefix.length);
+    return _accounts.any((a) => !a.isCurrentAccount && a.uniqueId == uid);
+  }
+
   /// 已落盘的备份歌单汇总：
   /// - 包含每个账号各自的「已点赞的歌曲」（`backup_liked_<uniqueId>`，点击可查看该账号自己的已点赞歌曲）；
   /// - 包含各账号的收藏歌单（不同账号间若有同 ID 或同名重合歌单，自动合并其曲目）。
@@ -819,7 +830,8 @@ class PlaylistBackupService extends ChangeNotifier {
     final seenLikedIds = <String>{};
     final mergedPlaylists = <SpotifyPlaylist>[];
 
-    for (final account in _accounts) {
+    // 当前登录账号自己的歌单本来就在媒体库里，导入给自己没有意义
+    for (final account in visibleAccounts) {
       if (account.likedTracks.isNotEmpty) {
         final likedPl = account.likedSongsPlaylist;
         if (seenLikedIds.add(likedPl.id)) {
@@ -911,6 +923,18 @@ class PlaylistBackupService extends ChangeNotifier {
   void _backupCurrentAccountImmediate() {
     final library = _library;
     if (library == null) return;
+    // 只在「确实是这个账号、且媒体库已加载完」时落盘：
+    // - 未登录 / 刚退出：媒体库被清空，不能拿空数据覆盖备份；
+    // - 加载中 / 用户名还没解析出来：可能是上一个账号的残留或半截数据。
+    if (!_storage.isLoggedIn || library.isLoading) return;
+    final id = _storage.username.trim();
+    if (id.isEmpty) return;
+    // 媒体库数据必须属于这个账号：换号时媒体库先清空、拉完新数据才标记归属，
+    // 中间任何时刻（定时器、设置变化）触发都不能把空数据或上一个账号的数据写成本账号的备份
+    if (_storage.libraryAccount != id) return;
+    // 读取失败时媒体库可能是空的或残缺的：等下次读取成功再备份，不覆盖已有的完整备份
+    if (library.loadError != null) return;
+
     final liked = library.likedTracks;
     final playlists = library.playlists
         .where(
@@ -922,39 +946,61 @@ class PlaylistBackupService extends ChangeNotifier {
     _lastLocalLiked = liked;
     _lastLocalPlaylists = library.playlists;
 
-    final rawId = _storage.username.trim();
     final email = _storage.email.trim();
-    final id = rawId.isNotEmpty
-        ? rawId
-        : (email.isNotEmpty ? email : BackupAccount.localAccountFallbackId);
     final displayName = _storage.displayName.trim().isNotEmpty
         ? _storage.displayName.trim()
-        : (email.isNotEmpty ? email : (rawId.isNotEmpty ? rawId : '本机账号'));
-    final avatarUrl = _storage.avatarUrl;
+        : (email.isNotEmpty ? email : id);
 
-    final existingIndex = _accounts.indexWhere((a) => a.isCurrentAccount);
+    bool isSelf(BackupAccount a) =>
+        a.id == id || (email.isNotEmpty && a.email.trim() == email);
+
+    // 换了账号：之前登录账号的备份降级为「以前登录的账号」保留，并在设置里显示出来
+    var accounts = [
+      for (final a in _accounts)
+        if (a.isCurrentAccount && !isSelf(a))
+          a.copyWith(isCurrentAccount: false)
+        else
+          a,
+    ];
+    // 同一账号以前作为外部账号 / 以前登录过：并入当前账号这一条，不留重复
+    final existingIndex = accounts.indexWhere(isSelf);
+    final existing = existingIndex >= 0 ? accounts[existingIndex] : null;
     final updated = BackupAccount(
       id: id,
       email: email,
       displayName: displayName,
-      avatarUrl: avatarUrl,
+      avatarUrl: _storage.avatarUrl,
       isCurrentAccount: true,
-      syncToLocal: existingIndex >= 0
-          ? _accounts[existingIndex].syncToLocal
-          : true,
+      syncToLocal: existing?.syncToLocal ?? true,
       lastBackupAt: _now(),
       likedTracks: List.unmodifiable(liked),
       playlists: List.unmodifiable(playlists),
     );
-
-    if (existingIndex >= 0) {
-      _accounts = [..._accounts]..[existingIndex] = updated;
-    } else {
-      _accounts = [updated, ..._accounts];
-    }
+    accounts = [
+      for (var i = 0; i < accounts.length; i++)
+        if (i != existingIndex) accounts[i],
+    ];
+    _accounts = List.unmodifiable([updated, ...accounts]);
     _persistToDisk();
     _notify();
   }
+
+  /// 当前登录账号的备份记录（设置页不显示它；切换到别的账号后它才作为「以前登录的账号」出现）。
+  /// 只认「标记为当前账号且就是现在登录的这个号」：换号后即使还没来得及备份新账号
+  /// （例如关闭了自动备份），旧账号的记录也会立即作为「以前登录的账号」显示出来。
+  bool isLiveCurrentAccount(BackupAccount account) {
+    if (!account.isCurrentAccount || !_storage.isLoggedIn) return false;
+    final id = _storage.username.trim();
+    final email = _storage.email.trim();
+    return (id.isNotEmpty && account.id == id) ||
+        (email.isNotEmpty && account.email.trim() == email);
+  }
+
+  /// 设置页「歌单备份」里显示的账号：隐藏当前登录账号自己的备份。
+  List<BackupAccount> get visibleAccounts => [
+    for (final a in _accounts)
+      if (!isLiveCurrentAccount(a)) a,
+  ];
 
   /// 若磁盘上已有外部账号的已点赞歌曲或歌单曲目为空（如旧版本留下的 0 首记录），自动拉取补齐落盘。
   Future<void> _hydrateIncompleteAccounts() async {
@@ -1159,32 +1205,19 @@ class PlaylistBackupService extends ChangeNotifier {
     }
   }
 
+  /// 正在后台导入（设置页据此禁用导入按钮、显示进度）。
+  bool get isImporting => _isImporting;
+  bool _isImporting = false;
+
   /// 将所选的备份歌曲列表一键**合并**导入到当前账号的「已点赞的歌曲」（Liked Songs）。
+  /// 本地一次合并，同步到 Spotify 在后台逐首进行，不阻塞界面。
   Future<int> importSelectedTracksToLiked(List<SpotifyTrack> tracks) async {
     final library = _library;
     if (library == null || tracks.isEmpty) return 0;
-    var added = 0;
-    final wasAuto = _autoCurrentAccount;
-    _autoCurrentAccount = false;
-    try {
-      for (final track in tracks.reversed) {
-        if (track.id.isNotEmpty && !library.isLiked(track.id)) {
-          library.toggleLike(track);
-          added++;
-        }
-      }
-    } finally {
-      _autoCurrentAccount = wasAuto;
-    }
-    if (_enabled && _autoCurrentAccount) {
-      _backupCurrentAccountImmediate();
-    } else {
-      _notify();
-    }
-    return added;
+    return _runImport(() => library.likeTracks(tracks));
   }
 
-  /// 将所选的备份歌单列表一键导入到当前账号：
+  /// 将所选的备份歌单列表一键导入到当前账号（在后台进行，不阻塞界面）：
   /// - 若选中的包含某账号的「已点赞的歌曲」（`backup_liked_*`），将其歌曲合并进当前账号的 Liked Songs；
   /// - 普通歌单保留真实歌单 ID 导入到当前账号歌单列表。
   Future<BackupSyncResult> importSelectedPlaylists(
@@ -1194,52 +1227,64 @@ class PlaylistBackupService extends ChangeNotifier {
     if (library == null || playlists.isEmpty) {
       return const BackupSyncResult(addedLikedTracks: 0, syncedPlaylists: 0);
     }
-    var addedTracks = 0;
-    var syncedPlaylists = 0;
-    final wasAuto = _autoCurrentAccount;
-    _autoCurrentAccount = false;
-    try {
-      for (final playlist in playlists) {
-        if (playlist.id.startsWith(BackupAccount.backupLikedPrefix) ||
-            playlist.id == LibraryProvider.likedSongsId) {
-          for (final track in playlist.tracks.reversed) {
-            if (track.id.isNotEmpty && !library.isLiked(track.id)) {
-              library.toggleLike(track);
-              addedTracks++;
-            }
-          }
-          continue;
-        }
-        if (playlist.id.isEmpty) continue;
-        final synced = playlist.copyWith(
+    final likedTracks = <SpotifyTrack>[];
+    final synced = <SpotifyPlaylist>[];
+    for (final playlist in playlists) {
+      if (playlist.id.startsWith(BackupAccount.backupLikedPrefix) ||
+          playlist.id == LibraryProvider.likedSongsId) {
+        likedTracks.addAll(playlist.tracks);
+        continue;
+      }
+      if (playlist.id.isEmpty) continue;
+      synced.add(
+        playlist.copyWith(
           uri: playlist.uri.isNotEmpty
               ? playlist.uri
               : 'spotify:playlist:${playlist.id}',
           totalTracks: playlist.tracks.isNotEmpty
               ? playlist.tracks.length
               : playlist.totalTracks,
-        );
-        library.upsertLocalPlaylist(synced);
-        syncedPlaylists++;
-      }
-    } finally {
-      _autoCurrentAccount = wasAuto;
+        ),
+      );
     }
-    if (_enabled && _autoCurrentAccount) {
-      _backupCurrentAccountImmediate();
-    } else {
-      _notify();
-    }
+    var addedTracks = 0;
+    await _runImport(() {
+      addedTracks = library.likeTracks(likedTracks);
+      library.upsertLocalPlaylists(synced);
+      return 0;
+    });
     return BackupSyncResult(
       addedLikedTracks: addedTracks,
-      syncedPlaylists: syncedPlaylists,
+      syncedPlaylists: synced.length,
     );
+  }
+
+  /// 导入期间暂停「媒体库一变就备份」，结束后只备份一次。
+  /// 先让出一帧，界面能立刻显示「后台导入中」再开始合并。
+  Future<int> _runImport(int Function() work) async {
+    _isImporting = true;
+    _notify();
+    await Future<void>.delayed(Duration.zero);
+    final wasAuto = _autoCurrentAccount;
+    _autoCurrentAccount = false;
+    try {
+      return work();
+    } finally {
+      _autoCurrentAccount = wasAuto;
+      _isImporting = false;
+      if (_enabled && _autoCurrentAccount) {
+        _backupCurrentAccountImmediate();
+      } else {
+        _notify();
+      }
+    }
   }
 
   /// 一键将已勾选备份账号的全部歌单与已点赞歌曲同步到本机当前账号。
   Future<BackupSyncResult> syncToCurrentAccount() async {
     final selected = <SpotifyPlaylist>[];
-    for (final account in _accounts) {
+    // 不含当前登录账号自己：把自己的歌单「导入」给自己只会在本机歌单里多出一份重复副本
+    for (final account in visibleAccounts) {
       if (!account.syncToLocal) continue;
       selected.addAll(account.backedUpPlaylists);
     }
@@ -1278,35 +1323,81 @@ class PlaylistBackupService extends ChangeNotifier {
 
   void _loadFromDisk() {
     final file = _diskFile;
-    if (file != null && file.existsSync()) {
-      try {
-        final decoded = jsonDecode(file.readAsStringSync());
-        if (decoded is List) {
-          _accounts = List.unmodifiable(
-            decoded
-                .whereType<Map<String, dynamic>>()
-                .map(BackupAccount.fromJson),
-          );
-          return;
-        }
-      } catch (_) {}
+    if (file != null) {
+      final fromFile = _readBackupFile(file);
+      if (fromFile != null) {
+        _accounts = fromFile;
+        return;
+      }
+      if (file.existsSync()) {
+        // 主文件损坏：留一份原样副本，免得之后的落盘把它覆盖掉
+        try {
+          file.copySync('${file.path}.corrupt');
+        } catch (_) {}
+      }
+      // 上次写到一半（主文件缺失 / 损坏）：用完整写好的临时文件恢复
+      final fromTmp = _readBackupFile(File('${file.path}.tmp'));
+      if (fromTmp != null) {
+        _accounts = fromTmp;
+        _persistToDisk();
+        return;
+      }
     }
     final list = _storage.readJsonList(StorageService.keyPlaylistBackups);
     _accounts = List.unmodifiable(list.map(BackupAccount.fromJson));
+    // 旧版本存在 SharedPreferences 里：迁移到独立文件后清掉，偏好文件不再背着整份备份
+    if (file != null && list.isNotEmpty) {
+      _persistToDisk();
+      unawaited(_storage.writeJsonList(StorageService.keyPlaylistBackups, const []));
+    }
+  }
+
+  /// 落盘排队：备份可能很大（多个账号的全部歌单曲目），编码放到后台 Isolate、文件异步写，
+  /// 不卡界面；连续多次触发时串行执行，最后一次的内容最终落盘。
+  Future<void> _persistQueue = Future.value();
+
+  /// 等待排队中的落盘写完（测试用）。
+  @visibleForTesting
+  Future<void> get pendingPersist => _persistQueue;
+
+  static List<BackupAccount>? _readBackupFile(File file) {
+    try {
+      if (!file.existsSync()) return null;
+      final decoded = jsonDecode(file.readAsStringSync());
+      if (decoded is! List) return null;
+      return List.unmodifiable(
+        decoded.whereType<Map<String, dynamic>>().map(BackupAccount.fromJson),
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   void _persistToDisk() {
     final serialized = [for (final a in _accounts) a.toJson()];
-    unawaited(
-      _storage.writeJsonList(StorageService.keyPlaylistBackups, serialized),
-    );
     final file = _diskFile;
-    if (file != null) {
-      try {
-        file.parent.createSync(recursive: true);
-        file.writeAsStringSync(jsonEncode(serialized));
-      } catch (_) {}
+    if (file == null) {
+      unawaited(
+        _storage.writeJsonList(StorageService.keyPlaylistBackups, serialized),
+      );
+      return;
     }
+    // 有独立文件时不再写进 SharedPreferences：备份可能很大，偏好文件每次保存都会整份重写
+    _persistQueue = _persistQueue.then((_) async {
+      try {
+        final text = await Isolate.run(() => jsonEncode(serialized));
+        await file.parent.create(recursive: true);
+        final tmp = File('${file.path}.tmp');
+        await tmp.writeAsString(text, flush: true);
+        try {
+          // 原子替换：任何时刻磁盘上都有一份完整的备份（旧的或新的）
+          await tmp.rename(file.path);
+        } on FileSystemException {
+          // 目标被其他程序短暂占用（杀毒 / 同步盘）：退回直接覆盖写入
+          await file.writeAsString(text, flush: true);
+        }
+      } catch (_) {}
+    });
   }
 
   void _notify() {

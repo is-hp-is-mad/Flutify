@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:material_3_expressive/material_3_expressive.dart' show M3EButton;
 
 /// Connect 设备名输入框：回车或失焦时提交（去掉首尾空格，空值表示恢复默认名）。
 class DeviceNameField extends StatefulWidget {
@@ -72,7 +73,7 @@ class _DeviceNameFieldState extends State<DeviceNameField> {
       children: [
         Expanded(child: field),
         const SizedBox(width: 8),
-        TextButton(
+        M3EButton.text(
           onPressed: () async {
             final name = await suggestion();
             if (!mounted || name.isEmpty) return;

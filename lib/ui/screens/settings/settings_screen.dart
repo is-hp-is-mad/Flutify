@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
 import '../../../l10n/l10n.dart';
-import '../../../services/auth/web_token_service.dart';
 import '../../shell/shell_breakpoints.dart';
+import 'sections/external_lyrics_section.dart';
 import 'sections/about_section.dart';
 import 'sections/update_section.dart';
 import 'sections/accent_section.dart';
@@ -23,17 +22,9 @@ import 'sections/storage_section.dart';
 import 'sections/taskbar_lyrics_section.dart';
 import 'sections/text_shape_section.dart';
 import 'widgets/account_card.dart';
-import 'widgets/web_login_card.dart';
 
-/// 账号区卡片：账号卡片 + （有 Web token 服务时）全曲播放 Web 登录卡片。
-/// 测试中不注入 WebTokenService，Web 登录卡片自动省略。
-List<Widget> _accountCards(BuildContext context) => [
-      const AccountCard(),
-      if (context.read<WebTokenService?>() != null) ...[
-        const SizedBox(height: 12),
-        const WebLoginCard(),
-      ],
-    ];
+/// 账号区卡片。登录只有 Web 登录一种：登录即同时解锁全曲播放，不再单独放 Web 登录卡片。
+List<Widget> _accountCards(BuildContext context) => const [AccountCard()];
 
 /// 设置页（单列顺序）：账号 → 播放 → 歌词 → 外观 → 强调色 → 液态玻璃 → 文字与形状 → 动效
 /// → 动画调试（临时）→ 语言 → Spotify Connect → 网络 → 存储 → 隐私 → 启动 → 关于。
@@ -60,6 +51,7 @@ const List<Widget> _singleColumn = [
   PlaybackSection(),
   LyricsSection(),
   TaskbarLyricsSection(),
+  ExternalLyricsSection(),
   AppearanceSection(),
   AccentSection(),
   GlassSection(),
@@ -139,6 +131,7 @@ class _DesktopSettings extends StatelessWidget {
                           const MotionSection(),
                           const LyricsSection(),
                           const TaskbarLyricsSection(),
+                          const ExternalLyricsSection(),
                           const LanguageSection(),
                           const NetworkSection(),
                           const RegionCheckSection(),

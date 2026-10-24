@@ -6,6 +6,9 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- 蓝牙歌词：识别已连接的蓝牙音频设备（名称 / 是否车载）。Android 12+ 需要运行时授权 -->
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
     <application
         android:label="Flutify"
         android:name="${applicationName}"
@@ -21,7 +24,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:launchMode="singleTop"
+            android:launchMode="singleTask"
             android:taskAffinity=""
             android:theme="@style/LaunchTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
@@ -38,6 +41,29 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+            <!-- 浏览器 / 其他应用里点开的 Spotify 链接（打开方式选择器里会出现 Flutify） -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="spotify"/>
+            </intent-filter>
+            <!-- open.spotify.com 分享链接：只认单曲 / 专辑 / 歌单 / 艺人，其他页面不拦截 -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https"/>
+                <data android:host="open.spotify.com"/>
+                <data android:pathPrefix="/track/"/>
+                <data android:pathPrefix="/album/"/>
+                <data android:pathPrefix="/playlist/"/>
+                <data android:pathPrefix="/artist/"/>
+                <data android:pathPattern="/intl-.*/track/.*"/>
+                <data android:pathPattern="/intl-.*/album/.*"/>
+                <data android:pathPattern="/intl-.*/playlist/.*"/>
+                <data android:pathPattern="/intl-.*/artist/.*"/>
             </intent-filter>
         </activity>
         <!-- 系统媒体控制：audio_service 的媒体服务与耳机 / 蓝牙媒体键接收器 -->

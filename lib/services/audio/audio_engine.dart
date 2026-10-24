@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 
 import '../protocol/progressive_download.dart';
@@ -51,6 +52,23 @@ class EmePlaybackException implements Exception {
   @override
   String toString() => message;
 }
+
+/// 实际出声的播放引擎（界面显示、本机输出设备是否可切换）。
+enum PlaybackEngineKind {
+  /// just_audio 本地播放器（Windows / Linux 为 libmpv；本地文件、播客、非 DRM 流）。
+  localPlayer,
+
+  /// WebView2 / Chrome EME 播放（浏览器内核出声）。
+  webView,
+
+  /// Android Media3 / MediaDrm 原生播放。
+  androidDrm,
+}
+
+/// 当前正在出声的引擎；还没播放过为 null。由各引擎在音源就位时更新。
+final ValueNotifier<PlaybackEngineKind?> activePlaybackEngine = ValueNotifier(
+  null,
+);
 
 /// 统一音频引擎抽象：PlaybackProvider 只依赖它，不关心底层是 just_audio 还是 EME。
 ///

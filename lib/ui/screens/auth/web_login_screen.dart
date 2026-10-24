@@ -14,6 +14,8 @@ import '../../../services/auth/web_token_service.dart';
 import '../../../services/eme/eme_player.dart';
 import '../../shell/desktop/desktop_window.dart';
 import 'linux_web_login_screen.dart';
+import 'package:material_3_expressive/material_3_expressive.dart' show M3EButton, M3EButtonStyle;
+import '../../widgets/flutify_progress.dart';
 
 export '../../../services/auth/web_login_flow.dart' show WebLoginStage;
 
@@ -53,11 +55,10 @@ class WebLoginScreen extends StatefulWidget {
   State<WebLoginScreen> createState() => _WebLoginScreenState();
 }
 
-/// 登录结果：[spDc] 非空即 Web 会话已就绪；[desktopAuthorized] 表示桌面 OAuth 也已完成。
+/// 登录结果：[spDc] 非空即 Web 会话已就绪（已同时完成全局登录）。
 class WebLoginResult {
   final String? spDc;
-  final bool desktopAuthorized;
-  const WebLoginResult({this.spDc, this.desktopAuthorized = false});
+  const WebLoginResult({this.spDc});
 
   bool get webSignedIn => spDc != null && spDc!.isNotEmpty;
 }
@@ -65,7 +66,6 @@ class WebLoginResult {
 class _WebLoginScreenState extends State<WebLoginScreen> {
   InAppWebViewController? _controller;
   late final WebLoginFlow _flow;
-  AuthProvider? _auth;
   late final WebTokenService _tokens;
   bool _sessionRejected = false;
   bool _webViewReady = false;
@@ -91,19 +91,12 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
 
   Timer? _pollTimer;
   Timer? _consentTimer;
-  Timer? _revealTimer;
 
   /// 页面已结束（pop 过），后续回调全部忽略。
   bool _done = false;
 
-  /// 后台桌面授权是否已露出 WebView（自动过不去时兜底让用户手点「同意」）。
-  bool _revealed = false;
-
   /// 最近一次页面地址（同意页自动点击的判定依据）。
   String? _currentUrl;
-
-  /// 桌面授权阶段的兜底等待：超过该时长仍没完成就露出 WebView 让用户手动确认。
-  static const Duration _manualFallbackDelay = Duration(seconds: 12);
 
   @override
   void initState() {
@@ -111,31 +104,21 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
     final tokens = context.read<WebTokenService>();
     _tokens = tokens;
     final auth = context.read<AuthProvider?>();
-    _auth = auth;
     _flow = WebLoginFlow(
       // 关键：CookieManager 必须与 WebView 同一个 WebViewEnvironment。
       // 用默认环境会与 EME 的自定义环境（同 user data 目录、不同浏览器参数）冲突，
       // 创建即 ERROR_INVALID_STATE，读 cookie 永远抛异常 —— 登录完卡在 open.spotify.com 的根因。
       readSpDc: _readSpDc,
       saveSpDc: tokens.setSpDc,
-      prepareWebToken: () =>
-          tokens.mintAccessToken().timeout(const Duration(seconds: 15)),
-      // 没有 AuthProvider（测试）时视为桌面已登录，只做 Web 会话部分
-      desktopSignedIn: () => auth?.isSignedIn ?? true,
-      beginDesktopOAuth: () async => auth?.beginOAuth(),
-      cancelDesktopOAuth: () async => auth?.cancelOAuth(),
-      onAuthorizeUrl: _loadAuthorizeUrl,
-      onFinished: (_) => _finish(
-        WebLoginResult(
-          spDc: _flow.spDc,
-          desktopAuthorized: _flow.desktopAuthorized,
-        ),
-      ),
+      prepareWebToken: () async {
+        await tokens.mintAccessToken().timeout(const Duration(seconds: 15));
+        await auth?.completeWebSignIn();
+      },
+      onFinished: (_) => _finish(WebLoginResult(spDc: _flow.spDc)),
     );
     _flow.addListener(_onFlowChanged);
     tokens.sessionInvalidated.addListener(_onSessionInvalidated);
     tokens.addCookieCleanupHook(_stopRejectedWebView);
-    auth?.addListener(_onAuthChanged);
     // 兜底：每 2 秒推一次流程（读 sp_dc 的轮询；跳转路径不固定，不能只靠导航事件）
     _pollTimer = Timer.periodic(
       const Duration(seconds: 2),
@@ -158,13 +141,11 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
   void dispose() {
     _pollTimer?.cancel();
     _consentTimer?.cancel();
-    _revealTimer?.cancel();
     _regionWatchTimer?.cancel();
     _flow.removeListener(_onFlowChanged);
-    _auth?.removeListener(_onAuthChanged);
     _tokens.sessionInvalidated.removeListener(_onSessionInvalidated);
     _tokens.removeCookieCleanupHook(_stopRejectedWebView);
-    // 关页时放弃未完成的桌面授权，避免回环端口在后台悬挂
+    // 关页后到达的异步结果一律丢弃
     unawaited(_flow.cancel());
     _flow.dispose();
     super.dispose();
@@ -191,7 +172,6 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
     _sessionRejected = true;
     _webViewReady = false;
     _currentUrl = null;
-    _revealTimer?.cancel();
     _flow.invalidateSession();
   }
 
@@ -336,19 +316,6 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
     if (mounted && !_done) setState(() {});
   }
 
-  /// AuthProvider 状态 → 流程：已登录即桌面授权完成；失败带错误信息回流程。
-  void _onAuthChanged() {
-    final auth = _auth;
-    if (auth == null || _done) return;
-    if (auth.isSignedIn) {
-      _flow.onDesktopAuthorized();
-    } else if (_flow.waitingForDesktop &&
-        auth.status == AuthStatus.signedOut &&
-        (auth.error?.isNotEmpty ?? false)) {
-      _flow.onDesktopFailed(auth.error!);
-    }
-  }
-
   /// 读 sp_dc：多来源各试一遍（cookie 域绑定可能落在 accounts 或 open 上）。
   Future<String?> _readSpDc() async {
     if (!_webViewReady || _sessionRejected || !mounted || _done) return null;
@@ -370,31 +337,12 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
     return null;
   }
 
-  /// 桌面授权页装载进 WebView（被进度浮层盖住，用户无感）。
-  void _loadAuthorizeUrl(Uri url) {
-    if (!mounted || _done || _sessionRejected || !_webViewReady) return;
-    setState(() {
-      _revealed = false;
-      _currentUrl = url.toString();
-    });
-    _revealTimer?.cancel();
-    _revealTimer = Timer(_manualFallbackDelay, _revealForManual);
-    _controller?.loadUrl(urlRequest: URLRequest(url: WebUri(url.toString())));
-  }
-
-  /// 自动授权超时兜底：露出 WebView，让用户手动点「同意」。
-  void _revealForManual() {
-    if (!mounted || _done || !_flow.waitingForDesktop) return;
-    setState(() => _revealed = true);
-  }
-
-  /// 同意页自动点击（后台无感完成授权的关键一步）。
+  /// 同意页自动点击（登录跳转链里偶尔出现的账号授权确认页）。
   Future<void> _tryAutoApprove() async {
     final controller = _controller;
-    if (controller == null ||
-        _done ||
-        !(_flow.waitingForDesktop || _flow.stage == WebLoginStage.webSignIn))
+    if (controller == null || _done || _flow.stage != WebLoginStage.webSignIn) {
       return;
+    }
     if (!isSpotifyAccountsPageUrl(_currentUrl)) return;
     try {
       await controller.evaluateJavascript(source: kConsentAutoApproveScript);
@@ -406,8 +354,7 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
   void _onNav(String? url) {
     if (url == null || _done || _sessionRejected || !_webViewReady) return;
     _currentUrl = url;
-    // 回环回调到达 = 授权码已交给本机服务，等 AuthProvider 换完令牌即可
-    if (!isLoopbackRedirect(url)) _tryAutoApprove();
+    _tryAutoApprove();
   }
 
   // ---------------------------------------------------------------------------
@@ -418,10 +365,7 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
   Widget build(BuildContext context) {
     final stage = _flow.stage;
     final showOverlay =
-        !_revealed &&
-        !_regionBlocked &&
-        (stage == WebLoginStage.preparing ||
-            stage == WebLoginStage.desktopAuthorize);
+        !_regionBlocked && stage == WebLoginStage.preparing;
 
     final media = MediaQuery.of(context);
     final macInset = DesktopWindow.macNativeWindow ? 28.0 : 0.0;
@@ -440,7 +384,7 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
       body: Column(
         children: [
           if (stage != WebLoginStage.done)
-            const LinearProgressIndicator(minHeight: 2),
+            const FlutifyLinearProgress(thickness: 4),
           if (stage == WebLoginStage.webSignIn) const _GoogleAccountHint(),
           if (_flow.notice != null)
             _NoticeBar(text: _flow.notice!, icon: Icons.info_outline_rounded),
@@ -451,11 +395,6 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
               icon: Icons.error_outline_rounded,
               actionLabel: context.l10n.commonRetry,
               onAction: _retry,
-            ),
-          if (_revealed && _flow.waitingForDesktop)
-            _NoticeBar(
-              text: context.l10n.webLoginConsentHint,
-              icon: Icons.touch_app_rounded,
             ),
           Expanded(
             child: Stack(
@@ -535,7 +474,6 @@ class _ProgressOverlay extends StatelessWidget {
         ? context.l10n.webLoginRegionChecking
         : switch (stage) {
             WebLoginStage.preparing => context.l10n.webLoginPreparing,
-            WebLoginStage.desktopAuthorize => context.l10n.webLoginAuthorizing,
             _ => context.l10n.webLoginFinishing,
           };
     return Positioned.fill(
@@ -544,11 +482,7 @@ class _ProgressOverlay extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const SizedBox(
-              width: 48,
-              height: 48,
-              child: CircularProgressIndicator(strokeWidth: 4),
-            ),
+            const FlutifyLoadingIndicator(),
             const SizedBox(height: 24),
             Text(
               text,
@@ -568,7 +502,7 @@ class _ProgressOverlay extends StatelessWidget {
             ),
             if (checkingRegion && onSkipRegion != null) ...[
               const SizedBox(height: 20),
-              TextButton(
+              M3EButton.text(
                 onPressed: onSkipRegion,
                 child: Text(context.l10n.webLoginRegionSkipThisRun),
               ),
@@ -640,13 +574,13 @@ class _RegionBlockedView extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  FilledButton.icon(
+                  M3EButton.icon(style: M3EButtonStyle.filled,
                     onPressed: checking ? null : onRecheck,
                     icon: checking
                         ? const SizedBox(
                             width: 16,
                             height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                            child: FlutifySpinner(size: 16),
                           )
                         : const Icon(Icons.refresh_rounded),
                     label: Text(
@@ -656,7 +590,7 @@ class _RegionBlockedView extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  TextButton(
+                  M3EButton.text(
                     onPressed: checking ? null : onSkip,
                     child: Text(l10n.webLoginRegionForceSkip),
                   ),
@@ -738,7 +672,7 @@ class _NoticeBar extends StatelessWidget {
             ),
           ),
           if (actionLabel != null)
-            TextButton(onPressed: onAction, child: Text(actionLabel!)),
+            M3EButton.text(onPressed: onAction, child: Text(actionLabel!)),
         ],
       ),
     );

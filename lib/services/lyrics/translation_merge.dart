@@ -1,4 +1,6 @@
+import '../../core/rust_core.dart';
 import '../../models/lyrics.dart';
+import '../../src/rust/api/lyrics.dart' as rust;
 import 'lyric_script.dart';
 import 'translation_markers.dart';
 
@@ -34,6 +36,23 @@ class TranslationMerge {
 
   /// 尝试拆分；不是对照结构返回 null。返回的行数与原文行数一致（译文行被吸收）。
   static List<LyricLine>? tryMerge(List<LyricLine> lines) {
+    if (RustCore.ready) {
+      final merged = rust.tryMergeBilingualLines(
+        lines: [
+          for (final l in lines)
+            rust.LrcLine(startTimeMs: l.startTimeMs, words: l.words),
+        ],
+      );
+      if (merged == null) return null;
+      return [
+        for (final m in merged)
+          LyricLine(
+            startTimeMs: m.startTimeMs,
+            words: m.words,
+            translation: m.translation,
+          ),
+      ];
+    }
     // 按时间邻近分组（解析已稳定排序，同时间点保持原有先后）：与上一行相差 ≤ 容差即同组。
     // 不用固定时间桶——01.24 与 01.26 会被桶边界拆开；组内再按时间就近配对（见 [_mergeGroup]）。
     // 空行是间奏标记（界面显示 • • •），不参与配对，原样保留；

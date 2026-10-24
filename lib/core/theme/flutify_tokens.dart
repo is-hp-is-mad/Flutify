@@ -6,6 +6,16 @@ import '../../models/appearance.dart';
 import 'accent_colors.dart';
 import 'md3e_shapes.dart';
 
+/// 「已点赞的歌曲」封面渐变：全应用（侧栏、音乐库、详情页、备份页）统一使用这一份。
+const LinearGradient kLikedSongsGradient = LinearGradient(
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+  colors: [Color(0xFF450AF5), Color(0xFF8E8EE5), Color(0xFFC4EFD9)],
+);
+
+/// 「已点赞的歌曲」详情页取色兜底（与渐变主色同色系）。
+const Color kLikedSongsTint = Color(0xFF4A2FB8);
+
 /// 主题之外的外观令牌（ThemeExtension）：强调色填充、液态玻璃参数、圆角缩放。
 ///
 /// 组件通过 `context.tokens` 读取；随主题一起变化，所以用户在设置页调整后所有页面即时生效。

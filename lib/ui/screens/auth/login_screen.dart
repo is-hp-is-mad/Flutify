@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 
 import '../../../l10n/l10n.dart';
 
-import '../../../core/platform/flutify_platform.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../services/auth/web_token_service.dart';
 import '../../shell/desktop/desktop_window.dart';
@@ -14,7 +13,6 @@ import '../../shell/shell_breakpoints.dart';
 import '../../widgets/toast/app_toast.dart';
 import 'web_login_screen.dart';
 import 'widgets/login_intro_view.dart';
-import 'widgets/oauth_waiting_view.dart';
 
 /// Spotify 账号登录页（唯一方式：在浏览器中登录）。
 ///
@@ -64,29 +62,16 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void dispose() {
     _auth.removeListener(_onAuthChanged);
-    // 离开页面时放弃未完成的浏览器授权，避免回环端口在后台悬挂。
-    // dispose 期间组件树已锁定，通知监听者需推迟到微任务
-    final auth = _auth;
-    Future.microtask(() {
-      if (auth.isAuthorizing) auth.cancelOAuth();
-    });
     super.dispose();
   }
 
-  /// 统一登录页（WebView）是否开着：桌面授权在其中后台完成时 AuthProvider 先变成已登录，
+  /// 统一登录页（WebView）是否开着：登录在其中完成时 AuthProvider 先变成已登录，
   /// 此时若直接 pop 根导航，关掉的是上层的登录页而不是本页；等它返回后再收尾。
   bool _webLoginOpen = false;
 
-  /// 主按钮：打开应用内统一登录页，一次登录同时拿到 Web 会话与桌面授权。
+  /// 主按钮：打开 Web 登录页（Linux 为系统 Chrome，见 [WebLoginScreen.open]）。
   Future<void> _signIn() async {
     if (_webLoginOpen) return;
-    // Linux 桌面没有内嵌 WebView：改为系统浏览器完成桌面 OAuth（回环回调）。
-    if (FlutifyPlatform.isLinuxDesktop) {
-      final url = await _auth.beginOAuth();
-      if (!mounted || url == null) return;
-      await OAuthWaitingView.launch(context, url);
-      return;
-    }
     _webLoginOpen = true;
     await WebLoginScreen.open(context);
     _webLoginOpen = false;
@@ -135,20 +120,11 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  /// 左上角 / 系统返回：等待授权时先退回介绍态，否则关闭页面。
-  void _back() {
-    if (_auth.isAuthorizing) {
-      _auth.cancelOAuth();
-    } else {
-      Navigator.of(context).pop(false);
-    }
-  }
+  /// 左上角关闭。
+  void _back() => Navigator.of(context).pop(false);
 
   @override
   Widget build(BuildContext context) {
-    final authorizing = context.select<AuthProvider, bool>(
-      (a) => a.isAuthorizing,
-    );
     final reduceMotion = MediaQuery.disableAnimationsOf(context);
     final macTitlebar =
         DesktopWindow.enabled &&
@@ -156,10 +132,6 @@ class _LoginScreenState extends State<LoginScreen> {
         ShellBreakpoints.isDesktop(MediaQuery.sizeOf(context).width);
 
     return PopScope(
-      canPop: !authorizing,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) _back();
-      },
       child: Scaffold(
         body: Stack(
           children: [
@@ -186,14 +158,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       child: MouseRegion(
                         child: IconButton(
-                          icon: Icon(
-                            authorizing
-                                ? Icons.arrow_back_rounded
-                                : Icons.close_rounded,
-                          ),
-                          tooltip: authorizing
-                              ? context.l10n.loginBack
-                              : context.l10n.commonClose,
+                          icon: const Icon(Icons.close_rounded),
+                          tooltip: context.l10n.commonClose,
                           onPressed: _back,
                         ),
                       ),
@@ -234,14 +200,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                   ),
                                 ),
-                            child: authorizing
-                                ? const OAuthWaitingView(
-                                    key: ValueKey('waiting'),
-                                  )
-                                : LoginIntroView(
-                                    key: const ValueKey('intro'),
-                                    onSignIn: _signIn,
-                                  ),
+                            child: LoginIntroView(
+                              key: const ValueKey('intro'),
+                              onSignIn: _signIn,
+                            ),
                           ),
                         ),
                       ),

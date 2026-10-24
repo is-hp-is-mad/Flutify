@@ -1,3 +1,6 @@
+import '../core/rust_core.dart';
+import '../services/protocol/spotify_id.dart';
+import '../src/rust/api/protocol.dart' as rust;
 import 'album.dart';
 import 'artist.dart';
 import 'playlist.dart';
@@ -95,4 +98,65 @@ class ShareTarget {
   /// HTML 属性值转义：标题里可能有引号、尖括号、&。
   static String _escapeAttribute(String value) =>
       value.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+}
+
+/// 解析出的 Spotify 分享链接 / URI（如 `spotify:track:xxx` 或 `https://open.spotify.com/track/xxx`）。
+class SpotifyLink {
+  final ShareKind kind;
+  final String id;
+
+  const SpotifyLink(this.kind, this.id);
+
+  String get uri => 'spotify:${kind.path}:$id';
+
+  static ShareKind? _kindOf(String raw) => switch (raw.toLowerCase()) {
+    'track' => ShareKind.track,
+    'album' => ShareKind.album,
+    'playlist' => ShareKind.playlist,
+    'artist' => ShareKind.artist,
+    _ => null,
+  };
+
+  static SpotifyLink? _build(String rawKind, String rawId) {
+    final kind = _kindOf(rawKind);
+    if (kind == null) return null;
+    final match = RegExp(r'^[0-9A-Za-z]+').firstMatch(rawId);
+    final id = match?.group(0) ?? '';
+    try {
+      SpotifyId.fromBase62(id);
+    } on FormatException {
+      return null;
+    }
+    return SpotifyLink(kind, id);
+  }
+
+  /// 从任意输入文本（搜索框输入、分享文案、`spotify:track:xxx`、`open.spotify.com` 链接）解析目标。
+  static SpotifyLink? parse(String input) {
+    final trimmed = input.trim();
+    if (trimmed.isEmpty) return null;
+    if (RustCore.ready) {
+      final res = rust.parseSpotifyLink(input: trimmed);
+      if (res == null) return null;
+      final kind = _kindOf(res.kind);
+      return kind == null ? null : SpotifyLink(kind, res.id);
+    }
+
+    final uriMatch = RegExp(
+      r'spotify:(?:user:[^:\s]+:)?(track|album|playlist|artist):([0-9A-Za-z]+)',
+      caseSensitive: false,
+    ).firstMatch(trimmed);
+    if (uriMatch != null) {
+      final link = _build(uriMatch.group(1)!, uriMatch.group(2)!);
+      if (link != null) return link;
+    }
+
+    final urlMatch = RegExp(
+      r'(?:open|play)\.spotify\.com/(?:intl-[a-zA-Z-]+/|embed/)?(track|album|playlist|artist)/([0-9A-Za-z]+)',
+      caseSensitive: false,
+    ).firstMatch(trimmed);
+    if (urlMatch != null) {
+      return _build(urlMatch.group(1)!, urlMatch.group(2)!);
+    }
+    return null;
+  }
 }

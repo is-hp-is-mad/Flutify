@@ -127,6 +127,7 @@ class NativeDrmAudioEngine implements AudioEngine {
     Duration? initialPosition,
     bool autoplay = true,
   }) {
+    activePlaybackEngine.value = PlaybackEngineKind.androidDrm;
     final generation = ++_generation;
     _playRequested = autoplay;
     _playing = false;

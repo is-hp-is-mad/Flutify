@@ -184,9 +184,7 @@ jobs:
       - name: Test Windows PowerShell 5.1 update handoff
         run: python tool/test_windows_update.py -v
 
-      # x64 beta experiments with native CDM and falls back to WebView on load failure.
-      # ARM64 keeps WebView; the CDM helper is currently x64 only.
-      - run: flutter build windows --release --dart-define=FLUTIFY_NATIVE_WIDEVINE=${{ matrix.arch == 'x64' }} --dart-define=FLUTIFY_RELEASE_TAG=${{ needs.prepare.outputs.tag }}
+      - run: flutter build windows --release --dart-define=FLUTIFY_RELEASE_TAG=${{ needs.prepare.outputs.tag }}
 
       - name: Verify native binary architecture
         run: python tool/verify_windows_arch.py build/windows/${{ matrix.arch }}/runner/Release ${{ matrix.arch }}

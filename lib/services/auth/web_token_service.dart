@@ -4,6 +4,8 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
+import '../../core/rust_core.dart';
+import '../../src/rust/api/protocol.dart' as rust;
 import '../storage_service.dart';
 import 'web_token_exception.dart';
 import 'session_http_client.dart';
@@ -61,6 +63,11 @@ class WebTokenService {
   /// 还原 TOTP secret：逐字符 `charCode ^ ((i % 33) + 9)`，结果数字 join 成十进制串，
   /// 该串的 UTF-8 字节即 secret（对应 JS 里 `Buffer.from(joined,'utf8')` 后 fromHex 的等价物）。
   static List<int> _deobfuscateSecret(String obfuscated) {
+    if (RustCore.ready) {
+      try {
+        return rust.deobfuscateTotpSecret(obfuscated: obfuscated);
+      } catch (_) {}
+    }
     final codes = <int>[];
     for (var i = 0; i < obfuscated.length; i++) {
       codes.add(obfuscated.codeUnitAt(i) ^ ((i % 33) + 9));
@@ -76,6 +83,16 @@ class WebTokenService {
     int period = 30,
     int digits = 6,
   }) {
+    if (RustCore.ready) {
+      try {
+        return rust.generateTotp(
+          secret: secret,
+          timestampMs: timestampMs,
+          period: period,
+          digits: digits,
+        );
+      } catch (_) {}
+    }
     final counter = timestampMs ~/ 1000 ~/ period;
     final msg = ByteData(8)..setUint64(0, counter, Endian.big);
     final h = Hmac(sha1, secret).convert(msg.buffer.asUint8List()).bytes;

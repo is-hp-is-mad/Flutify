@@ -2,12 +2,18 @@
 /// - DH（768 位 Oakley Group 1，generator 2）；
 /// - 握手密钥推导（HMAC-SHA1 链）；
 /// - 服务端 DH 公钥签名验证（RSA PKCS#1 v1.5 + SHA-1）。
+///
+/// 运行时由 Rust（flutify_core `ap_crypto`）计算——Dart BigInt 的 768 位 modPow 很慢；
+/// 下面的纯 Dart 实现只在未加载 Rust 核心的单元测试环境里使用，两者逐字节一致。
 library;
 
 import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
+
+import '../../core/rust_core.dart';
+import '../../src/rust/api/protocol.dart' as rust;
 
 /// Spotify 服务端 RSA 公钥模数（256 字节，指数 65537）。
 final Uint8List apServerKey = Uint8List.fromList([
@@ -44,9 +50,15 @@ final BigInt _dhGenerator = BigInt.two;
 
 class DhLocalKeys {
   final BigInt _privateKey;
-  late final Uint8List publicKey = _toBeBytes(_dhGenerator.modPow(_privateKey, dhPrime), dhKeyLength);
 
-  DhLocalKeys._(this._privateKey);
+  /// 私钥原始字节（95 字节小端），交给 Rust 计算。
+  final Uint8List _privateLe;
+
+  late final Uint8List publicKey = RustCore.ready
+      ? rust.apDhPublicKey(privateLe: _privateLe)
+      : _toBeBytes(_dhGenerator.modPow(_privateKey, dhPrime), dhKeyLength);
+
+  DhLocalKeys._(this._privateKey, this._privateLe);
 
   /// 随机私钥（95 字节小端，与 librespot 一致）。
   factory DhLocalKeys.random([Random? random]) {
@@ -59,11 +71,14 @@ class DhLocalKeys {
     for (var i = bytes.length - 1; i >= 0; i--) {
       value = (value << 8) | BigInt.from(bytes[i]);
     }
-    return DhLocalKeys._(value);
+    return DhLocalKeys._(value, bytes);
   }
 
   /// 与对端公钥计算共享密钥（最小大端字节，无前导零，与 librespot `to_bytes_be` 一致）。
   Uint8List sharedSecret(Uint8List remoteKey) {
+    if (RustCore.ready) {
+      return rust.apDhSharedSecret(privateLe: _privateLe, remoteBe: remoteKey);
+    }
     final remote = _fromBytes(remoteKey);
     final shared = remote.modPow(_privateKey, dhPrime);
     return _toBeBytes(shared);
@@ -82,6 +97,13 @@ class DhLocalKeys {
   Uint8List sharedSecret,
   Uint8List handshakePackets,
 ) {
+  if (RustCore.ready) {
+    final keys = rust.apComputeKeys(
+      sharedSecret: sharedSecret,
+      handshakePackets: handshakePackets,
+    );
+    return (challenge: keys.challenge, sendKey: keys.sendKey, recvKey: keys.recvKey);
+  }
   final mac = Hmac(sha1, sharedSecret);
   final data = BytesBuilder();
   for (var i = 1; i <= 5; i++) {
@@ -103,6 +125,13 @@ bool rsaVerifyPkcs1Sha1({
   required Uint8List signature,
   required Uint8List message,
 }) {
+  if (RustCore.ready) {
+    return rust.apRsaVerifyPkcs1Sha1(
+      modulus: modulus,
+      signature: signature,
+      message: message,
+    );
+  }
   final n = _fromBytes(modulus);
   final s = _fromBytes(signature);
   final e = BigInt.from(65537);

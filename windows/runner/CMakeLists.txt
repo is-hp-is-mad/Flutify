@@ -11,6 +11,7 @@ add_executable(${BINARY_NAME} WIN32
   "main.cpp"
   "media_controls.cpp"
   "media_identity.cpp"
+  "protocol_handler.cpp"
   "snap_layout.cpp"
   "system_proxy_windows.cpp"
   "taskbar_lyrics.cpp"
@@ -58,12 +59,3 @@ target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}")
 
 # Run the Flutter tool portions of the build. This must not be removed.
 add_dependencies(${BINARY_NAME} flutter_assemble)
-
-# Isolate experimental CDM crashes from the UI process. The installed browser
-# owns the CDM DLL; it is discovered at runtime and never bundled here.
-if(NOT CMAKE_GENERATOR_PLATFORM STREQUAL "ARM64")
-  add_executable(flutify_cdm_bridge "../../tool/cdm/native_cdm_bridge.cpp")
-  target_compile_features(flutify_cdm_bridge PRIVATE cxx_std_17)
-  target_compile_options(flutify_cdm_bridge PRIVATE /utf-8 /W4 /WX /EHsc)
-  add_dependencies(${BINARY_NAME} flutify_cdm_bridge)
-endif()

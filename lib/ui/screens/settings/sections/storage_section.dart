@@ -16,6 +16,9 @@ import '../../../../services/storage_service.dart';
 import '../widgets/settings_section.dart';
 import '../widgets/settings_segmented.dart';
 import '../../../widgets/toast/app_toast.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
+import '../../../widgets/flutify_dialog.dart';
+import '../../../widgets/flutify_progress.dart';
 
 /// 存储：音频缓存占用、缓存上限、一键清除。
 ///
@@ -79,20 +82,19 @@ class _StorageSectionState extends State<StorageSection> {
     final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.settingsClearAllCache),
-        content: Text(l10n.settingsClearAllCacheHelp),
+      builder: (dialogContext) => FlutifyDialog(
+        title: l10n.settingsClearAllCache,
+        content: Material(type: MaterialType.transparency, child: Text(l10n.settingsClearAllCacheHelp)),
         actions: [
-          TextButton(
+          M3EButton.text(
             onPressed: () => Navigator.pop(dialogContext, false),
             child: Text(l10n.commonCancel),
           ),
-          FilledButton(
+          M3EButton.filled(
             onPressed: () => Navigator.pop(dialogContext, true),
             child: Text(l10n.commonClear),
           ),
-        ],
-      ),
+        ]),
     );
     if (confirmed != true || !mounted) return;
     final spotify = context.read<SpotifyProvider>();
@@ -169,20 +171,19 @@ class _StorageSectionState extends State<StorageSection> {
     final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.settingsClearAudioCacheTitle),
-        content: Text(l10n.settingsClearAudioCacheMessage),
+      builder: (dialogContext) => FlutifyDialog(
+        title: l10n.settingsClearAudioCacheTitle,
+        content: Material(type: MaterialType.transparency, child: Text(l10n.settingsClearAudioCacheMessage)),
         actions: [
-          TextButton(
+          M3EButton.text(
             onPressed: () => Navigator.pop(dialogContext, false),
             child: Text(l10n.commonCancel),
           ),
-          FilledButton(
+          M3EButton.filled(
             onPressed: () => Navigator.pop(dialogContext, true),
             child: Text(l10n.commonClear),
           ),
-        ],
-      ),
+        ]),
     );
     if (confirmed != true || !mounted) return;
     setState(() => _clearing = true);
@@ -255,7 +256,7 @@ class _StorageSectionState extends State<StorageSection> {
             trailing: _clearing
                 ? const SizedBox.square(
                     dimension: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                    child: FlutifySpinner(size: 20),
                   )
                 : const Icon(Icons.cleaning_services_rounded),
             onTap: _clearing ? null : () => _clearAll(location),
@@ -290,7 +291,7 @@ class _StorageSectionState extends State<StorageSection> {
             trailing: _clearing
                 ? const SizedBox.square(
                     dimension: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                    child: FlutifySpinner(size: 20),
                   )
                 : Icon(
                     Icons.delete_sweep_rounded,
@@ -348,9 +349,9 @@ class _LocationDialogState extends State<_LocationDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    return AlertDialog(
-      title: Text(l10n.settingsCacheLocation),
-      content: SizedBox(
+    return FlutifyDialog(
+      title: l10n.settingsCacheLocation,
+      content: Material(type: MaterialType.transparency, child: SizedBox(
         width: 480,
         child: SingleChildScrollView(
           child: Column(
@@ -432,7 +433,8 @@ class _LocationDialogState extends State<_LocationDialog> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                FilledButton.tonalIcon(
+                M3EButton.icon(
+                      style: M3EButtonStyle.tonal,
                   onPressed: _picking ? null : _pickDirectory,
                   icon: const Icon(Icons.folder_open_rounded),
                   label: Text(l10n.settingsCacheChooseDirectory),
@@ -448,13 +450,13 @@ class _LocationDialogState extends State<_LocationDialog> {
             ],
           ),
         ),
-      ),
+      )),
       actions: [
-        TextButton(
+        M3EButton.text(
           onPressed: _picking ? null : () => Navigator.pop(context),
           child: Text(l10n.commonCancel),
         ),
-        FilledButton(
+        M3EButton.filled(
           onPressed:
               _picking ||
                   (_preset == CachePreset.custom &&
@@ -466,8 +468,7 @@ class _LocationDialogState extends State<_LocationDialog> {
                 ),
           child: Text(l10n.settingsApply),
         ),
-      ],
-    );
+      ]);
   }
 }
 
@@ -479,14 +480,11 @@ class _UsageBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(3),
-      child: LinearProgressIndicator(
-        value: fraction,
-        minHeight: 6,
-        backgroundColor: colorScheme.surfaceContainerHighest,
-        color: fraction > 0.9 ? colorScheme.error : colorScheme.primary,
-      ),
+    return FlutifyLinearProgress(
+      value: fraction,
+      thickness: 6,
+      trackColor: colorScheme.surfaceContainerHighest,
+      color: fraction > 0.9 ? colorScheme.error : colorScheme.primary,
     );
   }
 }

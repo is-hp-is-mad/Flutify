@@ -9,6 +9,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../l10n/l10n.dart';
 import '../../../models/share_target.dart';
 import '../../../services/eme/eme_player.dart';
+import 'package:material_3_expressive/material_3_expressive.dart' show M3EButton;
+import '../flutify_progress.dart';
 
 /// 系统 WebView 中加载官方嵌入页。不可用时明确提示，iframe 代码仍可复制。
 class EmbedWebView extends StatefulWidget {
@@ -134,7 +136,7 @@ class _EmbedWebViewState extends State<EmbedWebView> {
                             textAlign: TextAlign.center,
                           ),
                         ),
-                        TextButton(
+                        M3EButton.text(
                           onPressed: _retry,
                           child: Text(l10n.commonRetry),
                         ),
@@ -188,7 +190,7 @@ class _EmbedWebViewState extends State<EmbedWebView> {
                   if (!_loaded)
                     const Align(
                       alignment: Alignment.topCenter,
-                      child: LinearProgressIndicator(),
+                      child: FlutifyLinearProgress(),
                     ),
                 ],
               ),

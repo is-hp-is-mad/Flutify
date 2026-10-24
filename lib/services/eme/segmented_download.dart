@@ -4,6 +4,11 @@ import 'dart:math' as math;
 
 import 'package:http/http.dart' as http;
 
+import '../../core/rust_core.dart';
+import '../../src/rust/api/network.dart' as rust_net;
+import '../../src/rust/api/protocol.dart' as rust;
+import '../network/direct_route.dart';
+
 /// 多连接分段下载：把文件按 [segmentBytes] 切段，最多 [connections] 个 HTTP Range 请求并行拉取，
 /// 写进同一个文件的对应偏移。
 ///
@@ -13,6 +18,9 @@ import 'package:http/http.dart' as http;
 /// - 段按偏移从小到大分配给空闲连接，保证「从头开始的连续可用字节」尽快增长（HLS 按顺序取段）；
 /// - [onContiguous] 报告从 0 开始已连续落盘的字节数，语义与单连接顺序下载一致；
 /// - 单段失败时换下一个 CDN 地址重试，累计 [maxAttemptsPerSegment] 次仍失败则整体失败。
+///
+/// 直连时由 Rust（flutify_core `downloads::download_to_file`）完成同样的下载与写文件，CDN 支持
+/// HTTP/2 时多段共用一条连接；Rust 建连失败（一个字节都没收到）时退回下面的 Dart 实现。
 class SegmentedDownload {
   final http.Client client;
   final List<String> urls;
@@ -49,6 +57,52 @@ class SegmentedDownload {
 
   /// 下载整个文件；完成时返回总字节数。
   Future<int> run() async {
+    if (RustCore.ready && await _allDirect()) {
+      final total = await _runRust();
+      if (total != null) return total;
+    }
+    return _runDart();
+  }
+
+  Future<bool> _allDirect() async {
+    for (final url in urls) {
+      if (!await isDirectRoute(Uri.parse(url))) return false;
+    }
+    return true;
+  }
+
+  /// Rust 下载；建连失败（尚未写入任何数据）时返回 null，交给 Dart 实现重试。
+  Future<int?> _runRust() async {
+    var wrote = false;
+    await for (final e in rust_net.audioDownloadToFile(
+      urls: urls,
+      headers: [
+        for (final h in headers.entries)
+          rust.HttpHeaderEntry(name: h.key, value: h.value),
+      ],
+      path: dest.path,
+      segmentBytes: segmentBytes,
+      connections: connections,
+      maxAttemptsPerSegment: maxAttemptsPerSegment,
+    )) {
+      switch (e.kind) {
+        case 0: // 元信息
+          _total = e.total;
+        case 2: // 连续可用字节
+          wrote = true;
+          _total = e.total;
+          onContiguous(e.bytes, e.total);
+        case 3: // 完成
+          return _total = e.total;
+        case 4: // 失败
+          if (!wrote && e.message.startsWith('connect:')) return null;
+          throw HttpException(e.message.replaceFirst(RegExp('^[a-z]+:'), ''));
+      }
+    }
+    throw const HttpException('下载意外中断');
+  }
+
+  Future<int> _runDart() async {
     await dest.parent.create(recursive: true);
     _raf = await dest.open(mode: FileMode.write);
     try {

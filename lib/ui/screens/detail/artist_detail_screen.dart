@@ -1,3 +1,4 @@
+import 'package:material_3_expressive/material_3_expressive.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -207,7 +208,7 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
                           if (snap.connectionState != ConnectionState.done)
                             const Padding(
                               padding: EdgeInsets.all(24),
-                              child: Center(child: CircularProgressIndicator()),
+                              child: Center(child: M3ELoadingIndicator()),
                             )
                           else if (snap.hasError)
                             EmptyState(
@@ -269,12 +270,13 @@ class _FollowButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return OutlinedButton(
+    return M3EButton.outlined(
       onPressed: onPressed,
-      style: OutlinedButton.styleFrom(
-        shape: const StadiumBorder(),
-        side: BorderSide(
-          color: following ? colorScheme.onSurface : colorScheme.outline,
+      decoration: M3EButtonDecoration(
+        side: WidgetStatePropertyAll(
+          BorderSide(
+            color: following ? colorScheme.onSurface : colorScheme.outline,
+          ),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       ),

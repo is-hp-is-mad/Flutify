@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/flutify_tokens.dart';
+import 'package:material_3_expressive/material_3_expressive.dart' show M3ESwitch;
 
 /// iOS「设置」风格的分组：小号灰色组标题 + 圆角卡片，行之间用发丝分隔线。
 class SettingsSection extends StatelessWidget {
@@ -158,7 +159,7 @@ class SettingsSwitchTile extends StatelessWidget {
         title: title,
         subtitle: subtitle,
         onTap: () => onChanged(!value),
-        trailing: Switch(value: value, onChanged: onChanged),
+        trailing: Semantics(toggled: value, child: M3ESwitch(value: value, onChanged: onChanged)),
       ),
     );
   }

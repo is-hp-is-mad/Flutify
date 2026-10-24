@@ -48,9 +48,16 @@ dependencies:
   just_audio: ^0.10.6
   path_provider: ^2.1.6
   file_selector: ^1.1.0
+  flutter_rust_bridge: 2.13.0
+  rust_lib_flutify:
+    path: rust_builder
   connectivity_plus: ^7.0.0
   material_3_expressive: ^1.1.2
-  just_audio_media_kit: ^2.1.0
+  # 本地补丁：增加输出设备选择（畅联「本机音频设备」），见 packages/just_audio_media_kit/FLUTIFY_PATCH.md
+  just_audio_media_kit:
+    path: packages/just_audio_media_kit
+  # 直接使用其 AudioDevice 类型（本机输出设备选择）
+  media_kit: ^1.2.6
   # 上游 audio 包只提供 x64；本地小补丁按目标架构下载 libmpv。
   media_kit_libs_windows_audio:
     path: packages/media_kit_libs_windows_audio
@@ -66,6 +73,11 @@ dependencies:
   pinyin: ^3.3.0
   device_info_plus: ^13.3.0
 
+
+dependency_overrides:
+  # 本地补丁：WebView2 播放时允许本机 EME 页面选择音频输出设备，见 packages/flutter_inappwebview_windows/FLUTIFY_PATCH.md
+  flutter_inappwebview_windows:
+    path: packages/flutter_inappwebview_windows
 dev_dependencies:
   file_selector_platform_interface: ^2.7.0
   flutter_test:
