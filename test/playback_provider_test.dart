@@ -177,6 +177,42 @@ void main() {
   );
 
   test(
+    'receiver queue end continues with the state machine instead of wrapping',
+    () async {
+      await playback.playLocal(a, contextQueue: [a, b]);
+      playback.setRepeatMode(SpotifyRepeatMode.context);
+      await playback.nextTrack();
+      expect(playback.currentTrack?.id, b.id);
+      playback.receiverWindow = () => [b, c, x];
+
+      await playback.nextTrack();
+
+      expect(playback.currentTrack?.id, c.id);
+      expect(playback.upNext.map((e) => e.track.id), [x.id]);
+    },
+  );
+
+  test('receiver context is remembered, unknown URIs are ignored', () async {
+    await playback.playLocal(a, contextQueue: [a, b]);
+    expect(playback.playbackContext.uri, isEmpty);
+    playback.adoptReceiverContext('spotify:internal:temp');
+    expect(playback.playbackContext.uri, isEmpty);
+    playback.adoptReceiverContext('spotify:user:me:collection');
+    expect(playback.playbackContext.uri, 'spotify:user:me:collection');
+  });
+
+  test('without a receiver window the queue end still wraps', () async {
+    await playback.playLocal(a, contextQueue: [a, b]);
+    playback.setRepeatMode(SpotifyRepeatMode.context);
+    await playback.nextTrack();
+    playback.receiverWindow = () => const [];
+
+    await playback.nextTrack();
+
+    expect(playback.currentTrack?.id, a.id);
+  });
+
+  test(
     'receiver update ignores stale current tracks and replaces a changed future',
     () async {
       await playback.playLocal(a, contextQueue: [a, b, c]);

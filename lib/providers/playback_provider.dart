@@ -79,6 +79,11 @@ class PlaybackProvider extends ChangeNotifier {
   )?
   autoplaySource;
 
+  /// 作为 Connect 播放端时，服务端状态机里从当前曲目起的后续曲目（含当前曲目）。
+  /// 本机队列走到尽头时先用它补齐，不在本机回绕：本机队列只是服务端的滑动窗口加已播历史，
+  /// 回绕会跳回窗口开头，而不是歌单开头。
+  List<SpotifyTrack> Function()? receiverWindow;
+
   /// 本机修改随机 / 循环时与服务端同步的钩子：等服务端确认后再在前端应用，彻底消除抖动。
   Future<bool> Function({bool? shuffle, SpotifyRepeatMode? repeat})?
   syncOptionsBeforeApply;
@@ -303,6 +308,24 @@ class PlaybackProvider extends ChangeNotifier {
   /// 播放失败事件流（广播）：不可播放、未登录、网络错误等都会在这里发出一次。
   Stream<PlaybackError> get playbackErrors => _errorController.stream;
   PlaybackContext get playbackContext => _context;
+
+  /// 作为 Connect 播放端时记下服务端的上下文（歌单 / 专辑 / 艺人 / 已点赞的歌曲）。
+  ///
+  /// 本机队列只是服务端窗口，自己并不知道放的是哪个歌单；不记下来的话，会话保存后
+  /// 下次启动交回 Connect 时只能把这十几首当临时列表发出，从此一直在这几首里循环。
+  void adoptReceiverContext(String uri) {
+    const prefixes = ['spotify:playlist:', 'spotify:album:', 'spotify:artist:'];
+    final known = prefixes.any(uri.startsWith) || uri.endsWith(':collection');
+    if (!known || uri == _context.uri) return;
+    debugPrint('[playback] 记下 Connect 上下文 $uri');
+    _context = PlaybackContext(
+      type: _context.type == PlaybackContext.none.type ? 'playlist' : _context.type,
+      name: _context.name,
+      uri: uri,
+    );
+    _scheduleSave();
+    notifyListeners();
+  }
   bool get isPlaying => _isPlaying;
 
   /// Playback intent for system media controls, including automatic transitions
@@ -1354,6 +1377,14 @@ class PlaybackProvider extends ChangeNotifier {
     if (_userQueue.isNotEmpty) {
       await _startTrack(_userQueue.removeAt(0).track, isRetry: isAutoSkip);
       return;
+    }
+
+    if (_orderPos + 1 >= _order.length) {
+      final window = receiverWindow?.call() ?? const <SpotifyTrack>[];
+      if (window.length > 1) {
+        debugPrint('[playback] 本机队列到头，按 Connect 状态机补齐 ${window.length - 1} 首');
+        updateReceiverQueue(window);
+      }
     }
 
     if (_orderPos + 1 < _order.length) {
