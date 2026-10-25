@@ -187,8 +187,21 @@ class _HyperGlassWarmupState extends State<HyperGlassWarmup> {
     });
   }
 
+  /// 上屏预热期间每帧的光栅耗时：离屏预热之外，上屏绘制若再触发编译会在这里体现。
+  void _onTimings(List<FrameTiming> timings) {
+    for (final t in timings) {
+      debugPrint(
+        '[hyper_glass] 预热帧：光栅 ${t.rasterDuration.inMilliseconds} ms，'
+        '构建 ${t.buildDuration.inMilliseconds} ms',
+      );
+    }
+  }
+
   // 场景要先截一次背景、表面才会真正绘制；多留几帧确保两种材质都上屏画过
   void _countFrames() {
+    if (_frames == 0) {
+      WidgetsBinding.instance.addTimingsCallback(_onTimings);
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       if (++_frames < 6) {
@@ -196,6 +209,7 @@ class _HyperGlassWarmupState extends State<HyperGlassWarmup> {
         _countFrames();
         return;
       }
+      WidgetsBinding.instance.removeTimingsCallback(_onTimings);
       debugPrint('[hyper_glass] 上屏预热完成：${_clock.elapsedMilliseconds} ms');
       setState(() => _done = true);
     });

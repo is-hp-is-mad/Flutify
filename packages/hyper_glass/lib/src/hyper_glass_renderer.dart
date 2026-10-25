@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart' show debugPrint;
+
 import 'blend_material.dart';
 import 'glass_filter.dart';
 import 'shader_layout.g.dart';
@@ -87,17 +89,26 @@ class HyperGlassRenderer {
   }
 
   static Future<List<ui.FragmentProgram>> _loadPrograms() async {
-    final p = await Future.wait([
-      ui.FragmentProgram.fromAsset('$_assetPrefix${MiGlassSdfLayout.asset}'),
-      ui.FragmentProgram.fromAsset('$_assetPrefix${MiGlassV13F16Layout.asset}'),
-      ui.FragmentProgram.fromAsset('$_assetPrefix${MiLmBlurLayout.asset}'),
-      ui.FragmentProgram.fromAsset('$_assetPrefix${MiLmDownsampleLayout.asset}'),
-      ui.FragmentProgram.fromAsset('$_assetPrefix${MiLmUpsampleTintLayout.asset}'),
-      ui.FragmentProgram.fromAsset('${_assetPrefix}shaders/mi_blend_blur.frag'),
-    ]);
+    // Loaded one by one (not Future.wait) so the log shows each program's SkSL parse time.
+    final p = <ui.FragmentProgram>[];
+    for (final asset in [
+      MiGlassSdfLayout.asset,
+      MiGlassV13F16Layout.asset,
+      MiLmBlurLayout.asset,
+      MiLmDownsampleLayout.asset,
+      MiLmUpsampleTintLayout.asset,
+      'shaders/mi_blend_blur.frag',
+    ]) {
+      final clock = Stopwatch()..start();
+      p.add(await ui.FragmentProgram.fromAsset('$_assetPrefix$asset'));
+      _log('载入 $asset：${clock.elapsedMilliseconds} ms');
+    }
     await HyperGlassRenderer._(p[0], p[1], p[2], p[3], p[4], p[5])._warmUp();
     return p;
   }
+
+  /// Timing lines go through [debugPrint] (Flutify mirrors it into its log file).
+  static void _log(String message) => debugPrint('[hyper_glass] $message');
 
   Future<void> _warmUp() async {
     final rec = ui.PictureRecorder();
@@ -106,19 +117,26 @@ class HyperGlassRenderer {
     final src = pic.toImageSync(128, 128);
     pic.dispose();
     const g = GlassFilter();
-    final refract = refractTexture(src, g);
-    final outputs = <ui.Image>[
-      lmGaussianBlur(src, 60), // downsample path
-      drawGlass(g, refract, ui.Offset.zero, 96, 96, 24),
-    ];
-    final blurred = gaussianBlur(src, 20);
-    outputs.add(drawBlend(BlendMaterial.popupMenuLight, blurred, const ui.Size(128, 128), ui.Offset.zero, 64, 64, 16));
-    // reading back forces every pass in the chain to be rasterized now
-    for (final o in outputs) {
-      await o.toByteData();
-      o.dispose();
+    // Each stage is read back before the next one starts, so its time is the first GPU compile of
+    // the programs it uses (plus a tiny 128 px render).
+    Future<T> stage<T>(String name, T Function() run, ui.Image Function(T) image) async {
+      final clock = Stopwatch()..start();
+      final result = run();
+      await image(result).toByteData();
+      _log('预热 $name：${clock.elapsedMilliseconds} ms');
+      return result;
     }
-    for (final i in [src, refract.rgb, refract.a, blurred]) {
+
+    final lm = await stage('LM 模糊（下采样 / 模糊 / 上采样）', () => lmGaussianBlur(src, 60), (i) => i);
+    final refract = await stage('折射纹理（上采样着色）', () => refractTexture(src, g), (r) => r.rgb);
+    final glass = await stage('玻璃（SDF + MiGlassV13）', () => drawGlass(g, refract, ui.Offset.zero, 96, 96, 24), (i) => i);
+    final blurred = await stage('高斯模糊', () => gaussianBlur(src, 20), (i) => i);
+    final blend = await stage(
+      '混色模糊',
+      () => drawBlend(BlendMaterial.popupMenuLight, blurred, const ui.Size(128, 128), ui.Offset.zero, 64, 64, 16),
+      (i) => i,
+    );
+    for (final i in [src, lm, refract.rgb, refract.a, glass, blurred, blend]) {
       i?.dispose();
     }
     dispose();
