@@ -60,13 +60,19 @@ class _HyperGlassPreviewState extends State<HyperGlassPreview>
     return button.localToGlobal(Offset.zero, ancestor: stack) & button.size;
   }
 
-  void _toggleMenu([bool? open]) => setState(() => _menu.set(open ?? !_menu.open));
+  void _toggleMenu([bool? open]) =>
+      setState(() => _menu.set(open ?? !_menu.open));
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
     final l10n = context.l10n;
-    final dark = Theme.of(context).brightness == Brightness.dark;
+    // 预览菜单里的「跟随系统 / 浅色 / 深色」直接切换预览自身的深浅，方便对比两套材质
+    final dark = switch (_selected) {
+      1 => false,
+      2 => true,
+      _ => Theme.of(context).brightness == Brightness.dark,
+    };
     final hsv = HSVColor.fromColor(tokens.accent);
     Color shifted(double deg) => hsv
         .withHue((hsv.hue + deg) % 360)
@@ -125,7 +131,11 @@ class _HyperGlassPreviewState extends State<HyperGlassPreview>
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Icon(Icons.lyrics_rounded, color: Colors.white, size: 22),
+                                const Icon(
+                                  Icons.lyrics_rounded,
+                                  color: Colors.white,
+                                  size: 22,
+                                ),
                                 const Spacer(),
                                 Text(
                                   l10n.settingsHyperGlassPreview,
@@ -173,7 +183,8 @@ class _HyperGlassPreviewState extends State<HyperGlassPreview>
                             itemHeight: _itemHeight,
                             onDismiss: () => _toggleMenu(false),
                             items: [
-                              for (final (i, (icon, label)) in menuItems.indexed)
+                              for (final (i, (icon, label))
+                                  in menuItems.indexed)
                                 MorphMenuItem(
                                   label,
                                   () {
@@ -219,27 +230,38 @@ class _BlurButton extends StatelessWidget {
     return SizedBox(
       height: 44,
       child: HyperBlendBlur(
-        material: dark ? BlendMaterial.popupMenuDark : BlendMaterial.popupMenuLight,
+        material: dark
+            ? BlendMaterial.popupMenuDark
+            : BlendMaterial.popupMenuLight,
         borderRadius: 22,
-        child: Material(
-          type: MaterialType.transparency,
-          child: InkWell(
-            customBorder: const StadiumBorder(),
-            onTap: onTap,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 18),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.blur_on_rounded, color: fg, size: 20),
-                  const SizedBox(width: 8),
-                  Text(
-                    label,
-                    style: TextStyle(color: fg, fontSize: 15, fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(Icons.expand_more_rounded, color: fg, size: 20),
-                ],
+        // HyperBlendBlur 内部是 Stack，非定位子项只拿到宽松约束、贴左上；
+        // 这里再给一次 44 高，文字才会垂直居中，悬停水波纹也才铺满整颗按钮
+        child: SizedBox(
+          height: 44,
+          child: Material(
+            type: MaterialType.transparency,
+            child: InkWell(
+              customBorder: const StadiumBorder(),
+              onTap: onTap,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 18),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.blur_on_rounded, color: fg, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        color: fg,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(Icons.expand_more_rounded, color: fg, size: 20),
+                  ],
+                ),
               ),
             ),
           ),
@@ -255,7 +277,11 @@ class _BlobPainter extends CustomPainter {
   final List<({Color color, double size, double phase})> blobs;
   final double t;
 
-  const _BlobPainter({required this.base, required this.blobs, required this.t});
+  const _BlobPainter({
+    required this.base,
+    required this.blobs,
+    required this.t,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {

@@ -225,7 +225,10 @@ class HyperGlass extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scene = context.dependOnInheritedWidgetOfExactType<_SceneScope>()!.state;
+    // passthrough: the child gets this widget's own constraints (a fixed-size button stays centred,
+    // a filling bar keeps filling) instead of Stack's loose ones that pin it to the top-left.
     return Stack(
+      fit: StackFit.passthrough,
       children: [
         Positioned.fill(
           child: _GlassSurface(scene: scene, material: filter, radius: borderRadius, opacity: opacity),
@@ -251,7 +254,10 @@ class HyperBlendBlur extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scene = context.dependOnInheritedWidgetOfExactType<_SceneScope>()!.state;
+    // passthrough: the child gets this widget's own constraints (a fixed-size button stays centred,
+    // a filling bar keeps filling) instead of Stack's loose ones that pin it to the top-left.
     return Stack(
+      fit: StackFit.passthrough,
       children: [
         Positioned.fill(
           child: _GlassSurface(scene: scene, material: material, radius: borderRadius, opacity: opacity),

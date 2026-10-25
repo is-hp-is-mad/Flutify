@@ -13,3 +13,4 @@
 - `HyperGlassRenderer.shared()` / `ready`：全进程共用一个已预热的渲染器（含 SDF 缓存），`HyperGlassScene` 不再各自 load / dispose，进出场景不再卡顿。
 - `HyperGlassScene.isIn(context)`：判断是否处在场景内（Flutify 的 `LiquidGlass` 据此选择柔光玻璃或混色模糊）。
 - `MorphMenu` 菜单项外包一层透明 `Material`，修正悬停 / 水波纹画在远处祖先上导致的错位。
+- `HyperGlass` / `HyperBlendBlur` 的 Stack 改为 `StackFit.passthrough`：子组件拿到外层约束，避免被宽松约束贴到左上（文字偏上、悬停阴影错位）。

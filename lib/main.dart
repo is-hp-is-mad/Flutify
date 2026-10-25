@@ -926,7 +926,7 @@ class _ThemedApp extends StatelessWidget {
                     child: MacMenuBar(
                       child: TaskbarLyricsBinding(
                         child: LyricBridgeBinding(
-                          child: WindowFrame(child: child!),
+                          child: WindowFrame(child: HyperGlassWarmup(child: child!)),
                         ),
                       ),
                     ),

@@ -138,3 +138,91 @@ class _BlendLayersPainter extends CustomPainter {
   @override
   bool shouldRepaint(_BlendLayersPainter old) => old.layers != layers;
 }
+
+/// 柔光玻璃首帧预热：选了柔光玻璃后，在界面最底层（被所有内容盖住的左上角 4×4 区域）
+/// 真实画一次柔光玻璃和混色模糊，然后移除。
+///
+/// [warmUpHyperGlass] 只在离屏纹理上跑过一遍；上屏绘制的目标格式和混合状态不同，
+/// Skia 会在第一次上屏时重新编译这几段大 shader，歌词页 / 设置预览首次出现时整窗卡死数秒。
+/// 这里把那次编译提前到启动后的空闲时刻，并记录耗时，便于在日志里核对。
+class HyperGlassWarmup extends StatefulWidget {
+  final Widget child;
+
+  const HyperGlassWarmup({super.key, required this.child});
+
+  @override
+  State<HyperGlassWarmup> createState() => _HyperGlassWarmupState();
+}
+
+class _HyperGlassWarmupState extends State<HyperGlassWarmup> {
+  static bool _done = false;
+  bool _ready = false;
+  int _frames = 0;
+  Stopwatch? _clock;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_done || _ready || !context.tokens.hyperMaterial) return;
+    _clock = Stopwatch()..start();
+    HyperGlassRenderer.shared().then((_) {
+      if (!mounted) return;
+      debugPrint('[hyper_glass] shader 加载完成：${_clock!.elapsedMilliseconds} ms');
+      setState(() => _ready = true);
+      _countFrames();
+    }, onError: (Object _) => _done = true);
+  }
+
+  // 场景要先截一次背景、表面才会真正绘制；多留几帧确保两种材质都上屏画过
+  void _countFrames() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (++_frames < 6) {
+        WidgetsBinding.instance.ensureVisualUpdate();
+        _countFrames();
+        return;
+      }
+      debugPrint('[hyper_glass] 上屏预热完成：${_clock!.elapsedMilliseconds} ms');
+      setState(() => _done = true);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final warming = !_done && _ready && context.tokens.hyperMaterial;
+    // 结构始终是同一个 Stack，预热层只在第一格里出现 / 消失，界面本身不会被重新挂载
+    return Stack(
+      textDirection: TextDirection.ltr,
+      fit: StackFit.expand,
+      children: [
+        if (!warming)
+          const SizedBox.shrink()
+        else
+          Positioned(
+            left: 0,
+            top: 0,
+            width: 4,
+            height: 4,
+            child: IgnorePointer(
+              child: HyperGlassScene(
+                animate: false,
+                background: const ColoredBox(color: Color(0xff3070c0)),
+                child: Row(
+                  children: [
+                    const Expanded(child: HyperGlass(borderRadius: 1)),
+                    Expanded(
+                      child: HyperBlendBlur(
+                        material: HyperBlendSurface.menu(context),
+                        borderRadius: 1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        Positioned.fill(child: widget.child),
+      ],
+    );
+  }
+}
