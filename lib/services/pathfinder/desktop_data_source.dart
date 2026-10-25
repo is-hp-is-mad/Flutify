@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../../core/constants/spotify_endpoints.dart';
@@ -44,10 +45,14 @@ class DesktopDataSource {
   final PathfinderClient _pathfinder;
   final Map<String, _CacheEntry> _cache = {};
 
+  /// 曲目补全批次失败后的重试间隔（第 n 次重试等 n 倍）。
+  final Duration retryDelay;
+
   DesktopDataSource(
     this._client, {
     required Future<Map<String, String>> Function() headers,
     this.language,
+    this.retryDelay = const Duration(milliseconds: 600),
   }) : _headers = headers,
        _pathfinder = PathfinderClient(_client, headers: headers);
 
@@ -379,9 +384,14 @@ class DesktopDataSource {
   /// 按 URI 批量补全曲目（decorateContextTracks，每批 [_decorateBatch] 首、最多 [concurrency] 批并行）。
   ///
   /// 返回顺序与 [uris] 一致；服务端未返回（下架 / 无权限）的曲目被略过。
+  ///
+  /// 失败的批次会退避重试 [retries] 次；[complete] 为 true 时仍有批次失败就抛出，
+  /// 不返回缺了一截的列表（媒体库会把结果写进缓存并当作完整歌单播放）。
   Future<List<SpotifyTrack>> tracksByUris(
     List<String> uris, {
     int concurrency = 3,
+    int retries = 2,
+    bool complete = false,
   }) async {
     final batches = <List<String>>[
       for (var i = 0; i < uris.length; i += _decorateBatch)
@@ -394,16 +404,25 @@ class DesktopDataSource {
     Future<void> worker() async {
       while (next < batches.length) {
         final index = next++;
-        try {
-          final data = await _pathfinder.query(
-            PathfinderOperation.decorateContextTracks,
-            {'uris': batches[index]},
-          );
-          results[index] = PathfinderParsers.decoratedTracks(data);
-        } catch (e) {
-          // 单批失败不拖垮整个列表
-          lastError = e;
-          failed++;
+        for (var attempt = 0; ; attempt++) {
+          try {
+            final data = await _pathfinder.query(
+              PathfinderOperation.decorateContextTracks,
+              {'uris': batches[index]},
+            );
+            results[index] = PathfinderParsers.decoratedTracks(data);
+            break;
+          } catch (e) {
+            if (attempt < retries) {
+              await Future<void>.delayed(retryDelay * (attempt + 1));
+              continue;
+            }
+            // 单批失败不拖垮整个列表
+            debugPrint('[tracks] 第 ${index + 1}/${batches.length} 批曲目补全失败：$e');
+            lastError = e;
+            failed++;
+            break;
+          }
         }
       }
     }
@@ -412,7 +431,9 @@ class DesktopDataSource {
       for (var i = 0; i < concurrency && i < batches.length; i++) worker(),
     ]);
     // 全部批次都失败说明是网络 / 鉴权问题而非个别曲目缺失：抛出，避免调用方把它当成「空列表」
-    if (batches.isNotEmpty && failed == batches.length) throw lastError!;
+    if (batches.isNotEmpty && (failed == batches.length || (complete && failed > 0))) {
+      throw lastError!;
+    }
     final byId = {for (final t in results.expand((r) => r)) t.id: t};
     return [for (final uri in uris) ?byId[PathfinderParsers.idFromUri(uri)]];
   }

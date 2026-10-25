@@ -66,7 +66,9 @@ class DesktopLibrarySource implements LibrarySource {
     if (!isSignedIn) return const [];
     final entries = await _collection(CollectionCodec.setCollection, 'track');
     final kept = entries.take(trackLimit).toList();
-    final tracks = await _data.tracksByUris([for (final e in kept) e.uri]);
+    // 必须完整：缺批次的列表会覆盖缓存，播放时到这一截末尾就回绕到歌单开头。
+    // 失败时抛出，媒体库保留上次的缓存并记下错误。
+    final tracks = await _data.tracksByUris([for (final e in kept) e.uri], complete: true);
     // 收藏条目的 added_at 是秒；补全后的曲目按 id 对回去
     final addedAt = {
       for (final e in kept)
