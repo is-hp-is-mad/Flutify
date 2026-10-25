@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
+import '../../core/theme/flutify_tokens.dart';
+import 'hyper_surface.dart';
+
 /// 放进 `showDialog` 的 MD3E 对话框。
 ///
 /// [M3EDialog] 只是一块带背景与圆角的容器，本身不居中、不限高；直接作为 `showDialog`
@@ -54,19 +57,23 @@ class FlutifyDialog extends StatelessWidget {
     final align = icon == null
         ? CrossAxisAlignment.start
         : CrossAxisAlignment.center;
-    return Container(
+    // 柔光玻璃：容器换成 HyperOS 弹窗混色模糊，去掉实色底与投影
+    final hyper = context.tokens.hyperMaterial;
+    final dialog = Container(
       constraints: BoxConstraints(
         minWidth: dialogTheme.minWidth,
         maxWidth: dialogTheme.maxWidth,
       ),
-      decoration: BoxDecoration(
-        color: dialogTheme.containerColor(scheme),
-        borderRadius: dialogTheme.borderRadius,
-        boxShadow: M3EElevation.shadows(
-          M3EElevation.level3,
-          shadowColor: scheme.shadow,
-        ),
-      ),
+      decoration: hyper
+          ? null
+          : BoxDecoration(
+              color: dialogTheme.containerColor(scheme),
+              borderRadius: dialogTheme.borderRadius,
+              boxShadow: M3EElevation.shadows(
+                M3EElevation.level3,
+                shadowColor: scheme.shadow,
+              ),
+            ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: align,
@@ -135,6 +142,12 @@ class FlutifyDialog extends StatelessWidget {
             ),
         ],
       ),
+    );
+    if (!hyper) return dialog;
+    return HyperBlendSurface(
+      material: HyperBlendSurface.dialog(context),
+      borderRadius: dialogTheme.borderRadius,
+      child: dialog,
     );
   }
 }

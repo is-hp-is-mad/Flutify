@@ -15,6 +15,7 @@ import '../../../services/backup/playlist_backup_service.dart';
 import '../../../services/spotify_api_service.dart';
 import '../../shell/shell_breakpoints.dart';
 import '../../widgets/content_bottom_spacer.dart';
+import '../../widgets/menu/desktop_menu.dart';
 import '../../widgets/share/share_button.dart';
 import '../../widgets/toast/app_toast.dart';
 import '../../widgets/track_table/track_list_toolbar.dart';
@@ -293,7 +294,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                     if (!isBackupLikedSongs)
                       ShareButton(target: ShareTarget.playlist(playlist)),
                     if (isOwn)
-                      PopupMenuButton<String>(
+                      FlutifyPopupMenuButton<String>(
                         icon: const Icon(Icons.more_horiz_rounded, size: 28),
                         tooltip: l10n.commonMoreOptions,
                         onSelected: (value) {

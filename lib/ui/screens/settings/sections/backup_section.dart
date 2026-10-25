@@ -12,6 +12,7 @@ import '../../../../providers/preferences_provider.dart';
 import '../../../../services/backup/playlist_backup_service.dart';
 import '../../../navigation/app_routes.dart';
 import '../../../widgets/cover_image.dart';
+import '../../../widgets/menu/desktop_menu.dart';
 import '../../../widgets/toast/app_toast.dart';
 import '../../auth/backup_account_login_screen.dart';
 import '../widgets/settings_section.dart';
@@ -234,7 +235,17 @@ class _BackupSectionState extends State<BackupSection> {
           SettingsTile(
             title: '自动备份频率',
             subtitle: '最短 20 分钟以防止触发服务端限流',
-            trailing: DropdownButtonHideUnderline(
+            trailing: context.tokens.hyperMaterial
+                ? _HyperIntervalButton(
+                    value: AppPreferences.backupIntervalOptions.contains(
+                      prefs.backupIntervalMinutes,
+                    )
+                        ? prefs.backupIntervalMinutes
+                        : AppPreferences.defaultBackupIntervalMinutes,
+                    labelOf: _intervalLabel,
+                    onChanged: (value) => updatePrefs(intervalMinutes: value),
+                  )
+                : DropdownButtonHideUnderline(
               child: DropdownButton<int>(
                 value: AppPreferences.backupIntervalOptions.contains(
                   prefs.backupIntervalMinutes,
@@ -693,6 +704,41 @@ class _TrackImportDialogState extends State<_TrackImportDialog> {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// 柔光玻璃模式下的「自动备份频率」选择：当前值 + 下拉箭头，点开澎湃 OS 4 菜单。
+class _HyperIntervalButton extends StatelessWidget {
+  final int value;
+  final String Function(int minutes) labelOf;
+  final ValueChanged<int> onChanged;
+
+  const _HyperIntervalButton({
+    required this.value,
+    required this.labelOf,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return FlutifyPopupMenuButton<int>(
+      onSelected: onChanged,
+      itemBuilder: (_) => [
+        for (final minutes in AppPreferences.backupIntervalOptions)
+          DesktopMenu.check(minutes, labelOf(minutes), checked: minutes == value),
+      ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(labelOf(value)),
+            const SizedBox(width: 4),
+            const Icon(Icons.arrow_drop_down_rounded),
+          ],
+        ),
+      ),
     );
   }
 }

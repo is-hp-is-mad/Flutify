@@ -1658,7 +1658,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsGlassSection.
   ///
   /// In zh, this message translates to:
-  /// **'液态玻璃'**
+  /// **'材质'**
   String get settingsGlassSection;
 
   /// No description provided for @settingsGlassPreview.
@@ -1678,6 +1678,54 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'不透明度'**
   String get settingsGlassOpacity;
+
+  /// No description provided for @settingsGlassMaterial.
+  ///
+  /// In zh, this message translates to:
+  /// **'玻璃材质'**
+  String get settingsGlassMaterial;
+
+  /// No description provided for @settingsGlassMaterialLiquid.
+  ///
+  /// In zh, this message translates to:
+  /// **'伪液态玻璃'**
+  String get settingsGlassMaterialLiquid;
+
+  /// No description provided for @settingsGlassMaterialHyper.
+  ///
+  /// In zh, this message translates to:
+  /// **'柔光玻璃（Beta）'**
+  String get settingsGlassMaterialHyper;
+
+  /// No description provided for @settingsHyperGlassPreview.
+  ///
+  /// In zh, this message translates to:
+  /// **'柔光玻璃'**
+  String get settingsHyperGlassPreview;
+
+  /// No description provided for @settingsHyperBlurPreview.
+  ///
+  /// In zh, this message translates to:
+  /// **'模糊'**
+  String get settingsHyperBlurPreview;
+
+  /// No description provided for @settingsHyperGlassNote.
+  ///
+  /// In zh, this message translates to:
+  /// **'柔光玻璃（Beta）：菜单、弹窗和播放页玻璃已替换，其余部分仍在移植。每次启动需要先编译着色器。'**
+  String get settingsHyperGlassNote;
+
+  /// No description provided for @hyperGlassPreparingTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在准备柔光玻璃'**
+  String get hyperGlassPreparingTitle;
+
+  /// No description provided for @hyperGlassPreparingBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'首次绘制前需要编译着色器，大约几秒，期间窗口不会响应。'**
+  String get hyperGlassPreparingBody;
 
   /// No description provided for @settingsTextShapeSection.
   ///

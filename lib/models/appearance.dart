@@ -15,6 +15,15 @@ enum CornerStyle {
   const CornerStyle(this.scale);
 }
 
+/// 玻璃材质（设置页「材质」）。
+enum GlassMaterial {
+  /// 伪液态玻璃：BackdropFilter 模糊 + 淡填充 + 发丝描边（默认）。
+  liquid,
+
+  /// 柔光玻璃（Beta）：HyperOS 4 的折射玻璃与混色模糊（packages/hyper_glass）。
+  hyper,
+}
+
 /// 预设强调色。第一项为默认的 Spotify 绿。
 enum AccentPreset {
   spotify(Color(0xFF1ED760)),
@@ -42,6 +51,8 @@ class AppearanceSettings {
 
   /// 为 true 时，强调色跟随当前播放曲目的封面主色（无播放时回退到 [accent]）。
   final bool dynamicAccent;
+
+  final GlassMaterial glassMaterial;
 
   /// 液态玻璃模糊强度 0~1。
   final double glassBlur;
@@ -77,6 +88,7 @@ class AppearanceSettings {
     this.themeMode = ThemeMode.system,
     this.accent = const Color(0xFF1ED760),
     this.dynamicAccent = false,
+    this.glassMaterial = GlassMaterial.liquid,
     this.glassBlur = 0.6,
     this.glassOpacity = 0.3,
     this.pureBlack = false,
@@ -93,6 +105,7 @@ class AppearanceSettings {
     ThemeMode? themeMode,
     Color? accent,
     bool? dynamicAccent,
+    GlassMaterial? glassMaterial,
     double? glassBlur,
     double? glassOpacity,
     bool? pureBlack,
@@ -106,6 +119,7 @@ class AppearanceSettings {
       themeMode: themeMode ?? this.themeMode,
       accent: accent ?? this.accent,
       dynamicAccent: dynamicAccent ?? this.dynamicAccent,
+      glassMaterial: glassMaterial ?? this.glassMaterial,
       glassBlur: glassBlur ?? this.glassBlur,
       glassOpacity: glassOpacity ?? this.glassOpacity,
       pureBlack: pureBlack ?? this.pureBlack,
@@ -121,6 +135,7 @@ class AppearanceSettings {
         'themeMode': themeMode.name,
         'accent': accent.toARGB32(),
         'dynamicAccent': dynamicAccent,
+        'glassMaterial': glassMaterial.name,
         'glassBlur': glassBlur,
         'glassOpacity': glassOpacity,
         'pureBlack': pureBlack,
@@ -142,6 +157,7 @@ class AppearanceSettings {
       themeMode: pick(ThemeMode.values, json['themeMode'], d.themeMode),
       accent: json['accent'] is int ? Color(json['accent'] as int) : d.accent,
       dynamicAccent: json['dynamicAccent'] is bool ? json['dynamicAccent'] as bool : d.dynamicAccent,
+      glassMaterial: pick(GlassMaterial.values, json['glassMaterial'], d.glassMaterial),
       glassBlur: unit(json['glassBlur'], d.glassBlur),
       glassOpacity: unit(json['glassOpacity'], d.glassOpacity),
       pureBlack: json['pureBlack'] is bool ? json['pureBlack'] as bool : d.pureBlack,
@@ -164,6 +180,7 @@ class AppearanceSettings {
       other.themeMode == themeMode &&
       other.accent == accent &&
       other.dynamicAccent == dynamicAccent &&
+      other.glassMaterial == glassMaterial &&
       other.glassBlur == glassBlur &&
       other.glassOpacity == glassOpacity &&
       other.pureBlack == pureBlack &&
@@ -178,6 +195,7 @@ class AppearanceSettings {
         themeMode,
         accent,
         dynamicAccent,
+        glassMaterial,
         glassBlur,
         glassOpacity,
         pureBlack,

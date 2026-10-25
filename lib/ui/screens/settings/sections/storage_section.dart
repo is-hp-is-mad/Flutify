@@ -13,6 +13,7 @@ import '../../../../providers/spotify_provider.dart';
 import '../../../../services/eme/eme_player.dart';
 import '../../../../core/utils/artwork_palette.dart';
 import '../../../../services/storage_service.dart';
+import '../widgets/settings_menu_field.dart';
 import '../widgets/settings_section.dart';
 import '../widgets/settings_segmented.dart';
 import '../../../widgets/toast/app_toast.dart';
@@ -360,6 +361,34 @@ class _LocationDialogState extends State<_LocationDialog> {
             children: [
               Text(l10n.settingsCacheLocationHelp),
               const SizedBox(height: 16),
+              // 柔光玻璃：用设置页同款下拉，菜单走澎湃 OS 4 弹出动画
+              if (context.tokens.hyperMaterial)
+                SettingsMenuField<CachePreset>(
+                  buttonKey: const ValueKey('cache-preset'),
+                  value: _preset,
+                  semanticLabel: l10n.settingsCacheLocation,
+                  onChanged: _picking
+                      ? null
+                      : (value) => setState(() => _preset = value),
+                  options: [
+                    SettingsMenuOption(
+                      value: CachePreset.appData,
+                      label: l10n.settingsCacheAppData,
+                      icon: Icons.storage_rounded,
+                    ),
+                    SettingsMenuOption(
+                      value: CachePreset.application,
+                      label: l10n.settingsCacheApplication,
+                      icon: Icons.apps_rounded,
+                    ),
+                    SettingsMenuOption(
+                      value: CachePreset.custom,
+                      label: l10n.settingsCacheCustom,
+                      icon: Icons.folder_open_rounded,
+                    ),
+                  ],
+                )
+              else
               DropdownMenu<CachePreset>(
                 key: const ValueKey('cache-preset'),
                 initialSelection: _preset,

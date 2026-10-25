@@ -1,11 +1,13 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:hyper_glass/hyper_glass.dart';
 
 import '../../core/debug_toggles.dart';
 import '../../core/perf_flags.dart';
 import '../../core/theme/flutify_tokens.dart';
 import '../shell/desktop/desktop_window.dart';
+import 'hyper_surface.dart';
 
 /// iOS 风格的克制型玻璃容器。
 ///
@@ -58,6 +60,10 @@ class LiquidGlass extends StatelessWidget {
     final tokens = context.tokens;
     final radius = borderRadius ?? tokens.radius(28);
     final sigma = blur ?? tokens.glassSigma;
+    if (tokens.hyperMaterial && !tokens.powerSaving) {
+      final hyper = _hyper(context, radius);
+      if (hyper != null) return hyper;
+    }
     final body = CustomPaint(
       foregroundPainter: _HairlinePainter(radius),
       child: ColoredBox(
@@ -65,17 +71,17 @@ class LiquidGlass extends StatelessWidget {
         child: Padding(padding: padding, child: child),
       ),
     );
-    if (tokens.powerSaving && backdrop) {
-      // 省电：不复制、不模糊下方画面，垫一层较实的表面色代替，保证其上文字可读
-      final surface = Theme.of(context).colorScheme.surfaceContainerHigh;
-      return ClipRRect(
-        borderRadius: radius,
-        child: ColoredBox(
-          color: surface.withValues(alpha: _powerSavingFill),
-          child: body,
-        ),
-      );
-    }
+    // 不复制、不模糊下方画面，垫一层较实的表面色代替，保证其上文字可读
+    Widget frosted() => ClipRRect(
+      borderRadius: radius,
+      child: ColoredBox(
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHigh.withValues(alpha: _powerSavingFill),
+        child: body,
+      ),
+    );
+    if (tokens.powerSaving && backdrop) return frosted();
     if (!backdrop ||
         PerfFlags.noBackdrop ||
         DebugToggles.of(context).isOff(DebugToggle.glassBackdrop)) {
@@ -88,7 +94,9 @@ class LiquidGlass extends StatelessWidget {
       child: ValueListenableBuilder<bool>(
         valueListenable: DesktopWindow.fullscreenTransition,
         builder: (context, transitioning, _) {
-          if (transitioning) return body;
+          // 切换期间（约 1 s）不能模糊：垫一层与省电模式相同的磨砂底色，
+          // 只画淡填充会让播放栏等变得几乎透明、透出下面的内容
+          if (transitioning) return frosted();
           // grouped：外层有 BackdropGroup 时共享同一份背景采样，没有时与普通 BackdropFilter 完全一致
           return BackdropFilter.grouped(
             filter: ImageFilter.blur(
@@ -100,6 +108,30 @@ class LiquidGlass extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+}
+
+extension on LiquidGlass {
+  /// 材质为「柔光玻璃」时：在 `HyperGlassScene` 里（播放页）画真正的柔光玻璃；
+  /// 场景外改用浮动栏混色模糊。下方只有流动背景（[backdrop] 为 false）的场景外玻璃
+  /// 保持原样，不为它多付一次背景复制。
+  Widget? _hyper(BuildContext context, BorderRadius radius) {
+    final content = Padding(padding: padding, child: child);
+    if (HyperGlassScene.isIn(context)) {
+      // 玻璃 shader 自己按 SDF 画圆角形状，不再套 ClipRRect：Skia 会把裁剪编进 GPU 程序，
+      // 套了裁剪就和预热时的程序不同，首次打开歌词页要现编译（约 150~200 ms 掉帧），
+      // 每帧也多一份裁剪开销。只裁上面的内容，保证文字图标不出圆角。
+      return HyperGlass(
+        borderRadius: radius.topLeft.x,
+        child: ClipRRect(borderRadius: radius, child: content),
+      );
+    }
+    if (!backdrop) return null;
+    return HyperBlendSurface(
+      material: HyperBlendSurface.bar(context),
+      borderRadius: radius,
+      child: content,
     );
   }
 }

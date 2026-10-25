@@ -857,7 +857,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsDynamicAccentSubtitle => '再生中のアートワークに合わせてアクセントカラーを変更します';
 
   @override
-  String get settingsGlassSection => 'リキッドガラス';
+  String get settingsGlassSection => 'マテリアル';
 
   @override
   String get settingsGlassPreview => 'ガラス効果のプレビュー';
@@ -867,6 +867,32 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsGlassOpacity => '不透明度';
+
+  @override
+  String get settingsGlassMaterial => 'ガラスの質感';
+
+  @override
+  String get settingsGlassMaterialLiquid => '疑似リキッドガラス';
+
+  @override
+  String get settingsGlassMaterialHyper => 'ソフトライトガラス（Beta）';
+
+  @override
+  String get settingsHyperGlassPreview => 'ソフトライトガラス';
+
+  @override
+  String get settingsHyperBlurPreview => 'ぼかし';
+
+  @override
+  String get settingsHyperGlassNote =>
+      'ソフトライトガラス（ベータ）：メニュー・ダイアログ・プレーヤーのガラスは置き換え済みで、残りは移植中です。起動のたびにシェーダーをコンパイルします。';
+
+  @override
+  String get hyperGlassPreparingTitle => 'ソフトライトガラスを準備中';
+
+  @override
+  String get hyperGlassPreparingBody =>
+      '最初の描画前にシェーダーをコンパイルします。数秒かかり、その間ウィンドウは応答しません。';
 
   @override
   String get settingsTextShapeSection => '文字と形';

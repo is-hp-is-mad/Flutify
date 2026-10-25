@@ -860,7 +860,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsDynamicAccentSubtitle => '强调色随正在播放的专辑封面变化';
 
   @override
-  String get settingsGlassSection => '液态玻璃';
+  String get settingsGlassSection => '材质';
 
   @override
   String get settingsGlassPreview => '玻璃预览';
@@ -870,6 +870,31 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsGlassOpacity => '不透明度';
+
+  @override
+  String get settingsGlassMaterial => '玻璃材质';
+
+  @override
+  String get settingsGlassMaterialLiquid => '伪液态玻璃';
+
+  @override
+  String get settingsGlassMaterialHyper => '柔光玻璃（Beta）';
+
+  @override
+  String get settingsHyperGlassPreview => '柔光玻璃';
+
+  @override
+  String get settingsHyperBlurPreview => '模糊';
+
+  @override
+  String get settingsHyperGlassNote =>
+      '柔光玻璃（Beta）：菜单、弹窗和播放页玻璃已替换，其余部分仍在移植。每次启动需要先编译着色器。';
+
+  @override
+  String get hyperGlassPreparingTitle => '正在准备柔光玻璃';
+
+  @override
+  String get hyperGlassPreparingBody => '首次绘制前需要编译着色器，大约几秒，期间窗口不会响应。';
 
   @override
   String get settingsTextShapeSection => '文字与形状';
@@ -2886,7 +2911,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get settingsDynamicAccentSubtitle => '強調色隨正在播放的專輯封面變化';
 
   @override
-  String get settingsGlassSection => '液態玻璃';
+  String get settingsGlassSection => '材質';
 
   @override
   String get settingsGlassPreview => '玻璃預覽';
@@ -2896,6 +2921,31 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get settingsGlassOpacity => '不透明度';
+
+  @override
+  String get settingsGlassMaterial => '玻璃材質';
+
+  @override
+  String get settingsGlassMaterialLiquid => '偽液態玻璃';
+
+  @override
+  String get settingsGlassMaterialHyper => '柔光玻璃（Beta）';
+
+  @override
+  String get settingsHyperGlassPreview => '柔光玻璃';
+
+  @override
+  String get settingsHyperBlurPreview => '模糊';
+
+  @override
+  String get settingsHyperGlassNote =>
+      '柔光玻璃（Beta）：選單、彈窗和播放頁玻璃已替換，其餘部分仍在移植。每次啟動需要先編譯著色器。';
+
+  @override
+  String get hyperGlassPreparingTitle => '正在準備柔光玻璃';
+
+  @override
+  String get hyperGlassPreparingBody => '首次繪製前需要編譯著色器，大約幾秒，期間視窗不會回應。';
 
   @override
   String get settingsTextShapeSection => '文字與形狀';
