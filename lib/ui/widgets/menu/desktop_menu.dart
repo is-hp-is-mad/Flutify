@@ -85,7 +85,9 @@ class DesktopMenu {
         box.getTransformTo(overlay),
         Offset.zero & box.size,
       );
-      if (rect.inflate(2).contains(local)) return rect;
+      // 只有从组件左下角弹出（按钮菜单，见 [anchorOf]）才以组件本身为锚点；
+      // 右键菜单的位置虽然也落在组件（例如整行歌曲）里，应从指针处展开
+      if ((rect.bottomLeft - local).distance <= 2) return rect;
     }
     return Rect.fromCenter(center: local, width: 24, height: 24);
   }

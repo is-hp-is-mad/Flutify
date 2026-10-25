@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:hyper_glass/hyper_glass.dart';
 
 import '../../../core/theme/flutify_tokens.dart';
@@ -76,6 +77,10 @@ class _HyperMenuState<T> extends State<_HyperMenu<T>>
     with TickerProviderStateMixin {
   late final PopupMotion _motion = PopupMotion(this);
 
+  /// 菜单项实际排版后的总高度：[PopupMenuEntry.height] 只是声明值，桌面上
+  /// 菜单项实际更高，按声明值算会让菜单底部被截掉。
+  double? _measured;
+
   /// 菜单项内容的水平中心（左内边距 16 + 图标 20 + 间距 12 + 约四个汉字），迸出起点对准它。
   static const double _contentX = 72;
   static const double _vPad = 6;
@@ -101,10 +106,12 @@ class _HyperMenuState<T> extends State<_HyperMenu<T>>
   @override
   Widget build(BuildContext context) {
     final route = widget.route;
-    final height = route.items.fold<double>(
-      _vPad * 2,
-      (total, item) => total + item.height,
-    );
+    final height =
+        _measured ??
+        route.items.fold<double>(
+          _vPad * 2,
+          (total, item) => total + item.height,
+        );
     return LayoutBuilder(
       builder: (context, box) {
         final screen = box.biggest;
@@ -122,6 +129,14 @@ class _HyperMenuState<T> extends State<_HyperMenu<T>>
         );
       },
     );
+  }
+
+  void _onContentHeight(double h) {
+    final total = h + _vPad * 2;
+    if (_measured != null && (total - _measured!).abs() < 0.5) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() => _measured = total);
+    });
   }
 
   Widget _frame(BuildContext context, Rect anchor, Rect menu) {
@@ -184,9 +199,12 @@ class _HyperMenuState<T> extends State<_HyperMenu<T>>
                       child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: _vPad),
                         child: SingleChildScrollView(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: children,
+                          child: _SizeReporter(
+                            onHeight: _onContentHeight,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: children,
+                            ),
                           ),
                         ),
                       ),
@@ -199,5 +217,32 @@ class _HyperMenuState<T> extends State<_HyperMenu<T>>
         ),
       ],
     );
+  }
+}
+
+/// 布局后报告子组件高度（用于按实际高度定位菜单）。
+class _SizeReporter extends SingleChildRenderObjectWidget {
+  const _SizeReporter({required this.onHeight, super.child});
+
+  final ValueChanged<double> onHeight;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      _RenderSizeReporter(onHeight);
+
+  @override
+  void updateRenderObject(BuildContext context, _RenderSizeReporter ro) =>
+      ro.onHeight = onHeight;
+}
+
+class _RenderSizeReporter extends RenderProxyBox {
+  _RenderSizeReporter(this.onHeight);
+
+  ValueChanged<double> onHeight;
+
+  @override
+  void performLayout() {
+    super.performLayout();
+    onHeight(size.height);
   }
 }
