@@ -10,6 +10,7 @@ import '../../navigation/app_routes.dart';
 import '../../screens/auth/login_screen.dart';
 import '../../widgets/create_playlist_dialog.dart';
 import '../../widgets/filter_pill.dart';
+import '../../widgets/menu/desktop_menu.dart';
 import '../panel_surface.dart';
 import 'library_sidebar_entry.dart';
 import 'library_sidebar_item.dart';
@@ -356,7 +357,7 @@ class _SearchSortRow extends StatelessWidget {
             ),
             const Spacer(),
           ],
-          PopupMenuButton<LibrarySort>(
+          FlutifyPopupMenuButton<LibrarySort>(
             tooltip: '',
             initialValue: sort,
             onSelected: onSortChanged,

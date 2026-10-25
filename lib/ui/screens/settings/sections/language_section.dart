@@ -6,6 +6,7 @@ import '../../../../l10n/l10n.dart';
 import '../../../../models/app_preferences.dart';
 import '../../../../providers/preferences_provider.dart';
 import '../../../../providers/spotify_provider.dart';
+import '../../../widgets/menu/desktop_menu.dart';
 import '../widgets/settings_section.dart';
 
 /// 语言：跟随系统 / 简繁中文 / English / 日本語。
@@ -48,6 +49,26 @@ class _LanguageSectionState extends State<LanguageSection> {
   /// 中心点的真实点击由菜单项吃掉。所以按钮在整个展开期间都收不到点击，开合只能
   /// 交给菜单项和 [MenuAnchor] 自己的 `onClose`。`_open` 也要在开启时立刻置位，
   /// 别等回调——否则箭头图标会晚一帧才翻转。
+  /// 柔光玻璃：从触发器本身弹出澎湃 OS 4 菜单（见 [DesktopMenu.show]）。
+  Future<void> _openHyper(
+    BuildContext anchor,
+    AppLanguage current,
+    String Function(AppLanguage) label,
+  ) async {
+    setState(() => _open = true);
+    final picked = await DesktopMenu.show<AppLanguage>(
+      anchor,
+      DesktopMenu.anchorOf(anchor),
+      [
+        for (final value in AppLanguage.values)
+          DesktopMenu.check(value, label(value), checked: value == current),
+      ],
+    );
+    if (!mounted) return;
+    setState(() => _open = false);
+    if (picked != null && anchor.mounted) _change(anchor, picked);
+  }
+
   void _toggleMenu(MenuController controller) {
     if (controller.isOpen) {
       controller.close();
@@ -130,7 +151,9 @@ class _LanguageSectionState extends State<LanguageSection> {
                 child: FilledButton(
                   key: const ValueKey('interface-language'),
                   focusNode: _focusNode,
-                  onPressed: () => _toggleMenu(controller),
+                  onPressed: () => context.tokens.hyperMaterial
+                      ? _openHyper(context, language, label)
+                      : _toggleMenu(controller),
                   style:
                       FilledButton.styleFrom(
                         backgroundColor: colors.surfaceContainerHighest,

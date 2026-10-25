@@ -283,3 +283,69 @@ class _GlassMenuEntryState<T> extends State<_GlassMenuEntry<T>> {
     );
   }
 }
+
+/// 与 [PopupMenuButton] 参数一致的菜单按钮：材质为「柔光玻璃」时从按钮本身弹出澎湃 OS 4
+/// 菜单（[DesktopMenu.show] → HyperMenuRoute），否则原样使用 [PopupMenuButton]。
+class FlutifyPopupMenuButton<T> extends StatelessWidget {
+  const FlutifyPopupMenuButton({
+    super.key,
+    required this.itemBuilder,
+    this.onSelected,
+    this.initialValue,
+    this.tooltip,
+    this.icon,
+    this.child,
+    this.position,
+  });
+
+  final PopupMenuItemBuilder<T> itemBuilder;
+  final PopupMenuItemSelected<T>? onSelected;
+  final T? initialValue;
+  final String? tooltip;
+  final Widget? icon;
+  final Widget? child;
+  final PopupMenuPosition? position;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!context.tokens.hyperMaterial) {
+      return PopupMenuButton<T>(
+        itemBuilder: itemBuilder,
+        onSelected: onSelected,
+        initialValue: initialValue,
+        tooltip: tooltip,
+        icon: icon,
+        position: position,
+        child: child,
+      );
+    }
+    return Builder(
+      builder: (anchor) {
+        Future<void> open() async {
+          final value = await DesktopMenu.show<T>(
+            anchor,
+            DesktopMenu.anchorOf(anchor),
+            itemBuilder(anchor),
+          );
+          if (value != null) onSelected?.call(value);
+        }
+
+        if (child == null) {
+          return IconButton(
+            icon: icon ?? const Icon(Icons.more_vert_rounded),
+            tooltip: tooltip,
+            onPressed: open,
+          );
+        }
+        return Tooltip(
+          message: tooltip ?? '',
+          child: InkWell(
+            borderRadius: context.tokens.radius(12),
+            onTap: open,
+            child: child,
+          ),
+        );
+      },
+    );
+  }
+}

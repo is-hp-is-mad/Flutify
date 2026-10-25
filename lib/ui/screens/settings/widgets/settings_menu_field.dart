@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/flutify_tokens.dart';
+import '../../../widgets/menu/desktop_menu.dart';
 
 /// [SettingsMenuField] 的一个选项。
 @immutable
@@ -61,6 +62,35 @@ class _SettingsMenuFieldState<T> extends State<SettingsMenuField<T>> {
   void dispose() {
     _focusNode.dispose();
     super.dispose();
+  }
+
+  /// 柔光玻璃：从触发器本身弹出澎湃 OS 4 菜单（见 [DesktopMenu.show]），选中项打勾。
+  Future<void> _openHyper(BuildContext anchor) async {
+    setState(() => _open = true);
+    final picked = await DesktopMenu.show<T>(
+      anchor,
+      DesktopMenu.anchorOf(anchor),
+      [
+        for (final option in widget.options)
+          option.icon == null
+              ? DesktopMenu.check<T>(
+                  option.value,
+                  option.label,
+                  checked: option.value == widget.value,
+                )
+              : DesktopMenu.item<T>(
+                  option.value,
+                  option.icon!,
+                  option.label,
+                  iconColor: option.value == widget.value
+                      ? Theme.of(anchor).colorScheme.primary
+                      : null,
+                ),
+      ],
+    );
+    if (!mounted) return;
+    setState(() => _open = false);
+    if (picked != null) widget.onChanged?.call(picked);
   }
 
   String get _currentLabel => widget.options
@@ -125,7 +155,11 @@ class _SettingsMenuFieldState<T> extends State<SettingsMenuField<T>> {
             key: widget.buttonKey,
             focusNode: _focusNode,
             onPressed: enabled
-                ? () => controller.isOpen ? controller.close() : controller.open()
+                ? () => context.tokens.hyperMaterial
+                      ? _openHyper(context)
+                      : controller.isOpen
+                      ? controller.close()
+                      : controller.open()
                 : null,
             style:
                 FilledButton.styleFrom(

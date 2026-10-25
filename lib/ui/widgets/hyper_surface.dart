@@ -181,11 +181,8 @@ class _HyperGlassWarmupState extends State<HyperGlassWarmup> {
     // 两种材质都记录，便于对比同一操作（如打开全屏歌词）在伪液态玻璃下是否也掉帧
     if (_logging) return;
     _logging = true;
+    _since.start();
     WidgetsBinding.instance.addTimingsCallback(_onTimings);
-    Future<void>.delayed(
-      const Duration(minutes: 2),
-      () => WidgetsBinding.instance.removeTimingsCallback(_onTimings),
-    );
   }
 
   @override
@@ -264,7 +261,14 @@ class _HyperGlassWarmupState extends State<HyperGlassWarmup> {
   /// 上屏预热期间每帧的光栅耗时：离屏预热之外，上屏绘制若再触发编译会在这里体现。
   /// 启动后 2 分钟内把光栅或构建超过 34 ms 的帧记进日志（两种材质都记），
   /// 用来定位首次打开歌词页、菜单、弹窗时还剩下的卡顿来自哪里。
+  static final Stopwatch _since = Stopwatch();
+
   static void _onTimings(List<FrameTiming> timings) {
+    // 不用定时器（测试结束时会留下未触发的计时器），满 2 分钟后在回调里自行注销
+    if (_since.elapsed > const Duration(minutes: 2)) {
+      WidgetsBinding.instance.removeTimingsCallback(_onTimings);
+      return;
+    }
     for (final t in timings) {
       final raster = t.rasterDuration.inMilliseconds;
       final build = t.buildDuration.inMilliseconds;
