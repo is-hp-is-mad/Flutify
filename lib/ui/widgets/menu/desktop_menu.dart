@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/flutify_tokens.dart';
-import '../hyper_surface.dart';
 import '../liquid_artwork_background.dart';
+import 'hyper_menu_route.dart';
 import '../liquid_glass.dart';
 
 /// 沉浸式播放器及其二级菜单使用同一玻璃表面。
@@ -41,11 +41,23 @@ class DesktopMenu {
             as RenderBox;
     final local = overlay.globalToLocal(position);
     final colorScheme = Theme.of(context).colorScheme;
-    // 柔光玻璃：所有菜单都走玻璃容器（HyperOS 菜单材质），深浅取应用本身的主题，
-    // 不跟随播放页等局部强制的深色
     final hyper = context.tokens.hyperMaterial;
-    final glass = hyper || GlassMenuScope.of(context);
-    final appTheme = hyper ? _menuTheme(context) : null;
+    final glass = GlassMenuScope.of(context);
+    if (hyper) {
+      // 澎湃 OS 4 弹出菜单：从按钮本身变形展开（见 HyperMenuRoute）
+      final navigator = Navigator.of(context, rootNavigator: true);
+      return navigator.push(
+        HyperMenuRoute<T>(
+          anchor: _anchorRect(context, overlay, position),
+          items: items,
+          theme: _menuTheme(context),
+          capturedThemes: InheritedTheme.capture(
+            from: context,
+            to: navigator.context,
+          ),
+        ),
+      );
+    }
     return showMenu<T>(
       context: context,
       useRootNavigator: true,
@@ -59,8 +71,23 @@ class DesktopMenu {
       menuPadding: glass ? EdgeInsets.zero : null,
       constraints: const BoxConstraints(minWidth: 240, maxWidth: 340),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      items: glass ? [_GlassMenuEntry<T>(items, appTheme: appTheme)] : items,
+      items: glass ? [_GlassMenuEntry<T>(items)] : items,
     );
+  }
+
+  /// 菜单变形的起点（Overlay 坐标）：位置贴着触发组件时（按钮菜单）就是组件本身，
+  /// 否则（右键菜单）是指针处的一个小方块。
+  static Rect _anchorRect(BuildContext context, RenderBox overlay, Offset position) {
+    final local = overlay.globalToLocal(position);
+    final box = context.findRenderObject();
+    if (box is RenderBox && box.hasSize && box.attached) {
+      final rect = MatrixUtils.transformRect(
+        box.getTransformTo(overlay),
+        Offset.zero & box.size,
+      );
+      if (rect.inflate(2).contains(local)) return rect;
+    }
+    return Rect.fromCenter(center: local, width: 24, height: 24);
   }
 
   /// 柔光玻璃菜单的主题：播放页里按流动背景的实际亮度选深 / 浅，其余地方用应用主题。
@@ -206,10 +233,7 @@ class DesktopMenu {
 /// 把标准菜单项放进一个玻璃容器，避免每一行单独模糊背景。
 class _GlassMenuEntry<T> extends PopupMenuEntry<T> {
   final List<PopupMenuEntry<T>> items;
-
-  /// 柔光玻璃模式下菜单使用的应用主题（见 [DesktopMenu.show]）。
-  final ThemeData? appTheme;
-  const _GlassMenuEntry(this.items, {this.appTheme});
+  const _GlassMenuEntry(this.items);
 
   @override
   double get height => items.fold(12.0, (total, item) => total + item.height);
@@ -231,20 +255,6 @@ class _GlassMenuEntryState<T> extends State<_GlassMenuEntry<T>> {
         child: Column(mainAxisSize: MainAxisSize.min, children: widget.items),
       ),
     );
-    final appTheme = widget.appTheme;
-    if (appTheme != null) {
-      // 柔光玻璃：HyperOS 弹出菜单材质；菜单项文字也按应用主题着色
-      return Theme(
-        data: appTheme,
-        child: Builder(
-          builder: (context) => HyperBlendSurface(
-            material: HyperBlendSurface.menu(context),
-            borderRadius: context.tokens.radius(24),
-            child: items,
-          ),
-        ),
-      );
-    }
     final theme = Theme.of(context);
     final dark = ColorScheme.fromSeed(
       seedColor: theme.colorScheme.primary,

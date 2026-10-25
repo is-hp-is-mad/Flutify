@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:ui';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:hyper_glass/hyper_glass.dart';
@@ -79,7 +80,11 @@ class HyperBlendSurface extends StatelessWidget {
     return ValueListenableBuilder<bool>(
       valueListenable: DesktopWindow.fullscreenTransition,
       builder: (context, transitioning, _) {
-        if (transitioning) return solid;
+        // 全屏切换约 300 ms 内引擎不能做背景模糊：保留材质的混合层、只去掉模糊，
+        // 与 LiquidGlass 同样的退化方式（用不透明底色会闪出一块实色）
+        if (transitioning) {
+          return ClipRRect(borderRadius: borderRadius, child: layered);
+        }
         return ClipRRect(
           borderRadius: borderRadius,
           child: BackdropFilter.grouped(
@@ -160,6 +165,21 @@ class _HyperGlassWarmupState extends State<HyperGlassWarmup> {
   int _frames = 0;
   final Stopwatch _clock = Stopwatch();
 
+  static bool _logging = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // 两种材质都记录，便于对比同一操作（如打开全屏歌词）在伪液态玻璃下是否也掉帧
+    if (_logging) return;
+    _logging = true;
+    WidgetsBinding.instance.addTimingsCallback(_onTimings);
+    Future<void>.delayed(
+      const Duration(minutes: 2),
+      () => WidgetsBinding.instance.removeTimingsCallback(_onTimings),
+    );
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -171,11 +191,13 @@ class _HyperGlassWarmupState extends State<HyperGlassWarmup> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       HyperGlassRenderer.shared().then(
-        (_) {
+        (_) async {
           if (!mounted) return;
           debugPrint(
             '[hyper_glass] shader 加载完成：${_clock.elapsedMilliseconds} ms',
           );
+          await _warmBlurs();
+          if (!mounted) return;
           setState(() => _ready = true);
           _countFrames();
         },
@@ -187,21 +209,64 @@ class _HyperGlassWarmupState extends State<HyperGlassWarmup> {
     });
   }
 
-  /// 上屏预热期间每帧的光栅耗时：离屏预热之外，上屏绘制若再触发编译会在这里体现。
-  void _onTimings(List<FrameTiming> timings) {
-    for (final t in timings) {
-      debugPrint(
-        '[hyper_glass] 预热帧：光栅 ${t.rasterDuration.inMilliseconds} ms，'
-        '构建 ${t.buildDuration.inMilliseconds} ms',
+  /// Skia 的高斯模糊按模糊核宽度生成不同的 GPU 程序，每种强度第一次出现都要现编译
+  /// （日志里单个约 200 ms）。柔光材质用到的几档（菜单 σ22、弹窗 σ32 / σ56、浮动栏 σ20）
+  /// 在加载界面期间按当前像素密度各跑一次，之后打开菜单、弹窗、播放页就不会再卡。
+  Future<void> _warmBlurs() async {
+    final dpr = MediaQuery.devicePixelRatioOf(context);
+    final sigmas = {
+      for (final m in const [
+        BlendMaterial.popupMenuLight,
+        BlendMaterial.dialogLight,
+        BlendMaterial.dialogDark,
+        BlendMaterial.appBarLight,
+      ])
+        m.sigma,
+    };
+    final rec = ui.PictureRecorder();
+    ui.Canvas(rec).drawCircle(
+      const Offset(128, 128),
+      90,
+      Paint()..color = const Color(0xff3070c0),
+    );
+    final src = rec.endRecording().toImageSync(256, 256);
+    for (final sigma in sigmas) {
+      final clock = Stopwatch()..start();
+      final r = ui.PictureRecorder();
+      final c = ui.Canvas(r);
+      c.saveLayer(
+        null,
+        Paint()
+          ..imageFilter = ui.ImageFilter.blur(
+            sigmaX: sigma * dpr,
+            sigmaY: sigma * dpr,
+            tileMode: TileMode.mirror,
+          ),
       );
+      c.drawImage(src, Offset.zero, Paint());
+      c.restore();
+      final img = r.endRecording().toImageSync(256, 256);
+      await img.toByteData();
+      img.dispose();
+      debugPrint('[hyper_glass] 预热模糊 σ$sigma：${clock.elapsedMilliseconds} ms');
+    }
+    src.dispose();
+  }
+
+  /// 上屏预热期间每帧的光栅耗时：离屏预热之外，上屏绘制若再触发编译会在这里体现。
+  /// 启动后 2 分钟内把光栅或构建超过 34 ms 的帧记进日志（两种材质都记），
+  /// 用来定位首次打开歌词页、菜单、弹窗时还剩下的卡顿来自哪里。
+  static void _onTimings(List<FrameTiming> timings) {
+    for (final t in timings) {
+      final raster = t.rasterDuration.inMilliseconds;
+      final build = t.buildDuration.inMilliseconds;
+      if (raster < 34 && build < 34) continue;
+      debugPrint('[hyper_glass] 慢帧：光栅 $raster ms，构建 $build ms');
     }
   }
 
   // 场景要先截一次背景、表面才会真正绘制；多留几帧确保两种材质都上屏画过
   void _countFrames() {
-    if (_frames == 0) {
-      WidgetsBinding.instance.addTimingsCallback(_onTimings);
-    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       if (++_frames < 6) {
@@ -209,7 +274,6 @@ class _HyperGlassWarmupState extends State<HyperGlassWarmup> {
         _countFrames();
         return;
       }
-      WidgetsBinding.instance.removeTimingsCallback(_onTimings);
       debugPrint('[hyper_glass] 上屏预热完成：${_clock.elapsedMilliseconds} ms');
       setState(() => _done = true);
     });

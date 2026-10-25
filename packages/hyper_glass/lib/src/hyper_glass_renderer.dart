@@ -378,10 +378,21 @@ class HyperGlassRenderer {
     int h,
     double shapeRadius, {
     double opacity = 1.0,
+    double backdropScale = 1.0,
   }) {
     final kernel = _kernels.putIfAbsent(g, () => fusedRefractKernel(g));
     if (kernel == null) return null;
-    return _glassShader(g, origin, w, h, shapeRadius, opacity, backdrop: backdrop, kernel: kernel);
+    return _glassShader(
+      g,
+      origin,
+      w,
+      h,
+      shapeRadius,
+      opacity,
+      backdrop: backdrop,
+      kernel: kernel,
+      backdropScale: backdropScale,
+    );
   }
 
   ui.FragmentShader _glassShader(
@@ -394,6 +405,7 @@ class HyperGlassRenderer {
     RefractTexture? refract,
     ui.Image? backdrop,
     ({double k0, List<double> k, int radius})? kernel,
+    double backdropScale = 1.0,
   }) {
     final fw = w.toDouble(), fh = h.toDouble();
     final half = math.min(fw, fh) * 0.5;
@@ -406,7 +418,9 @@ class HyperGlassRenderer {
     _vec(s, _Gl.fl_rect, [0, 0, fw, fh]);
     _vec(s, _Gl.uResolution, [-origin.dx, -origin.dy]);
     final src = refract?.rgb ?? backdrop!;
-    _vec(s, _Gl.uInvResolution, [1.0 / src.width, 1.0 / src.height]);
+    // Everything else in the shader is in physical px; a backdrop captured at [backdropScale] still spans
+    // the same physical extent, so only the normalisation changes.
+    _vec(s, _Gl.uInvResolution, [backdropScale / src.width, backdropScale / src.height]);
     _vec(s, _Gl.uGeoPxSize, [fw, fh, radius]);
     s.setFloat(_Gl.uShapeEdgePx, edge);
     s.setFloat(_Gl.uShapeEdgePow, g.edgePow);

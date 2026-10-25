@@ -613,7 +613,13 @@ class _AndroidPlayerSceneState extends State<AndroidPlayerScene>
   ) {
     final tokens = context.tokens;
     if (tokens.hyperMaterial && !tokens.powerSaving) {
-      return HyperGlassScene(background: background, child: foreground);
+      // 背景是已做 σ70 大模糊的流动封面，没有细节：按 1/4 分辨率截取（像素量 1/16），
+      // 玻璃折射看起来一样，每帧的截图与采样开销大幅下降
+      return HyperGlassScene(
+        background: background,
+        captureScale: 0.25,
+        child: foreground,
+      );
     }
     return Stack(fit: StackFit.expand, children: [background, foreground]);
   }

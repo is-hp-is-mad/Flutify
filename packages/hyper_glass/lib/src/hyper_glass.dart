@@ -23,13 +23,26 @@ Future<void> limitSkiaResourceCache({int megabytes = 32}) =>
 /// every frame; that snapshot plays the role of the engine's backdrop texture. [child] holds
 /// [HyperGlass] widgets (anywhere in its subtree).
 class HyperGlassScene extends StatefulWidget {
-  const HyperGlassScene({super.key, required this.background, required this.child, this.animate = true});
+  const HyperGlassScene({
+    super.key,
+    required this.background,
+    required this.child,
+    this.animate = true,
+    this.captureScale = 1,
+  });
 
   final Widget background;
   final Widget child;
 
   /// Re-snapshot every frame (animated backgrounds). When false, only on rebuild/resize.
   final bool animate;
+
+  /// Backdrop capture resolution relative to physical pixels for glass surfaces (Flutify).
+  ///
+  /// For a background without fine detail (e.g. an already heavily blurred one) a fraction such as 0.25
+  /// captures 1/16 of the pixels per frame for the same look. Only the Skia fused glass path honours it;
+  /// the Impeller multi-pass path always captures at full resolution.
+  final double captureScale;
 
   /// Whether [context] is inside a [HyperGlassScene] (where [HyperGlass] / [HyperBlendBlur] can be used).
   static bool isIn(BuildContext context) => context.getInheritedWidgetOfExactType<_SceneScope>() != null;
@@ -102,7 +115,9 @@ class _HyperGlassSceneState extends State<HyperGlassScene> with SingleTickerProv
     final dpr = MediaQuery.devicePixelRatioOf(context);
     // A scene whose surfaces are all frosted (menus, dialogs) only needs a heavily blurred backdrop, so
     // it is captured at 1/4 resolution directly: 1/16 of the texture memory, same frame rate.
-    final scale = _surfaces.every((g) => g.material is BlendMaterial) ? _blendCaptureScale : 1.0;
+    final scale = _surfaces.every((g) => g.material is BlendMaterial)
+        ? _blendCaptureScale
+        : (ui.ImageFilter.isShaderFilterSupported ? 1.0 : widget.captureScale);
     // Only the area under glass surfaces (plus room for refraction / reflection offsets) is captured
     // and processed.
     Rect? region;
@@ -346,7 +361,16 @@ class _RenderGlass extends RenderBox {
     if (!ui.ImageFilter.isShaderFilterSupported) {
       final ui.FragmentShader? shader;
       if (m is GlassFilter) {
-        shader = r.fusedGlassShader(m, backdrop, origin, w, h, radius * dpr, opacity: opacity);
+        shader = r.fusedGlassShader(
+          m,
+          backdrop,
+          origin,
+          w,
+          h,
+          radius * dpr,
+          opacity: opacity,
+          backdropScale: _scene._scale,
+        );
       } else {
         m as BlendMaterial;
         final extent = _scene._region.size * dpr;

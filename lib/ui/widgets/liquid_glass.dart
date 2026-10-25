@@ -117,9 +117,12 @@ extension on LiquidGlass {
   Widget? _hyper(BuildContext context, BorderRadius radius) {
     final content = Padding(padding: padding, child: child);
     if (HyperGlassScene.isIn(context)) {
-      return ClipRRect(
-        borderRadius: radius,
-        child: HyperGlass(borderRadius: radius.topLeft.x, child: content),
+      // 玻璃 shader 自己按 SDF 画圆角形状，不再套 ClipRRect：Skia 会把裁剪编进 GPU 程序，
+      // 套了裁剪就和预热时的程序不同，首次打开歌词页要现编译（约 150~200 ms 掉帧），
+      // 每帧也多一份裁剪开销。只裁上面的内容，保证文字图标不出圆角。
+      return HyperGlass(
+        borderRadius: radius.topLeft.x,
+        child: ClipRRect(borderRadius: radius, child: content),
       );
     }
     if (!backdrop) return null;
