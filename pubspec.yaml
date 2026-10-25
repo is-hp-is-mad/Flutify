@@ -72,6 +72,9 @@ dependencies:
   audio_service: ^0.18.19
   pinyin: ^3.3.0
   device_info_plus: ^13.3.0
+  # 柔光玻璃（HyperOS 材质移植），见 packages/hyper_glass/FLUTIFY_PATCH.md
+  hyper_glass:
+    path: packages/hyper_glass
 
 
 dependency_overrides:

@@ -42,6 +42,19 @@ void main() {
     expect(AppearanceProvider(broken).settings, AppearanceSettings.defaults);
   });
 
+  test('glass material persists and old or unknown values fall back to liquid glass', () async {
+    final storage = await freshStorage();
+    final provider = AppearanceProvider(storage);
+    provider.update(provider.settings.copyWith(glassMaterial: GlassMaterial.hyper));
+    provider.dispose();
+    expect(AppearanceProvider(storage).settings.glassMaterial, GlassMaterial.hyper);
+
+    final old = await freshStorage({'ui_appearance': '{"glassBlur":0.4}'});
+    expect(AppearanceProvider(old).settings.glassMaterial, GlassMaterial.liquid);
+    final unknown = await freshStorage({'ui_appearance': '{"glassMaterial":"chrome"}'});
+    expect(AppearanceProvider(unknown).settings.glassMaterial, GlassMaterial.liquid);
+  });
+
   test('dynamic accent uses the artwork colour only when enabled', () async {
     final provider = AppearanceProvider(await freshStorage());
     provider.setArtworkColor(const Color(0xFF203080));

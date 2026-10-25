@@ -890,7 +890,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'The accent follows the artwork of what\'s playing';
 
   @override
-  String get settingsGlassSection => 'Liquid glass';
+  String get settingsGlassSection => 'Material';
 
   @override
   String get settingsGlassPreview => 'Glass preview';
@@ -900,6 +900,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsGlassOpacity => 'Opacity';
+
+  @override
+  String get settingsGlassMaterial => 'Glass material';
+
+  @override
+  String get settingsGlassMaterialLiquid => 'Faux liquid glass';
+
+  @override
+  String get settingsGlassMaterialHyper => 'Soft-light glass (Beta)';
+
+  @override
+  String get settingsHyperGlassPreview => 'Soft-light glass';
+
+  @override
+  String get settingsHyperBlurPreview => 'Blur';
+
+  @override
+  String get settingsHyperGlassNote =>
+      'Soft-light glass is still being ported: it is only previewed here for now, and glass, dialogs and menus will switch over gradually.';
 
   @override
   String get settingsTextShapeSection => 'Text & shape';

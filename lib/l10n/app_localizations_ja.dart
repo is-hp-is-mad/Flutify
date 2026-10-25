@@ -857,7 +857,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsDynamicAccentSubtitle => '再生中のアートワークに合わせてアクセントカラーを変更します';
 
   @override
-  String get settingsGlassSection => 'リキッドガラス';
+  String get settingsGlassSection => 'マテリアル';
 
   @override
   String get settingsGlassPreview => 'ガラス効果のプレビュー';
@@ -867,6 +867,25 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsGlassOpacity => '不透明度';
+
+  @override
+  String get settingsGlassMaterial => 'ガラスの質感';
+
+  @override
+  String get settingsGlassMaterialLiquid => '疑似リキッドガラス';
+
+  @override
+  String get settingsGlassMaterialHyper => 'ソフトライトガラス（Beta）';
+
+  @override
+  String get settingsHyperGlassPreview => 'ソフトライトガラス';
+
+  @override
+  String get settingsHyperBlurPreview => 'ぼかし';
+
+  @override
+  String get settingsHyperGlassNote =>
+      'ソフトライトガラスは移植中です。現在はここでのプレビューのみで、ガラス・ダイアログ・メニューは順次置き換わります。';
 
   @override
   String get settingsTextShapeSection => '文字と形';

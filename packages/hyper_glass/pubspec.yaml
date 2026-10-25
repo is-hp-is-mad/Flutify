@@ -1,0 +1,21 @@
+name: hyper_glass
+description: HyperOS soft-light glass and blend-blur materials, ported from MIUIWeather.
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ^3.9.2
+  flutter: ">=3.29.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+flutter:
+  shaders:
+    - shaders/mi_glass_sdf.frag
+    - shaders/mi_glass_v13_f16.frag
+    - shaders/mi_lm_blur.frag
+    - shaders/mi_lm_downsample.frag
+    - shaders/mi_lm_upsample_tint.frag
+    - shaders/mi_blend_blur.frag

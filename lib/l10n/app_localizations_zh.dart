@@ -860,7 +860,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsDynamicAccentSubtitle => '强调色随正在播放的专辑封面变化';
 
   @override
-  String get settingsGlassSection => '液态玻璃';
+  String get settingsGlassSection => '材质';
 
   @override
   String get settingsGlassPreview => '玻璃预览';
@@ -870,6 +870,24 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsGlassOpacity => '不透明度';
+
+  @override
+  String get settingsGlassMaterial => '玻璃材质';
+
+  @override
+  String get settingsGlassMaterialLiquid => '伪液态玻璃';
+
+  @override
+  String get settingsGlassMaterialHyper => '柔光玻璃（Beta）';
+
+  @override
+  String get settingsHyperGlassPreview => '柔光玻璃';
+
+  @override
+  String get settingsHyperBlurPreview => '模糊';
+
+  @override
+  String get settingsHyperGlassNote => '柔光玻璃仍在移植中：目前只在这里预览，界面里的玻璃、弹窗和菜单会逐步替换。';
 
   @override
   String get settingsTextShapeSection => '文字与形状';
@@ -2886,7 +2904,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get settingsDynamicAccentSubtitle => '強調色隨正在播放的專輯封面變化';
 
   @override
-  String get settingsGlassSection => '液態玻璃';
+  String get settingsGlassSection => '材質';
 
   @override
   String get settingsGlassPreview => '玻璃預覽';
@@ -2896,6 +2914,24 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get settingsGlassOpacity => '不透明度';
+
+  @override
+  String get settingsGlassMaterial => '玻璃材質';
+
+  @override
+  String get settingsGlassMaterialLiquid => '偽液態玻璃';
+
+  @override
+  String get settingsGlassMaterialHyper => '柔光玻璃（Beta）';
+
+  @override
+  String get settingsHyperGlassPreview => '柔光玻璃';
+
+  @override
+  String get settingsHyperBlurPreview => '模糊';
+
+  @override
+  String get settingsHyperGlassNote => '柔光玻璃仍在移植中：目前只在這裡預覽，介面裡的玻璃、彈窗和選單會逐步替換。';
 
   @override
   String get settingsTextShapeSection => '文字與形狀';
