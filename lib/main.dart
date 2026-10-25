@@ -779,6 +779,11 @@ void _startConnectReceiver(
   }
 
   host.handOver = handOver;
+  // 本机是活动播放端时，把服务端的上下文记进本机会话（见 adoptReceiverContext）
+  connect.addListener(() {
+    if (!receiver.isActive || connect.cluster.activeDeviceId != deviceId) return;
+    playback.adoptReceiverContext(connect.player.contextUri);
+  });
   // 返回给 host：它在等服务端确认本机刚改的随机 / 循环，确认一到（true）或被拒（false）
   // 就解除等待，让服务端的值重新生效。
   host.onLocalOptions = ({shuffle, repeatContext, repeatTrack}) =>

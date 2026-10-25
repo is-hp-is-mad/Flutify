@@ -192,6 +192,15 @@ void main() {
     },
   );
 
+  test('receiver context is remembered, unknown URIs are ignored', () async {
+    await playback.playLocal(a, contextQueue: [a, b]);
+    expect(playback.playbackContext.uri, isEmpty);
+    playback.adoptReceiverContext('spotify:internal:temp');
+    expect(playback.playbackContext.uri, isEmpty);
+    playback.adoptReceiverContext('spotify:user:me:collection');
+    expect(playback.playbackContext.uri, 'spotify:user:me:collection');
+  });
+
   test('without a receiver window the queue end still wraps', () async {
     await playback.playLocal(a, contextQueue: [a, b]);
     playback.setRepeatMode(SpotifyRepeatMode.context);

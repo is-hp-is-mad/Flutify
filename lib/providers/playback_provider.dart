@@ -308,6 +308,24 @@ class PlaybackProvider extends ChangeNotifier {
   /// 播放失败事件流（广播）：不可播放、未登录、网络错误等都会在这里发出一次。
   Stream<PlaybackError> get playbackErrors => _errorController.stream;
   PlaybackContext get playbackContext => _context;
+
+  /// 作为 Connect 播放端时记下服务端的上下文（歌单 / 专辑 / 艺人 / 已点赞的歌曲）。
+  ///
+  /// 本机队列只是服务端窗口，自己并不知道放的是哪个歌单；不记下来的话，会话保存后
+  /// 下次启动交回 Connect 时只能把这十几首当临时列表发出，从此一直在这几首里循环。
+  void adoptReceiverContext(String uri) {
+    const prefixes = ['spotify:playlist:', 'spotify:album:', 'spotify:artist:'];
+    final known = prefixes.any(uri.startsWith) || uri.endsWith(':collection');
+    if (!known || uri == _context.uri) return;
+    debugPrint('[playback] 记下 Connect 上下文 $uri');
+    _context = PlaybackContext(
+      type: _context.type == PlaybackContext.none.type ? 'playlist' : _context.type,
+      name: _context.name,
+      uri: uri,
+    );
+    _scheduleSave();
+    notifyListeners();
+  }
   bool get isPlaying => _isPlaying;
 
   /// Playback intent for system media controls, including automatic transitions
