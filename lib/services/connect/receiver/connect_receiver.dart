@@ -115,6 +115,13 @@ class ConnectReceiver {
   /// 是否正被远程选中、由本机出声（有当前状态）。
   bool get isActive => _machine != null && _stateIndex >= 0;
 
+  /// 当前状态机与从当前状态起的可播放顺序；不是活动播放端时为 null。
+  ({TpStateMachine machine, List<int> order})? get window {
+    final m = _machine;
+    if (m == null || _stateIndex < 0) return null;
+    return (machine: m, order: m.playableChain(_stateIndex));
+  }
+
   void invalidateSession() => _api.invalidate();
 
   Future<void> start() async {
@@ -532,9 +539,17 @@ class ConnectReceiver {
     final index =
         ref?.stateIndex ?? next.states.indexWhere((s) => s.stateId == curId);
     final state = next.state(index);
-    if (state == null || next.trackOf(state)?.uri != _currentTrackUri) return;
+    if (state == null || next.trackOf(state)?.uri != _currentTrackUri) {
+      debugPrint(
+        '[Receiver] 新状态机对不上当前曲目，未采用（index=$index, '
+        '${next.states.length} 个状态）',
+      );
+      return;
+    }
     _machine = next;
     _stateIndex = index;
-    host.updateQueue(next, next.playableChain(index));
+    final order = next.playableChain(index);
+    debugPrint('[Receiver] 采用新状态机：当前之后还有 ${order.length - 1} 首');
+    host.updateQueue(next, order);
   }
 }

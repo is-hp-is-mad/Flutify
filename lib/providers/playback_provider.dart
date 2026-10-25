@@ -79,6 +79,11 @@ class PlaybackProvider extends ChangeNotifier {
   )?
   autoplaySource;
 
+  /// 作为 Connect 播放端时，服务端状态机里从当前曲目起的后续曲目（含当前曲目）。
+  /// 本机队列走到尽头时先用它补齐，不在本机回绕：本机队列只是服务端的滑动窗口加已播历史，
+  /// 回绕会跳回窗口开头，而不是歌单开头。
+  List<SpotifyTrack> Function()? receiverWindow;
+
   /// 本机修改随机 / 循环时与服务端同步的钩子：等服务端确认后再在前端应用，彻底消除抖动。
   Future<bool> Function({bool? shuffle, SpotifyRepeatMode? repeat})?
   syncOptionsBeforeApply;
@@ -1354,6 +1359,14 @@ class PlaybackProvider extends ChangeNotifier {
     if (_userQueue.isNotEmpty) {
       await _startTrack(_userQueue.removeAt(0).track, isRetry: isAutoSkip);
       return;
+    }
+
+    if (_orderPos + 1 >= _order.length) {
+      final window = receiverWindow?.call() ?? const <SpotifyTrack>[];
+      if (window.length > 1) {
+        debugPrint('[playback] 本机队列到头，按 Connect 状态机补齐 ${window.length - 1} 首');
+        updateReceiverQueue(window);
+      }
     }
 
     if (_orderPos + 1 < _order.length) {

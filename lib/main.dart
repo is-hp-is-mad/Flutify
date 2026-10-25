@@ -743,8 +743,15 @@ void _startConnectReceiver(
   Future<bool> handOver(int positionMs, {bool paused = false}) async {
     final current = playback.currentTrack;
     if (current == null || !connect.receiverOnline) return false;
+    // 作为播放端时本机不知道歌单（只拿到服务端的曲目窗口），上下文取自 cluster：
+    // 否则会把手头的十几首当临时列表交回去，之后就一直在这几首里循环。
+    var context = playback.playbackContext;
+    final clusterContext = connect.player.contextUri;
+    if (context.uri.isEmpty && clusterContext.isNotEmpty) {
+      context = PlaybackContext(type: 'playlist', name: '', uri: clusterContext);
+    }
     final request = ConnectPlayRequest.from(
-      context: playback.playbackContext,
+      context: context,
       tracks: [current, for (final e in playback.upNext) e.track],
       start: current,
       username: ctx.read<SpotifyAuthService>().username,

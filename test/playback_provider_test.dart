@@ -177,6 +177,33 @@ void main() {
   );
 
   test(
+    'receiver queue end continues with the state machine instead of wrapping',
+    () async {
+      await playback.playLocal(a, contextQueue: [a, b]);
+      playback.setRepeatMode(SpotifyRepeatMode.context);
+      await playback.nextTrack();
+      expect(playback.currentTrack?.id, b.id);
+      playback.receiverWindow = () => [b, c, x];
+
+      await playback.nextTrack();
+
+      expect(playback.currentTrack?.id, c.id);
+      expect(playback.upNext.map((e) => e.track.id), [x.id]);
+    },
+  );
+
+  test('without a receiver window the queue end still wraps', () async {
+    await playback.playLocal(a, contextQueue: [a, b]);
+    playback.setRepeatMode(SpotifyRepeatMode.context);
+    await playback.nextTrack();
+    playback.receiverWindow = () => const [];
+
+    await playback.nextTrack();
+
+    expect(playback.currentTrack?.id, a.id);
+  });
+
+  test(
     'receiver update ignores stale current tracks and replaces a changed future',
     () async {
       await playback.playLocal(a, contextQueue: [a, b, c]);
