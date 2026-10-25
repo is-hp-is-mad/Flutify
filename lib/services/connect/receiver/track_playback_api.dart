@@ -232,6 +232,53 @@ class TrackPlaybackApi {
     return json is Map<String, dynamic> ? json : null;
   }
 
+  /// 拒绝与本机当前状态对不上的 replace_state（其 `prev_state_ref` 不是本机当前状态）：
+  /// 带上本机当前状态与被拒的 [rejected] 状态引用，服务端在响应里给出应执行的命令。
+  /// 与官方 Web Player 的 `state_conflict` 一致；返回响应里的 `commands`。
+  Future<List<Map<String, dynamic>>> postStateConflict({
+    String? stateMachineId,
+    String? stateId,
+    bool paused = true,
+    int positionMs = 0,
+    int durationMs = 0,
+    required List<Map<String, dynamic>> rejected,
+  }) async {
+    final res = await _client
+        .post(
+          _uri('/$deviceId/state_conflict'),
+          headers: await headers(),
+          body: jsonEncode({
+            'seq_nums': [for (var i = 0; i < rejected.length; i++) ++_seq],
+            'state_ref': stateMachineId == null
+                ? null
+                : {
+                    'state_machine_id': stateMachineId,
+                    'state_id': stateId,
+                    'paused': paused,
+                  },
+            'sub_state': {
+              'playback_speed': paused ? 0 : 1,
+              'position': positionMs,
+              'duration': durationMs,
+              'media_type': 'AUDIO',
+            },
+            'rejected_state_refs': rejected,
+            'debug_source': 'state_conflict',
+          }),
+        )
+        .timeout(const Duration(seconds: 10));
+    _check(res, '状态冲突');
+    if (res.body.isEmpty) return const [];
+    final json = jsonDecode(utf8.decode(res.bodyBytes));
+    final commands = json is Map ? json['commands'] : null;
+    return commands is List
+        ? [
+            for (final c in commands)
+              if (c is Map) c.cast<String, dynamic>(),
+          ]
+        : const [];
+  }
+
   Future<void> putVolume(int volume) async {
     final res = await _client
         .put(

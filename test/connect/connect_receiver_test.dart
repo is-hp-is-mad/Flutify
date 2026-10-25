@@ -99,6 +99,7 @@ void main() {
   late _DelayedLoader loader;
   Future<http.Response> Function(http.Request)? report;
   Future<http.Response> Function(http.Request)? registration;
+  Future<http.Response> Function(http.Request)? conflict;
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
@@ -116,6 +117,7 @@ void main() {
     server = FakeDealerServer();
     report = null;
     registration = null;
+    conflict = null;
     final client = MockClient((r) async {
       if (r.url.host == 'clienttoken.spotify.com') {
         return http.Response(
@@ -124,6 +126,9 @@ void main() {
           }),
           200,
         );
+      }
+      if (r.method == 'POST' && r.url.path.endsWith('/state_conflict')) {
+        return conflict?.call(r) ?? http.Response('{"commands":[]}', 200);
       }
       if (r.method == 'POST') {
         return registration?.call(r) ??
@@ -747,5 +752,64 @@ void main() {
     await until(() => reports.any((r) => r['debug_source'] == 'state_clear'));
     expect(receiver.isActive, isFalse);
     expect(reports.last['state_ref'], isNull);
+  });
+
+  group('prev_state_ref（与官方 Web Player 一致）', () {
+    const current = {'state_machine_id': 'a-b', 'state_id': 'a', 'paused': false};
+
+    Future<void> playAB() async {
+      replace(['a', 'b']);
+      await until(() => receiver.isActive && audio.isPlaying);
+    }
+
+    test('与本机当前状态一致：照常执行（转走 = 清空并停止）', () async {
+      await playAB();
+      server.channels.last.pushJson('hm://track-playback/v1/command', {
+        'type': 'replace_state',
+        'prev_state_ref': current,
+        'state_ref': null,
+      });
+      await until(() => !receiver.isActive && !audio.isPlaying);
+    });
+
+    test('基于过期状态：拒绝并经 state_conflict 执行服务端给的命令', () async {
+      final bodies = <Map<String, dynamic>>[];
+      conflict = (request) async {
+        bodies.add(jsonDecode(request.body) as Map<String, dynamic>);
+        return http.Response(
+          jsonEncode({
+            'commands': [
+              {
+                'type': 'replace_state',
+                'prev_state_ref': current,
+                'state_ref': null,
+              },
+            ],
+          }),
+          200,
+        );
+      };
+      await playAB();
+      server.channels.last.pushJson('hm://track-playback/v1/command', {
+        'type': 'replace_state',
+        'prev_state_ref': {
+          'state_machine_id': 'old',
+          'state_id': 'x',
+          'paused': false,
+        },
+        'state_machine': machine(['c']),
+        'state_ref': {'state_index': 0, 'paused': true},
+      });
+      await until(() => !receiver.isActive && !audio.isPlaying);
+
+      // 过期命令没有执行（没有换成 c）
+      expect(playback.currentTrack?.id, 'a');
+      expect(bodies, hasLength(1));
+      expect(bodies.single['state_ref'], current);
+      expect(bodies.single['rejected_state_refs'], [
+        {'state_machine_id': 'c', 'state_id': 'c', 'paused': true},
+      ]);
+      expect(bodies.single['seq_nums'], hasLength(1));
+    });
   });
 }

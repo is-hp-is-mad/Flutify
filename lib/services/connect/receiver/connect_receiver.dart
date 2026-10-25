@@ -206,31 +206,127 @@ class ConnectReceiver {
     if (!_started || message.uri != 'hm://track-playback/v1/command') return;
     for (final raw in message.payloads) {
       if (raw is! Map) continue;
-      final payload = raw.cast<String, dynamic>();
-      final type = payload['type'];
-      debugPrint('[Receiver] 命令 $type');
-      switch (type) {
-        case 'replace_state':
-          // track-playback uses an absent/null state_ref to revoke ownership.
-          // This is a stop command, not an invalid state machine to ignore.
-          if (payload['state_ref'] == null) {
-            _clear();
-            unawaited(host.stop());
-            _report('state_clear', clear: true);
-            continue;
-          }
-          final cmd = TpReplaceState.fromJson(payload);
-          if (cmd != null) unawaited(_replaceState(cmd));
-        case 'set_volume':
-          final v = (payload['volume'] as num?)?.toDouble();
-          if (v != null) host.setVolume((v / 65535).clamp(0.0, 1.0));
-        case 'log_out':
+      _performCommand(raw.cast<String, dynamic>());
+    }
+  }
+
+  void _performCommand(Map<String, dynamic> payload) {
+    final type = payload['type'];
+    debugPrint('[Receiver] 命令 $type');
+    switch (type) {
+      case 'replace_state':
+        // 与官方 Web Player 一致：命令基于的前一状态（prev_state_ref）必须是本机当前状态，
+        // 否则这条命令是针对过期状态发的（例如服务端发命令时本机刚汇报了别的变化），
+        // 拒绝并经 state_conflict 让服务端给出正确的命令，而不是照着过期命令执行。
+        // 不带该字段的命令（旧格式）照旧执行，只有明确对不上才拒绝。
+        if (payload.containsKey('prev_state_ref') &&
+            !_isCurrentStateRef(payload['prev_state_ref'])) {
+          debugPrint(
+            '[Receiver] replace_state 基于过期状态 '
+            '${payload['prev_state_ref']}，本机为 $_currentStateRef，拒绝',
+          );
+          _rejectState(_stateRefOf(payload));
+          return;
+        }
+        // track-playback uses an absent/null state_ref to revoke ownership.
+        // This is a stop command, not an invalid state machine to ignore.
+        if (payload['state_ref'] == null) {
           _clear();
           unawaited(host.stop());
-        case 'ping':
-          _report('ping');
-      }
+          _report('state_clear', clear: true);
+          return;
+        }
+        final cmd = TpReplaceState.fromJson(payload);
+        if (cmd != null) unawaited(_replaceState(cmd));
+      case 'set_volume':
+        final v = (payload['volume'] as num?)?.toDouble();
+        if (v != null) host.setVolume((v / 65535).clamp(0.0, 1.0));
+      case 'log_out':
+        _clear();
+        unawaited(host.stop());
+      case 'ping':
+        _report('ping');
     }
+  }
+
+  /// 本机当前状态引用（state_machine_id / state_id / paused）；没有状态时为 null。
+  Map<String, Object>? get _currentStateRef {
+    final m = _machine;
+    final s = m?.state(_stateIndex);
+    if (m == null || s == null) return null;
+    return {'state_machine_id': m.id, 'state_id': s.stateId, 'paused': _paused};
+  }
+
+  /// [prev] 是否就是本机当前状态（都没有状态也算一致）。
+  bool _isCurrentStateRef(Object? prev) {
+    final cur = _currentStateRef;
+    if (prev is! Map) return cur == null;
+    return cur != null &&
+        prev['state_machine_id'] == cur['state_machine_id'] &&
+        prev['state_id'] == cur['state_id'] &&
+        (prev['paused'] == true) == cur['paused'];
+  }
+
+  /// replace_state 命令要切到的状态引用（用于 state_conflict 上报被拒的状态）。
+  static Map<String, Object>? _stateRefOf(Map<String, dynamic> payload) {
+    final machine = payload['state_machine'];
+    final ref = payload['state_ref'];
+    if (machine is! Map || ref is! Map) return null;
+    final states = machine['states'];
+    final index = ref['state_index'];
+    if (states is! List ||
+        index is! int ||
+        index < 0 ||
+        index >= states.length) {
+      return null;
+    }
+    final state = states[index];
+    return {
+      'state_machine_id': machine['state_machine_id'] ?? '',
+      'state_id': state is Map ? state['state_id'] ?? '' : '',
+      'paused': ref['paused'] == true,
+    };
+  }
+
+  final List<Map<String, Object>?> _rejectedStates = [];
+  bool _sendingConflict = false;
+
+  /// 上报被拒的状态，执行服务端在响应里给出的命令（与官方 Web Player 的 `_rejectState` 一致：
+  /// 同一时间只发一个请求，每次最多 5 条，发完再处理排队的）。
+  void _rejectState(Map<String, Object>? rejected) {
+    _rejectedStates.add(rejected);
+    _sendNextConflict();
+  }
+
+  void _sendNextConflict() {
+    if (!_registered || _sendingConflict || _rejectedStates.isEmpty) return;
+    _sendingConflict = true;
+    final batch = _rejectedStates.take(5).toList();
+    _rejectedStates.removeRange(0, batch.length);
+    _sending = _sending.then((_) async {
+      try {
+        final cur = _currentStateRef;
+        final m = _machine;
+        final s = m?.state(_stateIndex);
+        final commands = await _api.postStateConflict(
+          stateMachineId: cur?['state_machine_id'] as String?,
+          stateId: cur?['state_id'] as String?,
+          paused: _paused,
+          positionMs: host.positionMs,
+          durationMs: s == null ? 0 : m!.trackOf(s)?.durationMs ?? 0,
+          rejected: [for (final r in batch) ?r],
+        );
+        debugPrint('[Receiver] 状态冲突 → ${commands.length} 条命令');
+        for (final c in commands) {
+          _performCommand(c);
+        }
+      } catch (e) {
+        debugPrint('[Receiver] $e');
+      } finally {
+        _sendingConflict = false;
+        _sendNextConflict();
+      }
+    });
   }
 
   Future<void> _replaceState(TpReplaceState cmd) async {
