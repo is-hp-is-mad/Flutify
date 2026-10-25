@@ -127,19 +127,39 @@ class HyperGlassRenderer {
       return result;
     }
 
-    final lm = await stage('LM 模糊（下采样 / 模糊 / 上采样）', () => lmGaussianBlur(src, 60), (i) => i);
-    final refract = await stage('折射纹理（上采样着色）', () => refractTexture(src, g), (r) => r.rgb);
-    final glass = await stage('玻璃（SDF + MiGlassV13）', () => drawGlass(g, refract, ui.Offset.zero, 96, 96, 24), (i) => i);
+    // Skia (Windows / Linux) with a fusable filter draws the glass straight from the backdrop and blurs
+    // menus with Skia's own blur, so the LM down / blur / upsample programs are never used there:
+    // warming them only adds GPU compile time. They still compile lazily if a non-fused glass shows up.
+    final fused = !ui.ImageFilter.isShaderFilterSupported && fusedRefractKernel(g) != null;
+    final lm = fused ? null : await stage('LM 模糊（下采样 / 模糊 / 上采样）', () => lmGaussianBlur(src, 60), (i) => i);
+    final refract = fused ? null : await stage('折射纹理（上采样着色）', () => refractTexture(src, g), (r) => r.rgb);
+    final glass = await stage(
+      fused ? '融合玻璃（SDF + MiGlassV13）' : '玻璃（SDF + MiGlassV13）',
+      () => fused ? _drawShader(fusedGlassShader(g, src, ui.Offset.zero, 96, 96, 24)!, 96, 96) : drawGlass(g, refract!, ui.Offset.zero, 96, 96, 24),
+      (i) => i,
+    );
     final blurred = await stage('高斯模糊', () => gaussianBlur(src, 20), (i) => i);
     final blend = await stage(
       '混色模糊',
       () => drawBlend(BlendMaterial.popupMenuLight, blurred, const ui.Size(128, 128), ui.Offset.zero, 64, 64, 16),
       (i) => i,
     );
-    for (final i in [src, lm, refract.rgb, refract.a, glass, blurred, blend]) {
+    for (final i in [src, lm, refract?.rgb, refract?.a, glass, blurred, blend]) {
       i?.dispose();
     }
     dispose();
+  }
+
+  /// Draws [s] over a [w]x[h] rect with the default (srcOver) blend, as the fused glass is drawn on
+  /// screen, so warm-up compiles the same pipeline.
+  static ui.Image _drawShader(ui.FragmentShader s, int w, int h) {
+    final rec = ui.PictureRecorder();
+    ui.Canvas(rec).drawRect(ui.Rect.fromLTWH(0, 0, w.toDouble(), h.toDouble()), ui.Paint()..shader = s);
+    final pic = rec.endRecording();
+    final img = pic.toImageSync(w, h);
+    pic.dispose();
+    s.dispose();
+    return img;
   }
 
   // One fresh FragmentShader per pass: toImageSync rasterizes later, so uniforms must not be shared.
