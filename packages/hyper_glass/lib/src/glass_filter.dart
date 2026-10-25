@@ -178,7 +178,9 @@ extension LMGaussianKernel on LMGaussianState {
   for (var d = 1; d <= 12; d++) {
     if (c[12 + d] >= 0.01) radius = d;
   }
-  if (radius > 4) return null;
+  // Only the 4-tap bilinear form is fused (the shader's wider loop was dropped: unrolled by D3D under
+  // ANGLE it cost seconds of compile time); wider kernels use the non-fused texture path.
+  if (radius > 1) return null;
   var sum = c[12];
   for (var d = 1; d <= radius; d++) {
     sum += 2 * c[12 + d];

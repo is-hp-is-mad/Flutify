@@ -14,3 +14,4 @@
 - `HyperGlassScene.isIn(context)`：判断是否处在场景内（Flutify 的 `LiquidGlass` 据此选择柔光玻璃或混色模糊）。
 - `MorphMenu` 菜单项外包一层透明 `Material`，修正悬停 / 水波纹画在远处祖先上导致的错位。
 - `HyperGlass` / `HyperBlendBlur` 的 Stack 改为 `StackFit.passthrough`：子组件拿到外层约束，避免被宽松约束贴到左上（文字偏上、悬停阴影错位）。
+- `mi_glass_v13_f16.frag`：删除融合路径里半径 2~4 的 9×9 循环（D3D 在 ANGLE 下把它在 3 处调用里全部展开，共 243 次采样，首帧编译卡数秒）；`fusedRefractKernel` 半径 > 1 时退回非融合路径。默认参数半径为 1，效果不变（有测试守护）。

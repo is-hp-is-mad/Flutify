@@ -94,14 +94,6 @@ out vec4 fragColor;
 
 uniform sampler2D _fl_refractA;
 uniform sampler2D _fl_backdrop;
-highp float _fl_kw(int a)
-{
-    if (a == 0) return _fl_k0;
-    if (a == 1) return _fl_k.x;
-    if (a == 2) return _fl_k.y;
-    if (a == 3) return _fl_k.z;
-    return _fl_k.w;
-}
 highp vec4 _fl_tint(vec4 _fl_c, vec4 _fl_big, highp vec2 _fl_px)
 {
     vec4 _580 = _fl_c;
@@ -263,17 +255,10 @@ highp vec4 _fl_refract(highp vec2 uv)
                     + texture(_fl_backdrop, uv + vec2(d.x, -d.y)).rgb + texture(_fl_backdrop, uv + vec2(-d.x, d.y)).rgb);
         return _fl_tint(vec4(acc, 1.0), vec4(texture(_fl_backdrop, uv).rgb, 1.0), uv / _198_uInvResolution);
     }
-    for (int j = -4; j <= 4; j++)
-    {
-        if (abs(float(j)) > _fl_kr) continue;
-        highp float wj = _fl_kw(j < 0 ? -j : j);
-        for (int i = -4; i <= 4; i++)
-        {
-            if (abs(float(i)) > _fl_kr) continue;
-            acc += (wj * _fl_kw(i < 0 ? -i : i)) * texture(_fl_backdrop, uv + vec2(float(i), float(j)) * _198_uInvResolution).rgb;
-        }
-    }
-    return _fl_tint(vec4(acc, 1.0), vec4(texture(_fl_backdrop, uv).rgb, 1.0), uv / _198_uInvResolution);
+    // Flutify: only the 4-tap path above is fused (wider kernels take the non-fused path, see
+    // fusedRefractKernel). The former 9x9 loop was inlined at 3 call sites and fully unrolled by
+    // the D3D compiler under ANGLE (243 texture taps), which made the first frame stall for seconds.
+    return vec4(texture(_fl_backdrop, uv).rgb, 1.0);
 }
 
 uniform sampler2D _fl_sdfB;
