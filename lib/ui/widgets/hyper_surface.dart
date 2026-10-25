@@ -7,24 +7,19 @@ import 'package:hyper_glass/hyper_glass.dart';
 import '../../core/debug_toggles.dart';
 import '../../core/perf_flags.dart';
 import '../../core/theme/flutify_tokens.dart';
+import '../../l10n/l10n.dart';
 import '../shell/desktop/desktop_window.dart';
 
 bool _hyperWarm = false;
 
-/// 柔光玻璃 shader 全进程只加载、预热一次（[HyperGlassRenderer.shared]），并把 Skia 的
-/// GPU 资源缓存压到 32 MB：每次玻璃刷新都会分配离屏纹理，默认缓存会让进程多占几百 MB，
-/// 回收时还会卡一下。选了柔光玻璃、或设置页准备显示它的预览时调用，可重复调用。
+/// 选了柔光玻璃时把 Skia 的 GPU 资源缓存压到 32 MB：每次玻璃刷新都会分配离屏纹理，
+/// 默认缓存会让进程多占几百 MB，回收时还会卡一下。可重复调用。
+/// shader 的编译与预热交给 [HyperGlassWarmup]（带加载界面），这里不碰。
 void warmUpHyperGlass() {
   if (_hyperWarm) return;
   _hyperWarm = true;
   WidgetsBinding.instance.addPostFrameCallback((_) {
     unawaited(limitSkiaResourceCache().catchError((Object _) {}));
-    unawaited(
-      HyperGlassRenderer.shared().then<void>(
-        (_) {},
-        onError: (Object e) => debugPrint('[hyper_glass] 预热失败：$e'),
-      ),
-    );
   });
 }
 
@@ -156,21 +151,40 @@ class HyperGlassWarmup extends StatefulWidget {
 
 class _HyperGlassWarmupState extends State<HyperGlassWarmup> {
   static bool _done = false;
+
+  /// 加载界面已挂上（下一帧起盖住整个窗口）。
+  bool _covering = false;
+
+  /// shader 已加载，底层预热场景开始真实绘制。
   bool _ready = false;
   int _frames = 0;
-  Stopwatch? _clock;
+  final Stopwatch _clock = Stopwatch();
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_done || _ready || !context.tokens.hyperMaterial) return;
-    _clock = Stopwatch()..start();
-    HyperGlassRenderer.shared().then((_) {
+    if (_done || _covering || !context.tokens.hyperMaterial) return;
+    _covering = true;
+    _clock.start();
+    // 先让加载界面上屏，再开始编译：编译期间光栅线程被占满，窗口停在这一帧，
+    // 用户看到的是「正在准备」而不是卡死的主界面
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      debugPrint('[hyper_glass] shader 加载完成：${_clock!.elapsedMilliseconds} ms');
-      setState(() => _ready = true);
-      _countFrames();
-    }, onError: (Object _) => _done = true);
+      HyperGlassRenderer.shared().then(
+        (_) {
+          if (!mounted) return;
+          debugPrint(
+            '[hyper_glass] shader 加载完成：${_clock.elapsedMilliseconds} ms',
+          );
+          setState(() => _ready = true);
+          _countFrames();
+        },
+        onError: (Object e) {
+          debugPrint('[hyper_glass] 预热失败：$e');
+          if (mounted) setState(() => _done = true);
+        },
+      );
+    });
   }
 
   // 场景要先截一次背景、表面才会真正绘制；多留几帧确保两种材质都上屏画过
@@ -182,15 +196,18 @@ class _HyperGlassWarmupState extends State<HyperGlassWarmup> {
         _countFrames();
         return;
       }
-      debugPrint('[hyper_glass] 上屏预热完成：${_clock!.elapsedMilliseconds} ms');
+      debugPrint('[hyper_glass] 上屏预热完成：${_clock.elapsedMilliseconds} ms');
       setState(() => _done = true);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final warming = !_done && _ready && context.tokens.hyperMaterial;
-    // 结构始终是同一个 Stack，预热层只在第一格里出现 / 消失，界面本身不会被重新挂载
+    final hyper = context.tokens.hyperMaterial;
+    final warming = !_done && _ready && hyper;
+    final covering = !_done && _covering && hyper;
+    // 结构始终是同一个 Stack（预热层 / 界面 / 加载界面），前后两层出现、消失时
+    // 中间的界面不会被重新挂载
     return Stack(
       textDirection: TextDirection.ltr,
       fit: StackFit.expand,
@@ -222,7 +239,60 @@ class _HyperGlassWarmupState extends State<HyperGlassWarmup> {
             ),
           ),
         Positioned.fill(child: widget.child),
+        if (!covering)
+          const SizedBox.shrink()
+        else
+          const Positioned.fill(child: _PreparingScreen()),
       ],
+    );
+  }
+}
+
+/// 编译期间盖住整个窗口的加载界面。光栅线程被编译占满时画面不会刷新，
+/// 所以这里只放静态内容，不放转圈动画。
+class _PreparingScreen extends StatelessWidget {
+  const _PreparingScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final l10n = context.l10n;
+    return AbsorbPointer(
+      child: ColoredBox(
+        color: scheme.surface,
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.blur_on_rounded,
+                  size: 48,
+                  color: context.tokens.accent,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  l10n.hyperGlassPreparingTitle,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: scheme.onSurface,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  l10n.hyperGlassPreparingBody,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

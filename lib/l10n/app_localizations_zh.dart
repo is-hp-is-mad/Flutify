@@ -887,7 +887,14 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsHyperBlurPreview => '模糊';
 
   @override
-  String get settingsHyperGlassNote => '柔光玻璃仍在移植中：目前只在这里预览，界面里的玻璃、弹窗和菜单会逐步替换。';
+  String get settingsHyperGlassNote =>
+      '柔光玻璃（Beta）：菜单、弹窗和播放页玻璃已替换，其余部分仍在移植。每次启动需要先编译着色器。';
+
+  @override
+  String get hyperGlassPreparingTitle => '正在准备柔光玻璃';
+
+  @override
+  String get hyperGlassPreparingBody => '首次绘制前需要编译着色器，大约几秒，期间窗口不会响应。';
 
   @override
   String get settingsTextShapeSection => '文字与形状';
@@ -2931,7 +2938,14 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get settingsHyperBlurPreview => '模糊';
 
   @override
-  String get settingsHyperGlassNote => '柔光玻璃仍在移植中：目前只在這裡預覽，介面裡的玻璃、彈窗和選單會逐步替換。';
+  String get settingsHyperGlassNote =>
+      '柔光玻璃（Beta）：選單、彈窗和播放頁玻璃已替換，其餘部分仍在移植。每次啟動需要先編譯著色器。';
+
+  @override
+  String get hyperGlassPreparingTitle => '正在準備柔光玻璃';
+
+  @override
+  String get hyperGlassPreparingBody => '首次繪製前需要編譯著色器，大約幾秒，期間視窗不會回應。';
 
   @override
   String get settingsTextShapeSection => '文字與形狀';

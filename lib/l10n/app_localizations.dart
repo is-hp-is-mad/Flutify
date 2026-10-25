@@ -1712,8 +1712,20 @@ abstract class AppLocalizations {
   /// No description provided for @settingsHyperGlassNote.
   ///
   /// In zh, this message translates to:
-  /// **'柔光玻璃仍在移植中：目前只在这里预览，界面里的玻璃、弹窗和菜单会逐步替换。'**
+  /// **'柔光玻璃（Beta）：菜单、弹窗和播放页玻璃已替换，其余部分仍在移植。每次启动需要先编译着色器。'**
   String get settingsHyperGlassNote;
+
+  /// No description provided for @hyperGlassPreparingTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在准备柔光玻璃'**
+  String get hyperGlassPreparingTitle;
+
+  /// No description provided for @hyperGlassPreparingBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'首次绘制前需要编译着色器，大约几秒，期间窗口不会响应。'**
+  String get hyperGlassPreparingBody;
 
   /// No description provided for @settingsTextShapeSection.
   ///

@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../../../../l10n/l10n.dart';
 import '../../../../models/appearance.dart';
 import '../../../../providers/appearance_provider.dart';
-import '../../../widgets/hyper_surface.dart';
 import '../widgets/glass_preview.dart';
 import '../widgets/hyper_glass_preview.dart';
 import '../widgets/settings_section.dart';
@@ -33,8 +32,6 @@ class _GlassSectionState extends State<GlassSection> {
     final provider = context.read<AppearanceProvider>();
     final settings = context.select<AppearanceProvider, AppearanceSettings>((p) => p.settings);
     final l10n = context.l10n;
-    // 设置页一打开就在空闲时预热柔光玻璃，切到它的预览时不再卡一下
-    warmUpHyperGlass();
 
     return SettingsSection(
       title: l10n.settingsGlassSection,

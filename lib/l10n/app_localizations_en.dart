@@ -918,7 +918,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsHyperGlassNote =>
-      'Soft-light glass is still being ported: it is only previewed here for now, and glass, dialogs and menus will switch over gradually.';
+      'Soft-light glass (Beta): menus, dialogs and the player glass now use it; the rest is still being ported. Shaders are compiled on every launch.';
+
+  @override
+  String get hyperGlassPreparingTitle => 'Preparing soft-light glass';
+
+  @override
+  String get hyperGlassPreparingBody =>
+      'Shaders are compiled before the first frame. This takes a few seconds and the window will not respond meanwhile.';
 
   @override
   String get settingsTextShapeSection => 'Text & shape';

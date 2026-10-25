@@ -885,7 +885,14 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsHyperGlassNote =>
-      'ソフトライトガラスは移植中です。現在はここでのプレビューのみで、ガラス・ダイアログ・メニューは順次置き換わります。';
+      'ソフトライトガラス（ベータ）：メニュー・ダイアログ・プレーヤーのガラスは置き換え済みで、残りは移植中です。起動のたびにシェーダーをコンパイルします。';
+
+  @override
+  String get hyperGlassPreparingTitle => 'ソフトライトガラスを準備中';
+
+  @override
+  String get hyperGlassPreparingBody =>
+      '最初の描画前にシェーダーをコンパイルします。数秒かかり、その間ウィンドウは応答しません。';
 
   @override
   String get settingsTextShapeSection => '文字と形';
