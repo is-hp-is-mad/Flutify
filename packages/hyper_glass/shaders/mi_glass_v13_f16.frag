@@ -369,76 +369,43 @@ void main()
         }
         float16_t _1645 = float16_t(_198_uShapeThicknessPx);
         f16vec4 _3446 = f16vec4(float16_t(0.0));
-        for (int _once1 = 0; _once1 < 1; _once1++)
         {
-            if (_1602 >= float16_t(1.0))
-            {
-                f16vec4 _3445 = f16vec4(float16_t(0.0));
-                for (int _once2 = 0; _once2 < 1; _once2++)
-                {
-                    highp float _3444 = 0.0;
-                    if (abs(v_screen_pos.z) < 9.9999999747524270787835121154785e-07)
-                    {
-                        _3444 = (v_screen_pos.z < 0.0) ? (-9.9999999747524270787835121154785e-07) : 9.9999999747524270787835121154785e-07;
-                    }
-                    else
-                    {
-                        _3444 = v_screen_pos.z;
-                    }
-                    highp vec4 _2040 = _fl_refract(((v_screen_pos.xy / vec2(_3444)) - _198_uResolution) * _198_uInvResolution);
-                    f16vec4 _2041 = f16vec4(_2040);
-                    if (_3439 < float16_t(9.953975677490234375e-06))
-                    {
-                        _3445 = _2041;
-                        break;
-                    }
-                    f16vec3 _2074 = _2041.xyz;
-                    float16_t _2083 = dot(_2074, f16vec3(float16_t(0.2125244140625), float16_t(0.71484375), float16_t(0.0721435546875)));
-                    float16_t _2092 = smoothstep(float16_t(0.0), float16_t(0.5), _2083);
-                    float16_t _2103 = float16_t(1.0) + (smoothstep(float16_t(0.0), float16_t(1.0), _3439) * mix(float16_t(0.75), float16_t(0.39990234375), _2092));
-                    float16_t _2116 = _2041.w;
-                    f16vec3 _2009 = _2074 + ((f16vec4((_2074 * _2103) + f16vec3(mix(float16_t(1.0) - _2083, _2083, _2092) * (_2103 - float16_t(1.0))), _2116).xyz - _2074) * _2116);
-                    f16vec4 _3334 = _2041;
-                    _3334.x = _2009.x;
-                    _3334.y = _2009.y;
-                    _3334.z = _2009.z;
-                    _3445 = _3334;
-                }
-                _3446 = _3445;
-                break;
-            }
-            highp vec2 _2151 = vec2(refract(f16vec3(float16_t(0.0), float16_t(0.0), float16_t(-1.0)), _3437, float16_t(1.0) / (float16_t(_198_uRefractIOR) + (float16_t(0.199951171875) * float16_t(_198_uHit)))).xy * mix((_1645 - _1598) * float16_t(2.0), _1645 * float16_t(2.0), _1602));
+            // Flutify: the engine's two exclusive branches here (fully inside the edge: no refraction
+            // offset / otherwise: refracted offset) differ only in the sample position. Choosing it first
+            // and calling _fl_refract once removes a whole inlined copy of the refract + tint code, which
+            // the D3D compiler under ANGLE spends noticeable time on. Same maths, same result.
             highp vec2 _3440 = vec2(0.0);
-            for (int _once3 = 0; _once3 < 1; _once3++)
+            if (!(_1602 >= float16_t(1.0)))
             {
+                highp vec2 _2151 = vec2(refract(f16vec3(float16_t(0.0), float16_t(0.0), float16_t(-1.0)), _3437, float16_t(1.0) / (float16_t(_198_uRefractIOR) + (float16_t(0.199951171875) * float16_t(_198_uHit)))).xy * mix((_1645 - _1598) * float16_t(2.0), _1645 * float16_t(2.0), _1602));
                 if (_198_uHasRotation == 0)
                 {
                     _3440 = _2151;
-                    break;
-                }
-                highp float _2170 = _2151.x;
-                highp float _2174 = _2151.y;
-                _3440 = vec2((_2170 * _198_uRotationTrig.x) - (_2174 * _198_uRotationTrig.y), (_2170 * _198_uRotationTrig.y) + (_2174 * _198_uRotationTrig.x));
-            }
-            f16vec4 _3442 = f16vec4(float16_t(0.0));
-            for (int _once4 = 0; _once4 < 1; _once4++)
-            {
-                highp float _3441 = 0.0;
-                if (abs(v_screen_pos.z) < 9.9999999747524270787835121154785e-07)
-                {
-                    _3441 = (v_screen_pos.z < 0.0) ? (-9.9999999747524270787835121154785e-07) : 9.9999999747524270787835121154785e-07;
                 }
                 else
                 {
-                    _3441 = v_screen_pos.z;
+                    highp float _2170 = _2151.x;
+                    highp float _2174 = _2151.y;
+                    _3440 = vec2((_2170 * _198_uRotationTrig.x) - (_2174 * _198_uRotationTrig.y), (_2170 * _198_uRotationTrig.y) + (_2174 * _198_uRotationTrig.x));
                 }
-                highp vec4 _2251 = _fl_refract((((v_screen_pos.xy / vec2(_3441)) + _3440) - _198_uResolution) * _198_uInvResolution);
-                f16vec4 _2252 = f16vec4(_2251);
-                if (_3439 < float16_t(9.953975677490234375e-06))
-                {
-                    _3442 = _2252;
-                    break;
-                }
+            }
+            highp float _3441 = 0.0;
+            if (abs(v_screen_pos.z) < 9.9999999747524270787835121154785e-07)
+            {
+                _3441 = (v_screen_pos.z < 0.0) ? (-9.9999999747524270787835121154785e-07) : 9.9999999747524270787835121154785e-07;
+            }
+            else
+            {
+                _3441 = v_screen_pos.z;
+            }
+            highp vec4 _2251 = _fl_refract((((v_screen_pos.xy / vec2(_3441)) + _3440) - _198_uResolution) * _198_uInvResolution);
+            f16vec4 _2252 = f16vec4(_2251);
+            if (_3439 < float16_t(9.953975677490234375e-06))
+            {
+                _3446 = _2252;
+            }
+            else
+            {
                 f16vec3 _2285 = _2252.xyz;
                 float16_t _2294 = dot(_2285, f16vec3(float16_t(0.2125244140625), float16_t(0.71484375), float16_t(0.0721435546875)));
                 float16_t _2303 = smoothstep(float16_t(0.0), float16_t(0.5), _2294);
@@ -449,9 +416,8 @@ void main()
                 _3346.x = _2220.x;
                 _3346.y = _2220.y;
                 _3346.z = _2220.z;
-                _3442 = _3346;
+                _3446 = _3346;
             }
-            _3446 = _3442;
         }
         f16vec4 _3459 = f16vec4(float16_t(0.0));
         if (_1632 <= float16_t(9.5367431640625e-07))
