@@ -16,3 +16,4 @@
 - `HyperGlass` / `HyperBlendBlur` 的 Stack 改为 `StackFit.passthrough`：子组件拿到外层约束，避免被宽松约束贴到左上（文字偏上、悬停阴影错位）。
 - `mi_glass_v13_f16.frag`：删除融合路径里半径 2~4 的 9×9 循环（D3D 在 ANGLE 下把它在 3 处调用里全部展开，共 243 次采样，首帧编译卡数秒）；`fusedRefractKernel` 半径 > 1 时退回非融合路径。默认参数半径为 1，效果不变（有测试守护）。
 - `mi_glass_v13_f16.frag`：引擎里「完全在边缘内 / 有折射偏移」两个互斥分支只差采样坐标，合并为先选坐标再调用一次 `_fl_refract`，少内联一整份折射 + 着色代码。改动前后在测试里逐字节比对渲染结果一致。
+- `mi_glass_v13_f16.frag` / `mi_lm_upsample_tint.frag`：本移植里恒定的开关（HDR、遮罩贴图、按压、图标移动、旋转、色彩空间转换为 0，玻璃 shader 的着色开关为 1）改成编译期常量，Skia 在交给 ANGLE 前就能删掉对应分支；uniform 仍声明，布局不变。两组参数下融合 / 非融合 / 折射纹理 / LM 模糊渲染结果与改动前逐字节一致。

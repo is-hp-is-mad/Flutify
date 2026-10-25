@@ -9,14 +9,14 @@
 #define f16mat2 mat2
 #define f16mat3 mat3
 #define f16mat4 mat4
-#define _198_uUseMaskTex int(_198_uUseMaskTex__f)
-#define _198_uHit int(_198_uHit__f)
-#define _198_uIconMove int(_198_uIconMove__f)
-#define _198_uHasRotation int(_198_uHasRotation__f)
+#define _198_uUseMaskTex 0 // Flutify: constant in this port (see FLUTIFY_PATCH.md); the uniform is still declared so the layout is unchanged
+#define _198_uHit 0 // Flutify: constant in this port (see FLUTIFY_PATCH.md); the uniform is still declared so the layout is unchanged
+#define _198_uIconMove 0 // Flutify: constant in this port (see FLUTIFY_PATCH.md); the uniform is still declared so the layout is unchanged
+#define _198_uHasRotation 0 // Flutify: constant in this port (see FLUTIFY_PATCH.md); the uniform is still declared so the layout is unchanged
 #define _198_uUsePowGate int(_198_uUsePowGate__f)
-#define _198_colorSpaceConvertMode int(_198_colorSpaceConvertMode__f)
-#define hdr_info_enable_hdr int(hdr_info_enable_hdr__f)
-#define glass_tint_enabled int(glass_tint_enabled__f)
+#define _198_colorSpaceConvertMode 0 // Flutify: constant in this port (see FLUTIFY_PATCH.md); the uniform is still declared so the layout is unchanged
+#define hdr_info_enable_hdr 0 // Flutify: constant in this port (see FLUTIFY_PATCH.md); the uniform is still declared so the layout is unchanged
+#define glass_tint_enabled 1 // Flutify: constant in this port (see FLUTIFY_PATCH.md); the uniform is still declared so the layout is unchanged
 uniform vec2 _fl_size;
 uniform vec4 _fl_rect;
 uniform float _fl_sdf_range;

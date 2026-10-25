@@ -9,7 +9,7 @@
 #define f16mat2 mat2
 #define f16mat3 mat3
 #define f16mat4 mat4
-#define hdr_info_enable_hdr int(hdr_info_enable_hdr__f)
+#define hdr_info_enable_hdr 0 // Flutify: constant in this port (see FLUTIFY_PATCH.md); the uniform is still declared so the layout is unchanged
 #define glass_tint_enabled int(glass_tint_enabled__f)
 uniform vec2 _fl_size;
 uniform float _fl_out_pass;
