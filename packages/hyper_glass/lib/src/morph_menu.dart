@@ -133,43 +133,48 @@ class MorphMenu extends StatelessWidget {
                 maxHeight: menu.height,
                 child: Transform.translate(
                   offset: menu.topLeft - rect.topLeft,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Column(
-                      children: [
-                        for (final (i, item) in items.indexed)
-                          InkWell(
-                            onTap: item.onTap,
-                            child: SizedBox(
-                              height: itemHeight,
-                              child: _popItem(
-                                // from the tap point (anchor centre) to this item's content
-                                anchor.center - menu.topLeft - Offset(_contentX, 8 + itemHeight * (i + 0.5)),
-                                Row(
-                                  children: [
-                                    const SizedBox(width: 22),
-                                    if (item.icon != null) ...[
-                                      Icon(item.icon, color: fg, size: 22),
-                                      const SizedBox(width: 14),
-                                    ],
-                                    Expanded(
-                                      child: Text(
-                                        item.label,
-                                        style: TextStyle(
-                                          color: item.selected ? const Color(0xff3482ff) : fg,
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w500,
+                  // InkWell needs its own Material here: otherwise hover / splash ink is painted on a
+                  // far ancestor, outside this clip and transform, and shows up offset from the item.
+                  child: Material(
+                    type: MaterialType.transparency,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Column(
+                        children: [
+                          for (final (i, item) in items.indexed)
+                            InkWell(
+                              onTap: item.onTap,
+                              child: SizedBox(
+                                height: itemHeight,
+                                child: _popItem(
+                                  // from the tap point (anchor centre) to this item's content
+                                  anchor.center - menu.topLeft - Offset(_contentX, 8 + itemHeight * (i + 0.5)),
+                                  Row(
+                                    children: [
+                                      const SizedBox(width: 22),
+                                      if (item.icon != null) ...[
+                                        Icon(item.icon, color: fg, size: 22),
+                                        const SizedBox(width: 14),
+                                      ],
+                                      Expanded(
+                                        child: Text(
+                                          item.label,
+                                          style: TextStyle(
+                                            color: item.selected ? const Color(0xff3482ff) : fg,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w500,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                    if (item.selected) const Icon(Icons.check, color: Color(0xff3482ff), size: 20),
-                                    const SizedBox(width: 20),
-                                  ],
+                                      if (item.selected) const Icon(Icons.check, color: Color(0xff3482ff), size: 20),
+                                      const SizedBox(width: 20),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),

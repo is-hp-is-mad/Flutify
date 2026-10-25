@@ -1,11 +1,13 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:hyper_glass/hyper_glass.dart';
 
 import '../../core/debug_toggles.dart';
 import '../../core/perf_flags.dart';
 import '../../core/theme/flutify_tokens.dart';
 import '../shell/desktop/desktop_window.dart';
+import 'hyper_surface.dart';
 
 /// iOS 风格的克制型玻璃容器。
 ///
@@ -58,6 +60,10 @@ class LiquidGlass extends StatelessWidget {
     final tokens = context.tokens;
     final radius = borderRadius ?? tokens.radius(28);
     final sigma = blur ?? tokens.glassSigma;
+    if (tokens.hyperMaterial && !tokens.powerSaving) {
+      final hyper = _hyper(context, radius);
+      if (hyper != null) return hyper;
+    }
     final body = CustomPaint(
       foregroundPainter: _HairlinePainter(radius),
       child: ColoredBox(
@@ -100,6 +106,27 @@ class LiquidGlass extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+}
+
+extension on LiquidGlass {
+  /// 材质为「柔光玻璃」时：在 `HyperGlassScene` 里（播放页）画真正的柔光玻璃；
+  /// 场景外改用浮动栏混色模糊。下方只有流动背景（[backdrop] 为 false）的场景外玻璃
+  /// 保持原样，不为它多付一次背景复制。
+  Widget? _hyper(BuildContext context, BorderRadius radius) {
+    final content = Padding(padding: padding, child: child);
+    if (HyperGlassScene.isIn(context)) {
+      return ClipRRect(
+        borderRadius: radius,
+        child: HyperGlass(borderRadius: radius.topLeft.x, child: content),
+      );
+    }
+    if (!backdrop) return null;
+    return HyperBlendSurface(
+      material: HyperBlendSurface.bar(context),
+      borderRadius: radius,
+      child: content,
     );
   }
 }

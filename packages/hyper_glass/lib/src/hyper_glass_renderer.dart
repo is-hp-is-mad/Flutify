@@ -69,6 +69,15 @@ class HyperGlassRenderer {
   final ui.FragmentProgram _sdf, _glass, _blur, _down, _up, _blend;
 
   static Future<List<ui.FragmentProgram>>? _programs;
+  static Future<HyperGlassRenderer>? _sharedFuture;
+  static HyperGlassRenderer? _ready;
+
+  /// Process-wide renderer (programs warmed up, SDF cache kept) shared by every scene, so opening a
+  /// scene neither recompiles nor rebuilds SDFs; null until [shared] has completed once.
+  static HyperGlassRenderer? get ready => _ready;
+
+  /// Loads (once) and returns the process-wide renderer; never dispose it.
+  static Future<HyperGlassRenderer> shared() => _sharedFuture ??= load().then((r) => _ready = r);
 
   /// Loads the programs once per process and warms them up, so the first glass / menu frame does not
   /// stall on GPU pipeline compilation (Skia compiles a runtime effect on its first draw).

@@ -27,6 +27,7 @@ import 'core/utils/error_placeholder.dart';
 import 'core/utils/orientation_policy.dart';
 import 'l10n/app_locale.dart';
 import 'models/app_preferences.dart';
+import 'models/appearance.dart';
 import 'models/playback_context.dart';
 import 'models/playback_state.dart';
 import 'providers/appearance_provider.dart';
@@ -97,6 +98,7 @@ import 'ui/widgets/lyric_bridge_binding.dart';
 import 'services/audio/audio_output_service.dart';
 import 'services/lyric_bridge/lyric_bridge_channel.dart';
 import 'services/lyric_bridge/lyric_metadata_controls.dart';
+import 'ui/widgets/hyper_surface.dart';
 import 'ui/widgets/update_prompt.dart';
 
 Future<void> main() async {
@@ -873,6 +875,7 @@ class _ThemedApp extends StatelessWidget {
     final settings = appearance.settings;
     // 设置变化必然重建这里；setter 对同值是空操作
     FrameRateBinding.maybeInstance?.frameRateLimit = settings.frameRateLimit;
+    if (settings.glassMaterial == GlassMaterial.hyper) warmUpHyperGlass();
     final language = context.select<PreferencesProvider, AppLanguage>(
       (p) => p.prefs.language,
     );

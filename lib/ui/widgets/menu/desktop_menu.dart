@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/flutify_tokens.dart';
+import '../hyper_surface.dart';
 import '../liquid_glass.dart';
 
 /// 沉浸式播放器及其二级菜单使用同一玻璃表面。
@@ -182,6 +184,21 @@ class _GlassMenuEntry<T> extends PopupMenuEntry<T> {
 class _GlassMenuEntryState<T> extends State<_GlassMenuEntry<T>> {
   @override
   Widget build(BuildContext context) {
+    final items = Material(
+      type: MaterialType.transparency,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Column(mainAxisSize: MainAxisSize.min, children: widget.items),
+      ),
+    );
+    if (context.tokens.hyperMaterial) {
+      // 柔光玻璃：HyperOS 弹出菜单材质，跟随当前深浅色，不再强制深色
+      return HyperBlendSurface(
+        material: HyperBlendSurface.menu(context),
+        borderRadius: context.tokens.radius(24),
+        child: items,
+      );
+    }
     final theme = Theme.of(context);
     final dark = ColorScheme.fromSeed(
       seedColor: theme.colorScheme.primary,
@@ -204,16 +221,7 @@ class _GlassMenuEntryState<T> extends State<_GlassMenuEntry<T>> {
         borderRadius: BorderRadius.circular(20),
         child: ColoredBox(
           color: Colors.black.withValues(alpha: 0.30),
-          child: Material(
-            type: MaterialType.transparency,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: widget.items,
-              ),
-            ),
-          ),
+          child: items,
         ),
       ),
     );

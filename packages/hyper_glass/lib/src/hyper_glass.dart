@@ -31,6 +31,9 @@ class HyperGlassScene extends StatefulWidget {
   /// Re-snapshot every frame (animated backgrounds). When false, only on rebuild/resize.
   final bool animate;
 
+  /// Whether [context] is inside a [HyperGlassScene] (where [HyperGlass] / [HyperBlendBlur] can be used).
+  static bool isIn(BuildContext context) => context.getInheritedWidgetOfExactType<_SceneScope>() != null;
+
   @override
   State<HyperGlassScene> createState() => _HyperGlassSceneState();
 }
@@ -52,11 +55,14 @@ class _HyperGlassSceneState extends State<HyperGlassScene> with SingleTickerProv
   @override
   void initState() {
     super.initState();
-    HyperGlassRenderer.load().then((r) {
-      if (!mounted) return;
-      setState(() => _renderer = r);
-      _scheduleSnapshot();
-    }, onError: (Object e) => debugPrint('[hyper_glass] shader 加载失败：$e'));
+    _renderer = HyperGlassRenderer.ready;
+    if (_renderer == null) {
+      HyperGlassRenderer.shared().then((r) {
+        if (!mounted) return;
+        setState(() => _renderer = r);
+        _scheduleSnapshot();
+      }, onError: (Object e) => debugPrint('[hyper_glass] shader 加载失败：$e'));
+    }
     _ticker = createTicker((_) => _scheduleSnapshot());
     if (widget.animate) _ticker!.start();
   }
@@ -172,7 +178,7 @@ class _HyperGlassSceneState extends State<HyperGlassScene> with SingleTickerProv
     _ticker?.dispose();
     _clearRefract();
     _backdrop?.dispose();
-    _renderer?.dispose();
+    // the renderer is process-wide (HyperGlassRenderer.shared), not owned by this scene
     _frame.dispose();
     super.dispose();
   }

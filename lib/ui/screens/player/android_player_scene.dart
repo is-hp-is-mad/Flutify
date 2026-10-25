@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:hyper_glass/hyper_glass.dart';
 
 import '../../../core/theme/flutify_tokens.dart';
 import '../../widgets/liquid_glass.dart';
@@ -309,7 +310,7 @@ class _AndroidPlayerSceneState extends State<AndroidPlayerScene>
           final queueInteractive = widget.queueMode && queueProgress == 1;
           Widget slot(PlayerSceneSlot id, Widget child) =>
               LayoutId(id: id, child: child);
-          return Stack(
+          final background = Stack(
             fit: StackFit.expand,
             children: [
               widget.background,
@@ -321,284 +322,299 @@ class _AndroidPlayerSceneState extends State<AndroidPlayerScene>
                     child: widget.lyricsBackground,
                   ),
                 ),
-              SafeArea(
-                child: LayoutBuilder(
-                  builder: (context, box) {
-                    // 与 PlayerLyricsLayout 的横屏判定一致：封顶后的宽度 >= 600 且大于高度，
-                    // 否则按竖屏限宽（不再依赖整窗的 MediaQuery 方向，避免宽窗口走了竖屏布局却不限宽）
-                    final capped = math.min(
-                      box.maxWidth,
-                      widget.maxLandscapeWidth,
-                    );
-                    final landscape = capped >= 600 && capped > box.maxHeight;
-                    // 收起后的迷你栏只用于横屏；竖屏直接整体收起
-                    final idleMini = landscape && widget.controlsOnLeft
-                        ? widget.idleMini
-                        : null;
-                    if (widget.initiallyExpanded &&
-                        !_initialExpandDone &&
-                        landscape &&
-                        widget.controlsOnLeft &&
-                        _cardMode) {
-                      _initialExpandDone = true;
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (!mounted || _expanded) return;
-                        _expanded = true;
-                        _expand.value = 1;
-                      });
-                    }
-                    return Center(
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxWidth: landscape ? widget.maxLandscapeWidth : 480,
-                        ),
-                        child: ClipRect(
-                          child: CustomMultiChildLayout(
-                            delegate: PlayerLyricsLayout(
-                              progress: progress,
-                              chrome: _motion.chrome.value,
-                              geometry: _geometry,
-                              lyricsProgress: lyricsProgress,
-                              queueProgress: queueProgress,
-                              controlsOnLeft: widget.controlsOnLeft,
-                              expand: _expand.value * _motion.chrome.value,
-                              controlsHeightReduction:
-                                  widget.controlsHeightReduction,
-                              footerHeightReduction:
-                                  widget.footerHeightReduction,
-                            ),
-                            children: [
-                              if (hasLyrics)
-                                slot(
-                                  PlayerSceneSlot.lyrics,
-                                  ExcludeFocus(
-                                    excluding: !lyricsInteractive,
-                                    child: ExcludeSemantics(
-                                      excluding: !lyricsInteractive,
-                                      child: IgnorePointer(
-                                        ignoring: !lyricsInteractive,
-                                        child: Opacity(
-                                          opacity: lyricsProgress,
-                                          child: widget.lyrics,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
+            ],
+          );
+          return _withBackground(
+            context,
+            background,
+            SafeArea(
+              child: LayoutBuilder(
+                builder: (context, box) {
+                  // 与 PlayerLyricsLayout 的横屏判定一致：封顶后的宽度 >= 600 且大于高度，
+                  // 否则按竖屏限宽（不再依赖整窗的 MediaQuery 方向，避免宽窗口走了竖屏布局却不限宽）
+                  final capped = math.min(
+                    box.maxWidth,
+                    widget.maxLandscapeWidth,
+                  );
+                  final landscape = capped >= 600 && capped > box.maxHeight;
+                  // 收起后的迷你栏只用于横屏；竖屏直接整体收起
+                  final idleMini = landscape && widget.controlsOnLeft
+                      ? widget.idleMini
+                      : null;
+                  if (widget.initiallyExpanded &&
+                      !_initialExpandDone &&
+                      landscape &&
+                      widget.controlsOnLeft &&
+                      _cardMode) {
+                    _initialExpandDone = true;
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (!mounted || _expanded) return;
+                      _expanded = true;
+                      _expand.value = 1;
+                    });
+                  }
+                  return Center(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: landscape ? widget.maxLandscapeWidth : 480,
+                      ),
+                      child: ClipRect(
+                        child: CustomMultiChildLayout(
+                          delegate: PlayerLyricsLayout(
+                            progress: progress,
+                            chrome: _motion.chrome.value,
+                            geometry: _geometry,
+                            lyricsProgress: lyricsProgress,
+                            queueProgress: queueProgress,
+                            controlsOnLeft: widget.controlsOnLeft,
+                            expand: _expand.value * _motion.chrome.value,
+                            controlsHeightReduction:
+                                widget.controlsHeightReduction,
+                            footerHeightReduction: widget.footerHeightReduction,
+                          ),
+                          children: [
+                            if (hasLyrics)
                               slot(
-                                PlayerSceneSlot.queue,
-                                Offstage(
-                                  offstage:
-                                      !widget.queueMode && queueProgress == 0,
-                                  child: TickerMode(
-                                    enabled: widget.queueMode,
-                                    child: ExcludeFocus(
-                                      excluding: !queueInteractive,
-                                      child: ExcludeSemantics(
-                                        excluding: !queueInteractive,
-                                        child: IgnorePointer(
-                                          ignoring: !queueInteractive,
-                                          child: Opacity(
-                                            key: const ValueKey(
-                                              'player-queue-opacity',
-                                            ),
-                                            opacity: queueProgress,
-                                            child: _queueMounted
-                                                ? widget.queue
-                                                : const SizedBox.expand(),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              slot(
-                                PlayerSceneSlot.surface,
-                                IgnorePointer(
-                                  ignoring: progress == 0,
-                                  child: Opacity(
-                                    opacity: progress,
-                                    child: _cardHitRegion(
-                                      LiquidGlass(
-                                        key: const ValueKey(
-                                          'lyrics-control-card',
-                                        ),
-                                        borderRadius: context.tokens.radius(28),
-                                        child: const ColoredBox(
-                                          color: Color(0x59101216),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              slot(
-                                PlayerSceneSlot.title,
-                                _body(
-                                  PlayerSceneSlot.title,
-                                  _cardHitRegion(
-                                    widget.titleBuilder?.call(
-                                          context,
-                                          progress,
-                                        ) ??
-                                        widget.title!,
-                                  ),
-                                ),
-                              ),
-                              slot(
-                                PlayerSceneSlot.controls,
-                                _body(
-                                  PlayerSceneSlot.controls,
-                                  _cardHitRegion(
-                                    widget.controlsBuilder?.call(
-                                          context,
-                                          progress,
-                                        ) ??
-                                        widget.controls!,
-                                  ),
-                                ),
-                              ),
-                              slot(
-                                PlayerSceneSlot.footer,
-                                idleMini != null
-                                    ? Stack(
-                                        children: [
-                                          _chrome(
-                                            _cardHitRegion(
-                                              widget.footerBuilder?.call(
-                                                    context,
-                                                    progress,
-                                                  ) ??
-                                                  widget.footer!,
-                                            ),
-                                          ),
-                                          // 控制区完全显示时不挂载迷你栏，避免重复的歌名文字
-                                          if (!_motion.controlsVisible ||
-                                              _motion.chrome.value < 1)
-                                            Positioned.fill(
-                                              child: ExcludeFocus(
-                                                excluding:
-                                                    _motion.controlsVisible,
-                                                child: ExcludeSemantics(
-                                                  excluding:
-                                                      _motion.controlsVisible,
-                                                  child: IgnorePointer(
-                                                    ignoring:
-                                                        _motion.controlsVisible,
-                                                    child: Opacity(
-                                                      key: _miniKey,
-                                                      opacity:
-                                                          (1 -
-                                                              _motion
-                                                                  .chrome
-                                                                  .value) *
-                                                          progress,
-                                                      // The folded pill is exactly the footer rect.
-                                                      child: Center(
-                                                        child: idleMini,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                        ],
-                                      )
-                                    : widget.hideFooterWhenIdle
-                                    ? _chrome(
-                                        _cardHitRegion(
-                                          widget.footerBuilder?.call(
-                                                context,
-                                                progress,
-                                              ) ??
-                                              widget.footer!,
-                                        ),
-                                      )
-                                    : _cardHitRegion(
-                                        widget.footerBuilder?.call(
-                                              context,
-                                              progress,
-                                            ) ??
-                                            widget.footer!,
-                                      ),
-                              ),
-                              slot(
-                                PlayerSceneSlot.artwork,
-                                _body(
-                                  PlayerSceneSlot.artwork,
-                                  Semantics(
-                                    label: _cardMode
-                                        ? MaterialLocalizations.of(
-                                            context,
-                                          ).backButtonTooltip
-                                        : null,
-                                    button:
-                                        _cardMode &&
-                                        widget.onArtworkTap != null,
-                                    child: GestureDetector(
-                                      behavior: HitTestBehavior.opaque,
-                                      onTap: _cardMode
-                                          ? (widget.expandControlsOnArtworkTap &&
-                                                    landscape &&
-                                                    widget.controlsOnLeft
-                                                ? _toggleExpand
-                                                : widget.onArtworkTap)
-                                          : null,
-                                      onVerticalDragUpdate: _cardMode
-                                          ? (_) {}
-                                          : null,
-                                      child: IgnorePointer(
-                                        ignoring:
-                                            (widget.lyricsMode ||
-                                                widget.queueMode) &&
-                                            !(widget.controlsOnLeft &&
-                                                landscape),
-                                        child: ExcludeSemantics(
-                                          excluding: _cardMode,
-                                          child: LayoutBuilder(
-                                            builder: (context, box) =>
-                                                widget.artworkBuilder(
-                                                  context,
-                                                  box.maxWidth,
-                                                  progress,
-                                                ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              slot(
-                                PlayerSceneSlot.toolbar,
+                                PlayerSceneSlot.lyrics,
                                 ExcludeFocus(
                                   excluding: !lyricsInteractive,
                                   child: ExcludeSemantics(
                                     excluding: !lyricsInteractive,
                                     child: IgnorePointer(
                                       ignoring: !lyricsInteractive,
-                                      child: _chrome(
-                                        widget.translation,
-                                        factor: lyricsProgress,
+                                      child: Opacity(
+                                        opacity: lyricsProgress,
+                                        child: widget.lyrics,
                                       ),
                                     ),
                                   ),
                                 ),
                               ),
-                              slot(PlayerSceneSlot.top, widget.topBar),
-                            ],
-                          ),
+                            slot(
+                              PlayerSceneSlot.queue,
+                              Offstage(
+                                offstage:
+                                    !widget.queueMode && queueProgress == 0,
+                                child: TickerMode(
+                                  enabled: widget.queueMode,
+                                  child: ExcludeFocus(
+                                    excluding: !queueInteractive,
+                                    child: ExcludeSemantics(
+                                      excluding: !queueInteractive,
+                                      child: IgnorePointer(
+                                        ignoring: !queueInteractive,
+                                        child: Opacity(
+                                          key: const ValueKey(
+                                            'player-queue-opacity',
+                                          ),
+                                          opacity: queueProgress,
+                                          child: _queueMounted
+                                              ? widget.queue
+                                              : const SizedBox.expand(),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            slot(
+                              PlayerSceneSlot.surface,
+                              IgnorePointer(
+                                ignoring: progress == 0,
+                                child: Opacity(
+                                  opacity: progress,
+                                  child: _cardHitRegion(
+                                    LiquidGlass(
+                                      key: const ValueKey(
+                                        'lyrics-control-card',
+                                      ),
+                                      borderRadius: context.tokens.radius(28),
+                                      child: const ColoredBox(
+                                        color: Color(0x59101216),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            slot(
+                              PlayerSceneSlot.title,
+                              _body(
+                                PlayerSceneSlot.title,
+                                _cardHitRegion(
+                                  widget.titleBuilder?.call(
+                                        context,
+                                        progress,
+                                      ) ??
+                                      widget.title!,
+                                ),
+                              ),
+                            ),
+                            slot(
+                              PlayerSceneSlot.controls,
+                              _body(
+                                PlayerSceneSlot.controls,
+                                _cardHitRegion(
+                                  widget.controlsBuilder?.call(
+                                        context,
+                                        progress,
+                                      ) ??
+                                      widget.controls!,
+                                ),
+                              ),
+                            ),
+                            slot(
+                              PlayerSceneSlot.footer,
+                              idleMini != null
+                                  ? Stack(
+                                      children: [
+                                        _chrome(
+                                          _cardHitRegion(
+                                            widget.footerBuilder?.call(
+                                                  context,
+                                                  progress,
+                                                ) ??
+                                                widget.footer!,
+                                          ),
+                                        ),
+                                        // 控制区完全显示时不挂载迷你栏，避免重复的歌名文字
+                                        if (!_motion.controlsVisible ||
+                                            _motion.chrome.value < 1)
+                                          Positioned.fill(
+                                            child: ExcludeFocus(
+                                              excluding:
+                                                  _motion.controlsVisible,
+                                              child: ExcludeSemantics(
+                                                excluding:
+                                                    _motion.controlsVisible,
+                                                child: IgnorePointer(
+                                                  ignoring:
+                                                      _motion.controlsVisible,
+                                                  child: Opacity(
+                                                    key: _miniKey,
+                                                    opacity:
+                                                        (1 -
+                                                            _motion
+                                                                .chrome
+                                                                .value) *
+                                                        progress,
+                                                    // The folded pill is exactly the footer rect.
+                                                    child: Center(
+                                                      child: idleMini,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    )
+                                  : widget.hideFooterWhenIdle
+                                  ? _chrome(
+                                      _cardHitRegion(
+                                        widget.footerBuilder?.call(
+                                              context,
+                                              progress,
+                                            ) ??
+                                            widget.footer!,
+                                      ),
+                                    )
+                                  : _cardHitRegion(
+                                      widget.footerBuilder?.call(
+                                            context,
+                                            progress,
+                                          ) ??
+                                          widget.footer!,
+                                    ),
+                            ),
+                            slot(
+                              PlayerSceneSlot.artwork,
+                              _body(
+                                PlayerSceneSlot.artwork,
+                                Semantics(
+                                  label: _cardMode
+                                      ? MaterialLocalizations.of(
+                                          context,
+                                        ).backButtonTooltip
+                                      : null,
+                                  button:
+                                      _cardMode && widget.onArtworkTap != null,
+                                  child: GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onTap: _cardMode
+                                        ? (widget.expandControlsOnArtworkTap &&
+                                                  landscape &&
+                                                  widget.controlsOnLeft
+                                              ? _toggleExpand
+                                              : widget.onArtworkTap)
+                                        : null,
+                                    onVerticalDragUpdate: _cardMode
+                                        ? (_) {}
+                                        : null,
+                                    child: IgnorePointer(
+                                      ignoring:
+                                          (widget.lyricsMode ||
+                                              widget.queueMode) &&
+                                          !(widget.controlsOnLeft && landscape),
+                                      child: ExcludeSemantics(
+                                        excluding: _cardMode,
+                                        child: LayoutBuilder(
+                                          builder: (context, box) =>
+                                              widget.artworkBuilder(
+                                                context,
+                                                box.maxWidth,
+                                                progress,
+                                              ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            slot(
+                              PlayerSceneSlot.toolbar,
+                              ExcludeFocus(
+                                excluding: !lyricsInteractive,
+                                child: ExcludeSemantics(
+                                  excluding: !lyricsInteractive,
+                                  child: IgnorePointer(
+                                    ignoring: !lyricsInteractive,
+                                    child: _chrome(
+                                      widget.translation,
+                                      factor: lyricsProgress,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            slot(PlayerSceneSlot.top, widget.topBar),
+                          ],
                         ),
                       ),
-                    );
-                  },
-                ),
+                    ),
+                  );
+                },
               ),
-            ],
+            ),
           );
         },
       ),
     ),
   );
+
+  /// 材质为「柔光玻璃」时把整个背景（封面流动背景 + 歌词背景）作为 [HyperGlassScene]
+  /// 的采样源，其上的 LiquidGlass 控件就会画成真正的柔光玻璃；省电模式不建场景。
+  Widget _withBackground(
+    BuildContext context,
+    Widget background,
+    Widget foreground,
+  ) {
+    final tokens = context.tokens;
+    if (tokens.hyperMaterial && !tokens.powerSaving) {
+      return HyperGlassScene(background: background, child: foreground);
+    }
+    return Stack(fit: StackFit.expand, children: [background, foreground]);
+  }
 }
