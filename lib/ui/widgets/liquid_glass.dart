@@ -71,17 +71,17 @@ class LiquidGlass extends StatelessWidget {
         child: Padding(padding: padding, child: child),
       ),
     );
-    if (tokens.powerSaving && backdrop) {
-      // 省电：不复制、不模糊下方画面，垫一层较实的表面色代替，保证其上文字可读
-      final surface = Theme.of(context).colorScheme.surfaceContainerHigh;
-      return ClipRRect(
-        borderRadius: radius,
-        child: ColoredBox(
-          color: surface.withValues(alpha: _powerSavingFill),
-          child: body,
-        ),
-      );
-    }
+    // 不复制、不模糊下方画面，垫一层较实的表面色代替，保证其上文字可读
+    Widget frosted() => ClipRRect(
+      borderRadius: radius,
+      child: ColoredBox(
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHigh.withValues(alpha: _powerSavingFill),
+        child: body,
+      ),
+    );
+    if (tokens.powerSaving && backdrop) return frosted();
     if (!backdrop ||
         PerfFlags.noBackdrop ||
         DebugToggles.of(context).isOff(DebugToggle.glassBackdrop)) {
@@ -94,7 +94,9 @@ class LiquidGlass extends StatelessWidget {
       child: ValueListenableBuilder<bool>(
         valueListenable: DesktopWindow.fullscreenTransition,
         builder: (context, transitioning, _) {
-          if (transitioning) return body;
+          // 切换期间（约 1 s）不能模糊：垫一层与省电模式相同的磨砂底色，
+          // 只画淡填充会让播放栏等变得几乎透明、透出下面的内容
+          if (transitioning) return frosted();
           // grouped：外层有 BackdropGroup 时共享同一份背景采样，没有时与普通 BackdropFilter 完全一致
           return BackdropFilter.grouped(
             filter: ImageFilter.blur(

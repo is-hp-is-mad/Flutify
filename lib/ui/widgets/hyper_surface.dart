@@ -80,10 +80,18 @@ class HyperBlendSurface extends StatelessWidget {
     return ValueListenableBuilder<bool>(
       valueListenable: DesktopWindow.fullscreenTransition,
       builder: (context, transitioning, _) {
-        // 全屏切换约 300 ms 内引擎不能做背景模糊：保留材质的混合层、只去掉模糊，
-        // 与 LiquidGlass 同样的退化方式（用不透明底色会闪出一块实色）
+        // 全屏切换期间（约 1 s）引擎不能做背景模糊：垫一层磨砂表面色再叠混合层，
+        // 与 LiquidGlass 同样的退化方式（不垫底会透出下面的内容）
         if (transitioning) {
-          return ClipRRect(borderRadius: borderRadius, child: layered);
+          return ClipRRect(
+            borderRadius: borderRadius,
+            child: ColoredBox(
+              color: Theme.of(
+                context,
+              ).colorScheme.surfaceContainerHigh.withValues(alpha: 0.86),
+              child: layered,
+            ),
+          );
         }
         return ClipRRect(
           borderRadius: borderRadius,
