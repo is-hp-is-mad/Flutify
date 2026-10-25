@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../../models/connect_cluster.dart';
@@ -394,8 +395,9 @@ class ConnectService {
     if (payload is! Map) return;
     try {
       _applyCluster(ConnectCluster.fromJson(payload.cast<String, dynamic>()));
-    } catch (_) {
+    } catch (e) {
       // 解析失败：忽略这条推送
+      debugPrint('[Connect] 集群推送解析失败：$e');
     }
   }
 
@@ -404,6 +406,7 @@ class ConnectService {
   }
 
   void _onDealerStatus(DealerStatus status) {
+    debugPrint('[Connect] 遥控 dealer：${status.name}');
     // 掉线 / 重连中：旧连接 id 上的注册作废，等新 id 到了再注册
     if (status != DealerStatus.online) _resetRegistration();
     _refreshStatus();
@@ -431,7 +434,8 @@ class ConnectService {
       _registerAttempts = 0;
       _applyCluster(cluster);
       _refreshStatus();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[Connect] 观察者注册失败：$e');
       if (_running && _dealer.connectionId == id) {
         _registration = null;
         _registerFailed = true;
@@ -465,12 +469,22 @@ class ConnectService {
 
   // ---- 状态与快照 ----
 
+  String? _lastClusterSummary;
+
   void _applyCluster(ConnectCluster cluster) {
     if (cluster != ConnectCluster.empty &&
         cluster.serverTimestampMs > 0 &&
         cluster.serverTimestampMs < _current.serverTimestampMs)
       return;
     ++_snapshotRevision;
+    // 只在活动设备 / 设备列表变化时记一行，排查「列表里没有某设备」「交接不过去」
+    final summary =
+        'active=${cluster.activeDeviceId} '
+        'devices=${cluster.devices.map((d) => '${d.name}(${d.id})').join(', ')}';
+    if (summary != _lastClusterSummary) {
+      _lastClusterSummary = summary;
+      debugPrint('[Connect] 集群：$summary');
+    }
     _current = cluster;
     _sinceSnapshot
       ..reset()
