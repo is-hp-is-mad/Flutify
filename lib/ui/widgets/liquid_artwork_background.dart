@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -34,6 +35,10 @@ class LiquidArtworkBackground extends StatefulWidget {
     this.animate = true,
     this.dark = true,
   });
+
+  /// 当前流动背景的平均亮度（0~1，已计入压暗层）；尚无封面时为 null。
+  /// 柔光玻璃模式下播放页的菜单据此选深色或浅色材质。
+  static final ValueNotifier<double?> luminance = ValueNotifier<double?>(null);
 
   @override
   State<LiquidArtworkBackground> createState() =>
@@ -137,6 +142,7 @@ class _LiquidArtworkBackgroundState extends State<LiquidArtworkBackground>
       info.dispose();
       return;
     }
+    _measure(info.image);
     final shown = _artwork;
     if (shown == null) {
       // 首张封面：同步命中缓存时直接显示，否则从黑底淡入
@@ -155,6 +161,34 @@ class _LiquidArtworkBackgroundState extends State<LiquidArtworkBackground>
     _artwork = info;
     if (!_inLifecycle) setState(() {});
     _fade.forward(from: 0);
+  }
+
+  /// 采样封面（128px 解码图，隔点取样）的平均亮度，乘上压暗层后发布到 [LiquidArtworkBackground.luminance]。
+  Future<void> _measure(ui.Image image) async {
+    final clone = image.clone();
+    try {
+      final data = await clone.toByteData(format: ui.ImageByteFormat.rawRgba);
+      if (data == null || !mounted) return;
+      var sum = 0.0;
+      var n = 0;
+      for (var i = 0; i + 3 < data.lengthInBytes; i += 4 * 7) {
+        final c = Color.fromARGB(
+          255,
+          data.getUint8(i),
+          data.getUint8(i + 1),
+          data.getUint8(i + 2),
+        );
+        sum += c.computeLuminance();
+        n++;
+      }
+      if (n == 0) return;
+      final dim = widget.dark ? 0.5 : 0.3;
+      LiquidArtworkBackground.luminance.value = sum / n * (1 - dim);
+    } catch (_) {
+      // 取不到像素时保持上一次的值，菜单退回应用主题
+    } finally {
+      clone.dispose();
+    }
   }
 
   /// 加载失败：只显示底色，与原生端 setArtwork(null) 一致。
