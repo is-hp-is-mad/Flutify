@@ -562,6 +562,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get regionCheckSkipThisRunHint => '今回の起動中だけ有効で、次回起動時に確認を再開します';
 
   @override
+  String get playbackErrorRegionSkipAction => '今回はスキップ';
+
+  @override
   String playbackErrorWidevine(String track) {
     return '「$track」を復号できません。このデバイスでは Widevine DRM を利用できません';
   }

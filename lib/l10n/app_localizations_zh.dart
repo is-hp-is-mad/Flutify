@@ -569,6 +569,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get regionCheckSkipThisRunHint => '只在本次运行生效，下次启动恢复检测';
 
   @override
+  String get playbackErrorRegionSkipAction => '跳过本次';
+
+  @override
   String playbackErrorWidevine(String track) {
     return '「$track」无法解密播放：此设备缺少 Widevine 组件';
   }
@@ -2593,6 +2596,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get regionCheckSkipThisRunHint => '只在本次執行生效，下次啟動恢復偵測';
+
+  @override
+  String get playbackErrorRegionSkipAction => '跳過本次';
 
   @override
   String playbackErrorWidevine(String track) {

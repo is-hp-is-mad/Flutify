@@ -10,6 +10,7 @@ import '../../services/audio/audio_engine.dart';
 import '../../services/auth/login_region_check.dart';
 import '../../services/eme/fairplay.dart';
 import '../../services/protocol/track_playback_exception.dart';
+import '../navigation/app_routes.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/web_login_screen.dart';
 import 'toast/app_toast.dart';
@@ -146,12 +147,12 @@ class _PlaybackErrorListenerState extends State<PlaybackErrorListener> {
         null,
         null,
       ),
-      // 网络出口在中国大陆：提示换节点，并提供「本次打开跳过检测」继续播放
+      // 网络出口在中国大陆：提示换节点，并提供「跳过本次」继续播放
       TrackPlaybackFailure.regionBlocked => (
         l10n.playbackErrorRegionBlocked,
         Icons.public_off_rounded,
         ToastTone.error,
-        l10n.regionCheckSkipThisRun,
+        l10n.playbackErrorRegionSkipAction,
         () {
           LoginRegionCheck.skipForThisRun();
           unawaited(playback.togglePlayPause());
@@ -166,6 +167,11 @@ class _PlaybackErrorListenerState extends State<PlaybackErrorListener> {
       ),
     };
 
+    // 地区拦截的提示必须看得见：全屏播放器 / 沉浸式歌词是盖在根 Navigator 上的路由，
+    // 底部提示弹在 MainShell 的 Scaffold 里会被它们完全遮住，先退出这些页面再弹。
+    final regionBlocked = error.kind == TrackPlaybackFailure.regionBlocked;
+    if (regionBlocked) _exitPlayerOverlays();
+
     // 连续跳过多首时 AppToast 只保留最新一条，不排队刷屏
     AppToast.show(
       context,
@@ -174,7 +180,22 @@ class _PlaybackErrorListenerState extends State<PlaybackErrorListener> {
       tone: tone,
       actionLabel: actionLabel,
       onAction: onAction,
+      // 地区拦截的文案与按钮都较长：按钮放文字下方靠右、文字铺满整行，行数相应放宽
+      maxLines: regionBlocked ? 3 : null,
+      actionPlacement: regionBlocked
+          ? ToastActionPlacement.bottomEnd
+          : ToastActionPlacement.end,
     );
+  }
+
+  /// 退出盖住底部提示的全屏播放页面（全屏播放器、沉浸式歌词），其余路由原样保留。
+  void _exitPlayerOverlays() {
+    Navigator.of(context, rootNavigator: true).popUntil((route) {
+      if (route.isFirst) return true;
+      final name = route.settings.name;
+      return name != AppRoutes.fullPlayerRouteName &&
+          name != AppRoutes.immersiveLyricsRouteName;
+    });
   }
 
   /// 本次失败是不是「设备缺 DRM / CDM」（EME 引擎错误归类标记，

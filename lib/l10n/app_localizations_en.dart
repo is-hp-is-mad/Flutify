@@ -587,6 +587,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Applies to this run only; detection resumes on the next launch';
 
   @override
+  String get playbackErrorRegionSkipAction => 'Skip this time';
+
+  @override
   String playbackErrorWidevine(String track) {
     return 'Can\'t decrypt \"$track\": Widevine DRM is unavailable on this device';
   }
