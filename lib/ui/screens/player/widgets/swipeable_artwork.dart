@@ -17,12 +17,19 @@ import '../../../widgets/cover_image.dart';
 class SwipeableArtwork extends StatefulWidget {
   final String url;
   final double size;
+
+  /// 视觉尺寸 / [size]（外层 FittedBox 的缩放比）。
+  ///
+  /// 手指位移是屏幕逻辑像素，除以它换算进 [size] 坐标系后，封面才能与手指 1:1 跟手、
+  /// 阈值（25%）和 clamp 也都对应到正确的视觉比例。
+  final double dragScale;
   final Widget? child;
 
   const SwipeableArtwork({
     super.key,
     required this.url,
     required this.size,
+    this.dragScale = 1.0,
     this.child,
   });
 
@@ -35,8 +42,10 @@ class _SwipeableArtworkState extends State<SwipeableArtwork> {
   bool _dragging = false;
 
   void _onUpdate(DragUpdateDetails details) {
+    final scale = widget.dragScale;
+    final delta = scale > 0 ? details.delta.dx / scale : details.delta.dx;
     setState(
-      () => _dx = (_dx + details.delta.dx).clamp(-widget.size, widget.size),
+      () => _dx = (_dx + delta).clamp(-widget.size, widget.size),
     );
   }
 
