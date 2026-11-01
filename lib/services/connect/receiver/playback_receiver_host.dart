@@ -67,6 +67,7 @@ class PlaybackReceiverHost implements ReceiverHost {
     this.handoverRetryDelay = const Duration(seconds: 2),
   }) : _lastVolume = playback.volume {
     playback.syncOptionsBeforeApply = syncLocalOptions;
+    playback.receiverWindow = _window;
     playback.addListener(_onPlaybackChanged);
     playback.positionNotifier.addListener(_onPosition);
   }
@@ -76,6 +77,9 @@ class PlaybackReceiverHost implements ReceiverHost {
     _optionsTimer?.cancel();
     if (identical(playback.syncOptionsBeforeApply, syncLocalOptions)) {
       playback.syncOptionsBeforeApply = null;
+    }
+    if (identical(playback.receiverWindow, _window)) {
+      playback.receiverWindow = null;
     }
     ++_handoverGeneration;
     _handoverRetry?.cancel();
@@ -117,6 +121,17 @@ class PlaybackReceiverHost implements ReceiverHost {
         playback.updateReceiverQueue(tracks);
       }
     });
+  }
+
+  List<SpotifyTrack> _window() {
+    final w = receiver.window;
+    if (w == null) return const [];
+    return [
+      for (final i in w.order)
+        if (w.machine.state(i) case final state?)
+          if (w.machine.trackOf(state) case final track?)
+            if (!track.isAdvertisement) _toTrack(track),
+    ];
   }
 
   @override

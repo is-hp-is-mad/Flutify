@@ -8,6 +8,17 @@ class PlaybackContext {
 
   const PlaybackContext({required this.type, required this.name, this.uri = ''});
 
+  /// 只知道 URI 时（Connect 服务端的上下文）按 URI 推断类型。
+  factory PlaybackContext.fromUri(String uri, {String name = ''}) {
+    final type = switch (uri) {
+      _ when uri.startsWith('spotify:album:') => 'album',
+      _ when uri.startsWith('spotify:artist:') => 'artist',
+      _ when uri.endsWith(':collection') => 'collection',
+      _ => 'playlist',
+    };
+    return PlaybackContext(type: type, name: name, uri: uri);
+  }
+
   static const none = PlaybackContext(type: 'none', name: '');
 
   const PlaybackContext.playlist(this.name, {this.uri = ''}) : type = 'playlist';

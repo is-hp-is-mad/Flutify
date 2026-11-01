@@ -760,8 +760,18 @@ void _startConnectReceiver(
   Future<bool> handOver(int positionMs, {bool paused = false}) async {
     final current = playback.currentTrack;
     if (current == null || !connect.receiverOnline) return false;
+    // 作为播放端时本机不知道歌单（只拿到服务端的曲目窗口），上下文取自 cluster：
+    // 否则会把手头的十几首当临时列表交回去，之后就一直在这几首里循环。
+    // 当前曲目不在状态机里（本机搜索点播等）时不属于这个上下文，仍按临时列表交回。
+    var context = playback.playbackContext;
+    final clusterContext = connect.player.contextUri;
+    if (context.uri.isEmpty &&
+        clusterContext.isNotEmpty &&
+        receiver.hasTrack(current.uri)) {
+      context = PlaybackContext.fromUri(clusterContext);
+    }
     final request = ConnectPlayRequest.from(
-      context: playback.playbackContext,
+      context: context,
       tracks: [current, for (final e in playback.upNext) e.track],
       start: current,
       username: ctx.read<SpotifyAuthService>().username,
@@ -789,6 +799,13 @@ void _startConnectReceiver(
   }
 
   host.handOver = handOver;
+  // 本机是活动播放端时，把服务端的上下文记进本机会话（见 adoptReceiverContext）
+  connect.addListener(() {
+    if (!receiver.isActive || connect.cluster.activeDeviceId != deviceId) return;
+    final current = playback.currentTrack;
+    if (current == null || !receiver.hasTrack(current.uri)) return;
+    playback.adoptReceiverContext(connect.player.contextUri);
+  });
   // 返回给 host：它在等服务端确认本机刚改的随机 / 循环，确认一到（true）或被拒（false）
   // 就解除等待，让服务端的值重新生效。
   host.onLocalOptions = ({shuffle, repeatContext, repeatTrack}) =>
