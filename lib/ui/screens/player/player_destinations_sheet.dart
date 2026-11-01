@@ -8,6 +8,7 @@ import '../../../models/track.dart';
 import '../../../services/spotify_api_service.dart';
 import '../../navigation/app_routes.dart';
 import '../../widgets/cover_image.dart';
+import '../../widgets/app_modal.dart';
 
 /// The lyrics card's text opens destinations; the cover returns to artwork.
 class PlayerDestinationsSheet extends StatefulWidget {
@@ -17,7 +18,7 @@ class PlayerDestinationsSheet extends StatefulWidget {
 
   static Future<void> show(BuildContext context, SpotifyTrack track) async {
     TransitionRoute<dynamic>? route;
-    await showModalBottomSheet<void>(
+    await showAppBottomSheet<void>(
       context: context,
       useRootNavigator: true,
       isScrollControlled: true,

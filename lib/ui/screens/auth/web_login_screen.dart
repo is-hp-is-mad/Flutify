@@ -10,12 +10,14 @@ import '../../../core/platform/flutify_platform.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../services/auth/login_region_check.dart';
 import '../../../services/auth/web_login_flow.dart';
+import '../../../services/auth/web_token_exception.dart';
 import '../../../services/auth/web_token_service.dart';
 import '../../../services/eme/eme_player.dart';
 import '../../shell/desktop/desktop_window.dart';
 import 'linux_web_login_screen.dart';
-import 'package:material_3_expressive/material_3_expressive.dart' show M3EButton, M3EButtonStyle;
+import 'package:material_3_expressive/material_3_expressive.dart' show M3EButtonStyle;
 import '../../widgets/flutify_progress.dart';
+import '../../widgets/app_button.dart';
 
 export '../../../services/auth/web_login_flow.dart' show WebLoginStage;
 
@@ -95,6 +97,9 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
   /// 页面已结束（pop 过），后续回调全部忽略。
   bool _done = false;
 
+  /// 本页 Spotify 拒绝铸造令牌（401）的次数。
+  int _rejectedMints = 0;
+
   /// 最近一次页面地址（同意页自动点击的判定依据）。
   String? _currentUrl;
 
@@ -111,7 +116,18 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
       readSpDc: _readSpDc,
       saveSpDc: tokens.setSpDc,
       prepareWebToken: () async {
-        await tokens.mintAccessToken().timeout(const Duration(seconds: 15));
+        try {
+          await tokens
+              .mintForLogin(fetchInPage: _fetchInPage)
+              .timeout(const Duration(seconds: 30));
+        } on WebTokenHttpException catch (e) {
+          // 第一次被拒绝保留 cookie，「重试」不用重新登录；连续两次才当成会话无效，
+          // 清掉 cookie 让用户能换账号或重新登录
+          if (e.statusCode == 401 && ++_rejectedMints >= 2) {
+            unawaited(tokens.rejectSession());
+          }
+          rethrow;
+        }
         await auth?.completeWebSignIn();
       },
       onFinished: (_) => _finish(WebLoginResult(spDc: _flow.spDc)),
@@ -337,6 +353,30 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
     return null;
   }
 
+  /// 在已登录的页面里请求令牌（浏览器的网络栈和 cookie），只有 open.spotify.com 同源才行。
+  Future<({int status, String body})?> _fetchInPage(Uri uri) async {
+    final controller = _controller;
+    final page = Uri.tryParse(_currentUrl ?? '');
+    if (controller == null || page?.host != uri.host) return null;
+    try {
+      final result = await controller.callAsyncJavaScript(
+        functionBody:
+            "const r = await fetch(url, {credentials: 'include'}); "
+            'return {status: r.status, body: await r.text()};',
+        arguments: {'url': uri.toString()},
+      );
+      final value = result?.value;
+      if (value is! Map) return null;
+      final status = value['status'];
+      final body = value['body'];
+      if (status is! num || body is! String) return null;
+      return (status: status.toInt(), body: body);
+    } catch (e) {
+      debugPrint('[web-login] 页面内铸造失败：$e');
+      return null;
+    }
+  }
+
   /// 同意页自动点击（登录跳转链里偶尔出现的账号授权确认页）。
   Future<void> _tryAutoApprove() async {
     final controller = _controller;
@@ -502,7 +542,7 @@ class _ProgressOverlay extends StatelessWidget {
             ),
             if (checkingRegion && onSkipRegion != null) ...[
               const SizedBox(height: 20),
-              M3EButton.text(
+              AppButton.text(
                 onPressed: onSkipRegion,
                 child: Text(context.l10n.webLoginRegionSkipThisRun),
               ),
@@ -574,7 +614,7 @@ class _RegionBlockedView extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  M3EButton.icon(style: M3EButtonStyle.filled,
+                  AppButton.icon(style: M3EButtonStyle.filled,
                     onPressed: checking ? null : onRecheck,
                     icon: checking
                         ? const SizedBox(
@@ -590,7 +630,7 @@ class _RegionBlockedView extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  M3EButton.text(
+                  AppButton.text(
                     onPressed: checking ? null : onSkip,
                     child: Text(l10n.webLoginRegionForceSkip),
                   ),
@@ -672,7 +712,7 @@ class _NoticeBar extends StatelessWidget {
             ),
           ),
           if (actionLabel != null)
-            M3EButton.text(onPressed: onAction, child: Text(actionLabel!)),
+            AppButton.text(onPressed: onAction, child: Text(actionLabel!)),
         ],
       ),
     );

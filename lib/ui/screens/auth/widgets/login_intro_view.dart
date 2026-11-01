@@ -7,6 +7,7 @@ import '../../../../l10n/l10n.dart';
 import '../../../../providers/auth_provider.dart';
 import 'auth_error_banner.dart';
 import 'login_hero.dart';
+import '../../../widgets/app_button.dart';
 
 /// 登录页的初始态：主视觉 + 标题 + 三条安心说明 + 「登录」主按钮。
 ///
@@ -52,7 +53,7 @@ class LoginIntroView extends StatelessWidget {
         const SizedBox(height: 28),
         SizedBox(
           height: 60,
-          child: M3EButton.icon(
+          child: AppButton.icon(
             size: M3EButtonSize.md,
             onPressed: onSignIn,
             icon: const Icon(Icons.login_rounded, size: 22),

@@ -127,6 +127,23 @@ class DesktopWindow {
   static Future<void> _runBeforeHide() =>
       _boundsMemory?.saveNow() ?? Future.value();
 
+  /// Windows：关闭按钮只隐藏窗口到托盘（托盘图标在时才为 true，见 `DesktopTray`）。
+  static bool closeToTray = false;
+
+  static bool _quitting = false;
+
+  /// 真正退出（托盘菜单）：跑完收尾再销毁窗口，不再隐藏到托盘。
+  static Future<void> quit() {
+    _quitting = true;
+    return windowManager.close();
+  }
+
+  /// 从托盘恢复窗口。
+  static Future<void> showWindow() async {
+    await windowManager.show();
+    await windowManager.focus();
+  }
+
   static bool _exitRequested = false;
 
   /// macOS 退出请求（Cmd+Q / 程序坞右键退出 / 菜单「退出 Flutify」）：
@@ -271,6 +288,13 @@ class _CloseGuard with WindowListener {
       await _leaveFullScreen();
       await windowManager.hide();
       // 窗口只是藏起来，应用还活着：解除闭锁，下次关窗（或再次隐藏）仍能触发
+      _closing = false;
+      return;
+    }
+    if (DesktopWindow.closeToTray && !DesktopWindow._quitting) {
+      await DesktopWindow._runBeforeHide();
+      await _leaveFullScreen();
+      await windowManager.hide();
       _closing = false;
       return;
     }

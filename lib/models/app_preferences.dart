@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../services/network/proxy_mode.dart';
 import 'lyrics_source.dart';
 import 'playback_state.dart' show SpotifyRepeatMode;
+import 'shortcut_settings.dart';
 import '../services/network/spotify_gateway.dart';
 
 /// 网络代理：跟随系统 / 不使用（直连）/ 手动指定 HTTP 代理。
@@ -138,6 +139,12 @@ class AppPreferences {
   /// 本机音频输出设备 id；空串为跟随系统默认设备。
   final String audioOutputDevice;
 
+  /// 自定义的键盘快捷键与全局快捷键。
+  final ShortcutSettings shortcuts;
+
+  /// Windows：关闭窗口时最小化到系统托盘，音乐继续播放。
+  final bool closeToTray;
+
   const AppPreferences({
     this.language = AppLanguage.zh,
     this.lyricsScale = 1.0,
@@ -178,6 +185,8 @@ class AppPreferences {
     this.bluetoothLyricsDevices = const [],
     this.flymeStatusBarLyrics = false,
     this.audioOutputDevice = '',
+    this.shortcuts = const ShortcutSettings(),
+    this.closeToTray = false,
   });
 
   static const AppPreferences defaults = AppPreferences();
@@ -236,6 +245,8 @@ class AppPreferences {
     List<String>? bluetoothLyricsDevices,
     bool? flymeStatusBarLyrics,
     String? audioOutputDevice,
+    ShortcutSettings? shortcuts,
+    bool? closeToTray,
   }) {
     return AppPreferences(
       language: language ?? this.language,
@@ -295,6 +306,8 @@ class AppPreferences {
           bluetoothLyricsDevices ?? this.bluetoothLyricsDevices,
       flymeStatusBarLyrics: flymeStatusBarLyrics ?? this.flymeStatusBarLyrics,
       audioOutputDevice: audioOutputDevice ?? this.audioOutputDevice,
+      shortcuts: shortcuts ?? this.shortcuts,
+      closeToTray: closeToTray ?? this.closeToTray,
     );
   }
 
@@ -338,6 +351,8 @@ class AppPreferences {
     'bluetoothLyricsDevices': bluetoothLyricsDevices,
     'flymeStatusBarLyrics': flymeStatusBarLyrics,
     'audioOutputDevice': audioOutputDevice,
+    'shortcuts': shortcuts.toJson(),
+    'closeToTray': closeToTray,
   };
 
   factory AppPreferences.fromJson(Map<String, dynamic> json) {
@@ -485,6 +500,8 @@ class AppPreferences {
       audioOutputDevice: json['audioOutputDevice'] is String
           ? json['audioOutputDevice'] as String
           : d.audioOutputDevice,
+      shortcuts: ShortcutSettings.fromJson(json['shortcuts']),
+      closeToTray: flag(json['closeToTray'], d.closeToTray),
     );
   }
 
@@ -544,7 +561,9 @@ class AppPreferences {
       other.bluetoothLyricsTranslation == bluetoothLyricsTranslation &&
       listEquals(other.bluetoothLyricsDevices, bluetoothLyricsDevices) &&
       other.flymeStatusBarLyrics == flymeStatusBarLyrics &&
-      other.audioOutputDevice == audioOutputDevice;
+      other.audioOutputDevice == audioOutputDevice &&
+      other.shortcuts == shortcuts &&
+      other.closeToTray == closeToTray;
 
   @override
   int get hashCode => Object.hashAll([
@@ -587,5 +606,7 @@ class AppPreferences {
     Object.hashAll(bluetoothLyricsDevices),
     flymeStatusBarLyrics,
     audioOutputDevice,
+    shortcuts,
+    closeToTray,
   ]);
 }

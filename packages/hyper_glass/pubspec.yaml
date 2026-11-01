@@ -5,7 +5,7 @@ version: 0.1.0
 
 environment:
   sdk: ^3.9.2
-  flutter: ">=3.29.0"
+  flutter: ">=3.35.0"
 
 dependencies:
   flutter:
@@ -19,3 +19,6 @@ flutter:
     - shaders/mi_lm_downsample.frag
     - shaders/mi_lm_upsample_tint.frag
     - shaders/mi_blend_blur.frag
+    - shaders/mi_bloom_stroke.frag
+    - shaders/mi_press_light.frag
+    - shaders/mi_view_shadow.frag

@@ -8,6 +8,7 @@ import '../../shell/shell_breakpoints.dart';
 import '../cover_image.dart';
 import 'embed_code_panel.dart';
 import 'share_action_tile.dart';
+import '../app_modal.dart';
 
 /// 分享面板：曲目 / 专辑 / 歌单 / 艺人共用。
 ///
@@ -29,16 +30,15 @@ class ShareSheet extends StatelessWidget {
   static Future<void> show(BuildContext context, ShareTarget target) {
     if (ShellBreakpoints.isDesktop(MediaQuery.sizeOf(context).width)) {
       final tokens = context.tokens;
-      return showDialog<void>(
+      return showAppDialog<void>(
         context: context,
         useRootNavigator: true,
-        builder: (dialogContext) => Dialog(
+        builder: (dialogContext) => AppDialog(
           backgroundColor: Theme.of(
             dialogContext,
           ).colorScheme.surfaceContainerHigh,
-          shape: RoundedRectangleBorder(borderRadius: tokens.radius(28)),
+          borderRadius: tokens.radius(28),
           insetPadding: const EdgeInsets.all(24),
-          clipBehavior: Clip.antiAlias,
           child: SizedBox(
             width: maxWidth,
             child: ShareSheet(target: target, showClose: true),
@@ -46,7 +46,7 @@ class ShareSheet extends StatelessWidget {
         ),
       );
     }
-    return showModalBottomSheet<void>(
+    return showAppBottomSheet<void>(
       context: context,
       useRootNavigator: true,
       isScrollControlled: true,

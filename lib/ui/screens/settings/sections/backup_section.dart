@@ -18,6 +18,9 @@ import '../../auth/backup_account_login_screen.dart';
 import '../widgets/settings_section.dart';
 import '../../../widgets/flutify_dialog.dart';
 import '../../../widgets/flutify_progress.dart';
+import '../../../widgets/app_modal.dart';
+import '../../../widgets/app_switch.dart';
+import '../../../widgets/app_button.dart';
 
 /// 设置页「歌单备份」分组：
 /// - 显示各个备份账号各自的「已点赞的歌曲」（点击直接查看该账号的已点赞歌曲，不会跳去本机账号）；
@@ -160,7 +163,7 @@ class _BackupSectionState extends State<BackupSection> {
     PlaylistBackupService service,
     SpotifyPlaylist playlist,
   ) async {
-    await showDialog<void>(
+    await showAppDialog<void>(
       context: context,
       builder: (dialogContext) => _TrackImportDialog(
         playlist: playlist,
@@ -317,7 +320,7 @@ class _BackupSectionState extends State<BackupSection> {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        M3ECheckbox(
+                        AppCheckbox(
                           value: allSelected,
                           onChanged: (_) {
                             setState(() {
@@ -338,7 +341,7 @@ class _BackupSectionState extends State<BackupSection> {
                         ),
                       ],
                     ),
-                    M3EButton.icon(
+                    AppButton.icon(
                       style: M3EButtonStyle.tonal,
                       onPressed: selectedCount == 0 || backingUp || importing
                           ? null
@@ -411,7 +414,7 @@ class _BackupAccountTile extends StatelessWidget {
         children: [
           Tooltip(
             message: '参与一键同步到本账号',
-            child: M3ESwitch(
+            child: AppSwitch(
               value: account.syncToLocal,
               onChanged: onToggleSync,
             ),
@@ -469,7 +472,7 @@ class _BackedUpPlaylistTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: Row(
           children: [
-            M3ECheckbox(value: selected, onChanged: onSelectedChanged),
+            AppCheckbox(value: selected, onChanged: onSelectedChanged),
             const SizedBox(width: 4),
             if (isLiked)
               Container(
@@ -588,7 +591,7 @@ class _TrackImportDialogState extends State<_TrackImportDialog> {
           children: [
             Row(
               children: [
-                M3EButton.icon(
+                AppButton.icon(
                   style: M3EButtonStyle.text,
                   onPressed: () {
                     setState(() {
@@ -629,7 +632,7 @@ class _TrackImportDialogState extends State<_TrackImportDialog> {
                   }
 
                   return ListTile(
-                    leading: M3ECheckbox(value: checked, onChanged: toggle),
+                    leading: AppCheckbox(value: checked, onChanged: toggle),
                     onTap: () => toggle(!checked),
                     title: Text(
                       track.name,
@@ -650,12 +653,12 @@ class _TrackImportDialogState extends State<_TrackImportDialog> {
         ),
       ),
       actions: [
-        M3EButton.text(
+        AppButton.text(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('取消'),
         ),
         if (isExternalBackupLiked)
-          M3EButton.icon(
+          AppButton.icon(
             style: M3EButtonStyle.outlined,
             onPressed: selected.isEmpty
                 ? null
@@ -678,7 +681,7 @@ class _TrackImportDialogState extends State<_TrackImportDialog> {
             icon: const Icon(Icons.library_add_rounded, size: 18),
             label: Text('导入所选为歌单（${selected.length}）'),
           ),
-        M3EButton.icon(
+        AppButton.icon(
           style: M3EButtonStyle.filled,
           onPressed: selected.isEmpty
               ? null

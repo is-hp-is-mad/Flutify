@@ -184,6 +184,23 @@ class EmePlayer {
   static Future<void> disposeExternalBrowser() =>
       LinuxChromeManager.instance.dispose();
 
+  /// WebView2 用户数据目录：默认在 exe 旁边（`Flutify.exe.WebView2`），保持不变以留住已有数据；
+  /// 程序装在不可写的目录（如 Program Files）时改放 %LOCALAPPDATA%，否则 WebView 建不起来、
+  /// 登录页读不到 cookie。
+  static String? _userDataFolder() {
+    final dir = File(Platform.resolvedExecutable).parent;
+    try {
+      final probe = File('${dir.path}${Platform.pathSeparator}.flutify_write_probe');
+      probe.writeAsStringSync('');
+      probe.deleteSync();
+      return null;
+    } on FileSystemException {
+      final local = Platform.environment['LOCALAPPDATA'];
+      if (local == null || local.isEmpty) return null;
+      return '$local${Platform.pathSeparator}Flutify${Platform.pathSeparator}WebView2';
+    }
+  }
+
   /// 在 runApp 后尽早调用一次（WebView 创建前）。
   static Future<WebViewEnvironment?> ensureEnvironment() {
     return _webViewEnvironment ??= () async {
@@ -191,6 +208,7 @@ class EmePlayer {
       try {
         final env = await WebViewEnvironment.create(
           settings: WebViewEnvironmentSettings(
+            userDataFolder: _userDataFolder(),
             additionalBrowserArguments:
                 '--autoplay-policy=no-user-gesture-required '
                 '--disable-features=HardwareMediaKeyHandling',

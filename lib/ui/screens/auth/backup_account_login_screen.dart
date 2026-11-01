@@ -1,4 +1,3 @@
-import 'package:material_3_expressive/material_3_expressive.dart';
 import 'dart:async';
 import 'dart:collection';
 import 'dart:convert';
@@ -9,6 +8,8 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 import '../../../l10n/l10n.dart';
 import '../../../services/auth/login_region_check.dart';
+import '../../widgets/app_button.dart';
+import '../../widgets/flutify_progress.dart';
 
 /// 独立 WebView 资料登录页的结果：直接从 `open.spotify.com` WebView 会话里拿到的
 /// 登录凭据与账号唯一识别符（邮箱 / 唯一用户名 ID），不手动铸造 token。
@@ -360,7 +361,7 @@ return '';
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const M3ELoadingIndicator(),
+                  const FlutifyLoadingIndicator(),
                   const SizedBox(height: 16),
                   Text(l10n.webLoginRegionChecking),
                 ],
@@ -385,7 +386,7 @@ return '';
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 20),
-                    M3EButton.filled(
+                    AppButton.filled(
                       onPressed: _skipRegionAndContinue,
                       child: Text(l10n.regionCheckSkipThisRun),
                     ),
@@ -394,7 +395,7 @@ return '';
               ),
             )
           : !_envReady
-          ? const Center(child: M3ELoadingIndicator())
+          ? const Center(child: FlutifyLoadingIndicator())
           : InAppWebView(
               webViewEnvironment: _environment,
               initialUrlRequest: URLRequest(url: WebUri(_loginUrl)),

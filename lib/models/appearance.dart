@@ -17,7 +17,8 @@ enum CornerStyle {
 
 /// 玻璃材质（设置页「材质」）。
 enum GlassMaterial {
-  /// 伪液态玻璃：BackdropFilter 模糊 + 淡填充 + 发丝描边（默认）。
+  /// MD3E：Material 3 Expressive，玻璃是 BackdropFilter 模糊 + 淡填充 + 发丝描边（默认）。
+  /// 枚举名保持 `liquid`：它写在设置 JSON 里，改名会让旧备份认不出来。
   liquid,
 
   /// 柔光玻璃（Beta）：HyperOS 4 的折射玻璃与混色模糊（packages/hyper_glass）。

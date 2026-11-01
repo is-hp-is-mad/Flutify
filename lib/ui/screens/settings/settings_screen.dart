@@ -22,6 +22,8 @@ import 'sections/storage_section.dart';
 import 'sections/taskbar_lyrics_section.dart';
 import 'sections/text_shape_section.dart';
 import 'widgets/account_card.dart';
+import '../../../core/theme/flutify_tokens.dart';
+import '../../widgets/hyper_surface.dart';
 
 /// 账号区卡片。登录只有 Web 登录一种：登录即同时解锁全曲播放，不再单独放 Web 登录卡片。
 List<Widget> _accountCards(BuildContext context) => const [AccountCard()];
@@ -75,8 +77,15 @@ class _MobileSettings extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hyper = context.tokens.hyperMaterial;
     return Scaffold(
-      appBar: AppBar(title: Text(context.l10n.commonSettings)),
+      // 柔光玻璃的顶栏是模糊的：内容要延伸到它下面才有东西可模糊
+      extendBodyBehindAppBar: hyper,
+      appBar: AppBar(
+        title: Text(context.l10n.commonSettings),
+        backgroundColor: hyper ? Colors.transparent : null,
+        flexibleSpace: hyper ? const HyperAppBarBackground() : null,
+      ),
       body: SafeArea(
         top: false, // AppBar already consumes the status bar inset.
         bottom: false, // Included in the scroll padding below.
@@ -86,7 +95,13 @@ class _MobileSettings extends StatelessWidget {
             constraints: const BoxConstraints(maxWidth: 720),
             child: ListView(
               // 末尾留白 = 底部播放栏 / 导航占位（MediaQuery 底部 padding）+ 基础间距
-              padding: EdgeInsets.fromLTRB(16, 8, 16, MediaQuery.paddingOf(context).bottom + 40),
+              padding: EdgeInsets.fromLTRB(
+                16,
+                // 这里的 context 在 Scaffold 外层，MediaQuery 还不含顶栏高度，要自己加上
+                8 + (hyper ? MediaQuery.paddingOf(context).top + kToolbarHeight : 0),
+                16,
+                MediaQuery.paddingOf(context).bottom + 40,
+              ),
               children: [..._accountCards(context), const SizedBox(height: 28), ..._singleColumn],
             ),
           ),

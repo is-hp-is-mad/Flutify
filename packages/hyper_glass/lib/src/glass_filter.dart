@@ -38,7 +38,117 @@ class GlassFilter {
     this.alpha = 1.0,
     this.burn = 11.0,
     this.unshade = 0.0,
+    this.scaleBlur = false,
   });
+
+
+  /// `View.setMiGlass(float[42])`, laid out as `GlassToken.toShaderParams()`, with the
+  /// `setMiGlassBlurRadius(small, big)` pair. 34 and up default to 0 (the ROM's arrays have them so).
+  factory GlassFilter.native(List<double> params, {double small = 40, double big = 500}) {
+    final a = [...params, ...List<double>.filled(42 - params.length, 0)];
+    return GlassFilter(
+      baseBlur: small,
+      refractBlur: big,
+      scaleBlur: true,
+      luminanceBezier: a.sublist(0, 4),
+      luminanceAmount: a[4],
+      saturation: a[5],
+      brightness: a[6],
+      darker: a[7],
+      darkerRange: a.sublist(8, 10),
+      innerBottom: a[10],
+      glassColor: a.sublist(11, 15),
+      innerColorWhite: a[15],
+      innerColorMix: a[16],
+      colorPow: a[17],
+      alpha: a[18],
+      edgePx: a[19],
+      edgePow: a[20],
+      thicknessPx: a[21],
+      reflectOffsetPx: a[22],
+      reflectionLighten: a[23],
+      reflectionStrength: a[24],
+      lightDir: a.sublist(25, 28),
+      lightIntensity: a[28],
+      lightOpposite: a[29],
+      lightAngleRange: a[30],
+      lightEdgePow: a[31],
+      refractIOR: a[32],
+      bgColorSaturation: a[33],
+      bgColorBrightness: a[34],
+      burn: a[35],
+      unshade: a[36],
+    );
+  }
+
+  GlassFilter copyWith({
+    double? baseBlur,
+    double? refractBlur,
+    double? cornerRadius,
+    int? blurSourceMode,
+    double? edgePx,
+    double? edgePow,
+    double? thicknessPx,
+    double? reflectOffsetPx,
+    List<double>? lightDir,
+    double? lightIntensity,
+    double? lightOpposite,
+    double? lightAngleRange,
+    double? darker,
+    List<double>? darkerRange,
+    double? refractIOR,
+    double? reflectionLighten,
+    double? reflectionStrength,
+    double? lightEdgePow,
+    double? innerColorMix,
+    double? bgColorSaturation,
+    List<double>? glassColor,
+    double? bgColorBrightness,
+    double? innerColorWhite,
+    List<double>? luminanceBezier,
+    double? innerBottom,
+    double? luminanceAmount,
+    double? saturation,
+    double? brightness,
+    double? colorPow,
+    double? alpha,
+    double? burn,
+    double? unshade,
+  }) => GlassFilter(
+    scaleBlur: scaleBlur,
+    baseBlur: baseBlur ?? this.baseBlur,
+    refractBlur: refractBlur ?? this.refractBlur,
+    cornerRadius: cornerRadius ?? this.cornerRadius,
+    blurSourceMode: blurSourceMode ?? this.blurSourceMode,
+    edgePx: edgePx ?? this.edgePx,
+    edgePow: edgePow ?? this.edgePow,
+    thicknessPx: thicknessPx ?? this.thicknessPx,
+    reflectOffsetPx: reflectOffsetPx ?? this.reflectOffsetPx,
+    lightDir: lightDir ?? this.lightDir,
+    lightIntensity: lightIntensity ?? this.lightIntensity,
+    lightOpposite: lightOpposite ?? this.lightOpposite,
+    lightAngleRange: lightAngleRange ?? this.lightAngleRange,
+    darker: darker ?? this.darker,
+    darkerRange: darkerRange ?? this.darkerRange,
+    refractIOR: refractIOR ?? this.refractIOR,
+    reflectionLighten: reflectionLighten ?? this.reflectionLighten,
+    reflectionStrength: reflectionStrength ?? this.reflectionStrength,
+    lightEdgePow: lightEdgePow ?? this.lightEdgePow,
+    innerColorMix: innerColorMix ?? this.innerColorMix,
+    bgColorSaturation: bgColorSaturation ?? this.bgColorSaturation,
+    glassColor: glassColor ?? this.glassColor,
+    bgColorBrightness: bgColorBrightness ?? this.bgColorBrightness,
+    innerColorWhite: innerColorWhite ?? this.innerColorWhite,
+    luminanceBezier: luminanceBezier ?? this.luminanceBezier,
+    innerBottom: innerBottom ?? this.innerBottom,
+    luminanceAmount: luminanceAmount ?? this.luminanceAmount,
+    saturation: saturation ?? this.saturation,
+    brightness: brightness ?? this.brightness,
+    colorPow: colorPow ?? this.colorPow,
+    alpha: alpha ?? this.alpha,
+    burn: burn ?? this.burn,
+    unshade: unshade ?? this.unshade,
+  );
 
   final double baseBlur; // p2  reflect / tint LM blur radius
   final double refractBlur; // p3  base LM blur radius
@@ -72,6 +182,12 @@ class GlassFilter {
   final double alpha; // p32
   final double burn; // p33
   final double unshade; // p34
+
+  /// [baseBlur] / [refractBlur] are physical pixels of the ROM's screen and scale with it, like the other
+  /// lengths. The V7 call's 4 / 1 are near-identity kernels and stay as they are.
+  final bool scaleBlur;
+
+  GlassFilter blurScaled(double k) => scaleBlur ? copyWith(baseBlur: baseBlur * k, refractBlur: refractBlur * k) : this;
 }
 
 /// `MiLMGaussianState` as computed by `MiHyperMaterialEngine::ExecuteLMGaussianBlur` (0xd6e014).
@@ -178,9 +294,7 @@ extension LMGaussianKernel on LMGaussianState {
   for (var d = 1; d <= 12; d++) {
     if (c[12 + d] >= 0.01) radius = d;
   }
-  // Only the 4-tap bilinear form is fused (the shader's wider loop was dropped: unrolled by D3D under
-  // ANGLE it cost seconds of compile time); wider kernels use the non-fused texture path.
-  if (radius > 1) return null;
+  if (radius > 1) return null; // wider kernels use the multi-pass path
   var sum = c[12];
   for (var d = 1; d <= radius; d++) {
     sum += 2 * c[12 + d];
@@ -193,4 +307,36 @@ extension LMGaussianKernel on LMGaussianState {
     return (k0: k0, k: [k[0] / half, 0.0, 0.0, 0.0], radius: 1);
   }
   return (k0: k0, k: k, radius: radius);
+}
+
+/// Per-draw shader inputs that are not part of the filter.
+class GlassFx {
+  const GlassFx({
+    this.hit = 0,
+    this.rotation = 0,
+    this.iconRect,
+    this.iconStrength = 1,
+    this.iconMode = 1,
+    this.iconRadius = 0,
+    this.dynamicLight,
+  });
+
+  /// uHit: pressed state, raises the refraction index by up to 0.2.
+  final double hit;
+
+  /// uRotationTrig: rotates the refraction / reflection offsets (radians).
+  final double rotation;
+
+  /// uIconGeoPx*: the area lit by the icon light, in logical px inside the surface. Null disables it.
+  final ({double left, double top, double width, double height})? iconRect;
+
+  /// uIconLightStrength
+  final double iconStrength;
+
+  /// uIconMove: 1 = icon light, 2 = stronger (3x) dynamic light under the icon.
+  final int iconMode;
+  final double iconRadius;
+
+  /// uDynamicLightDirection, the moving light inside [iconRect].
+  final List<double>? dynamicLight;
 }

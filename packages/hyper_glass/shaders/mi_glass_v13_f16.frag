@@ -10,7 +10,7 @@
 #define f16mat3 mat3
 #define f16mat4 mat4
 #define _198_uUseMaskTex 0 // Flutify: constant in this port (see FLUTIFY_PATCH.md); the uniform is still declared so the layout is unchanged
-#define _198_uHit 0 // Flutify: constant in this port (see FLUTIFY_PATCH.md); the uniform is still declared so the layout is unchanged
+#define _198_uHit int(_198_uHit__f)
 #define _198_uIconMove 0 // Flutify: constant in this port (see FLUTIFY_PATCH.md); the uniform is still declared so the layout is unchanged
 #define _198_uHasRotation 0 // Flutify: constant in this port (see FLUTIFY_PATCH.md); the uniform is still declared so the layout is unchanged
 #define _198_uUsePowGate int(_198_uUsePowGate__f)
@@ -97,85 +97,7 @@ uniform sampler2D _fl_backdrop;
 highp vec4 _fl_tint(vec4 _fl_c, vec4 _fl_big, highp vec2 _fl_px)
 {
     vec4 _580 = _fl_c;
-    highp vec4 _1467 = vec4(0.0);
-    if (hdr_info_enable_hdr == 1)
-    {
-        float _680 = _580.x;
-        highp float hp_copy_680 = _680;
-        highp float _750 = abs(hp_copy_680);
-        highp float _1454 = 0.0;
-        if (_750 < hdr_info_srcTF[1].x)
-        {
-            _1454 = (hdr_info_srcTF[0].w * _750) + hdr_info_srcTF[1].z;
-        }
-        else
-        {
-            _1454 = pow((hdr_info_srcTF[0].y * _750) + hdr_info_srcTF[0].z, hdr_info_srcTF[0].x) + hdr_info_srcTF[1].y;
-        }
-        float _684 = _580.y;
-        highp float hp_copy_684 = _684;
-        highp float _803 = abs(hp_copy_684);
-        highp float _1457 = 0.0;
-        if (_803 < hdr_info_srcTF[1].x)
-        {
-            _1457 = (hdr_info_srcTF[0].w * _803) + hdr_info_srcTF[1].z;
-        }
-        else
-        {
-            _1457 = pow((hdr_info_srcTF[0].y * _803) + hdr_info_srcTF[0].z, hdr_info_srcTF[0].x) + hdr_info_srcTF[1].y;
-        }
-        float _688 = _580.z;
-        highp float hp_copy_688 = _688;
-        highp float _856 = abs(hp_copy_688);
-        highp float _1459 = 0.0;
-        if (_856 < hdr_info_srcTF[1].x)
-        {
-            _1459 = (hdr_info_srcTF[0].w * _856) + hdr_info_srcTF[1].z;
-        }
-        else
-        {
-            _1459 = pow((hdr_info_srcTF[0].y * _856) + hdr_info_srcTF[0].z, hdr_info_srcTF[0].x) + hdr_info_srcTF[1].y;
-        }
-        highp vec3 _702 = mat3(hdr_info_gamutTransform[0].xyz, hdr_info_gamutTransform[1].xyz, hdr_info_gamutTransform[2].xyz) * vec3(sign(hp_copy_680) * _1454, sign(hp_copy_684) * _1457, sign(hp_copy_688) * _1459);
-        highp float _704 = _702.x;
-        highp float _909 = abs(_704);
-        highp float _1461 = 0.0;
-        if (_909 < hdr_info_destTF[1].x)
-        {
-            _1461 = (hdr_info_destTF[0].w * _909) + hdr_info_destTF[1].z;
-        }
-        else
-        {
-            _1461 = pow((hdr_info_destTF[0].y * _909) + hdr_info_destTF[0].z, hdr_info_destTF[0].x) + hdr_info_destTF[1].y;
-        }
-        highp float _708 = _702.y;
-        highp float _962 = abs(_708);
-        highp float _1463 = 0.0;
-        if (_962 < hdr_info_destTF[1].x)
-        {
-            _1463 = (hdr_info_destTF[0].w * _962) + hdr_info_destTF[1].z;
-        }
-        else
-        {
-            _1463 = pow((hdr_info_destTF[0].y * _962) + hdr_info_destTF[0].z, hdr_info_destTF[0].x) + hdr_info_destTF[1].y;
-        }
-        highp float _712 = _702.z;
-        highp float _1015 = abs(_712);
-        highp float _1465 = 0.0;
-        if (_1015 < hdr_info_destTF[1].x)
-        {
-            _1465 = (hdr_info_destTF[0].w * _1015) + hdr_info_destTF[1].z;
-        }
-        else
-        {
-            _1465 = pow((hdr_info_destTF[0].y * _1015) + hdr_info_destTF[0].z, hdr_info_destTF[0].x) + hdr_info_destTF[1].y;
-        }
-        _1467 = vec4(sign(_704) * _1461, sign(_708) * _1463, sign(_712) * _1465, _580.w);
-    }
-    else
-    {
-        _1467 = _580;
-    }
+    highp vec4 _1467 = _580;
     highp vec4 _1468 = vec4(0.0);
     if (glass_tint_enabled != 0)
     {
@@ -246,19 +168,11 @@ highp vec4 _fl_tint(vec4 _fl_c, vec4 _fl_big, highp vec2 _fl_px)
 highp vec4 _fl_refract(highp vec2 uv)
 {
     if (_fl_fused < 0.5) return vec4(texture(uRefractTex, uv).rgb, texture(_fl_refractA, uv).r);
-    highp vec3 acc = vec3(0.0);
-    if (_fl_kr < 1.5)
-    {
-        // 3x3 kernel [k1 k0 k1]^2 as 4 bilinear taps at (+-d, +-d), d = _fl_k.x (exact with linear filtering)
-        highp vec2 d = vec2(_fl_k.x) * _198_uInvResolution;
-        acc = 0.25 * (texture(_fl_backdrop, uv + d).rgb + texture(_fl_backdrop, uv - d).rgb
+    // 3x3 kernel [k1 k0 k1]^2 as 4 bilinear taps at (+-d, +-d), d = _fl_k.x (exact with linear filtering)
+    highp vec2 d = vec2(_fl_k.x) * _198_uInvResolution;
+    highp vec3 acc = 0.25 * (texture(_fl_backdrop, uv + d).rgb + texture(_fl_backdrop, uv - d).rgb
                     + texture(_fl_backdrop, uv + vec2(d.x, -d.y)).rgb + texture(_fl_backdrop, uv + vec2(-d.x, d.y)).rgb);
-        return _fl_tint(vec4(acc, 1.0), vec4(texture(_fl_backdrop, uv).rgb, 1.0), uv / _198_uInvResolution);
-    }
-    // Flutify: only the 4-tap path above is fused (wider kernels take the non-fused path, see
-    // fusedRefractKernel). The former 9x9 loop was inlined at 3 call sites and fully unrolled by
-    // the D3D compiler under ANGLE (243 texture taps), which made the first frame stall for seconds.
-    return vec4(texture(_fl_backdrop, uv).rgb, 1.0);
+    return _fl_tint(vec4(acc, 1.0), vec4(texture(_fl_backdrop, uv).rgb, 1.0), uv / _198_uInvResolution);
 }
 
 uniform sampler2D _fl_sdfB;
@@ -268,6 +182,18 @@ highp vec4 _fl_sdf(highp vec2 uv)
     highp vec4 b = texture(_fl_sdfB, uv);
     highp vec2 t = vec2(b.x + b.y / 255.0, a.z + b.z / 255.0);
     return vec4(a.xy * 2.0 - 1.0, (t - 0.5) * (2.0 * _fl_sdf_range));
+}
+
+// The icon-light block the engine repeats after each refract fetch.
+highp vec4 _fl_iconLit(highp vec4 _2041, float _3439)
+{
+    if (_3439 < 9.953975677490234375e-06) return _2041;
+    highp vec3 _2074 = _2041.xyz;
+    highp float _2083 = dot(_2074, vec3(0.2125244140625, 0.71484375, 0.0721435546875));
+    highp float _2092 = smoothstep(0.0, 0.5, _2083);
+    highp float _2103 = 1.0 + (smoothstep(0.0, 1.0, _3439) * mix(0.75, 0.39990234375, _2092));
+    highp float _2116 = _2041.w;
+    return vec4(_2074 + ((((_2074 * _2103) + vec3(mix(1.0 - _2083, _2083, _2092) * (_2103 - 1.0))) - _2074) * _2116), _2116);
 }
 
 void main()
@@ -368,57 +294,13 @@ void main()
             _3439 = float16_t(0.0);
         }
         float16_t _1645 = float16_t(_198_uShapeThicknessPx);
-        f16vec4 _3446 = f16vec4(float16_t(0.0));
+        highp vec2 _3440 = vec2(0.0);
+        if (_1602 < float16_t(1.0))
         {
-            // Flutify: the engine's two exclusive branches here (fully inside the edge: no refraction
-            // offset / otherwise: refracted offset) differ only in the sample position. Choosing it first
-            // and calling _fl_refract once removes a whole inlined copy of the refract + tint code, which
-            // the D3D compiler under ANGLE spends noticeable time on. Same maths, same result.
-            highp vec2 _3440 = vec2(0.0);
-            if (!(_1602 >= float16_t(1.0)))
-            {
-                highp vec2 _2151 = vec2(refract(f16vec3(float16_t(0.0), float16_t(0.0), float16_t(-1.0)), _3437, float16_t(1.0) / (float16_t(_198_uRefractIOR) + (float16_t(0.199951171875) * float16_t(_198_uHit)))).xy * mix((_1645 - _1598) * float16_t(2.0), _1645 * float16_t(2.0), _1602));
-                if (_198_uHasRotation == 0)
-                {
-                    _3440 = _2151;
-                }
-                else
-                {
-                    highp float _2170 = _2151.x;
-                    highp float _2174 = _2151.y;
-                    _3440 = vec2((_2170 * _198_uRotationTrig.x) - (_2174 * _198_uRotationTrig.y), (_2170 * _198_uRotationTrig.y) + (_2174 * _198_uRotationTrig.x));
-                }
-            }
-            highp float _3441 = 0.0;
-            if (abs(v_screen_pos.z) < 9.9999999747524270787835121154785e-07)
-            {
-                _3441 = (v_screen_pos.z < 0.0) ? (-9.9999999747524270787835121154785e-07) : 9.9999999747524270787835121154785e-07;
-            }
-            else
-            {
-                _3441 = v_screen_pos.z;
-            }
-            highp vec4 _2251 = _fl_refract((((v_screen_pos.xy / vec2(_3441)) + _3440) - _198_uResolution) * _198_uInvResolution);
-            f16vec4 _2252 = f16vec4(_2251);
-            if (_3439 < float16_t(9.953975677490234375e-06))
-            {
-                _3446 = _2252;
-            }
-            else
-            {
-                f16vec3 _2285 = _2252.xyz;
-                float16_t _2294 = dot(_2285, f16vec3(float16_t(0.2125244140625), float16_t(0.71484375), float16_t(0.0721435546875)));
-                float16_t _2303 = smoothstep(float16_t(0.0), float16_t(0.5), _2294);
-                float16_t _2314 = float16_t(1.0) + (smoothstep(float16_t(0.0), float16_t(1.0), _3439) * mix(float16_t(0.75), float16_t(0.39990234375), _2303));
-                float16_t _2327 = _2252.w;
-                f16vec3 _2220 = _2285 + ((f16vec4((_2285 * _2314) + f16vec3(mix(float16_t(1.0) - _2294, _2294, _2303) * (_2314 - float16_t(1.0))), _2327).xyz - _2285) * _2327);
-                f16vec4 _3346 = _2252;
-                _3346.x = _2220.x;
-                _3346.y = _2220.y;
-                _3346.z = _2220.z;
-                _3446 = _3346;
-            }
+            highp vec2 _2151 = vec2(refract(f16vec3(float16_t(0.0), float16_t(0.0), float16_t(-1.0)), _3437, float16_t(1.0) / (float16_t(_198_uRefractIOR) + (float16_t(0.199951171875) * float16_t(_198_uHit__f)))).xy * mix((_1645 - _1598) * float16_t(2.0), _1645 * float16_t(2.0), _1602));
+            _3440 = _198_uHasRotation == 0 ? _2151 : vec2((_2151.x * _198_uRotationTrig.x) - (_2151.y * _198_uRotationTrig.y), (_2151.x * _198_uRotationTrig.y) + (_2151.y * _198_uRotationTrig.x));
         }
+        f16vec4 _3446 = _fl_iconLit(_fl_refract((v_screen_pos.xy + _3440 - _198_uResolution) * _198_uInvResolution), _3439);
         f16vec4 _3459 = f16vec4(float16_t(0.0));
         if (_1632 <= float16_t(9.5367431640625e-07))
         {
@@ -427,49 +309,8 @@ void main()
         else
         {
             highp vec2 _2354 = vec2(_3437.xy * (float16_t(2.0) * _3437.z)) * (_198_uShapeReflectOffsetPx * (1.0 - float(_1602)));
-            highp vec2 _3456 = vec2(0.0);
-            for (int _once5 = 0; _once5 < 1; _once5++)
-            {
-                if (_198_uHasRotation == 0)
-                {
-                    _3456 = _2354;
-                    break;
-                }
-                highp float _2378 = _2354.x;
-                highp float _2382 = _2354.y;
-                _3456 = vec2((_2378 * _198_uRotationTrig.x) - (_2382 * _198_uRotationTrig.y), (_2378 * _198_uRotationTrig.y) + (_2382 * _198_uRotationTrig.x));
-            }
-            f16vec4 _3458 = f16vec4(float16_t(0.0));
-            for (int _once6 = 0; _once6 < 1; _once6++)
-            {
-                highp float _3457 = 0.0;
-                if (abs(v_screen_pos.z) < 9.9999999747524270787835121154785e-07)
-                {
-                    _3457 = (v_screen_pos.z < 0.0) ? (-9.9999999747524270787835121154785e-07) : 9.9999999747524270787835121154785e-07;
-                }
-                else
-                {
-                    _3457 = v_screen_pos.z;
-                }
-                highp vec4 _2459 = _fl_refract((((v_screen_pos.xy / vec2(_3457)) + _3456) - _198_uResolution) * _198_uInvResolution);
-                f16vec4 _2460 = f16vec4(_2459);
-                if (_3439 < float16_t(9.953975677490234375e-06))
-                {
-                    _3458 = _2460;
-                    break;
-                }
-                f16vec3 _2493 = _2460.xyz;
-                float16_t _2502 = dot(_2493, f16vec3(float16_t(0.2125244140625), float16_t(0.71484375), float16_t(0.0721435546875)));
-                float16_t _2511 = smoothstep(float16_t(0.0), float16_t(0.5), _2502);
-                float16_t _2522 = float16_t(1.0) + (smoothstep(float16_t(0.0), float16_t(1.0), _3439) * mix(float16_t(0.75), float16_t(0.39990234375), _2511));
-                float16_t _2535 = _2460.w;
-                f16vec3 _2428 = _2493 + ((f16vec4((_2493 * _2522) + f16vec3(mix(float16_t(1.0) - _2502, _2502, _2511) * (_2522 - float16_t(1.0))), _2535).xyz - _2493) * _2535);
-                f16vec4 _3359 = f16vec4(float16_t(0.0));
-                _3359.x = _2428.x;
-                _3359.y = _2428.y;
-                _3359.z = _2428.z;
-                _3458 = _3359;
-            }
+            highp vec2 _3456 = _198_uHasRotation == 0 ? _2354 : vec2((_2354.x * _198_uRotationTrig.x) - (_2354.y * _198_uRotationTrig.y), (_2354.x * _198_uRotationTrig.y) + (_2354.y * _198_uRotationTrig.x));
+            f16vec4 _3458 = _fl_iconLit(_fl_refract((v_screen_pos.xy + _3456 - _198_uResolution) * _198_uInvResolution), _3439);
             f16vec3 _1683 = mix(_3446, _3458, f16vec4((float16_t(1.0) - float16_t(_3436)) * float16_t(_198_uReflectionStrength))).xyz;
             f16vec3 _2558 = _1683 + ((_3458.xyz * ((_1632 * float16_t(_198_uReflectionLighten)) * _3446.w)) * (float16_t(0.2998046875) + (float16_t(0.69970703125) * clamp(float16_t(1.8994140625) - (float16_t(2.1484375) * dot(_1683, f16vec3(float16_t(0.2125244140625), float16_t(0.71484375), float16_t(0.0721435546875)))), float16_t(0.0), float16_t(1.0)))));
             f16vec4 _3366 = f16vec4(float16_t(0.0));
@@ -565,55 +406,7 @@ void main()
         _3469 = f16vec4(mix(clamp(_3468.xyz, f16vec3(float16_t(0.0)), f16vec3(float16_t(1.0))), f16vec3(_198_uGlassColor.xyz), f16vec3(float16_t(_198_uUnshade))), _3468.w * (float16_t(1.0 - smoothstep(-2.0, 0.0, _1605)) * float16_t(_198_uAlpha)));
     }
     highp vec4 _1391 = vec4(_3469);
-    highp vec4 _3470 = vec4(0.0);
-    if (_198_colorSpaceConvertMode == 1)
-    {
-        highp vec3 _1401 = _1391.xyz;
-        highp vec3 _3100 = abs(_1401);
-        highp vec3 _3129 = sign(_1401) * mix((_3100 * _198_srcTF[0].w) + vec3(_198_srcTF[1].z), pow(max((_3100 * _198_srcTF[0].y) + vec3(_198_srcTF[0].z), vec3(0.0)), vec3(_198_srcTF[0].x)) + vec3(_198_srcTF[1].y), step(vec3(_198_srcTF[1].x), _3100));
-        highp vec4 _3404 = _1391;
-        _3404.x = _3129.x;
-        _3404.y = _3129.y;
-        _3404.z = _3129.z;
-        highp vec3 _1423 = mat3(_198_gamutTransform[0].xyz, _198_gamutTransform[1].xyz, _198_gamutTransform[2].xyz) * _3404.xyz;
-        highp vec4 _3410 = _3404;
-        _3410.x = _1423.x;
-        _3410.y = _1423.y;
-        _3410.z = _1423.z;
-        highp vec3 _3161 = abs(_3410.xyz);
-        highp vec3 _3190 = sign(_3410.xyz) * mix((_3161 * _198_destTF[0].w) + vec3(_198_destTF[1].z), pow(max((_3161 * _198_destTF[0].y) + vec3(_198_destTF[0].z), vec3(0.0)), vec3(_198_destTF[0].x)) + vec3(_198_destTF[1].y), step(vec3(_198_destTF[1].x), _3161));
-        highp vec4 _3416 = _3410;
-        _3416.x = _3190.x;
-        _3416.y = _3190.y;
-        _3416.z = _3190.z;
-        _3470 = _3416;
-    }
-    else
-    {
-        highp vec4 _3471 = vec4(0.0);
-        if (_198_colorSpaceConvertMode == 2)
-        {
-            highp vec3 _1448 = _1391.xyz;
-            highp vec3 _3222 = abs(_1448);
-            highp vec3 _3251 = sign(_1448) * mix((_3222 * _198_srcTF[0].w) + vec3(_198_srcTF[1].z), pow(max((_3222 * _198_srcTF[0].y) + vec3(_198_srcTF[0].z), vec3(0.0)), vec3(_198_srcTF[0].x)) + vec3(_198_srcTF[1].y), step(vec3(_198_srcTF[1].x), _3222));
-            highp vec4 _3422 = _1391;
-            _3422.x = _3251.x;
-            _3422.y = _3251.y;
-            _3422.z = _3251.z;
-            highp vec3 _3283 = abs(_3422.xyz);
-            highp vec3 _3312 = sign(_3422.xyz) * mix((_3283 * _198_destTF[0].w) + vec3(_198_destTF[1].z), pow(max((_3283 * _198_destTF[0].y) + vec3(_198_destTF[0].z), vec3(0.0)), vec3(_198_destTF[0].x)) + vec3(_198_destTF[1].y), step(vec3(_198_destTF[1].x), _3283));
-            highp vec4 _3428 = _3422;
-            _3428.x = _3312.x;
-            _3428.y = _3312.y;
-            _3428.z = _3312.z;
-            _3471 = _3428;
-        }
-        else
-        {
-            _3471 = _1391;
-        }
-        _3470 = _3471;
-    }
+    highp vec4 _3470 = _1391;
     fragColor = vec4(_3470.xyz * _3470.w, _3470.w);
 }
 

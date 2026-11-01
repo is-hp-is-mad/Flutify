@@ -7,12 +7,16 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../l10n/l10n.dart';
 import '../../services/updates/update_release.dart';
 import '../../services/updates/update_service.dart';
-import 'package:material_3_expressive/material_3_expressive.dart' show M3EButton, M3EButtonStyle;
+import 'package:material_3_expressive/material_3_expressive.dart' show M3EButtonStyle;
 import 'flutify_dialog.dart';
 import 'flutify_progress.dart';
 import 'release_notes_view.dart';
+import 'app_modal.dart';
+import 'toast/app_toast.dart';
+import '../../core/theme/flutify_tokens.dart';
+import 'app_button.dart';
 
-Future<void> showUpdateDialog(BuildContext context, UpdateService service) => showDialog<void>(
+Future<void> showUpdateDialog(BuildContext context, UpdateService service) => showAppDialog<void>(
   context: context,
   builder: (_) => ListenableBuilder(
     listenable: service,
@@ -47,7 +51,7 @@ Future<void> showUpdateDialog(BuildContext context, UpdateService service) => sh
                 if (!service.canDownload) Text(l.updatesUnsupported),
                 if (service.needsInstallPermission) Text(l.updatesPermission),
                 if (service.error != null) Text(l.updatesFailed, style: TextStyle(color: Theme.of(context).colorScheme.error)),
-                M3EButton.icon(style: M3EButtonStyle.text,
+                AppButton.icon(style: M3EButtonStyle.text,
                   onPressed: () => openUpdatePage(context, service),
                   icon: const Icon(Icons.open_in_new_rounded),
                   label: Text(l.updatesPage),
@@ -57,16 +61,16 @@ Future<void> showUpdateDialog(BuildContext context, UpdateService service) => sh
           ),
         )),
         actions: [
-          M3EButton.text(onPressed: () => Navigator.pop(context), child: Text(l.updatesLater)),
+          AppButton.text(onPressed: () => Navigator.pop(context), child: Text(l.updatesLater)),
           if (service.status != UpdateStatus.installing)
-            M3EButton.text(onPressed: () { unawaited(service.skip()); Navigator.pop(context); }, child: Text(l.updatesSkip)),
+            AppButton.text(onPressed: () { unawaited(service.skip()); Navigator.pop(context); }, child: Text(l.updatesSkip)),
           if (service.status == UpdateStatus.downloading)
-            M3EButton.text(onPressed: service.cancelDownload, child: Text(l.commonCancel)),
+            AppButton.text(onPressed: service.cancelDownload, child: Text(l.commonCancel)),
           if (ready)
-            M3EButton.icon(style: M3EButtonStyle.filled,onPressed: service.install, icon: const Icon(Icons.install_mobile_rounded),
+            AppButton.icon(style: M3EButtonStyle.filled,onPressed: service.install, icon: const Icon(Icons.install_mobile_rounded),
               label: Text(android ? l.updatesInstallApk : l.updatesInstall)),
           if (!ready && !service.busy && service.canDownload)
-            M3EButton.icon(style: M3EButtonStyle.filled,onPressed: service.download, icon: const Icon(Icons.download_rounded), label: Text(l.updatesDownload)),
+            AppButton.icon(style: M3EButtonStyle.filled,onPressed: service.download, icon: const Icon(Icons.download_rounded), label: Text(l.updatesDownload)),
         ],
       );
     },
@@ -79,7 +83,7 @@ Future<void> openUpdatePage(BuildContext context, UpdateService service) async {
         mode: LaunchMode.externalApplication);
     if (opened) return;
   } catch (_) {}
-  if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.updatesFailed)));
+  if (context.mounted) AppToast.plain(context, context.l10n.updatesFailed);
 }
 
 class UpdateProgress extends StatelessWidget {
@@ -136,6 +140,16 @@ class _UpdatePromptBindingState extends State<UpdatePromptBinding> with WidgetsB
       if (!mounted || service.release == null || service.mode == UpdateMode.disabled) return;
       final l = context.l10n;
       final ready = service.status == UpdateStatus.ready;
+      if (context.tokens.hyperMaterial) {
+        AppToast.show(
+          context,
+          '${ready ? l.updatesReady : l.updatesAvailable} ${service.release!.tag}',
+          actionLabel: l.updatesDetails,
+          onAction: () => showUpdateDialog(context, service),
+          duration: const Duration(seconds: 15),
+        );
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         duration: const Duration(seconds: 15),
         content: Text('${ready ? l.updatesReady : l.updatesAvailable} ${service.release!.tag}'),

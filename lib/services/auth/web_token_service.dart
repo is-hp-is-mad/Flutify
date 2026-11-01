@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 
 import '../../core/rust_core.dart';
 import '../../src/rust/api/protocol.dart' as rust;
+import '../network/http2_client.dart';
 import '../storage_service.dart';
 import 'web_token_exception.dart';
 import 'session_http_client.dart';
@@ -22,8 +23,12 @@ class WebTokenService {
   final StorageService _storage;
   final http.Client _client;
 
+  /// 登录第一次铸造专用：401 不触发 [SessionHttpClient] 的清除登录态，见 [mintForLogin]。
+  final http.Client _loginClient;
+
   WebTokenService(this._storage, [http.Client? client])
-    : _client = SessionHttpClient(_storage, client ?? http.Client());
+    : _client = SessionHttpClient(_storage, client ?? http.Client()),
+      _loginClient = Http2Client(client ?? http.Client());
 
   static const String _tokenEndpoint = 'https://open.spotify.com/api/token';
   static const String _serverTimeEndpoint =
@@ -125,6 +130,23 @@ class WebTokenService {
       throw WebSignInRequiredException();
     }
     final httpClient = client ?? http.Client();
+    final uri = await _tokenUri(httpClient);
+    final res = await httpClient
+        .get(
+          uri,
+          headers: {
+            'Cookie': 'sp_dc=$spDc',
+            'User-Agent':
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36',
+            'Accept': 'application/json',
+          },
+        )
+        .timeout(const Duration(seconds: 10));
+    return _parseToken(res.statusCode, utf8.decode(res.bodyBytes));
+  }
+
+  /// 带 TOTP 的令牌地址。
+  static Future<Uri> _tokenUri(http.Client httpClient) async {
     final secret = _deobfuscateSecret(_obfuscatedSecretV61);
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final totpNow = totp(secret, nowMs);
@@ -141,7 +163,7 @@ class WebTokenService {
       }
     } catch (_) {}
 
-    final uri = Uri.parse(_tokenEndpoint).replace(
+    return Uri.parse(_tokenEndpoint).replace(
       queryParameters: {
         'reason': 'transport',
         'productType': 'web-player',
@@ -150,21 +172,16 @@ class WebTokenService {
         'totpServer': totpServer,
       },
     );
-    final res = await httpClient
-        .get(
-          uri,
-          headers: {
-            'Cookie': 'sp_dc=$spDc',
-            'User-Agent':
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36',
-            'Accept': 'application/json',
-          },
-        )
-        .timeout(const Duration(seconds: 10));
-    if (res.statusCode != 200) {
-      throw WebTokenHttpException(res.statusCode);
+  }
+
+  static ({String token, int expiryMs}) _parseToken(int status, String text) {
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    if (status != 200) {
+      // 只记状态码：响应体可能含账号信息，不进日志
+      debugPrint('[web-token] /api/token HTTP $status');
+      throw WebTokenHttpException(status);
     }
-    final body = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+    final body = jsonDecode(text) as Map<String, dynamic>;
     final token = body['accessToken'] as String?;
     if (token == null || token.isEmpty) {
       throw StateError('铸造 Web token 失败：响应无 accessToken');
@@ -191,6 +208,52 @@ class WebTokenService {
     ]);
     return minted;
   }
+
+  /// 登录页拿到 `sp_dc` 后的第一次铸造。
+  ///
+  /// 这时的 cookie 是 Spotify 刚发的，401 不代表会话被吊销，更多是这次请求本身被拒绝
+  /// （代理、VPN 出口、风控）。所以不走 [SessionHttpClient]：否则一次 401 就清空登录态和
+  /// 全部 WebView cookie，用户明明登录成功却被踢回登录页，再登录还是一样（issue #53）。
+  ///
+  /// 被拒绝时隔一会儿重试一次，再不行就用登录页 WebView 自己发请求（[fetchInPage]，浏览器的
+  /// 网络栈和 cookie）。都失败才把 [WebTokenHttpException] 抛给调用方。
+  Future<({String token, int expiryMs})> mintForLogin({
+    Future<({int status, String body})?> Function(Uri uri)? fetchInPage,
+  }) async {
+    final epoch = _storage.sessionEpoch;
+    _storage.checkSession(epoch);
+    final dc = _storage.spDc;
+    if (dc.isEmpty) throw WebSignInRequiredException();
+    Future<({String token, int expiryMs})> attempt() async {
+      try {
+        return await mintTokenForSpDc(dc, client: _loginClient);
+      } on WebTokenHttpException catch (e) {
+        debugPrint('[web-token] 登录铸造被拒绝：HTTP ${e.statusCode}，${loginRetryDelay.inMilliseconds} ms 后重试');
+        await Future<void>.delayed(loginRetryDelay);
+        _storage.checkSession(epoch);
+        return mintTokenForSpDc(dc, client: _loginClient);
+      }
+    }
+
+    ({String token, int expiryMs}) minted;
+    try {
+      minted = await attempt();
+    } on WebTokenHttpException {
+      final page = await fetchInPage?.call(await _tokenUri(_loginClient));
+      if (page == null) rethrow;
+      debugPrint('[web-token] 改用登录页 WebView 铸造：HTTP ${page.status}');
+      minted = _parseToken(page.status, page.body);
+    }
+    _storage.checkSession(epoch);
+    await _storage.writeSession(epoch, [
+      () => _storage.setWebAccessToken(minted.token, minted.expiryMs),
+    ]);
+    return minted;
+  }
+
+  /// 登录页认定这份会话确实无效（重试后 Spotify 仍然拒绝）：清除登录态和 cookie，回到全新的登录。
+  Future<void> rejectSession() =>
+      _storage.invalidateSession(_storage.sessionEpoch);
 
   /// 取一个可用的 Web access_token：缓存未过期直接用，否则重新铸造。
   ///
@@ -237,4 +300,8 @@ class WebTokenService {
 
   /// 重试间隔（手机网络握手被掐通常是瞬时的，稍等即可恢复）。
   static const Duration retryDelay = Duration(seconds: 2);
+
+  /// 登录铸造被拒绝后的重试间隔（新 cookie 偶尔要等片刻才在服务端生效）。
+  @visibleForTesting
+  static Duration loginRetryDelay = const Duration(milliseconds: 800);
 }

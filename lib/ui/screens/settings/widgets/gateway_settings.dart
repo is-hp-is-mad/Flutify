@@ -6,9 +6,11 @@ import '../../../../providers/preferences_provider.dart';
 import '../../../../services/network/spotify_gateway.dart';
 import '../../../../services/network/network_proxy.dart';
 import 'settings_section.dart';
-import 'package:material_3_expressive/material_3_expressive.dart' show M3EButton, M3ESwitch;
 import '../../../widgets/flutify_dialog.dart';
 import '../../../widgets/flutify_progress.dart';
+import '../../../widgets/app_modal.dart';
+import '../../../widgets/app_switch.dart';
+import '../../../widgets/app_button.dart';
 
 class GatewaySettings extends StatelessWidget {
   final VoidCallback onChanged;
@@ -32,7 +34,7 @@ class GatewaySettings extends StatelessWidget {
                 : gateway.enabled
                 ? gateway.baseUrl
                 : l10n.settingsGatewayDescription,
-            trailing: Semantics(toggled: gateway.automatic ? (proxy?.gateway.enabled ?? false) : gateway.enabled, child: M3ESwitch(
+            trailing: Semantics(toggled: gateway.automatic ? (proxy?.gateway.enabled ?? false) : gateway.enabled, child: AppSwitch(
               value: gateway.automatic
                   ? (proxy?.gateway.enabled ?? false)
                   : gateway.enabled,
@@ -84,7 +86,7 @@ class GatewaySettings extends StatelessWidget {
   }
 
   Future<void> _edit(BuildContext context, SpotifyGateway gateway) async {
-    final result = await showDialog<SpotifyGateway>(
+    final result = await showAppDialog<SpotifyGateway>(
       context: context,
       builder: (_) => _GatewayDialog(gateway: gateway),
     );
@@ -198,11 +200,11 @@ class _GatewayDialogState extends State<_GatewayDialog> {
         ),
       )),
       actions: [
-        M3EButton.text(
+        AppButton.text(
           onPressed: () => Navigator.pop(context),
           child: Text(l10n.commonCancel),
         ),
-        M3EButton.filled(
+        AppButton.filled(
           onPressed: () {
             String countries;
             try {

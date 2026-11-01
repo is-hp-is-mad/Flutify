@@ -902,10 +902,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsGlassOpacity => 'Opacity';
 
   @override
-  String get settingsGlassMaterial => 'Glass material';
+  String get settingsGlassMaterial => 'Material';
 
   @override
-  String get settingsGlassMaterialLiquid => 'Faux liquid glass';
+  String get settingsGlassMaterialLiquid => 'MD3E';
 
   @override
   String get settingsGlassMaterialHyper => 'Soft-light glass (Beta)';
@@ -918,14 +918,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsHyperGlassNote =>
-      'Soft-light glass (Beta): menus, dialogs and the player glass now use it; the rest is still being ported. Shaders are compiled on every launch.';
-
-  @override
-  String get hyperGlassPreparingTitle => 'Preparing soft-light glass';
-
-  @override
-  String get hyperGlassPreparingBody =>
-      'Shaders are compiled before the first frame. This takes a few seconds and the window will not respond meanwhile.';
+      'Soft-light glass (Beta): menus, dialogs, bottom sheets, toasts, the bottom bar and the player use HyperOS materials. Shaders are compiled in the background after launch.';
 
   @override
   String get settingsTextShapeSection => 'Text & shape';
@@ -1463,6 +1456,53 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsVersion => 'Version';
+
+  @override
+  String get shortcutEditHint =>
+      'Click a shortcut to change it and press the new keys. Esc cancels, Backspace clears.';
+
+  @override
+  String get shortcutPressKeys => 'Press keys…';
+
+  @override
+  String get shortcutNone => 'Not set';
+
+  @override
+  String get shortcutNeedsModifier =>
+      'Must include Ctrl, Alt or Win, unless it is a function key (F1–F24).';
+
+  @override
+  String shortcutConflict(String action) {
+    return 'Already used by \"$action\".';
+  }
+
+  @override
+  String get shortcutGlobalSection => 'Global shortcuts';
+
+  @override
+  String get shortcutGlobalHint =>
+      'Control playback while the window is in the background.';
+
+  @override
+  String shortcutGlobalFailed(String actions) {
+    return 'Could not register these global shortcuts, another app may be using them: $actions';
+  }
+
+  @override
+  String get shortcutResetAll => 'Reset to defaults';
+
+  @override
+  String get settingsCloseToTray => 'Minimize to tray on close';
+
+  @override
+  String get settingsCloseToTraySubtitle =>
+      'Keep running in the system tray after closing the window, without stopping the music.';
+
+  @override
+  String get trayShow => 'Show Flutify';
+
+  @override
+  String get trayQuit => 'Quit';
 
   @override
   String get settingsShortcuts => 'Keyboard shortcuts';

@@ -2,18 +2,18 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:hyper_glass/hyper_glass.dart';
+import 'package:hyper_glass/hyper_ui.dart' show ArcMotion, menuRectFor;
 
 import '../../../core/theme/flutify_tokens.dart';
 import '../hyper_surface.dart';
 
-/// 柔光玻璃模式下的弹出菜单路由：澎湃 OS 4 的弹窗动画（与 hyper_glass 的 `MorphMenu` 同一套）。
+/// 柔光玻璃模式下的弹出菜单路由：miuix 下拉菜单的 `ArcAnimation`（与 hyper_glass 的 `ArcMenu` 同一套）。
 ///
-/// - 菜单的真实几何从锚点（按钮本身，右键时为指针处的小方块）弹簧变形到最终位置，
-///   不是缩放变换，所以混色模糊始终采样它下方的画面；
-/// - 几何与透明度各有一组展开 / 收起弹簧（`PopupMotion`），可以略微过冲；
-/// - 菜单项从锚点中心迸出、边飞边放大，收起时倒放回锚点；
-/// - 锚点与菜单在变形的前 15% 交叉淡入（`menuSwap`）。
+/// - 菜单从一条 5:1、宽为最终 69% 的横条展开，横条贴着菜单朝向锚点的一侧；
+/// - 尺寸和位置各走一组弹簧，收起时互换（`ArcMotion`）；透明度线性，进 50 ms、出 200 ms；
+/// - 内容按宽度等比缩放，不是逐项飞出；真实几何在变，混色模糊始终采样它下方的画面；
+/// - 上游收起时内容还会模糊到 30dp，这里不做：Skia 每种模糊强度都要现编译程序，
+///   动画里连续变化的 sigma 会让第一次关菜单卡顿。
 ///
 /// 菜单项仍是 [PopupMenuEntry]：点击时 `Navigator.pop(value)` 照常返回选中值。
 class HyperMenuRoute<T> extends PopupRoute<T> {
@@ -41,13 +41,13 @@ class HyperMenuRoute<T> extends PopupRoute<T> {
   @override
   String? get barrierLabel => 'Dismiss';
 
-  // 动画由 PopupMotion 的弹簧驱动；路由动画只用来知道何时开始收起，
-  // 收起弹簧（几何 0.28s、透明度 0.4s 响应）大约 450ms 后基本落定。
+  // 动画由 ArcMotion 驱动；路由动画只用来知道何时开始收起，
+  // 收起弹簧（位置 0.35s 响应）与淡出（200 ms）在 320 ms 内基本落定。
   @override
   Duration get transitionDuration => const Duration(milliseconds: 1);
 
   @override
-  Duration get reverseTransitionDuration => const Duration(milliseconds: 450);
+  Duration get reverseTransitionDuration => const Duration(milliseconds: 320);
 
   @override
   Widget buildPage(
@@ -75,15 +75,15 @@ class _HyperMenu<T> extends StatefulWidget {
 
 class _HyperMenuState<T> extends State<_HyperMenu<T>>
     with TickerProviderStateMixin {
-  late final PopupMotion _motion = PopupMotion(this);
+  late final ArcMotion _motion = ArcMotion(this);
 
   /// 菜单项实际排版后的总高度：[PopupMenuEntry.height] 只是声明值，桌面上
   /// 菜单项实际更高，按声明值算会让菜单底部被截掉。
   double? _measured;
 
-  /// 菜单项内容的水平中心（左内边距 16 + 图标 20 + 间距 12 + 约四个汉字），迸出起点对准它。
-  static const double _contentX = 72;
-  static const double _vPad = 6;
+  /// miuix_appcompat_drop_down_menu_padding_small
+  static const double _vPad = 11;
+  static const double _inset = 12;
 
   @override
   void initState() {
@@ -103,6 +103,23 @@ class _HyperMenuState<T> extends State<_HyperMenu<T>>
     super.dispose();
   }
 
+  /// PopupWindowStrategy.getYInWindowAlignTop：默认从锚点顶部向下展开；放不下时
+  /// 下方空间更大就贴底，否则整个放到锚点上方。
+  static Rect _place(Rect anchor, Size screen, double width, double height) {
+    final x = menuRectFor(anchor, screen, width, height, growUp: false).left;
+    final top = math.max(anchor.top, _inset);
+    final double y;
+    if (top + height < screen.height - _inset) {
+      y = top;
+    } else if (screen.height - anchor.top >= anchor.top) {
+      y = screen.height - _inset - height;
+    } else {
+      y = anchor.top - height;
+    }
+    final maxY = math.max(_inset, screen.height - _inset - height);
+    return Rect.fromLTWH(x, y.clamp(_inset, maxY), width, height);
+  }
+
   @override
   Widget build(BuildContext context) {
     final route = widget.route;
@@ -116,12 +133,11 @@ class _HyperMenuState<T> extends State<_HyperMenu<T>>
       builder: (context, box) {
         final screen = box.biggest;
         final anchor = route.anchor;
-        final menu = menuRectFor(
+        final menu = _place(
           anchor,
           screen,
-          math.min(route.width, screen.width - 24),
-          math.min(height, screen.height - 24),
-          growUp: anchor.center.dy > screen.height * 0.6,
+          math.min(route.width, screen.width - _inset * 2),
+          math.min(height, screen.height - _inset * 2),
         );
         return AnimatedBuilder(
           animation: _motion.listenable,
@@ -140,70 +156,52 @@ class _HyperMenuState<T> extends State<_HyperMenu<T>>
   }
 
   Widget _frame(BuildContext context, Rect anchor, Rect menu) {
-    final t = _motion.geometry.value;
-    final fade = _motion.fade.value;
-    // 真实几何插值（不是缩放），混色模糊始终采样当前覆盖的画面
-    final rect = Rect.lerp(anchor, menu, t)!;
-    final anchorRadius = math.min(anchor.shortestSide / 2, 24.0);
-    final finalRadius = context.tokens.corner(24);
-    final radius =
-        anchorRadius + (finalRadius - anchorRadius) * t.clamp(0.0, 1.0);
-    final q = math.max(0.0, t); // 1 为静止，过冲时略大于 1
-    final itemOpacity = ((fade - 0.2) / 0.8).clamp(0.0, 1.0);
-
-    var y = _vPad;
-    final children = <Widget>[];
-    for (final item in widget.route.items) {
-      final h = item.height;
-      // 从锚点中心到这一项内容中心的偏移：菜单项从这里飞出
-      final fromTap =
-          anchor.center - menu.topLeft - Offset(_contentX, y + h / 2);
-      children.add(
-        Opacity(
-          opacity: itemOpacity,
-          child: Transform.translate(
-            offset: fromTap * (1 - q).clamp(0.0, 1.0),
-            child: Transform.scale(
-              scale: 0.3 + 0.7 * q,
-              alignment: Alignment(_contentX / (menu.width / 2) - 1, 0),
-              child: item,
-            ),
-          ),
-        ),
-      );
-      y += h;
-    }
-
+    final frame = _motion.frame(
+      anchor,
+      menu,
+      endRadius: context.tokens.corner(24),
+    );
     return Stack(
       children: [
         Positioned.fromRect(
-          rect: rect,
+          rect: frame.rect,
           child: Opacity(
-            // 前 15% 与锚点交叉淡入；收起落定在 0 附近时完全透明
-            opacity: menuSwap(t),
+            // 不可见时也留在树里：要靠它量出菜单项的真实高度
+            opacity: frame.visible ? _motion.alpha.value : 0,
             child: HyperBlendSurface(
               material: HyperBlendSurface.menu(context),
-              borderRadius: BorderRadius.circular(radius),
-              // 菜单项按最终尺寸排好，由变形中的矩形逐步露出
-              child: ClipRect(
-                child: OverflowBox(
+              borderRadius: BorderRadius.circular(frame.radius),
+              bloom: HyperBlendSurface.menuBloom(context),
+              shadow: true,
+              // 菜单项按最终尺寸排好，随宽度等比缩放
+              child: OverflowBox(
+                alignment: Alignment.topLeft,
+                minWidth: menu.width,
+                maxWidth: menu.width,
+                minHeight: menu.height,
+                maxHeight: menu.height,
+                child: Transform.scale(
                   alignment: Alignment.topLeft,
-                  minWidth: menu.width,
-                  maxWidth: menu.width,
-                  minHeight: menu.height,
-                  maxHeight: menu.height,
-                  child: Transform.translate(
-                    offset: menu.topLeft - rect.topLeft,
-                    child: Material(
-                      type: MaterialType.transparency,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: _vPad),
+                  scale: frame.scale,
+                  child: Material(
+                    type: MaterialType.transparency,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: _vPad),
+                      // 与 showMenu 相同的语义：PopupMenuItem 要求父节点是 menu
+                      child: Semantics(
+                        scopesRoute: true,
+                        namesRoute: true,
+                        explicitChildNodes: true,
+                        role: SemanticsRole.menu,
+                        label: MaterialLocalizations.of(
+                          context,
+                        ).popupMenuLabel,
                         child: SingleChildScrollView(
                           child: _SizeReporter(
                             onHeight: _onContentHeight,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: children,
+                              children: widget.route.items,
                             ),
                           ),
                         ),

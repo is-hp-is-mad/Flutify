@@ -20,6 +20,8 @@ import '../../../widgets/toast/app_toast.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import '../../../widgets/flutify_dialog.dart';
 import '../../../widgets/flutify_progress.dart';
+import '../../../widgets/app_modal.dart';
+import '../../../widgets/app_button.dart';
 
 /// 存储：音频缓存占用、缓存上限、一键清除。
 ///
@@ -47,7 +49,7 @@ class _StorageSectionState extends State<StorageSection> {
     CacheCategory category,
   ) async {
     final l10n = context.l10n;
-    final result = await showDialog<CacheSelection>(
+    final result = await showAppDialog<CacheSelection>(
       context: context,
       builder: (_) => _LocationDialog(selection: location.selection(category)),
     );
@@ -81,17 +83,17 @@ class _StorageSectionState extends State<StorageSection> {
 
   Future<void> _clearAll(CacheLocation location) async {
     final l10n = context.l10n;
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAppDialog<bool>(
       context: context,
       builder: (dialogContext) => FlutifyDialog(
         title: l10n.settingsClearAllCache,
         content: Material(type: MaterialType.transparency, child: Text(l10n.settingsClearAllCacheHelp)),
         actions: [
-          M3EButton.text(
+          AppButton.text(
             onPressed: () => Navigator.pop(dialogContext, false),
             child: Text(l10n.commonCancel),
           ),
-          M3EButton.filled(
+          AppButton.filled(
             onPressed: () => Navigator.pop(dialogContext, true),
             child: Text(l10n.commonClear),
           ),
@@ -170,17 +172,17 @@ class _StorageSectionState extends State<StorageSection> {
 
   Future<void> _confirmClear() async {
     final l10n = context.l10n;
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAppDialog<bool>(
       context: context,
       builder: (dialogContext) => FlutifyDialog(
         title: l10n.settingsClearAudioCacheTitle,
         content: Material(type: MaterialType.transparency, child: Text(l10n.settingsClearAudioCacheMessage)),
         actions: [
-          M3EButton.text(
+          AppButton.text(
             onPressed: () => Navigator.pop(dialogContext, false),
             child: Text(l10n.commonCancel),
           ),
-          M3EButton.filled(
+          AppButton.filled(
             onPressed: () => Navigator.pop(dialogContext, true),
             child: Text(l10n.commonClear),
           ),
@@ -462,7 +464,7 @@ class _LocationDialogState extends State<_LocationDialog> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                M3EButton.icon(
+                AppButton.icon(
                       style: M3EButtonStyle.tonal,
                   onPressed: _picking ? null : _pickDirectory,
                   icon: const Icon(Icons.folder_open_rounded),
@@ -481,11 +483,11 @@ class _LocationDialogState extends State<_LocationDialog> {
         ),
       )),
       actions: [
-        M3EButton.text(
+        AppButton.text(
           onPressed: _picking ? null : () => Navigator.pop(context),
           child: Text(l10n.commonCancel),
         ),
-        M3EButton.filled(
+        AppButton.filled(
           onPressed:
               _picking ||
                   (_preset == CachePreset.custom &&

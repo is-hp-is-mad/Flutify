@@ -2,12 +2,14 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:hyper_glass/hyper_glass.dart';
+import 'package:hyper_glass/hyper_ui.dart'
+    show ArcMenu, ArcMotion, Hy, HyperMenuItem, HyperTheme, menuRectFor;
 
 import '../../../../core/theme/flutify_tokens.dart';
 import '../../../../l10n/l10n.dart';
 
 /// 柔光玻璃（Beta）实时预览：缓慢漂移的彩色光斑上，左边一块柔光玻璃卡片，
-/// 右边一枚混色模糊按钮；点按钮会像 HyperOS 那样从按钮本身变形展开菜单。
+/// 右边一枚混色模糊按钮；点按钮弹出 HyperOS 下拉菜单（`ArcMenu`）。
 ///
 /// 光斑颜色取当前强调色及其邻近色相，底色和菜单材质跟随深浅色；
 /// 省电模式 / 减弱动效时光斑静止，玻璃也不再逐帧刷新。
@@ -26,13 +28,12 @@ class _HyperGlassPreviewState extends State<HyperGlassPreview>
     vsync: this,
     duration: const Duration(seconds: 14),
   );
-  late final PopupMotion _menu = PopupMotion(this);
+  late final ArcMotion _menu = ArcMotion(this);
   final _buttonKey = GlobalKey();
   final _stackKey = GlobalKey();
   int _selected = 0;
 
   static const double _menuWidth = 180;
-  static const double _itemHeight = 48;
 
   @override
   void didChangeDependencies() {
@@ -52,7 +53,7 @@ class _HyperGlassPreviewState extends State<HyperGlassPreview>
     super.dispose();
   }
 
-  /// 按钮在预览坐标系里的位置（菜单从这里变形出来）。
+  /// 按钮在预览坐标系里的位置（菜单的锚点）。
   Rect? _anchor() {
     final button = _buttonKey.currentContext?.findRenderObject();
     final stack = _stackKey.currentContext?.findRenderObject();
@@ -112,7 +113,6 @@ class _HyperGlassPreviewState extends State<HyperGlassPreview>
               animation: _menu.listenable,
               builder: (context, _) {
                 final anchor = _anchor();
-                final swap = menuSwap(_menu.geometry.value);
                 return HyperGlassScene(
                   animate: _drift.isAnimating || _menu.active,
                   background: background,
@@ -126,6 +126,9 @@ class _HyperGlassPreviewState extends State<HyperGlassPreview>
                         height: 120,
                         child: HyperGlass(
                           borderRadius: tokens.corner(24),
+                          bloom: dark
+                              ? BloomTokens.strokeMiddleDark
+                              : BloomTokens.strokeMiddleLight,
                           child: Padding(
                             padding: const EdgeInsets.all(16),
                             child: Column(
@@ -155,46 +158,51 @@ class _HyperGlassPreviewState extends State<HyperGlassPreview>
                         top: 24,
                         child: IgnorePointer(
                           ignoring: _menu.open,
-                          child: Opacity(
-                            opacity: 1 - swap,
-                            child: _BlurButton(
-                              key: _buttonKey,
-                              dark: dark,
-                              label: l10n.settingsHyperBlurPreview,
-                              onTap: () => _toggleMenu(true),
-                            ),
+                          child: _BlurButton(
+                            key: _buttonKey,
+                            dark: dark,
+                            label: l10n.settingsHyperBlurPreview,
+                            onTap: () => _toggleMenu(true),
                           ),
                         ),
                       ),
                       if (anchor != null)
                         Positioned.fill(
-                          child: MorphMenu(
-                            motion: _menu,
-                            anchor: anchor,
-                            menu: menuRectFor(
-                              anchor,
-                              size,
-                              _menuWidth,
-                              _itemHeight * menuItems.length + 16,
-                              growUp: false,
+                          // ArcMenu 的深浅取自 Theme：跟着预览自身的深浅走
+                          child: Theme(
+                            data: Theme.of(context).copyWith(
+                              brightness: dark
+                                  ? Brightness.dark
+                                  : Brightness.light,
                             ),
-                            dark: dark,
-                            anchorRadius: anchor.height / 2,
-                            itemHeight: _itemHeight,
-                            onDismiss: () => _toggleMenu(false),
-                            items: [
-                              for (final (i, (icon, label))
-                                  in menuItems.indexed)
-                                MorphMenuItem(
-                                  label,
-                                  () {
-                                    setState(() => _selected = i);
-                                    _toggleMenu(false);
-                                  },
-                                  icon: icon,
-                                  selected: i == _selected,
+                            child: HyperTheme(
+                              primary: tokens.accent,
+                              child: ArcMenu(
+                                motion: _menu,
+                                anchor: anchor,
+                                menu: menuRectFor(
+                                  anchor,
+                                  size,
+                                  _menuWidth,
+                                  ArcMenu.heightFor(menuItems.length),
+                                  growUp: false,
                                 ),
-                            ],
+                                onDismiss: () => _toggleMenu(false),
+                                items: [
+                                  for (final (i, (icon, label))
+                                      in menuItems.indexed)
+                                    HyperMenuItem(
+                                      label,
+                                      () {
+                                        setState(() => _selected = i);
+                                        _toggleMenu(false);
+                                      },
+                                      icon: icon,
+                                      selected: i == _selected,
+                                    ),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
                     ],
@@ -209,7 +217,7 @@ class _HyperGlassPreviewState extends State<HyperGlassPreview>
   }
 }
 
-/// 混色模糊材质的胶囊按钮（HyperOS 弹出菜单的锚点）。
+/// 浮动控件材质（thin glass）的胶囊按钮（HyperOS 弹出菜单的锚点）。
 class _BlurButton extends StatelessWidget {
   final bool dark;
   final String label;
@@ -229,15 +237,14 @@ class _BlurButton extends StatelessWidget {
         : Colors.black.withValues(alpha: 0.9);
     return SizedBox(
       height: 44,
-      child: HyperBlendBlur(
-        material: dark
-            ? BlendMaterial.popupMenuDark
-            : BlendMaterial.popupMenuLight,
-        borderRadius: 22,
-        // HyperBlendBlur 内部是 Stack，非定位子项只拿到宽松约束、贴左上；
-        // 这里再给一次 44 高，文字才会垂直居中，悬停水波纹也才铺满整颗按钮
-        child: SizedBox(
-          height: 44,
+      child: ViewShadow(
+        radius: 22,
+        child: HyperBlendBlur(
+          material: Hy.thinGlass(dark),
+          borderRadius: 22,
+          bloom: dark
+              ? BloomTokens.strokeMiddleDark
+              : BloomTokens.strokeMiddleLight,
           child: Material(
             type: MaterialType.transparency,
             child: InkWell(

@@ -23,7 +23,8 @@ class BlendLayer {
 
 /// HyperOS "blendBlur" material: Gaussian blur of the backdrop, then [layers] composited in order.
 ///
-/// [sigma] is the blur sigma in logical pixels, as the `hyperos` package passes it to the engine.
+/// [sigma] is what the `hyperos` package and miuix's setMaskBlur both pass on, in logical pixels. Despite the
+/// Dart API's name it is an LM blur radius; see [HyperGlassScene]'s blurredFor.
 class BlendMaterial {
   const BlendMaterial({required this.sigma, required this.layers, required this.fallback});
 

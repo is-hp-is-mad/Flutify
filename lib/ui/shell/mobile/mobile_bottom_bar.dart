@@ -1,9 +1,12 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:hyper_glass/hyper_ui.dart'
+    show HyperBottomBar, HyperBottomBarItem;
 
 import '../../../core/theme/flutify_tokens.dart';
 import '../../../l10n/l10n.dart';
+import '../../widgets/hyper_surface.dart';
 import '../../widgets/mini_player.dart';
 import '../desktop/desktop_window.dart';
 
@@ -78,6 +81,46 @@ class _GlassNavigationPill extends StatelessWidget {
             .round();
     final sigma = tokens.glassSigma * 0.8;
     final bottomSafe = MediaQuery.paddingOf(context).bottom;
+
+    if (tokens.hyperMaterial) {
+      // miuix BottomNavigator：高 56、最宽 344，选中项是一枚弹簧胶囊，不靠颜色区分
+      return Padding(
+        padding: EdgeInsets.fromLTRB(24, 0, 24, bottomSafe + 12),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 344, maxHeight: 56),
+            child: HyperBottomBar(
+              index: selectedIndex,
+              onChanged: onSelected,
+              surface: (child) => HyperBlendSurface(
+                material: HyperBlendSurface.bar(context),
+                borderRadius: BorderRadius.circular(28),
+                bloom: HyperBlendSurface.barBloom(context),
+                shadow: true,
+                child: child,
+              ),
+              items: [
+                HyperBottomBarItem(
+                  l10n.navHome,
+                  Icons.home_outlined,
+                  Icons.home_filled,
+                ),
+                HyperBottomBarItem(
+                  l10n.navSearch,
+                  Icons.search_rounded,
+                  Icons.search_rounded,
+                ),
+                HyperBottomBarItem(
+                  l10n.navLibrary,
+                  Icons.library_music_outlined,
+                  Icons.library_music_rounded,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     final nav = NavigationBar(
       height: 64,

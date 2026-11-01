@@ -869,10 +869,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsGlassOpacity => '不透明度';
 
   @override
-  String get settingsGlassMaterial => 'ガラスの質感';
+  String get settingsGlassMaterial => 'マテリアル';
 
   @override
-  String get settingsGlassMaterialLiquid => '疑似リキッドガラス';
+  String get settingsGlassMaterialLiquid => 'MD3E';
 
   @override
   String get settingsGlassMaterialHyper => 'ソフトライトガラス（Beta）';
@@ -885,14 +885,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsHyperGlassNote =>
-      'ソフトライトガラス（ベータ）：メニュー・ダイアログ・プレーヤーのガラスは置き換え済みで、残りは移植中です。起動のたびにシェーダーをコンパイルします。';
-
-  @override
-  String get hyperGlassPreparingTitle => 'ソフトライトガラスを準備中';
-
-  @override
-  String get hyperGlassPreparingBody =>
-      '最初の描画前にシェーダーをコンパイルします。数秒かかり、その間ウィンドウは応答しません。';
+      'ソフトライトガラス（ベータ）：メニュー、ダイアログ、ボトムシート、通知、ボトムバー、プレーヤーに HyperOS の質感を使います。シェーダーは起動後にバックグラウンドでコンパイルします。';
 
   @override
   String get settingsTextShapeSection => '文字と形';
@@ -1404,6 +1397,51 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsVersion => 'バージョン';
+
+  @override
+  String get shortcutEditHint =>
+      'キーをクリックして変更し、新しい組み合わせを押します。Esc で取り消し、Backspace で解除。';
+
+  @override
+  String get shortcutPressKeys => 'キーを押してください…';
+
+  @override
+  String get shortcutNone => '未設定';
+
+  @override
+  String get shortcutNeedsModifier => 'Ctrl、Alt、Win のいずれかが必要です（F1～F24 を除く）。';
+
+  @override
+  String shortcutConflict(String action) {
+    return '「$action」で使用中です。';
+  }
+
+  @override
+  String get shortcutGlobalSection => 'グローバルショートカット';
+
+  @override
+  String get shortcutGlobalHint => 'ウィンドウがバックグラウンドでも再生を操作できます。';
+
+  @override
+  String shortcutGlobalFailed(String actions) {
+    return '次のグローバルショートカットを登録できません。他のアプリが使用中の可能性があります：$actions';
+  }
+
+  @override
+  String get shortcutResetAll => '既定に戻す';
+
+  @override
+  String get settingsCloseToTray => '閉じるときにトレイへ最小化';
+
+  @override
+  String get settingsCloseToTraySubtitle =>
+      'ウィンドウを閉じてもシステムトレイで動作を続け、音楽は止まりません。';
+
+  @override
+  String get trayShow => 'Flutify を表示';
+
+  @override
+  String get trayQuit => '終了';
 
   @override
   String get settingsShortcuts => 'キーボードショートカット';

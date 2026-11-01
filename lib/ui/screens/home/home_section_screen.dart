@@ -9,6 +9,8 @@ import '../../shell/shell_breakpoints.dart';
 import '../../widgets/content_bottom_spacer.dart';
 import '../../widgets/expressive_card.dart';
 import 'widgets/home_item_card.dart';
+import '../../../core/theme/flutify_tokens.dart';
+import '../../widgets/hyper_surface.dart';
 
 /// 主页分区的「显示全部」：网格展示该分区的全部条目。
 ///
@@ -56,6 +58,12 @@ class _HomeSectionScreenState extends State<HomeSectionScreen> {
         slivers: [
           SliverAppBar(
             pinned: true,
+            backgroundColor: context.tokens.hyperMaterial
+                ? Colors.transparent
+                : null,
+            flexibleSpace: context.tokens.hyperMaterial
+                ? const HyperAppBarBackground()
+                : null,
             title: Text(
               _section.title,
               style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),

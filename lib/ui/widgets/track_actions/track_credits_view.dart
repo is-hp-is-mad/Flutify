@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:provider/provider.dart';
 
 import '../../../l10n/l10n.dart';
@@ -9,6 +8,9 @@ import '../../../models/track_credits.dart';
 import '../../../services/spotify_api_service.dart';
 import '../../navigation/app_routes.dart';
 import '../../shell/shell_breakpoints.dart';
+import '../app_modal.dart';
+import '../app_button.dart';
+import '../flutify_progress.dart';
 
 /// 「查看制作人员」：按角色分组列出参与者（表演者、作曲和作词、制作兼工程…）与版权来源。
 ///
@@ -25,16 +27,15 @@ class TrackCreditsView extends StatefulWidget {
   static Future<void> show(BuildContext context, SpotifyTrack track) {
     final view = TrackCreditsView(track: track, hostContext: context);
     if (ShellBreakpoints.isDesktop(MediaQuery.sizeOf(context).width)) {
-      return showDialog(
+      return showAppDialog(
         context: context,
-        builder: (_) => Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-          clipBehavior: Clip.antiAlias,
+        builder: (_) => AppDialog(
+          borderRadius: BorderRadius.circular(28),
           child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 480, maxHeight: 640), child: view),
         ),
       );
     }
-    return showModalBottomSheet(
+    return showAppBottomSheet(
       context: context,
       useRootNavigator: true,
       isScrollControlled: true,
@@ -110,13 +111,13 @@ class _TrackCreditsViewState extends State<TrackCreditsView> {
               if (snapshot.connectionState != ConnectionState.done) {
                 return const Padding(
                   padding: EdgeInsets.symmetric(vertical: 48),
-                  child: Center(child: M3ELoadingIndicator()),
+                  child: Center(child: const FlutifyLoadingIndicator()),
                 );
               }
               if (snapshot.hasError) {
                 return _Message(
                   text: snapshot.error.toString(),
-                  action: M3EButton.text(onPressed: _retry, child: Text(l10n.commonRetry)),
+                  action: AppButton.text(onPressed: _retry, child: Text(l10n.commonRetry)),
                 );
               }
               final credits = snapshot.data!;

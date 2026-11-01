@@ -19,6 +19,7 @@ import '../../widgets/connect/connect_actions.dart';
 import '../../widgets/connect/connect_device_icon.dart';
 import '../../widgets/connect/equalizer_bars.dart';
 import '../../widgets/flutify_progress.dart';
+import '../../widgets/app_modal.dart';
 
 /// 「连接到设备」面板（Spotify Connect 遥控）。
 ///
@@ -36,24 +37,23 @@ class DevicePickerSheet extends StatelessWidget {
     context.read<ConnectProvider?>()?.refresh();
     if (ShellBreakpoints.isDesktop(MediaQuery.sizeOf(context).width)) {
       final tokens = context.tokens;
-      return showDialog<void>(
+      return showAppDialog<void>(
         context: context,
         useRootNavigator: true,
         barrierColor: Colors.black26,
-        builder: (dialogContext) => Dialog(
+        builder: (dialogContext) => AppDialog(
           alignment: Alignment.bottomRight,
           // 贴在播放栏（90）之上、右侧留白与播放栏内边距一致
           insetPadding: const EdgeInsets.fromLTRB(24, 24, 16, 100),
           backgroundColor: Theme.of(
             dialogContext,
           ).colorScheme.surfaceContainerHigh,
-          shape: RoundedRectangleBorder(borderRadius: tokens.radius(24)),
-          clipBehavior: Clip.antiAlias,
+          borderRadius: tokens.radius(24),
           child: const SizedBox(width: panelWidth, child: DevicePickerSheet()),
         ),
       );
     }
-    return showModalBottomSheet<void>(
+    return showAppBottomSheet<void>(
       context: context,
       useRootNavigator: true,
       showDragHandle: true,

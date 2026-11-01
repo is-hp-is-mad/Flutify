@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hyper_glass/hyper_ui.dart' show HySegmented;
 
 import '../../../../core/theme/flutify_tokens.dart';
 
@@ -29,6 +30,13 @@ class SettingsSegmented<T> extends StatelessWidget {
     final tokens = context.tokens;
     final isDark = theme.brightness == Brightness.dark;
     final index = values.indexOf(selected).clamp(0, values.length - 1);
+    if (tokens.hyperMaterial) {
+      return HySegmented(
+        items: [for (final value in values) labelOf(value)],
+        index: index,
+        onChanged: (i) => onChanged(values[i]),
+      );
+    }
     // 滑块圆角比轨道小一圈 inset，两者保持同心
     final trackRadius = tokens.corner(10);
     final thumbRadius = (trackRadius - _inset).clamp(2.0, 100.0);

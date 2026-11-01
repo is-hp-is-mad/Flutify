@@ -23,6 +23,8 @@ import '../../widgets/track_tile.dart';
 import 'widgets/collection_hero.dart';
 import 'widgets/collection_widgets.dart';
 import 'widgets/artist_catalog_widgets.dart';
+import '../../widgets/app_button.dart';
+import '../../widgets/flutify_progress.dart';
 
 /// 艺人主页：热门曲目、关注、作品集（Discography）。
 class ArtistDetailScreen extends StatefulWidget {
@@ -208,7 +210,7 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
                           if (snap.connectionState != ConnectionState.done)
                             const Padding(
                               padding: EdgeInsets.all(24),
-                              child: Center(child: M3ELoadingIndicator()),
+                              child: Center(child: const FlutifyLoadingIndicator()),
                             )
                           else if (snap.hasError)
                             EmptyState(
@@ -270,7 +272,7 @@ class _FollowButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return M3EButton.outlined(
+    return AppButton.outlined(
       onPressed: onPressed,
       decoration: M3EButtonDecoration(
         side: WidgetStatePropertyAll(

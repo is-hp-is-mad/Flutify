@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:async';
 import 'dart:io';
 
@@ -100,6 +101,18 @@ import 'services/lyric_bridge/lyric_bridge_channel.dart';
 import 'services/lyric_bridge/lyric_metadata_controls.dart';
 import 'ui/widgets/hyper_surface.dart';
 import 'ui/widgets/update_prompt.dart';
+import 'core/theme/md3e_theme.dart';
+import 'ui/widgets/hyper_icons.dart';
+
+bool _savedHyperMaterial(StorageService storage) {
+  try {
+    final json = jsonDecode(storage.appearanceJson);
+    return json is Map<String, dynamic> &&
+        AppearanceSettings.fromJson(json).glassMaterial == GlassMaterial.hyper;
+  } catch (_) {
+    return false; // 没有保存过，或内容损坏
+  }
+}
 
 Future<void> main() async {
   // 必须先于任何其他 binding 创建：帧率上限在帧调度入口生效
@@ -134,6 +147,8 @@ Future<Widget> _initializeApp(ValueChanged<String> reportStage) async {
   // Initialize Core Services
   reportStage('读取设置');
   final storageService = await StorageService.init();
+  // 柔光玻璃的图标要在第一帧之前就位，否则启动时先闪一下 Material 图标
+  if (_savedHyperMaterial(storageService)) await HyperIcons.ensure();
   storageService.clearWebViewCookies = EmePlayer.clearSessionCookies;
   try {
     await storageService.retryCookieCleanup();
@@ -884,6 +899,9 @@ class _ThemedApp extends StatelessWidget {
       title: 'Flutify',
       debugShowCheckedModeBanner: false,
       showPerformanceOverlay: PerfFlags.overlay,
+      scrollBehavior: settings.glassMaterial == GlassMaterial.hyper
+          ? const HyperScrollBehavior()
+          : const MaterialScrollBehavior(),
       // 默认简体中文，可在设置里改为跟随系统 / English；系统组件文案由 Global*Localizations 提供
       locale: AppLocale.localeFor(language),
       supportedLocales: AppLocale.supportedLocales,

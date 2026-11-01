@@ -1,11 +1,13 @@
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:flutter/material.dart';
+import 'package:hyper_glass/hyper_ui.dart' show HySegmented;
 
 import '../../../core/theme/flutify_tokens.dart';
 import '../../../l10n/l10n.dart';
 import '../../../models/share_target.dart';
 import 'copied_flash.dart';
 import 'embed_web_view.dart';
+import '../app_button.dart';
 
 /// 分享面板的「嵌入代码」区：尺寸 / 主题选项 → 真实嵌入播放器（WebView）→ iframe 代码 → 复制按钮。
 ///
@@ -49,22 +51,36 @@ class _EmbedCodePanelState extends State<EmbedCodePanel> with CopiedFlash {
           runSpacing: 8,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            SegmentedButton<EmbedSize>(
-              showSelectedIcon: false,
-              segments: [
-                ButtonSegment(
-                  value: EmbedSize.standard,
-                  label: Text(l10n.shareEmbedStandard),
+            if (tokens.hyperMaterial)
+              SizedBox(
+                width: 220,
+                child: HySegmented(
+                  items: [l10n.shareEmbedStandard, l10n.shareEmbedCompact],
+                  index: _size == EmbedSize.standard ? 0 : 1,
+                  onChanged: (i) => setState(
+                    () => _size = i == 0
+                        ? EmbedSize.standard
+                        : EmbedSize.compact,
+                  ),
                 ),
-                ButtonSegment(
-                  value: EmbedSize.compact,
-                  label: Text(l10n.shareEmbedCompact),
-                ),
-              ],
-              selected: {_size},
-              onSelectionChanged: (value) =>
-                  setState(() => _size = value.first),
-            ),
+              )
+            else
+              SegmentedButton<EmbedSize>(
+                showSelectedIcon: false,
+                segments: [
+                  ButtonSegment(
+                    value: EmbedSize.standard,
+                    label: Text(l10n.shareEmbedStandard),
+                  ),
+                  ButtonSegment(
+                    value: EmbedSize.compact,
+                    label: Text(l10n.shareEmbedCompact),
+                  ),
+                ],
+                selected: {_size},
+                onSelectionChanged: (value) =>
+                    setState(() => _size = value.first),
+              ),
             FilterChip(
               label: Text(l10n.shareEmbedDark),
               mouseCursor: SystemMouseCursors.click,
@@ -113,7 +129,7 @@ class _EmbedCodePanelState extends State<EmbedCodePanel> with CopiedFlash {
         const SizedBox(height: 12),
         Align(
           alignment: AlignmentDirectional.centerEnd,
-          child: M3EButton.icon(
+          child: AppButton.icon(
             decoration: M3EButtonDecoration(
               backgroundColor: WidgetStatePropertyAll(tokens.accent),
               foregroundColor: WidgetStatePropertyAll(tokens.onAccent),

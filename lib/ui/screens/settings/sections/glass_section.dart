@@ -10,9 +10,9 @@ import '../widgets/settings_section.dart';
 import '../widgets/settings_segmented.dart';
 import '../widgets/settings_slider_tile.dart';
 
-/// 材质：在「伪液态玻璃」和「柔光玻璃（Beta）」之间切换，各自有不同的预览和选项。
+/// 材质：在「MD3E」和「柔光玻璃（Beta）」之间切换，各自有不同的预览和选项。
 ///
-/// 伪液态玻璃：实时预览 + 模糊强度 + 不透明度；拖动滑杆时只把草稿值交给预览（局部重绘），
+/// MD3E：实时预览 + 模糊强度 + 不透明度；拖动滑杆时只把草稿值交给预览（局部重绘），
 /// 松手才写入全局外观。柔光玻璃：动态预览（玻璃卡片 + 可展开的模糊菜单），选项待定。
 class GlassSection extends StatefulWidget {
   const GlassSection({super.key});

@@ -14,6 +14,7 @@ import '../../widgets/menu/desktop_menu.dart';
 import '../panel_surface.dart';
 import 'library_sidebar_entry.dart';
 import 'library_sidebar_item.dart';
+import '../../widgets/app_button.dart';
 
 /// 桌面端左栏「音乐库」。
 ///
@@ -436,7 +437,7 @@ class _SignInCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            M3EButton.filled(
+            AppButton.filled(
               onPressed: () => LoginScreen.open(context),
               decoration: M3EButtonDecoration(
                 backgroundColor: WidgetStatePropertyAll(colorScheme.onSurface),

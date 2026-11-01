@@ -11,6 +11,57 @@ typedef _Up = MiLmUpsampleTintLayout;
 typedef _Gl = MiGlassV13F16Layout;
 
 /// Pre-tinted refract texture: colour in [rgb], the engine's alpha channel in [a] (red).
+/// Parameters of libhwui's press light. The formula is the system's; the values are tuned by eye
+/// (MiuiHome's `PressLightManager` reads them from native code).
+class PressLight {
+  const PressLight({
+    this.color = const ui.Color(0xffffffff),
+    this.size = 180,
+    this.fall = 3.2,
+    this.strength = 0.42,
+    this.peak = 0.1,
+    this.ring1 = 0.12,
+    this.ring2 = 0.07,
+  });
+  final ui.Color color;
+
+  /// Diameter in logical px.
+  final double size;
+  final double fall, strength, peak, ring1, ring2;
+}
+
+/// Parameters of libhwui's bloom stroke; the defaults are `BloomStrokeToken.Glass_Stroke_Middle_Light`.
+class BloomStroke {
+  const BloomStroke({
+    this.width = 0.8,
+    this.color = const ui.Color(0x1affffff),
+    this.innerBlur = 1.2,
+    this.lightDir1 = const [0.2, 0.5, 0.0],
+    this.lightDir2 = const [0.7, 0.8, 0.0],
+    this.lightColor1 = const ui.Color(0x80ffffff),
+    this.lightColor2 = const ui.Color(0x4dffffff),
+    this.strokeFade = false,
+  });
+
+  /// width, gradient degree, colour rgba, normal width, light 1 xyz rgba, light 2 xyz rgba.
+  factory BloomStroke.token(List<double> a) => BloomStroke(
+    width: a[0],
+    color: ui.Color.from(alpha: a[5], red: a[2], green: a[3], blue: a[4]),
+    innerBlur: a[6],
+    lightDir1: a.sublist(7, 10),
+    lightColor1: ui.Color.from(alpha: a[13], red: a[10], green: a[11], blue: a[12]),
+    lightDir2: a.sublist(14, 17),
+    lightColor2: ui.Color.from(alpha: a[20], red: a[17], green: a[18], blue: a[19]),
+  );
+
+  final double width, innerBlur;
+
+  /// The stroke follows libhwui's getStroke() gradient: top and bottom rim only.
+  final bool strokeFade;
+  final ui.Color color, lightColor1, lightColor2;
+  final List<double> lightDir1, lightDir2;
+}
+
 typedef RefractTexture = ({ui.Image rgb, ui.Image? a});
 typedef _TintSlots = ({
   int enabled,
@@ -59,33 +110,37 @@ const _TintSlots _glTint = (
 );
 typedef _Sdf = ({ui.Image a, ui.Image b, double range});
 
+/// Where this package's shaders are bundled in the host app.
+const shaderRoot = 'packages/hyper_glass/';
+
 /// Dart translation of `miglass::Renderer` (port/src/hyper_glass.cpp): the engine's
 /// AcquireGlassBlurTextures / ExecuteLMGaussianBlur / GetOrCreateSdfTexture / MiGlassContents::Render
 /// expressed as offscreen FragmentShader passes. Every image is in physical pixels.
-/// Shaders ship inside this package, so their asset keys carry the package prefix.
-const _assetPrefix = 'packages/hyper_glass/';
-
 class HyperGlassRenderer {
-  HyperGlassRenderer._(this._sdf, this._glass, this._blur, this._down, this._up, this._blend);
+  HyperGlassRenderer._(this._sdf, this._glass, this._blur, this._down, this._up, this._blend, this._press, this._bloom);
 
-  final ui.FragmentProgram _sdf, _glass, _blur, _down, _up, _blend;
+  final ui.FragmentProgram _sdf, _glass, _blur, _down, _up, _blend, _press, _bloom;
 
   static Future<List<ui.FragmentProgram>>? _programs;
   static Future<HyperGlassRenderer>? _sharedFuture;
   static HyperGlassRenderer? _ready;
 
-  /// Process-wide renderer (programs warmed up, SDF cache kept) shared by every scene, so opening a
-  /// scene neither recompiles nor rebuilds SDFs; null until [shared] has completed once.
+  /// Process-wide renderer (programs warmed up, SDF cache kept) shared by every scene, so a scene built
+  /// mid-frame can paint in that frame and opening one neither recompiles nor rebuilds SDFs; null until
+  /// [shared] has completed once.
   static HyperGlassRenderer? get ready => _ready;
 
   /// Loads (once) and returns the process-wide renderer; never dispose it.
   static Future<HyperGlassRenderer> shared() => _sharedFuture ??= load().then((r) => _ready = r);
 
+  /// Timing lines go through [debugPrint] (Flutify mirrors it into its log file).
+  static void _log(String message) => debugPrint('[hyper_glass] $message');
+
   /// Loads the programs once per process and warms them up, so the first glass / menu frame does not
   /// stall on GPU pipeline compilation (Skia compiles a runtime effect on its first draw).
   static Future<HyperGlassRenderer> load() async {
     final p = await (_programs ??= _loadPrograms());
-    return HyperGlassRenderer._(p[0], p[1], p[2], p[3], p[4], p[5]);
+    return HyperGlassRenderer._(p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]);
   }
 
   static Future<List<ui.FragmentProgram>> _loadPrograms() async {
@@ -98,17 +153,18 @@ class HyperGlassRenderer {
       MiLmDownsampleLayout.asset,
       MiLmUpsampleTintLayout.asset,
       'shaders/mi_blend_blur.frag',
+      'shaders/mi_press_light.frag',
+      'shaders/mi_bloom_stroke.frag',
     ]) {
       final clock = Stopwatch()..start();
-      p.add(await ui.FragmentProgram.fromAsset('$_assetPrefix$asset'));
+      p.add(await ui.FragmentProgram.fromAsset('$shaderRoot$asset'));
       _log('载入 $asset：${clock.elapsedMilliseconds} ms');
     }
-    await HyperGlassRenderer._(p[0], p[1], p[2], p[3], p[4], p[5])._warmUp();
+    final clock = Stopwatch()..start();
+    await HyperGlassRenderer._(p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7])._warmUp();
+    _log('离屏预热：${clock.elapsedMilliseconds} ms');
     return p;
   }
-
-  /// Timing lines go through [debugPrint] (Flutify mirrors it into its log file).
-  static void _log(String message) => debugPrint('[hyper_glass] $message');
 
   Future<void> _warmUp() async {
     final rec = ui.PictureRecorder();
@@ -117,49 +173,65 @@ class HyperGlassRenderer {
     final src = pic.toImageSync(128, 128);
     pic.dispose();
     const g = GlassFilter();
-    // Each stage is read back before the next one starts, so its time is the first GPU compile of
-    // the programs it uses (plus a tiny 128 px render).
-    Future<T> stage<T>(String name, T Function() run, ui.Image Function(T) image) async {
-      final clock = Stopwatch()..start();
-      final result = run();
-      await image(result).toByteData();
-      _log('预热 $name：${clock.elapsedMilliseconds} ms');
-      return result;
-    }
-
-    // Skia (Windows / Linux) with a fusable filter draws the glass straight from the backdrop and blurs
-    // menus with Skia's own blur, so the LM down / blur / upsample programs are never used there:
-    // warming them only adds GPU compile time. They still compile lazily if a non-fused glass shows up.
-    final fused = !ui.ImageFilter.isShaderFilterSupported && fusedRefractKernel(g) != null;
-    final lm = fused ? null : await stage('LM 模糊（下采样 / 模糊 / 上采样）', () => lmGaussianBlur(src, 60), (i) => i);
-    final refract = fused ? null : await stage('折射纹理（上采样着色）', () => refractTexture(src, g), (r) => r.rgb);
-    final glass = await stage(
-      fused ? '融合玻璃（SDF + MiGlassV13）' : '玻璃（SDF + MiGlassV13）',
-      () => fused ? _drawShader(fusedGlassShader(g, src, ui.Offset.zero, 96, 96, 24)!, 96, 96) : drawGlass(g, refract!, ui.Offset.zero, 96, 96, 24),
-      (i) => i,
-    );
-    final blurred = await stage('高斯模糊', () => gaussianBlur(src, 20), (i) => i);
-    final blend = await stage(
-      '混色模糊',
-      () => drawBlend(BlendMaterial.popupMenuLight, blurred, const ui.Size(128, 128), ui.Offset.zero, 64, 64, 16),
-      (i) => i,
-    );
-    for (final i in [src, lm, refract?.rgb, refract?.a, glass, blurred, blend]) {
-      i?.dispose();
+    final blurred = gaussianBlur(src, 20);
+    if (ui.ImageFilter.isShaderFilterSupported) {
+      // Impeller runs the engine's full pass chain.
+      final refract = refractTexture(src, g);
+      final outputs = [
+        lmGaussianBlur(src, 60), // downsample path
+        drawGlass(g, refract, ui.Offset.zero, 96, 96, 24),
+        drawBlend(BlendMaterial.popupMenuLight, blurred, const ui.Size(128, 128), ui.Offset.zero, 64, 64, 16),
+      ];
+      // reading back forces every pass in the chain to be rasterized now
+      for (final o in outputs) {
+        await o.toByteData();
+        o.dispose();
+      }
+      for (final i in [src, refract.rgb, refract.a, blurred]) {
+        i?.dispose();
+      }
+    } else {
+      // Skia uses the SDF pass and the blur offscreen. Its glass and blend shaders are drawn to the screen,
+      // a different GPU pipeline, so warming them offscreen would just compile them twice; [warmOnscreen]
+      // does it inside the first frame instead. A fusable filter never runs the LM down / blur / upsample
+      // programs, so they are left to compile lazily if a non-fused glass ever shows up.
+      final fused = canFuse(g);
+      final refract = fused ? null : refractTexture(src, g);
+      final wide = fused ? null : lmGaussianBlur(src, 60); // downsample path
+      for (final o in [blurred, ?refract?.rgb, ?wide, _sdfTexture(96, 96, 24, g.edgePx, g.edgePow).a]) {
+        await o.toByteData();
+      }
+      for (final i in [blurred, refract?.rgb, refract?.a, wide]) {
+        i?.dispose();
+      }
+      _warmImage = src;
     }
     dispose();
   }
 
-  /// Draws [s] over a [w]x[h] rect with the default (srcOver) blend, as the fused glass is drawn on
-  /// screen, so warm-up compiles the same pipeline.
-  static ui.Image _drawShader(ui.FragmentShader s, int w, int h) {
-    final rec = ui.PictureRecorder();
-    ui.Canvas(rec).drawRect(ui.Rect.fromLTWH(0, 0, w.toDouble(), h.toDouble()), ui.Paint()..shader = s);
-    final pic = rec.endRecording();
-    final img = pic.toImageSync(w, h);
-    pic.dispose();
-    s.dispose();
-    return img;
+  static ui.Image? _warmImage;
+  static final _warmShaders = <ui.FragmentShader>[];
+
+  /// Skia: draws the glass and blend shaders once, invisibly, into the frame being recorded, so their
+  /// on-screen pipelines compile before the app's first frame is shown. Once per process.
+  void warmOnscreen(ui.Canvas canvas) {
+    final src = _warmImage;
+    if (src == null) return;
+    _warmImage = null;
+    const g = GlassFilter();
+    _warmShaders.addAll([
+      fusedGlassShader(g, src, ui.Offset.zero, 2, 2, 1, opacity: 0)!,
+      blendShader(BlendMaterial.popupMenuLight, src, const ui.Size(128, 128), ui.Offset.zero, 2, 2, 1, opacity: 0),
+      bloomShader(const BloomStroke(), 2, 2, 1, 1, 0),
+    ]);
+    for (final s in _warmShaders) {
+      canvas.drawRect(
+        const ui.Rect.fromLTWH(0, 0, 1, 1),
+        ui.Paint()
+          ..shader = s
+          ..blendMode = identical(s, _warmShaders.last) ? ui.BlendMode.plus : ui.BlendMode.srcOver, // bloom
+      );
+    }
   }
 
   // One fresh FragmentShader per pass: toImageSync rasterizes later, so uniforms must not be shared.
@@ -362,14 +434,38 @@ class HyperGlassRenderer {
     int h,
     double shapeRadius, {
     double opacity = 1.0,
-  }) => _pass(_glassShader(g, origin, w, h, shapeRadius, opacity, refract: refract), w, h);
+    GlassFx fx = const GlassFx(),
+    double lengthScale = 1,
+    ui.Image? mask,
+  }) => _pass(
+    _glassShader(g, origin, w, h, shapeRadius, opacity, fx, lengthScale, mask, refract: refract),
+    w,
+    h,
+  );
+
+  /// [drawGlass] as a shader, to draw directly over a [w]x[h] rect in physical-pixel local units.
+  ui.FragmentShader glassShader(
+    GlassFilter g,
+    RefractTexture refract,
+    ui.Offset origin,
+    int w,
+    int h,
+    double shapeRadius, {
+    double opacity = 1.0,
+    GlassFx fx = const GlassFx(),
+    double lengthScale = 1,
+    ui.Image? mask,
+  }) => _glassShader(g, origin, w, h, shapeRadius, opacity, fx, lengthScale, mask, refract: refract);
 
   final _kernels = <GlassFilter, ({double k0, List<double> k, int radius})?>{};
+
+  /// Whether [g] can be drawn by [fusedGlassShader].
+  bool canFuse(GlassFilter g) => _kernels.putIfAbsent(g, () => fusedRefractKernel(g)) != null;
 
   /// The glass as a shader that reads the plain [backdrop] (no refract texture chain): reflect blur,
   /// tint blur and the tinting upsample run inside the glass shader (see tools/to_flutter.py,
   /// FUSED_REFRACT). Draw it over a [w]x[h] rect whose local units are physical pixels. Null when [g]
-  /// cannot be fused; use [refractTexture] + [drawGlass] then.
+  /// cannot be fused; use [refractTexture] + [glassShader] then.
   ui.FragmentShader? fusedGlassShader(
     GlassFilter g,
     ui.Image backdrop,
@@ -378,8 +474,12 @@ class HyperGlassRenderer {
     int h,
     double shapeRadius, {
     double opacity = 1.0,
-    double backdropScale = 1.0,
+    GlassFx fx = const GlassFx(),
+    double lengthScale = 1,
+    ui.Image? mask,
+    double backdropScale = 1,
   }) {
+    if (_kernels.length > 64) _kernels.clear(); // the lab creates a filter per slider tick
     final kernel = _kernels.putIfAbsent(g, () => fusedRefractKernel(g));
     if (kernel == null) return null;
     return _glassShader(
@@ -389,6 +489,9 @@ class HyperGlassRenderer {
       h,
       shapeRadius,
       opacity,
+      fx,
+      lengthScale,
+      mask,
       backdrop: backdrop,
       kernel: kernel,
       backdropScale: backdropScale,
@@ -401,17 +504,20 @@ class HyperGlassRenderer {
     int w,
     int h,
     double shapeRadius,
-    double opacity, {
+    double opacity,
+    GlassFx fx,
+    double lengthScale,
+    ui.Image? mask, {
     RefractTexture? refract,
     ui.Image? backdrop,
     ({double k0, List<double> k, int radius})? kernel,
-    double backdropScale = 1.0,
+    double backdropScale = 1,
   }) {
     final fw = w.toDouble(), fh = h.toDouble();
     final half = math.min(fw, fh) * 0.5;
     var radius = g.cornerRadius > 0 ? g.cornerRadius : shapeRadius;
     radius = math.min(math.min(radius, half.floorToDouble()), 502.0);
-    final edge = math.min(math.min(g.edgePx, half), 502.0);
+    final edge = math.min(math.min(g.edgePx * lengthScale, half), 502.0);
     final sdf = _sdfTexture(fw, fh, radius, edge, g.edgePow);
 
     final s = _glass.fragmentShader();
@@ -424,8 +530,8 @@ class HyperGlassRenderer {
     _vec(s, _Gl.uGeoPxSize, [fw, fh, radius]);
     s.setFloat(_Gl.uShapeEdgePx, edge);
     s.setFloat(_Gl.uShapeEdgePow, g.edgePow);
-    s.setFloat(_Gl.uShapeThicknessPx, g.thicknessPx);
-    s.setFloat(_Gl.uShapeReflectOffsetPx, g.reflectOffsetPx);
+    s.setFloat(_Gl.uShapeThicknessPx, g.thicknessPx * lengthScale);
+    s.setFloat(_Gl.uShapeReflectOffsetPx, g.reflectOffsetPx * lengthScale);
     _vec(s, _Gl.uDirectionalLightDirection, g.lightDir);
     s.setFloat(_Gl.uDirectionalLightIntensity, g.lightIntensity);
     s.setFloat(_Gl.uDirectionalLightOppositeIntensity, g.lightOpposite);
@@ -442,16 +548,28 @@ class HyperGlassRenderer {
     s.setFloat(_Gl.uAlpha, opacity * g.alpha);
     _vec(s, _Gl.uScale, [1, 1]);
     s.setFloat(_Gl.uUseMaskTex__f, 0);
-    s.setFloat(_Gl.uHit__f, 0);
+    s.setFloat(_Gl.uHit__f, fx.hit);
     s.setFloat(_Gl.uUnshade, g.unshade);
-    _vec(s, _Gl.uRotationTrig, [1, 0]);
-    s.setFloat(_Gl.uIconMove__f, 0);
-    s.setFloat(_Gl.uHasRotation__f, 0);
+    _vec(s, _Gl.uRotationTrig, [math.cos(fx.rotation), math.sin(fx.rotation)]);
+    final icon = fx.iconRect;
+    if (icon != null && mask != null) {
+      final k = lengthScale * 3; // logical -> physical
+      s.setFloat(_Gl.uIconMove__f, fx.iconMode.toDouble());
+      _vec(s, _Gl.uIconGeoPxPos, [icon.left * k, icon.top * k]);
+      s.setFloat(_Gl.iLightRadius, fx.iconRadius * k);
+      _vec(s, _Gl.uIconGeoPxSize, [icon.width * k, icon.height * k, fx.iconRadius * k]);
+      s.setFloat(_Gl.uIconLightStrength, fx.iconStrength);
+      _vec(s, _Gl.uDynamicLightDirection, fx.dynamicLight ?? const [0, 0, 0]);
+    } else {
+      s.setFloat(_Gl.uIconMove__f, 0);
+      s.setFloat(_Gl.uIconLightStrength, 0);
+    }
+    s.setFloat(_Gl.uHasRotation__f, fx.rotation != 0 ? 1 : 0);
     s.setFloat(_Gl.uUsePowGate__f, (g.colorPow - 1.0).abs() > 0.001 ? 1 : 0);
     s.setFloat(_Gl.colorSpaceConvertMode__f, 0);
     s.setFloat(_Gl.fl_sdf_range, sdf.range);
     s.setImageSampler(_Gl.sampler_uSdfTex, sdf.a);
-    s.setImageSampler(_Gl.sampler_uMaskTex, sdf.a);
+    s.setImageSampler(_Gl.sampler_uMaskTex, mask ?? sdf.a);
     s.setImageSampler(_Gl.sampler_fl_sdfB, sdf.b);
     if (kernel == null) {
       s.setFloat(_Gl.fl_fused, 0);
@@ -471,6 +589,95 @@ class HyperGlassRenderer {
       s.setImageSampler(_Gl.sampler_fl_backdrop, backdrop);
     }
     return s;
+  }
+
+  /// libhwui's glass press light as a shader over a [w]x[h] rect in physical-pixel local units.
+  ui.FragmentShader pressShader(PressLight p, ui.Offset center, double w, double h, double radius, double dpr, double opacity) {
+    final s = _press.fragmentShader();
+    var i = 0;
+    void f(double v) => s.setFloat(i++, v);
+    f(w);
+    f(h);
+    f(radius);
+    f(p.color.r);
+    f(p.color.g);
+    f(p.color.b);
+    f(p.color.a);
+    f(center.dx);
+    f(center.dy);
+    final d = p.size * dpr;
+    f(d);
+    f(d);
+    f(p.fall);
+    f(p.strength);
+    f(p.peak);
+    f(p.ring1);
+    f(p.ring2);
+    f(opacity);
+    return s;
+  }
+
+  /// libhwui's MiBloomStrokeFilter (stroke + rim lights) over a [w]x[h] rect in physical-pixel local units.
+  ui.FragmentShader bloomShader(BloomStroke b, double w, double h, double radius, double dpr, double opacity) {
+    final s = _bloom.fragmentShader();
+    var i = 0;
+    void f(double v) => s.setFloat(i++, v);
+    void c(ui.Color v) {
+      f(v.r);
+      f(v.g);
+      f(v.b);
+      f(v.a);
+    }
+
+    f(w / 2);
+    f(h / 2);
+    f(radius);
+    f(b.width * dpr);
+    c(b.color);
+    f(b.innerBlur * dpr);
+    b.lightDir1.forEach(f);
+    b.lightDir2.forEach(f);
+    c(b.lightColor1);
+    c(b.lightColor2);
+    f(opacity);
+    f(b.strokeFade ? 1 : 0);
+    return s;
+  }
+
+  /// The bloom stroke alone over a rounded rect of [size] logical px, for surfaces blurred without a scene.
+  /// [radius] is in logical px.
+  void paintBloom(ui.Canvas canvas, ui.Size size, BloomStroke b, double radius, double dpr, {double opacity = 1}) {
+    final w = (size.width * dpr).round(), h = (size.height * dpr).round();
+    if (w < 2 || h < 2) return;
+    final fw = w.toDouble(), fh = h.toDouble();
+    final shader = bloomShader(b, fw, fh, math.min(radius * dpr, math.min(fw, fh) / 2), dpr, opacity);
+    final rect = ui.Rect.fromLTWH(0, 0, fw, fh);
+    canvas
+      ..save()
+      ..scale(size.width / w, size.height / h);
+    if (ui.ImageFilter.isShaderFilterSupported) {
+      // Impeller's FlutterFragCoord is in device space, so it is rendered at the origin first
+      final rec = ui.PictureRecorder();
+      ui.Canvas(rec).drawRect(
+        rect,
+        ui.Paint()
+          ..shader = shader
+          ..blendMode = ui.BlendMode.src,
+      );
+      final pic = rec.endRecording();
+      final img = pic.toImageSync(w, h);
+      pic.dispose();
+      canvas.drawImage(img, ui.Offset.zero, ui.Paint()..blendMode = ui.BlendMode.plus);
+      img.dispose();
+    } else {
+      canvas.drawRect(
+        rect,
+        ui.Paint()
+          ..shader = shader
+          ..blendMode = ui.BlendMode.plus,
+      );
+    }
+    canvas.restore();
   }
 
   /// Gaussian blur of [src] with [sigma] physical px, computed at 1/4 resolution (sampled bilinearly

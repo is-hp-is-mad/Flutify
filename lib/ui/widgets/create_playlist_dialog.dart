@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/l10n.dart';
-import 'package:material_3_expressive/material_3_expressive.dart' show M3EButton;
 import 'flutify_dialog.dart';
+import 'app_modal.dart';
+import 'app_button.dart';
 
 /// 「为歌单命名」对话框。返回输入的名称，取消时返回 null。
 ///
@@ -13,7 +14,7 @@ class CreatePlaylistDialog extends StatefulWidget {
   const CreatePlaylistDialog({super.key, this.initialName});
 
   static Future<String?> show(BuildContext context, {String? initialName}) {
-    return showDialog<String>(
+    return showAppDialog<String>(
       context: context,
       builder: (_) => CreatePlaylistDialog(initialName: initialName),
     );
@@ -49,8 +50,8 @@ class _CreatePlaylistDialogState extends State<CreatePlaylistDialog> {
         decoration: InputDecoration(hintText: l10n.createPlaylistHint),
       )),
       actions: [
-        M3EButton.text(onPressed: () => Navigator.pop(context), child: Text(l10n.commonCancel)),
-        M3EButton.filled(onPressed: _submit, child: Text(l10n.commonCreate)),
+        AppButton.text(onPressed: () => Navigator.pop(context), child: Text(l10n.commonCancel)),
+        AppButton.filled(onPressed: _submit, child: Text(l10n.commonCreate)),
       ]);
   }
 }

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
+import '../../../core/theme/flutify_tokens.dart';
+import '../hyper_surface.dart';
+
 /// 提示的语气：决定左侧图标容器的表现力形状与强调色。
 enum ToastTone {
   /// 一般说明（设置已更改、链接已复制…）。
@@ -68,6 +71,30 @@ class AppToast {
     if (messenger == null) return null;
     final hasAction = actionLabel != null && onAction != null;
     messenger.hideCurrentSnackBar();
+    if (messenger.context.tokens.hyperMaterial) {
+      return messenger.showSnackBar(
+        SnackBar(
+          content: _HyperToast(
+            message: message,
+            icon: icon ?? _defaultIcon(tone),
+            tone: tone,
+            actionLabel: hasAction ? actionLabel : null,
+            onAction: hasAction
+                ? () {
+                    messenger.hideCurrentSnackBar();
+                    onAction();
+                  }
+                : null,
+          ),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          padding: EdgeInsets.zero,
+          persist: false,
+          duration:
+              duration ?? (hasAction ? durationWithAction : AppToast.duration),
+        ),
+      );
+    }
     return messenger.showSnackBar(
       SnackBar(
         content: ToastContent(
@@ -87,12 +114,75 @@ class AppToast {
     );
   }
 
+  /// 一句话提示：柔光玻璃时走 [show]；MD3E 时是原来的纯文字 SnackBar，样式不变。
+  static void plain(BuildContext context, String message) {
+    if (context.tokens.hyperMaterial) {
+      show(context, message);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    }
+  }
+
   static IconData _defaultIcon(ToastTone tone) => switch (tone) {
     ToastTone.info => Icons.info_rounded,
     ToastTone.success => Icons.check_rounded,
     ToastTone.warning => Icons.priority_high_rounded,
     ToastTone.error => Icons.error_rounded,
   };
+}
+
+/// 柔光玻璃的提示：浮动控件材质的胶囊，文字用表面色（不再是反色），按钮放在胶囊里面。
+class _HyperToast extends StatelessWidget {
+  final String message;
+  final IconData icon;
+  final ToastTone tone;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+
+  const _HyperToast({
+    required this.message,
+    required this.icon,
+    required this.tone,
+    this.actionLabel,
+    this.onAction,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final accent = tone == ToastTone.error ? scheme.error : scheme.primary;
+    return HyperBlendSurface(
+      material: HyperBlendSurface.bar(context),
+      borderRadius: context.tokens.radius(28),
+      bloom: HyperBlendSurface.barBloom(context),
+      child: Padding(
+        padding: const EdgeInsetsDirectional.fromSTEB(14, 12, 12, 12),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: accent),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                message,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: scheme.onSurface,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            if (actionLabel != null) ...[
+              const SizedBox(width: 8),
+              TextButton(onPressed: onAction, child: Text(actionLabel!)),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 /// 提示内容：表现力形状的图标块 + 文字。公开以便测试按类型查找。

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/flutify_tokens.dart';
-import 'package:material_3_expressive/material_3_expressive.dart' show M3ESwitch;
+import '../../../widgets/app_switch.dart';
 
 /// iOS「设置」风格的分组：小号灰色组标题 + 圆角卡片，行之间用发丝分隔线。
 class SettingsSection extends StatelessWidget {
@@ -26,10 +26,16 @@ class SettingsSection extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Text(
               title,
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w700,
-              ),
+              // miuix_preference_category：13sp 的浅色小字
+              style: context.tokens.hyperMaterial
+                  ? theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                      fontSize: 13,
+                    )
+                  : theme.textTheme.labelLarge?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w700,
+                    ),
             ),
           ),
           Material(
@@ -40,7 +46,8 @@ class SettingsSection extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 for (var i = 0; i < children.length; i++) ...[
-                  if (i > 0)
+                  // miuix 的分组里没有分隔线
+                  if (i > 0 && !context.tokens.hyperMaterial)
                     Divider(height: 1, thickness: 0.5, indent: 16, color: colorScheme.outlineVariant.withValues(alpha: 0.6)),
                   children[i],
                 ],
@@ -159,7 +166,7 @@ class SettingsSwitchTile extends StatelessWidget {
         title: title,
         subtitle: subtitle,
         onTap: () => onChanged(!value),
-        trailing: Semantics(toggled: value, child: M3ESwitch(value: value, onChanged: onChanged)),
+        trailing: Semantics(toggled: value, child: AppSwitch(value: value, onChanged: onChanged)),
       ),
     );
   }

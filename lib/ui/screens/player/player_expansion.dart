@@ -32,6 +32,7 @@ class PlayerExpansionOrigin {
     required this.compactChild,
     this.restartTitles,
     this.currentLook,
+    this.translucent = false,
   });
 
   final Rect bounds;
@@ -47,6 +48,10 @@ class PlayerExpansionOrigin {
   /// current track rather than the snapshot taken when the route was pushed.
   final PlayerExpansionLook Function()? currentLook;
 
+  /// The pill is see-through glass: the opaque surface must dissolve into it near the pill instead of landing
+  /// as a solid bar that turns to glass when the route ends.
+  final bool translucent;
+
   PlayerExpansionLook get look =>
       currentLook?.call() ?? (color: color, compactChild: compactChild);
 }
@@ -58,12 +63,16 @@ class PlayerExpansionSource extends StatefulWidget {
     required this.borderRadius,
     required this.compactChild,
     required this.child,
+    this.translucent = false,
   });
 
   final Color color;
   final BorderRadius borderRadius;
   final Widget compactChild;
   final Widget child;
+
+  /// See [PlayerExpansionOrigin.translucent].
+  final bool translucent;
 
   static final _sources = Expando<_PlayerExpansionSourceState>();
 
@@ -95,6 +104,7 @@ class PlayerExpansionSource extends StatefulWidget {
       borderRadius: source.widget.borderRadius,
       compactChild: compactChild,
       restartTitles: () => _sources[navigator]?._restartTitles(),
+      translucent: source.widget.translucent,
       currentLook: () {
         // Look the source up again: it is rebuilt with the new track, and may
         // even be replaced (local <-> remote mini player) while the route is up.
@@ -256,7 +266,7 @@ class _PlayerExpansionTransitionState extends State<PlayerExpansionTransition> {
           progress,
         )!;
         final compactOpacity = 1 - _compact.value;
-        return ClipPath(
+        final surface = ClipPath(
           key: const ValueKey('player-expansion-surface'),
           clipper: _PlayerSurfaceClipper(bounds, radius),
           child: Stack(
@@ -283,9 +293,19 @@ class _PlayerExpansionTransitionState extends State<PlayerExpansionTransition> {
             ],
           ),
         );
+        if (origin?.translucent != true) return surface;
+        return Opacity(
+          key: const ValueKey('player-expansion-dissolve'),
+          opacity: (progress / _dissolveEnd).clamp(0.0, 1.0),
+          child: surface,
+        );
       },
     ),
   );
+
+  /// How far from the pill the surface has fully dissolved. The closing curve spends most of its time in this
+  /// last stretch, so the fade is slow.
+  static const double _dissolveEnd = 0.2;
 }
 
 class _PlayerSurfaceClipper extends CustomClipper<Path> {

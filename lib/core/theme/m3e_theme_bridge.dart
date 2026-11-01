@@ -88,7 +88,7 @@ M3EThemeData m3eThemeFrom(ThemeData theme) {
     typography: M3ETypography(
       baseline: baseline,
       emphasized: M3ETypeScale.emphasized().apply(
-        fontFamily: MD3ETypography.fontFamily,
+        fontFamily: theme.textTheme.bodyMedium?.fontFamily ?? MD3ETypography.fontFamily,
       ),
     ),
     iconTheme: theme.iconTheme,

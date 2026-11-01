@@ -44,7 +44,7 @@ class DesktopMenu {
     final hyper = context.tokens.hyperMaterial;
     final glass = GlassMenuScope.of(context);
     if (hyper) {
-      // 澎湃 OS 4 弹出菜单：从按钮本身变形展开（见 HyperMenuRoute）
+      // 澎湃 OS 4 弹出菜单：miuix ArcAnimation（见 HyperMenuRoute）
       final navigator = Navigator.of(context, rootNavigator: true);
       return navigator.push(
         HyperMenuRoute<T>(
@@ -75,7 +75,7 @@ class DesktopMenu {
     );
   }
 
-  /// 菜单变形的起点（Overlay 坐标）：位置贴着触发组件时（按钮菜单）就是组件本身，
+  /// 菜单的锚点（Overlay 坐标）：位置贴着触发组件时（按钮菜单）就是组件本身，
   /// 否则（右键菜单）是指针处的一个小方块。
   static Rect _anchorRect(BuildContext context, RenderBox overlay, Offset position) {
     final local = overlay.globalToLocal(position);
@@ -286,7 +286,7 @@ class _GlassMenuEntryState<T> extends State<_GlassMenuEntry<T>> {
   }
 }
 
-/// 与 [PopupMenuButton] 参数一致的菜单按钮：材质为「柔光玻璃」时从按钮本身弹出澎湃 OS 4
+/// 与 [PopupMenuButton] 参数一致的菜单按钮：材质为「柔光玻璃」时在按钮处弹出澎湃 OS 4
 /// 菜单（[DesktopMenu.show] → HyperMenuRoute），否则原样使用 [PopupMenuButton]。
 class FlutifyPopupMenuButton<T> extends StatelessWidget {
   const FlutifyPopupMenuButton({

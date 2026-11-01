@@ -4,32 +4,34 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:hyper_glass/hyper_glass.dart';
+import 'package:hyper_glass/hyper_ui.dart' show Hy;
 
 import '../../core/debug_toggles.dart';
 import '../../core/perf_flags.dart';
 import '../../core/theme/flutify_tokens.dart';
-import '../../l10n/l10n.dart';
 import '../shell/desktop/desktop_window.dart';
+import 'hyper_icons.dart';
 
 bool _hyperWarm = false;
 
-/// 选了柔光玻璃时把 Skia 的 GPU 资源缓存压到 32 MB：每次玻璃刷新都会分配离屏纹理，
-/// 默认缓存会让进程多占几百 MB，回收时还会卡一下。可重复调用。
-/// shader 的编译与预热交给 [HyperGlassWarmup]（带加载界面），这里不碰。
+/// 选了柔光玻璃时把 Skia 的 GPU 资源缓存压到 32 MB（每次玻璃刷新都会分配离屏纹理，
+/// 默认缓存会让进程多占几百 MB，回收时还会卡一下），并载入 `ViewShadow` 的 shader。可重复调用。
+/// 玻璃 shader 的编译与预热交给 [HyperGlassWarmup]，这里不碰。
 void warmUpHyperGlass() {
   if (_hyperWarm) return;
   _hyperWarm = true;
   WidgetsBinding.instance.addPostFrameCallback((_) {
-    unawaited(limitSkiaResourceCache().catchError((Object _) {}));
+    unawaited(HyperGlass.init().catchError((Object _) {}));
+    unawaited(HyperIcons.ensure());
   });
 }
 
 /// HyperOS 混色模糊（blendBlur）表面：菜单、弹窗、浮层用。
 ///
-/// 与 `HyperBlendBlur` 同一套材质参数（[BlendMaterial]：模糊 sigma + 最多三层混合色），
-/// 但不需要 `HyperGlassScene`：模糊交给单层 `BackdropFilter.grouped`（与 LiquidGlass
-/// 一样只用纯 blur，规避 Windows 引擎 compose 滤镜崩溃），混合层直接按 [BlendMode]
-/// 画在模糊后的画面上，所以能浮在整个应用任意位置。
+/// 与 `HyperBlendBlur` 同一套材质参数（[BlendMaterial]：模糊半径 + 最多三层混合色）和
+/// Bloom 描边，但不需要 `HyperGlassScene`：模糊交给单层 `BackdropFilter.grouped`
+/// （与 LiquidGlass 一样只用纯 blur，规避 Windows 引擎 compose 滤镜崩溃），混合层直接按
+/// [BlendMode] 画在模糊后的画面上，所以能浮在整个应用任意位置。
 ///
 /// 省电模式、关闭背景模糊、全屏切换过渡期间退回材质自带的 [BlendMaterial.fallback] 纯色。
 class HyperBlendSurface extends StatelessWidget {
@@ -37,30 +39,75 @@ class HyperBlendSurface extends StatelessWidget {
   final BorderRadius borderRadius;
   final Widget child;
 
+  /// Bloom 描边，画在混合层之上、[child] 之下。
+  final BloomStroke? bloom;
+
+  /// 系统阴影（`ShadowToken.Regular`），浮动控件和菜单用，弹窗没有。
+  final bool shadow;
+
   const HyperBlendSurface({
     super.key,
     required this.material,
     required this.borderRadius,
     required this.child,
+    this.bloom,
+    this.shadow = false,
   });
 
-  /// 弹出菜单材质（σ22），按深浅色挑选。
-  static BlendMaterial menu(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark
+  // 与 miuix 的 maskBlur 同一单位：是 LM 半径（dp），不是高斯 sigma，见 [blurSigma]
+  static const double _menuBlur = 60; // popupview-glass
+  static const double _dialogBlur = 100; // dialog-default
+  static const double _barBlur = 20; // internal-pured-thin-glass
+
+  /// 材质用到的全部模糊半径（启动预热用）。
+  static const List<double> blurRadii = [
+    _barBlur,
+    _menuBlur,
+    _dialogBlur,
+    ...HyperAppBarBackground.bandRadii,
+  ];
+
+  static bool _dark(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark;
+
+  static BlendMaterial _popup(BuildContext context) => _dark(context)
       ? BlendMaterial.popupMenuDark
       : BlendMaterial.popupMenuLight;
 
-  /// 弹窗材质（浅色 σ32 / 深色 σ56）。
-  static BlendMaterial dialog(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark
-      ? BlendMaterial.dialogDark
-      : BlendMaterial.dialogLight;
+  /// LM 半径换算成高斯 sigma（libhwui generateLMGaussianBlur：半径 × 0.25 × 0.45）。
+  static double blurSigma(double radius) => radius * 0.25 * 0.45;
 
-  /// 浮动栏材质（σ20），场景外的玻璃表面用它代替柔光玻璃。
-  static BlendMaterial bar(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark
-      ? BlendMaterial.appBarDark
-      : BlendMaterial.appBarLight;
+  /// 弹出菜单材质：`Pured_Thin_Glass` + maskBlur 60。
+  static BlendMaterial menu(BuildContext context) {
+    final base = _popup(context);
+    return BlendMaterial(
+      sigma: _menuBlur,
+      layers: base.layers,
+      fallback: base.fallback,
+    );
+  }
+
+  static BloomStroke menuBloom(BuildContext context) => _dark(context)
+      ? BloomTokens.strokeSmallDark
+      : BloomTokens.strokeSmallLight;
+
+  /// 弹窗材质：`Pured_Thin` / `Pured_Regular` + maskBlur 100。
+  static BlendMaterial dialog(BuildContext context) => BlendMaterial(
+    sigma: _dialogBlur,
+    layers: _popup(context).layers,
+    fallback: Hy.card(_dark(context)),
+  );
+
+  static BloomStroke dialogBloom(BuildContext context) => _dark(context)
+      ? BloomTokens.strokeSmallLight
+      : BloomTokens.strokeBigLight;
+
+  /// 浮动控件材质（thin glass：名字叫玻璃，实际是混色模糊），场景外的玻璃表面用它。
+  static BlendMaterial bar(BuildContext context) => Hy.thinGlass(_dark(context));
+
+  static BloomStroke barBloom(BuildContext context) => _dark(context)
+      ? BloomTokens.strokeMiddleDark
+      : BloomTokens.strokeMiddleLight;
 
   @override
   Widget build(BuildContext context) {
@@ -73,11 +120,18 @@ class HyperBlendSurface extends StatelessWidget {
         DebugToggles.of(context).isOff(DebugToggle.glassBackdrop)) {
       return solid;
     }
+    final radius = borderRadius.topLeft.x;
     final layered = CustomPaint(
-      painter: _BlendLayersPainter(material.layers),
+      painter: _BlendLayersPainter(
+        material.layers,
+        bloom,
+        radius,
+        MediaQuery.devicePixelRatioOf(context),
+      ),
       child: child,
     );
-    return ValueListenableBuilder<bool>(
+    final sigma = blurSigma(material.sigma);
+    final surface = ValueListenableBuilder<bool>(
       valueListenable: DesktopWindow.fullscreenTransition,
       builder: (context, transitioning, _) {
         // 全屏切换期间（约 1 s）引擎不能做背景模糊：垫一层磨砂表面色再叠混合层，
@@ -97,8 +151,8 @@ class HyperBlendSurface extends StatelessWidget {
           borderRadius: borderRadius,
           child: BackdropFilter.grouped(
             filter: ImageFilter.blur(
-              sigmaX: material.sigma,
-              sigmaY: material.sigma,
+              sigmaX: sigma,
+              sigmaY: sigma,
               tileMode: TileMode.mirror,
             ),
             child: layered,
@@ -106,14 +160,128 @@ class HyperBlendSurface extends StatelessWidget {
         );
       },
     );
+    if (!shadow) return surface;
+    return ViewShadow(radius: radius, hollow: true, child: surface);
   }
 }
 
-/// 把材质的混合层依次叠在模糊后的画面上（与 mi_blend_blur.frag 的合成顺序一致）。
+/// 顶栏背景（miuix ActionBarContainer 的渐变模糊）：上面模糊，往下逐渐清晰，放进 AppBar 的
+/// `flexibleSpace`，AppBar 自身要透明。
+///
+/// `BackdropFilter` 不能加渐变遮罩（遮罩的离屏层里没有背景可采样），所以切成几条，模糊半径逐条
+/// 减小到接近 0，再叠一层同样渐隐的窗口色盖住接缝。
+class HyperAppBarBackground extends StatelessWidget {
+  const HyperAppBarBackground({super.key});
+
+  /// 从上到下每一条的 LM 半径。
+  static const List<double> bandRadii = [60, 52, 44, 36, 28, 20, 12, 5];
+
+  // 遮罩的位置取自 miuix 的 gradientBlur，强度减弱：系统顶部几乎不透明，这里要让模糊看得见
+  static const List<double> _tintAlpha = [0.78, 0.66, 0.42, 0.18, 0];
+  static const List<double> _tintStops = [0, 0.5, 0.72, 0.88, 1];
+
+  @override
+  Widget build(BuildContext context) {
+    final window = Theme.of(context).colorScheme.surface;
+    final solid = ColoredBox(color: window);
+    if (context.tokens.powerSaving ||
+        PerfFlags.noBackdrop ||
+        DebugToggles.of(context).isOff(DebugToggle.glassBackdrop)) {
+      return solid;
+    }
+    return ValueListenableBuilder<bool>(
+      valueListenable: DesktopWindow.fullscreenTransition,
+      builder: (context, transitioning, _) {
+        if (transitioning) return solid;
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            Column(
+              children: [
+                for (final radius in bandRadii)
+                  Expanded(
+                    child: ClipRect(
+                      child: BackdropFilter.grouped(
+                        filter: ImageFilter.blur(
+                          sigmaX: HyperBlendSurface.blurSigma(radius),
+                          sigmaY: HyperBlendSurface.blurSigma(radius),
+                          tileMode: TileMode.mirror,
+                        ),
+                        child: const SizedBox.expand(),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    for (final a in _tintAlpha) window.withValues(alpha: a),
+                  ],
+                  stops: _tintStops,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// 页面左上角的圆形玻璃按钮（miuix 的 FloatingBar 返回键：40dp、浮动控件材质）。
+class HyperCircleIcon extends StatelessWidget {
+  final IconData icon;
+
+  const HyperCircleIcon(this.icon, {super.key});
+
+  static const double size = 40;
+
+  /// AppBar 的图标槽：按钮比 24dp 的图标位大，放不下的部分往外溢出。
+  static Widget inIconSlot(IconData icon) => SizedBox.square(
+    dimension: 24,
+    child: OverflowBox(
+      minWidth: size,
+      maxWidth: size,
+      minHeight: size,
+      maxHeight: size,
+      child: HyperCircleIcon(icon),
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox.square(
+      dimension: size,
+      child: HyperBlendSurface(
+        material: HyperBlendSurface.bar(context),
+        borderRadius: BorderRadius.circular(size / 2),
+        bloom: HyperBlendSurface.barBloom(context),
+        shadow: true,
+        child: Center(
+          child: Icon(
+            icon,
+            size: 22,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 把材质的混合层依次叠在模糊后的画面上（与 mi_blend_blur.frag 的合成顺序一致），
+/// 最后加上 Bloom 描边。
 class _BlendLayersPainter extends CustomPainter {
   final List<BlendLayer> layers;
+  final BloomStroke? bloom;
+  final double radius;
+  final double dpr;
 
-  const _BlendLayersPainter(this.layers);
+  const _BlendLayersPainter(this.layers, this.bloom, this.radius, this.dpr);
 
   static BlendMode _mode(BlendLayerMode m) => switch (m) {
     BlendLayerMode.srcOver => BlendMode.srcOver,
@@ -141,18 +309,26 @@ class _BlendLayersPainter extends CustomPainter {
           ..blendMode = _mode(l.mode),
       );
     }
+    final b = bloom;
+    if (b != null) {
+      HyperGlassRenderer.ready?.paintBloom(canvas, size, b, radius, dpr);
+    }
   }
 
   @override
-  bool shouldRepaint(_BlendLayersPainter old) => old.layers != layers;
+  bool shouldRepaint(_BlendLayersPainter old) =>
+      old.layers != layers ||
+      old.bloom != bloom ||
+      old.radius != radius ||
+      old.dpr != dpr;
 }
 
-/// 柔光玻璃首帧预热：选了柔光玻璃后，在界面最底层（被所有内容盖住的左上角 4×4 区域）
-/// 真实画一次柔光玻璃和混色模糊，然后移除。
+/// 柔光玻璃首帧预热：选了柔光玻璃后，在界面最底层（被所有内容盖住的左上角一小块）
+/// 真实画一次柔光玻璃和各种混色模糊表面，然后移除。全程在后台，界面照常显示。
 ///
 /// [warmUpHyperGlass] 只在离屏纹理上跑过一遍；上屏绘制的目标格式和混合状态不同，
 /// Skia 会在第一次上屏时重新编译这几段大 shader，歌词页 / 设置预览首次出现时整窗卡死数秒。
-/// 这里把那次编译提前到启动后的空闲时刻，并记录耗时，便于在日志里核对。
+/// 这里把那次编译提前到第一帧之后，并记录耗时，便于在日志里核对。
 class HyperGlassWarmup extends StatefulWidget {
   final Widget child;
 
@@ -165,8 +341,7 @@ class HyperGlassWarmup extends StatefulWidget {
 class _HyperGlassWarmupState extends State<HyperGlassWarmup> {
   static bool _done = false;
 
-  /// 加载界面已挂上（下一帧起盖住整个窗口）。
-  bool _covering = false;
+  bool _started = false;
 
   /// shader 已加载，底层预热场景开始真实绘制。
   bool _ready = false;
@@ -188,11 +363,10 @@ class _HyperGlassWarmupState extends State<HyperGlassWarmup> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_done || _covering || !context.tokens.hyperMaterial) return;
-    _covering = true;
+    if (_done || _started || !context.tokens.hyperMaterial) return;
+    _started = true;
     _clock.start();
-    // 先让加载界面上屏，再开始编译：编译期间光栅线程被占满，窗口停在这一帧，
-    // 用户看到的是「正在准备」而不是卡死的主界面
+    // 先让界面上屏，再开始编译：窗口不用等 shader
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       HyperGlassRenderer.shared().then(
@@ -201,6 +375,7 @@ class _HyperGlassWarmupState extends State<HyperGlassWarmup> {
           debugPrint(
             '[hyper_glass] shader 加载完成：${_clock.elapsedMilliseconds} ms',
           );
+          await ViewShadow.load();
           await _warmBlurs();
           if (!mounted) return;
           setState(() => _ready = true);
@@ -215,19 +390,10 @@ class _HyperGlassWarmupState extends State<HyperGlassWarmup> {
   }
 
   /// Skia 的高斯模糊按模糊核宽度生成不同的 GPU 程序，每种强度第一次出现都要现编译
-  /// （日志里单个约 200 ms）。柔光材质用到的几档（菜单 σ22、弹窗 σ32 / σ56、浮动栏 σ20）
-  /// 在加载界面期间按当前像素密度各跑一次，之后打开菜单、弹窗、播放页就不会再卡。
+  /// （日志里单个约 200 ms）。柔光材质用到的几档（[HyperBlendSurface.blurRadii]）
+  /// 在启动时按当前像素密度各跑一次，之后打开菜单、弹窗、播放页就不会再卡。
   Future<void> _warmBlurs() async {
     final dpr = MediaQuery.devicePixelRatioOf(context);
-    final sigmas = {
-      for (final m in const [
-        BlendMaterial.popupMenuLight,
-        BlendMaterial.dialogLight,
-        BlendMaterial.dialogDark,
-        BlendMaterial.appBarLight,
-      ])
-        m.sigma,
-    };
     final rec = ui.PictureRecorder();
     ui.Canvas(rec).drawCircle(
       const Offset(128, 128),
@@ -235,7 +401,8 @@ class _HyperGlassWarmupState extends State<HyperGlassWarmup> {
       Paint()..color = const Color(0xff3070c0),
     );
     final src = rec.endRecording().toImageSync(256, 256);
-    for (final sigma in sigmas) {
+    for (final radius in HyperBlendSurface.blurRadii.toSet()) {
+      final sigma = HyperBlendSurface.blurSigma(radius);
       final clock = Stopwatch()..start();
       final r = ui.PictureRecorder();
       final c = ui.Canvas(r);
@@ -295,9 +462,7 @@ class _HyperGlassWarmupState extends State<HyperGlassWarmup> {
   Widget build(BuildContext context) {
     final hyper = context.tokens.hyperMaterial;
     final warming = !_done && _ready && hyper;
-    final covering = !_done && _covering && hyper;
-    // 结构始终是同一个 Stack（预热层 / 界面 / 加载界面），前后两层出现、消失时
-    // 中间的界面不会被重新挂载
+    // 结构始终是同一个 Stack（预热层 / 界面），预热层出现、消失时界面不会被重新挂载
     return Stack(
       textDirection: TextDirection.ltr,
       fit: StackFit.expand,
@@ -308,19 +473,42 @@ class _HyperGlassWarmupState extends State<HyperGlassWarmup> {
           Positioned(
             left: 0,
             top: 0,
-            width: 4,
-            height: 4,
+            width: 24,
+            height: 24,
             child: IgnorePointer(
               child: HyperGlassScene(
                 animate: false,
                 background: const ColoredBox(color: Color(0xff3070c0)),
                 child: Row(
                   children: [
-                    const Expanded(child: HyperGlass(borderRadius: 1)),
+                    Expanded(
+                      child: HyperGlass(
+                        borderRadius: 1,
+                        bloom: HyperBlendSurface.barBloom(context),
+                      ),
+                    ),
                     Expanded(
                       child: HyperBlendBlur(
                         material: HyperBlendSurface.menu(context),
                         borderRadius: 1,
+                      ),
+                    ),
+                    // 场景外的表面：混合层和 Bloom 画在 BackdropFilter 里，是另一批 GPU 程序
+                    Expanded(
+                      child: HyperBlendSurface(
+                        material: HyperBlendSurface.menu(context),
+                        borderRadius: BorderRadius.circular(1),
+                        bloom: HyperBlendSurface.menuBloom(context),
+                        shadow: true,
+                        child: const SizedBox.expand(),
+                      ),
+                    ),
+                    Expanded(
+                      child: HyperBlendSurface(
+                        material: HyperBlendSurface.dialog(context),
+                        borderRadius: BorderRadius.circular(1),
+                        bloom: HyperBlendSurface.dialogBloom(context),
+                        child: const SizedBox.expand(),
                       ),
                     ),
                   ],
@@ -329,60 +517,7 @@ class _HyperGlassWarmupState extends State<HyperGlassWarmup> {
             ),
           ),
         Positioned.fill(child: widget.child),
-        if (!covering)
-          const SizedBox.shrink()
-        else
-          const Positioned.fill(child: _PreparingScreen()),
       ],
-    );
-  }
-}
-
-/// 编译期间盖住整个窗口的加载界面。光栅线程被编译占满时画面不会刷新，
-/// 所以这里只放静态内容，不放转圈动画。
-class _PreparingScreen extends StatelessWidget {
-  const _PreparingScreen();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final l10n = context.l10n;
-    return AbsorbPointer(
-      child: ColoredBox(
-        color: scheme.surface,
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.blur_on_rounded,
-                  size: 48,
-                  color: context.tokens.accent,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  l10n.hyperGlassPreparingTitle,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: scheme.onSurface,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  l10n.hyperGlassPreparingBody,
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

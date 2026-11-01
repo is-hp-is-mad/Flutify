@@ -1682,13 +1682,13 @@ abstract class AppLocalizations {
   /// No description provided for @settingsGlassMaterial.
   ///
   /// In zh, this message translates to:
-  /// **'玻璃材质'**
+  /// **'材质'**
   String get settingsGlassMaterial;
 
   /// No description provided for @settingsGlassMaterialLiquid.
   ///
   /// In zh, this message translates to:
-  /// **'伪液态玻璃'**
+  /// **'MD3E'**
   String get settingsGlassMaterialLiquid;
 
   /// No description provided for @settingsGlassMaterialHyper.
@@ -1712,20 +1712,8 @@ abstract class AppLocalizations {
   /// No description provided for @settingsHyperGlassNote.
   ///
   /// In zh, this message translates to:
-  /// **'柔光玻璃（Beta）：菜单、弹窗和播放页玻璃已替换，其余部分仍在移植。每次启动需要先编译着色器。'**
+  /// **'柔光玻璃（Beta）：菜单、弹窗、底部弹层、提示、底栏和播放页都换成 HyperOS 材质。启动后会在后台编译着色器。'**
   String get settingsHyperGlassNote;
-
-  /// No description provided for @hyperGlassPreparingTitle.
-  ///
-  /// In zh, this message translates to:
-  /// **'正在准备柔光玻璃'**
-  String get hyperGlassPreparingTitle;
-
-  /// No description provided for @hyperGlassPreparingBody.
-  ///
-  /// In zh, this message translates to:
-  /// **'首次绘制前需要编译着色器，大约几秒，期间窗口不会响应。'**
-  String get hyperGlassPreparingBody;
 
   /// No description provided for @settingsTextShapeSection.
   ///
@@ -2668,6 +2656,84 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'版本'**
   String get settingsVersion;
+
+  /// No description provided for @shortcutEditHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'点击键帽修改，按下新的组合键保存；Esc 取消，Backspace 清除。'**
+  String get shortcutEditHint;
+
+  /// No description provided for @shortcutPressKeys.
+  ///
+  /// In zh, this message translates to:
+  /// **'请按下组合键…'**
+  String get shortcutPressKeys;
+
+  /// No description provided for @shortcutNone.
+  ///
+  /// In zh, this message translates to:
+  /// **'未设置'**
+  String get shortcutNone;
+
+  /// No description provided for @shortcutNeedsModifier.
+  ///
+  /// In zh, this message translates to:
+  /// **'需要包含 Ctrl、Alt 或 Win，功能键（F1~F24）除外。'**
+  String get shortcutNeedsModifier;
+
+  /// No description provided for @shortcutConflict.
+  ///
+  /// In zh, this message translates to:
+  /// **'已被「{action}」占用。'**
+  String shortcutConflict(String action);
+
+  /// No description provided for @shortcutGlobalSection.
+  ///
+  /// In zh, this message translates to:
+  /// **'全局快捷键'**
+  String get shortcutGlobalSection;
+
+  /// No description provided for @shortcutGlobalHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'窗口不在前台时也能控制播放。'**
+  String get shortcutGlobalHint;
+
+  /// No description provided for @shortcutGlobalFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'以下全局快捷键注册失败，可能被其他软件占用：{actions}'**
+  String shortcutGlobalFailed(String actions);
+
+  /// No description provided for @shortcutResetAll.
+  ///
+  /// In zh, this message translates to:
+  /// **'恢复默认'**
+  String get shortcutResetAll;
+
+  /// No description provided for @settingsCloseToTray.
+  ///
+  /// In zh, this message translates to:
+  /// **'关闭时最小化到托盘'**
+  String get settingsCloseToTray;
+
+  /// No description provided for @settingsCloseToTraySubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'关闭窗口后继续在系统托盘运行，音乐不中断。'**
+  String get settingsCloseToTraySubtitle;
+
+  /// No description provided for @trayShow.
+  ///
+  /// In zh, this message translates to:
+  /// **'显示 Flutify'**
+  String get trayShow;
+
+  /// No description provided for @trayQuit.
+  ///
+  /// In zh, this message translates to:
+  /// **'退出'**
+  String get trayQuit;
 
   /// No description provided for @settingsShortcuts.
   ///

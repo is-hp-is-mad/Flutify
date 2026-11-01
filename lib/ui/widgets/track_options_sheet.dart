@@ -16,6 +16,7 @@ import 'sleep_timer/sleep_timer_menu.dart';
 import 'toast/app_toast.dart';
 import 'track_actions/song_radio.dart';
 import 'track_actions/track_credits_view.dart';
+import 'app_modal.dart';
 
 /// 曲目「更多」操作面板（Spotify 长按 / ⋮ 菜单）。
 class TrackOptionsSheet extends StatelessWidget {
@@ -27,7 +28,7 @@ class TrackOptionsSheet extends StatelessWidget {
   const TrackOptionsSheet({super.key, required this.track, required this.hostContext});
 
   static Future<void> show(BuildContext context, SpotifyTrack track) {
-    return showModalBottomSheet(
+    return showAppBottomSheet(
       context: context,
       useRootNavigator: true,
       isScrollControlled: true,
@@ -153,7 +154,7 @@ class TrackOptionsSheet extends StatelessWidget {
       return;
     }
     Navigator.pop(sheetContext);
-    showModalBottomSheet(
+    showAppBottomSheet(
       context: hostContext,
       useRootNavigator: true,
       builder: (ctx) => SafeArea(
@@ -178,7 +179,7 @@ class TrackOptionsSheet extends StatelessWidget {
   }
 
   void _showAddToPlaylist(BuildContext host) {
-    showModalBottomSheet(
+    showAppBottomSheet(
       context: host,
       useRootNavigator: true,
       isScrollControlled: true,

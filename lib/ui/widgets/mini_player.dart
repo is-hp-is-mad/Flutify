@@ -14,6 +14,7 @@ import 'connect/connect_actions.dart';
 import 'connect/remote_mini_player.dart';
 import 'cover_image.dart';
 import 'marquee_text.dart';
+import 'mini_player_frame.dart';
 import 'playback_scrubber.dart';
 import 'player_controls.dart';
 
@@ -47,42 +48,28 @@ class MiniPlayer extends StatelessWidget {
       fallback: const Color(0xFF3A3A42),
       builder: (context, artColor) {
         final background = Color.lerp(artColor, Colors.black, 0.35)!;
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(10, 6, 10, 8),
+        return MiniPlayerBounds(
           child: PlayerExpansionSource(
             key: const ValueKey('mini-player-expansion-source'),
             color: background,
+            translucent: tokens.hyperMaterial,
             borderRadius: tokens.squareCorners
                 ? tokens.radius(16)
                 : BorderRadius.circular(32),
             compactChild: _MiniPlayerRow(track: track, showArtwork: false),
-            child: AnimatedContainer(
-              duration: context.motion(const Duration(milliseconds: 400)),
-              curve: PlayerExpansionMotion.curve,
-              decoration: ShapeDecoration(
-                color: background,
-                shape: shape,
-                shadows: [
-                  BoxShadow(
-                    color: Colors.black.withAlpha(90),
-                    blurRadius: 20,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              clipBehavior: Clip.antiAlias,
+            child: MiniPlayerSurface(
+              background: background,
+              shape: shape,
               child: Material(
                 type: MaterialType.transparency,
                 child: InkWell(
                   customBorder: shape,
                   mouseCursor: SystemMouseCursors.click,
                   onTap: () => FullPlayerSheet.show(context),
-                  child: GestureDetector(
-                    onHorizontalDragEnd: (details) {
-                      final v = details.primaryVelocity ?? 0;
-                      if (v.abs() < 300) return;
+                  child: MiniPlayerSwipe(
+                    onSwipe: (next) {
                       final playback = context.read<PlaybackProvider>();
-                      v < 0 ? playback.nextTrack() : playback.previousTrack();
+                      next ? playback.nextTrack() : playback.previousTrack();
                     },
                     child: Stack(
                       children: [
@@ -96,8 +83,10 @@ class MiniPlayer extends StatelessWidget {
                             borderRadius: BorderRadius.circular(1),
                             child: PlaybackProgressLine(
                               height: 2,
-                              color: Colors.white,
-                              backgroundColor: Colors.white.withAlpha(40),
+                              color: MiniPlayerStyle.foreground(context),
+                              backgroundColor: MiniPlayerStyle.foreground(
+                                context,
+                              ).withAlpha(40),
                             ),
                           ),
                         ),
@@ -134,9 +123,18 @@ class _MiniPlayerRow extends StatelessWidget {
         final width = constraints.maxWidth;
         final showDevice = width >= 340;
         final showLike = width >= 260;
+        final artwork = MiniPlayerStyle.artworkSize(context);
+        final foreground = MiniPlayerStyle.foreground(
+          context,
+          onSurface: showArtwork,
+        );
+        final secondary = MiniPlayerStyle.secondary(
+          context,
+          onSurface: showArtwork,
+        );
 
         return Padding(
-          padding: const EdgeInsets.fromLTRB(7, 7, 8, 9),
+          padding: MiniPlayerStyle.rowPadding(context),
           child: Row(
             children: [
               if (showArtwork)
@@ -144,12 +142,12 @@ class _MiniPlayerRow extends StatelessWidget {
                   imageUrl: track.coverUrl,
                   child: CoverImage(
                     url: track.coverUrl,
-                    size: 44,
+                    size: artwork,
                     circular: true,
                   ),
                 )
               else
-                const SizedBox(width: 44, height: 44),
+                SizedBox(width: artwork, height: artwork),
               const SizedBox(width: 12),
 
               // 歌名 / 艺人（或当前 Connect 设备）
@@ -167,14 +165,14 @@ class _MiniPlayerRow extends StatelessWidget {
                         edgeFadeInset: 4,
                         style: theme.textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.w700,
-                          color: Colors.white,
+                          color: foreground,
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         track.artistNames,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: Colors.white70,
+                          color: secondary,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -191,7 +189,7 @@ class _MiniPlayerRow extends StatelessWidget {
                     Icons.devices_rounded,
                     color: activeDeviceName != null
                         ? colorScheme.primary
-                        : Colors.white70,
+                        : secondary,
                     size: 20,
                   ),
                   onPressed: () => DevicePickerSheet.show(context),
@@ -199,11 +197,11 @@ class _MiniPlayerRow extends StatelessWidget {
 
               if (showLike) LikeButton(track: track, size: 22),
 
-              const PlayPauseButton(
+              PlayPauseButton(
                 size: 40,
                 iconSize: 26,
                 background: Colors.transparent,
-                foreground: Colors.white,
+                foreground: foreground,
               ),
             ],
           ),

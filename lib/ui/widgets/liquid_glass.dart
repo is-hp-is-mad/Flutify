@@ -124,6 +124,7 @@ extension on LiquidGlass {
       // 每帧也多一份裁剪开销。只裁上面的内容，保证文字图标不出圆角。
       return HyperGlass(
         borderRadius: radius.topLeft.x,
+        bloom: HyperBlendSurface.barBloom(context),
         child: ClipRRect(borderRadius: radius, child: content),
       );
     }
@@ -131,6 +132,8 @@ extension on LiquidGlass {
     return HyperBlendSurface(
       material: HyperBlendSurface.bar(context),
       borderRadius: radius,
+      bloom: HyperBlendSurface.barBloom(context),
+      shadow: true,
       child: content,
     );
   }
