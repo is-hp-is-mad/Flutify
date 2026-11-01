@@ -318,10 +318,10 @@ class PlaybackProvider extends ChangeNotifier {
     final known = prefixes.any(uri.startsWith) || uri.endsWith(':collection');
     if (!known || uri == _context.uri) return;
     debugPrint('[playback] 记下 Connect 上下文 $uri');
-    _context = PlaybackContext(
-      type: _context.type == PlaybackContext.none.type ? 'playlist' : _context.type,
-      name: _context.name,
-      uri: uri,
+    // 换了上下文时旧名字不再适用；本机原本没有 URI 时名字仍是这份列表的
+    _context = PlaybackContext.fromUri(
+      uri,
+      name: _context.uri.isEmpty ? _context.name : '',
     );
     _scheduleSave();
     notifyListeners();

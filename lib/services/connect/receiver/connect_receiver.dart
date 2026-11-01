@@ -122,6 +122,10 @@ class ConnectReceiver {
     return (machine: m, order: m.playableChain(_stateIndex));
   }
 
+  /// [uri] 是否属于当前状态机：本机改播状态机外的曲目后，服务端的上下文就不再适用。
+  bool hasTrack(String uri) =>
+      _machine?.tracks.any((t) => t.uri == uri) ?? false;
+
   void invalidateSession() => _api.invalidate();
 
   Future<void> start() async {

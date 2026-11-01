@@ -199,6 +199,10 @@ void main() {
     expect(playback.playbackContext.uri, isEmpty);
     playback.adoptReceiverContext('spotify:user:me:collection');
     expect(playback.playbackContext.uri, 'spotify:user:me:collection');
+    expect(playback.playbackContext.type, 'collection');
+    playback.adoptReceiverContext('spotify:album:z');
+    expect(playback.playbackContext.type, 'album');
+    expect(playback.playbackContext.name, isEmpty);
   });
 
   test('without a receiver window the queue end still wraps', () async {
