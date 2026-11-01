@@ -1121,6 +1121,12 @@ abstract class AppLocalizations {
   /// **'只在本次运行生效，下次启动恢复检测'**
   String get regionCheckSkipThisRunHint;
 
+  /// 地区拦截底部提示里的短按钮文案（底部靠右显示）：跳过本次运行的检测
+  ///
+  /// In zh, this message translates to:
+  /// **'跳过本次'**
+  String get playbackErrorRegionSkipAction;
+
   /// No description provided for @playbackErrorWidevine.
   ///
   /// In zh, this message translates to:

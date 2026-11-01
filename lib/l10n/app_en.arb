@@ -207,6 +207,7 @@
   "regionCheckOnNetworkChangeHint": "Detect again after switching Wi-Fi or proxy; when off, the last result is reused until launch",
   "regionCheckSkipThisRun": "Skip checks until next launch",
   "regionCheckSkipThisRunHint": "Applies to this run only; detection resumes on the next launch",
+  "playbackErrorRegionSkipAction": "Skip this time",
   "playbackErrorWidevine": "Can't decrypt \"{track}\": Widevine DRM is unavailable on this device",
   "playbackErrorFairPlay": "Can't decrypt \"{track}\": this device couldn't create a FairPlay session",
   "playbackErrorAutoPaused": "{count} songs in a row couldn't play, so playback paused",

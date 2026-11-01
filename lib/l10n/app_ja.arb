@@ -161,6 +161,7 @@
   "regionCheckOnNetworkChangeHint": "Wi-Fi やプロキシの切り替え後に再検出します。オフの場合は起動時の結果を使い続けます",
   "regionCheckSkipThisRun": "次回起動まで確認しない",
   "regionCheckSkipThisRunHint": "今回の起動中だけ有効で、次回起動時に確認を再開します",
+  "playbackErrorRegionSkipAction": "今回はスキップ",
   "playbackErrorWidevine": "「{track}」を復号できません。このデバイスでは Widevine DRM を利用できません",
   "playbackErrorAutoPaused": "{count} 曲連続で再生できなかったため、一時停止しました",
   "detailSignInRequired": "ログインしてコンテンツを表示",

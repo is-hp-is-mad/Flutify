@@ -316,6 +316,7 @@
   "regionCheckOnNetworkChangeHint": "切換 Wi-Fi / 代理後重新偵測一次；關閉則不複查，只在起播時沿用上一次的結果",
   "regionCheckSkipThisRun": "本次開啟跳過偵測",
   "regionCheckSkipThisRunHint": "只在本次執行生效，下次啟動恢復偵測",
+  "playbackErrorRegionSkipAction": "跳過本次",
   "playbackErrorWidevine": "「{track}」無法解密播放：此裝置缺少 Widevine 組件",
   "@playbackErrorWidevine": {
     "placeholders": {

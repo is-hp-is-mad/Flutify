@@ -332,6 +332,8 @@
   "regionCheckOnNetworkChangeHint": "切换 Wi-Fi / 代理后重新检测一次；关闭则不复查，只在起播时用上一次的结果",
   "regionCheckSkipThisRun": "本次打开跳过检测",
   "regionCheckSkipThisRunHint": "只在本次运行生效，下次启动恢复检测",
+  "playbackErrorRegionSkipAction": "跳过本次",
+  "@playbackErrorRegionSkipAction": {"description": "地区拦截底部提示里的短按钮文案（底部靠右显示）：跳过本次运行的检测"},
   "playbackErrorWidevine": "「{track}」无法解密播放：此设备缺少 Widevine 组件",
   "@playbackErrorWidevine": {
     "placeholders": {
