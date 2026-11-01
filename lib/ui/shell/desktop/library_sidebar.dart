@@ -10,9 +10,11 @@ import '../../navigation/app_routes.dart';
 import '../../screens/auth/login_screen.dart';
 import '../../widgets/create_playlist_dialog.dart';
 import '../../widgets/filter_pill.dart';
+import '../../widgets/menu/desktop_menu.dart';
 import '../panel_surface.dart';
 import 'library_sidebar_entry.dart';
 import 'library_sidebar_item.dart';
+import '../../widgets/app_button.dart';
 
 /// 桌面端左栏「音乐库」。
 ///
@@ -356,7 +358,7 @@ class _SearchSortRow extends StatelessWidget {
             ),
             const Spacer(),
           ],
-          PopupMenuButton<LibrarySort>(
+          FlutifyPopupMenuButton<LibrarySort>(
             tooltip: '',
             initialValue: sort,
             onSelected: onSortChanged,
@@ -435,7 +437,7 @@ class _SignInCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            M3EButton.filled(
+            AppButton.filled(
               onPressed: () => LoginScreen.open(context),
               decoration: M3EButtonDecoration(
                 backgroundColor: WidgetStatePropertyAll(colorScheme.onSurface),

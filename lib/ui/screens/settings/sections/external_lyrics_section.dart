@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../l10n/l10n.dart';
@@ -11,6 +10,7 @@ import '../../../../services/lyric_bridge/lyric_bridge_channel.dart';
 import '../../../../services/lyric_bridge/lyric_metadata_controls.dart';
 import '../widgets/settings_section.dart';
 import '../widgets/settings_segmented.dart';
+import '../../../widgets/app_button.dart';
 
 /// 车机与状态栏歌词（Android）：蓝牙歌词（车机屏幕显示当前歌词行）与 Flyme 状态栏歌词。
 ///
@@ -103,7 +103,7 @@ class _ExternalLyricsSectionState extends State<ExternalLyricsSection>
             SettingsTile(
               title: l10n.settingsBluetoothPermission,
               subtitle: l10n.settingsBluetoothPermissionSubtitle,
-              trailing: M3EButton.text(
+              trailing: AppButton.text(
                 onPressed: () =>
                     unawaited(controls.requestBluetoothPermission()),
                 child: Text(l10n.settingsBluetoothPermissionGrant),

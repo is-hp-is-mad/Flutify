@@ -24,6 +24,7 @@ import '../../widgets/skeleton.dart';
 import '../../widgets/track_tile.dart';
 import '../detail/widgets/collection_widgets.dart';
 import '../../widgets/flutify_progress.dart';
+import '../../widgets/app_button.dart';
 
 /// 搜索页：浏览分类 / 最近搜索 / 多类型搜索结果。
 ///
@@ -244,7 +245,7 @@ class _BrowseView extends StatelessWidget {
                   Expanded(
                     child: Text(l10n.searchRecent, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
                   ),
-                  M3EButton.text(
+                  AppButton.text(
                     onPressed: () => context.read<SpotifyProvider>().clearRecentSearches(),
                     child: Text(l10n.searchClearAll),
                   ),
@@ -335,7 +336,7 @@ class _SearchResults extends StatelessWidget {
     final spotify = context.watch<SpotifyProvider>();
     final l10n = context.l10n;
     if (spotify.isSearching) {
-      return const Center(child: M3ELoadingIndicator());
+      return const Center(child: FlutifyLoadingIndicator());
     }
     if (spotify.searchError != null) {
       if (spotify.searchRequiresSignIn) {
@@ -543,7 +544,7 @@ class _SearchPageControl extends StatelessWidget {
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodySmall,
             ),
-          M3EButton.icon(style: M3EButtonStyle.text, 
+          AppButton.icon(style: M3EButtonStyle.text, 
             key: ValueKey('search-load-more-${type.name}'),
             onPressed: () => spotify.loadMoreSearch(type),
             icon: Icon(

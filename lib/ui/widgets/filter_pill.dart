@@ -24,6 +24,7 @@ class FilterPill extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final tokens = context.tokens;
+    final hyper = tokens.hyperMaterial;
 
     return HoverBuilder(
       cursor: SystemMouseCursors.click,
@@ -39,10 +40,10 @@ class FilterPill extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(14.0, 5.5, 14.0, 4.5),
           decoration: BoxDecoration(
             color: isSelected
-                ? tokens.accent
+                ? (hyper ? colorScheme.primaryContainer : tokens.accent)
                 : (hovered ? colorScheme.surfaceContainerHighest : colorScheme.surfaceContainerHigh),
             borderRadius: tokens.pill,
-            boxShadow: isSelected
+            boxShadow: isSelected && !hyper
                 ? [
                     BoxShadow(
                       color: tokens.accent.withAlpha(70),
@@ -55,7 +56,9 @@ class FilterPill extends StatelessWidget {
           child: Text(
             label,
             style: theme.textTheme.labelMedium?.copyWith(
-              color: isSelected ? tokens.onAccent : colorScheme.onSurface,
+              color: isSelected
+                  ? (hyper ? colorScheme.primary : tokens.onAccent)
+                  : colorScheme.onSurface,
               fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
             ),
           ),

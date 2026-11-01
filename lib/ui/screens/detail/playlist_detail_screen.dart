@@ -15,6 +15,7 @@ import '../../../services/backup/playlist_backup_service.dart';
 import '../../../services/spotify_api_service.dart';
 import '../../shell/shell_breakpoints.dart';
 import '../../widgets/content_bottom_spacer.dart';
+import '../../widgets/menu/desktop_menu.dart';
 import '../../widgets/share/share_button.dart';
 import '../../widgets/toast/app_toast.dart';
 import '../../widgets/track_table/track_list_toolbar.dart';
@@ -24,6 +25,7 @@ import '../../widgets/track_table/track_table_header.dart';
 import '../../widgets/track_tile.dart';
 import 'widgets/collection_hero.dart';
 import 'widgets/collection_widgets.dart';
+import '../../widgets/app_button.dart';
 
 /// 歌单详情页（含 Liked Songs 与自建歌单）。
 ///
@@ -293,7 +295,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                     if (!isBackupLikedSongs)
                       ShareButton(target: ShareTarget.playlist(playlist)),
                     if (isOwn)
-                      PopupMenuButton<String>(
+                      FlutifyPopupMenuButton<String>(
                         icon: const Icon(Icons.more_horiz_rounded, size: 28),
                         tooltip: l10n.commonMoreOptions,
                         onSelected: (value) {
@@ -465,7 +467,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
             runSpacing: 8,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              M3EButton.icon(style: M3EButtonStyle.text, 
+              AppButton.icon(style: M3EButtonStyle.text, 
                 onPressed: () {
                   setState(() {
                     if (allSelected) {
@@ -489,7 +491,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              M3EButton.icon(style: M3EButtonStyle.filled, 
+              AppButton.icon(style: M3EButtonStyle.filled, 
                 onPressed: selectedTracks.isEmpty ? null : likeSelectedTracks,
                 icon: const Icon(Icons.favorite_rounded, size: 18),
                 label: Text(
@@ -499,7 +501,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                 ),
               ),
               if (isExternalBackupLikedSongs)
-                M3EButton.icon(style: M3EButtonStyle.outlined, 
+                AppButton.icon(style: M3EButtonStyle.outlined, 
                   onPressed: selectedTracks.isEmpty ? null : importAsPlaylist,
                   icon: const Icon(Icons.library_add_rounded, size: 18),
                   label: const Text('将所选导入为本账号歌单'),
@@ -535,7 +537,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.only(left: 12),
-            child: M3ECheckbox(
+            child: AppCheckbox(
               value: selected,
               onChanged: (v) {
                 setState(() {

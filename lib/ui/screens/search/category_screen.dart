@@ -9,6 +9,8 @@ import '../../shell/shell_breakpoints.dart';
 import '../../widgets/content_bottom_spacer.dart';
 import '../detail/widgets/collection_widgets.dart';
 import '../home/widgets/home_shelf.dart';
+import '../../../core/theme/flutify_tokens.dart';
+import '../../widgets/hyper_surface.dart';
 
 /// 分类页（browsePage）：分类下的分区卡架，与主页同一套卡片与点击行为。
 ///
@@ -59,7 +61,12 @@ class _CategoryScreenState extends State<CategoryScreen> {
           SliverAppBar(
             pinned: true,
             // 分类色只做轻微染色，标题可读性优先
-            backgroundColor: widget.category.color.withAlpha(36),
+            backgroundColor: context.tokens.hyperMaterial
+                ? Colors.transparent
+                : widget.category.color.withAlpha(36),
+            flexibleSpace: context.tokens.hyperMaterial
+                ? const HyperAppBarBackground()
+                : null,
             title: Text(
               widget.category.name,
               style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),

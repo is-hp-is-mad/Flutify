@@ -12,6 +12,7 @@ import 'lyrics/lyrics_glass_controls.dart';
 import 'lyrics/lyrics_view.dart';
 import 'lyrics/lyrics_translation_controls.dart';
 import 'player_modal.dart';
+import '../../widgets/app_modal.dart';
 
 /// 同步歌词面板（Apple Music iOS 风格，手机 / 窄窗口使用）。
 /// 遥控远程设备时同样可用（手机上点远程迷你播放器即打开它）。
@@ -29,7 +30,7 @@ class LyricsSheet extends StatelessWidget {
 
   static Future<void> show(BuildContext context) =>
       PlayerModal.show(context, (captureRoute) {
-        return showModalBottomSheet(
+        return showAppBottomSheet(
           context: context,
           useRootNavigator: true,
           isScrollControlled: true,

@@ -3,8 +3,9 @@ import 'package:flutter/services.dart';
 
 import '../../../../l10n/l10n.dart';
 import 'gradient_track_slider.dart';
-import 'package:material_3_expressive/material_3_expressive.dart' show M3EButton;
 import '../../../widgets/flutify_dialog.dart';
+import '../../../widgets/app_modal.dart';
+import '../../../widgets/app_button.dart';
 
 /// 自定义强调色对话框：色相 / 饱和度 / 亮度三条渐变滑杆 + 十六进制输入 + 大色块预览。
 ///
@@ -16,7 +17,7 @@ class CustomColorDialog extends StatefulWidget {
 
   /// 返回用户确认的颜色；取消返回 null。
   static Future<Color?> show(BuildContext context, {required Color initial}) {
-    return showDialog<Color>(context: context, builder: (_) => CustomColorDialog(initial: initial));
+    return showAppDialog<Color>(context: context, builder: (_) => CustomColorDialog(initial: initial));
   }
 
   @override
@@ -128,8 +129,8 @@ class _CustomColorDialogState extends State<CustomColorDialog> {
         )),
       )),
       actions: [
-        M3EButton.text(onPressed: () => Navigator.pop(context), child: Text(l10n.commonCancel)),
-        M3EButton.filled(onPressed: () => Navigator.pop(context, color), child: Text(l10n.commonDone)),
+        AppButton.text(onPressed: () => Navigator.pop(context), child: Text(l10n.commonCancel)),
+        AppButton.filled(onPressed: () => Navigator.pop(context, color), child: Text(l10n.commonDone)),
       ]);
   }
 }

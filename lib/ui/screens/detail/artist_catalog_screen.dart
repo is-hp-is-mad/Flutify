@@ -15,8 +15,11 @@ import '../../widgets/skeleton.dart';
 import '../../widgets/track_tile.dart';
 import 'widgets/artist_catalog_widgets.dart';
 import 'widgets/collection_widgets.dart';
-import 'package:material_3_expressive/material_3_expressive.dart' show M3EButton, M3EButtonStyle;
+import 'package:material_3_expressive/material_3_expressive.dart' show M3EButtonStyle;
 import '../../widgets/flutify_progress.dart';
+import '../../widgets/app_button.dart';
+import '../../../core/theme/flutify_tokens.dart';
+import '../../widgets/hyper_surface.dart';
 
 enum ArtistCatalogKind { albums, songs }
 
@@ -217,7 +220,22 @@ class _ArtistCatalogScreenState extends State<ArtistCatalogScreen> {
             pinned: true,
             toolbarHeight: 64,
             leadingWidth: 64,
-            leading: Padding(
+            backgroundColor: context.tokens.hyperMaterial
+                ? Colors.transparent
+                : null,
+            flexibleSpace: context.tokens.hyperMaterial
+                ? const HyperAppBarBackground()
+                : null,
+            leading: context.tokens.hyperMaterial
+                ? Center(
+                    child: GestureDetector(
+                      key: const Key('artist-catalog-back'),
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => Navigator.of(context).maybePop(),
+                      child: const HyperCircleIcon(Icons.arrow_back_rounded),
+                    ),
+                  )
+                : Padding(
               padding: const EdgeInsets.all(8),
               child: IconButton.filledTonal(
                 key: const Key('artist-catalog-back'),
@@ -319,7 +337,7 @@ class _ArtistCatalogScreenState extends State<ArtistCatalogScreen> {
                           dimension: 24,
                           child: FlutifySpinner(size: 24),
                         )
-                      : M3EButton.icon(style: M3EButtonStyle.outlined,
+                      : AppButton.icon(style: M3EButtonStyle.outlined,
                           key: const Key('artist-catalog-load-more'),
                           onPressed: _continue,
                           icon: const Icon(Icons.expand_more_rounded),

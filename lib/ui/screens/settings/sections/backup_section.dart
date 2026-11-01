@@ -12,11 +12,15 @@ import '../../../../providers/preferences_provider.dart';
 import '../../../../services/backup/playlist_backup_service.dart';
 import '../../../navigation/app_routes.dart';
 import '../../../widgets/cover_image.dart';
+import '../../../widgets/menu/desktop_menu.dart';
 import '../../../widgets/toast/app_toast.dart';
 import '../../auth/backup_account_login_screen.dart';
 import '../widgets/settings_section.dart';
 import '../../../widgets/flutify_dialog.dart';
 import '../../../widgets/flutify_progress.dart';
+import '../../../widgets/app_modal.dart';
+import '../../../widgets/app_switch.dart';
+import '../../../widgets/app_button.dart';
 
 /// 设置页「歌单备份」分组：
 /// - 显示各个备份账号各自的「已点赞的歌曲」（点击直接查看该账号的已点赞歌曲，不会跳去本机账号）；
@@ -159,7 +163,7 @@ class _BackupSectionState extends State<BackupSection> {
     PlaylistBackupService service,
     SpotifyPlaylist playlist,
   ) async {
-    await showDialog<void>(
+    await showAppDialog<void>(
       context: context,
       builder: (dialogContext) => _TrackImportDialog(
         playlist: playlist,
@@ -234,7 +238,17 @@ class _BackupSectionState extends State<BackupSection> {
           SettingsTile(
             title: '自动备份频率',
             subtitle: '最短 20 分钟以防止触发服务端限流',
-            trailing: DropdownButtonHideUnderline(
+            trailing: context.tokens.hyperMaterial
+                ? _HyperIntervalButton(
+                    value: AppPreferences.backupIntervalOptions.contains(
+                      prefs.backupIntervalMinutes,
+                    )
+                        ? prefs.backupIntervalMinutes
+                        : AppPreferences.defaultBackupIntervalMinutes,
+                    labelOf: _intervalLabel,
+                    onChanged: (value) => updatePrefs(intervalMinutes: value),
+                  )
+                : DropdownButtonHideUnderline(
               child: DropdownButton<int>(
                 value: AppPreferences.backupIntervalOptions.contains(
                   prefs.backupIntervalMinutes,
@@ -306,7 +320,7 @@ class _BackupSectionState extends State<BackupSection> {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        M3ECheckbox(
+                        AppCheckbox(
                           value: allSelected,
                           onChanged: (_) {
                             setState(() {
@@ -327,7 +341,7 @@ class _BackupSectionState extends State<BackupSection> {
                         ),
                       ],
                     ),
-                    M3EButton.icon(
+                    AppButton.icon(
                       style: M3EButtonStyle.tonal,
                       onPressed: selectedCount == 0 || backingUp || importing
                           ? null
@@ -400,7 +414,7 @@ class _BackupAccountTile extends StatelessWidget {
         children: [
           Tooltip(
             message: '参与一键同步到本账号',
-            child: M3ESwitch(
+            child: AppSwitch(
               value: account.syncToLocal,
               onChanged: onToggleSync,
             ),
@@ -458,7 +472,7 @@ class _BackedUpPlaylistTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: Row(
           children: [
-            M3ECheckbox(value: selected, onChanged: onSelectedChanged),
+            AppCheckbox(value: selected, onChanged: onSelectedChanged),
             const SizedBox(width: 4),
             if (isLiked)
               Container(
@@ -577,7 +591,7 @@ class _TrackImportDialogState extends State<_TrackImportDialog> {
           children: [
             Row(
               children: [
-                M3EButton.icon(
+                AppButton.icon(
                   style: M3EButtonStyle.text,
                   onPressed: () {
                     setState(() {
@@ -618,7 +632,7 @@ class _TrackImportDialogState extends State<_TrackImportDialog> {
                   }
 
                   return ListTile(
-                    leading: M3ECheckbox(value: checked, onChanged: toggle),
+                    leading: AppCheckbox(value: checked, onChanged: toggle),
                     onTap: () => toggle(!checked),
                     title: Text(
                       track.name,
@@ -639,12 +653,12 @@ class _TrackImportDialogState extends State<_TrackImportDialog> {
         ),
       ),
       actions: [
-        M3EButton.text(
+        AppButton.text(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('取消'),
         ),
         if (isExternalBackupLiked)
-          M3EButton.icon(
+          AppButton.icon(
             style: M3EButtonStyle.outlined,
             onPressed: selected.isEmpty
                 ? null
@@ -667,7 +681,7 @@ class _TrackImportDialogState extends State<_TrackImportDialog> {
             icon: const Icon(Icons.library_add_rounded, size: 18),
             label: Text('导入所选为歌单（${selected.length}）'),
           ),
-        M3EButton.icon(
+        AppButton.icon(
           style: M3EButtonStyle.filled,
           onPressed: selected.isEmpty
               ? null
@@ -693,6 +707,41 @@ class _TrackImportDialogState extends State<_TrackImportDialog> {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// 柔光玻璃模式下的「自动备份频率」选择：当前值 + 下拉箭头，点开澎湃 OS 4 菜单。
+class _HyperIntervalButton extends StatelessWidget {
+  final int value;
+  final String Function(int minutes) labelOf;
+  final ValueChanged<int> onChanged;
+
+  const _HyperIntervalButton({
+    required this.value,
+    required this.labelOf,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return FlutifyPopupMenuButton<int>(
+      onSelected: onChanged,
+      itemBuilder: (_) => [
+        for (final minutes in AppPreferences.backupIntervalOptions)
+          DesktopMenu.check(minutes, labelOf(minutes), checked: minutes == value),
+      ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(labelOf(value)),
+            const SizedBox(width: 4),
+            const Icon(Icons.arrow_drop_down_rounded),
+          ],
+        ),
+      ),
     );
   }
 }

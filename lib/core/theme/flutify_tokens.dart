@@ -45,6 +45,9 @@ class FlutifyTokens extends ThemeExtension<FlutifyTokens> {
   /// 省电模式（见 [AppearanceSettings.powerSaving]）。
   final bool powerSaving;
 
+  /// 材质选了「柔光玻璃（Beta）」：玻璃表面、菜单、弹窗改用 HyperOS 材质。
+  final bool hyperMaterial;
+
   const FlutifyTokens({
     required this.accent,
     required this.onAccent,
@@ -54,6 +57,7 @@ class FlutifyTokens extends ThemeExtension<FlutifyTokens> {
     required this.cornerScale,
     required this.squareCorners,
     this.powerSaving = false,
+    this.hyperMaterial = false,
   });
 
   /// 由外观设置与本次主题实际使用的强调色生成。
@@ -67,6 +71,7 @@ class FlutifyTokens extends ThemeExtension<FlutifyTokens> {
       cornerScale: s.cornerStyle.scale,
       squareCorners: s.cornerStyle == CornerStyle.square,
       powerSaving: s.powerSaving,
+      hyperMaterial: s.glassMaterial == GlassMaterial.hyper,
     );
   }
 
@@ -101,6 +106,7 @@ class FlutifyTokens extends ThemeExtension<FlutifyTokens> {
     double? cornerScale,
     bool? squareCorners,
     bool? powerSaving,
+    bool? hyperMaterial,
   }) {
     return FlutifyTokens(
       accent: accent ?? this.accent,
@@ -111,6 +117,7 @@ class FlutifyTokens extends ThemeExtension<FlutifyTokens> {
       cornerScale: cornerScale ?? this.cornerScale,
       squareCorners: squareCorners ?? this.squareCorners,
       powerSaving: powerSaving ?? this.powerSaving,
+      hyperMaterial: hyperMaterial ?? this.hyperMaterial,
     );
   }
 
@@ -126,6 +133,7 @@ class FlutifyTokens extends ThemeExtension<FlutifyTokens> {
       cornerScale: lerpDouble(cornerScale, other.cornerScale, t)!,
       squareCorners: t < 0.5 ? squareCorners : other.squareCorners,
       powerSaving: t < 0.5 ? powerSaving : other.powerSaving,
+      hyperMaterial: t < 0.5 ? hyperMaterial : other.hyperMaterial,
     );
   }
 }

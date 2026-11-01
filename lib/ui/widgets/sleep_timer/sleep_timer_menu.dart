@@ -7,6 +7,7 @@ import '../../../providers/sleep_timer_provider.dart';
 import '../../shell/shell_breakpoints.dart';
 import '../menu/desktop_menu.dart';
 import '../toast/app_toast.dart';
+import '../app_modal.dart';
 
 /// 睡眠定时器选择：桌面端在 [position] 弹出菜单，移动端底部面板。
 ///
@@ -45,7 +46,7 @@ class SleepTimerMenu {
               DesktopMenu.item<Object>(_off, Icons.timer_off_outlined, l10n.sleepTimerOff),
             ],
           ])
-        : await showModalBottomSheet<Object>(
+        : await showAppBottomSheet<Object>(
             context: context,
             useRootNavigator: true,
             builder: (ctx) => _SleepTimerSheet(timer: timer),

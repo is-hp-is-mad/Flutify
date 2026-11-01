@@ -10,6 +10,7 @@ import '../../screens/player/full_player_sheet.dart';
 import '../../screens/player/player_expansion.dart';
 import '../cover_image.dart';
 import '../marquee_text.dart';
+import '../mini_player_frame.dart';
 import 'connect_actions.dart';
 import 'connect_device_icon.dart';
 import 'remote_progress.dart';
@@ -39,11 +40,11 @@ class RemoteMiniPlayer extends StatelessWidget {
       fallback: const Color(0xFF3A3A42),
       builder: (context, artColor) {
         final background = Color.lerp(artColor, Colors.black, 0.35)!;
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(10, 6, 10, 8),
+        return MiniPlayerBounds(
           child: PlayerExpansionSource(
             key: const ValueKey('mini-player-expansion-source'),
             color: background,
+            translucent: tokens.hyperMaterial,
             borderRadius: tokens.squareCorners
                 ? tokens.radius(16)
                 : BorderRadius.circular(32),
@@ -53,36 +54,20 @@ class RemoteMiniPlayer extends StatelessWidget {
               trackKey: player.trackUri,
               showArtwork: false,
             ),
-            child: AnimatedContainer(
-              duration: context.motion(const Duration(milliseconds: 400)),
-              curve: PlayerExpansionMotion.curve,
-              decoration: ShapeDecoration(
-                color: background,
-                shape: shape,
-                shadows: [
-                  BoxShadow(
-                    color: Colors.black.withAlpha(90),
-                    blurRadius: 20,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              clipBehavior: Clip.antiAlias,
+            child: MiniPlayerSurface(
+              background: background,
+              shape: shape,
               child: Material(
                 type: MaterialType.transparency,
                 child: InkWell(
                   customBorder: shape,
                   mouseCursor: SystemMouseCursors.click,
                   onTap: () => FullPlayerSheet.show(context),
-                  child: GestureDetector(
-                    onHorizontalDragEnd: (details) {
-                      final v = details.primaryVelocity ?? 0;
-                      if (v.abs() < 300) return;
-                      ConnectActions.run(
-                        context,
-                        v < 0 ? connect.skipNext : connect.skipPrevious,
-                      );
-                    },
+                  child: MiniPlayerSwipe(
+                    onSwipe: (next) => ConnectActions.run(
+                      context,
+                      next ? connect.skipNext : connect.skipPrevious,
+                    ),
                     child: Stack(
                       children: [
                         _RemoteMiniRow(
@@ -107,11 +92,13 @@ class RemoteMiniPlayer extends StatelessWidget {
                                             1.0,
                                           ),
                                     minHeight: 2,
-                                    backgroundColor: Colors.white.withAlpha(40),
-                                    valueColor:
-                                        const AlwaysStoppedAnimation<Color>(
-                                          Colors.white,
-                                        ),
+                                    backgroundColor:
+                                        MiniPlayerStyle.foreground(
+                                          context,
+                                        ).withAlpha(40),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      MiniPlayerStyle.foreground(context),
+                                    ),
                                   ),
                             ),
                           ),
@@ -150,17 +137,23 @@ class _RemoteMiniRow extends StatelessWidget {
     final device = connect.activeDevice;
     final playing = connect.player.isAudible;
 
+    final artwork = MiniPlayerStyle.artworkSize(context);
+    final foreground = MiniPlayerStyle.foreground(
+      context,
+      onSurface: showArtwork,
+    );
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(7, 7, 8, 9),
+      padding: MiniPlayerStyle.rowPadding(context),
       child: Row(
         children: [
           if (showArtwork)
             PlayerArtworkHero(
               imageUrl: imageUrl,
-              child: CoverImage(url: imageUrl, size: 44, circular: true),
+              child: CoverImage(url: imageUrl, size: artwork, circular: true),
             )
           else
-            const SizedBox(width: 44, height: 44),
+            SizedBox(width: artwork, height: artwork),
           const SizedBox(width: 12),
           Expanded(
             child: AnimatedSwitcher(
@@ -176,7 +169,7 @@ class _RemoteMiniRow extends StatelessWidget {
                     edgeFadeInset: 4,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: Colors.white,
+                      color: foreground,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -220,7 +213,7 @@ class _RemoteMiniRow extends StatelessWidget {
               icon: Icon(
                 playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
                 size: 26,
-                color: Colors.white,
+                color: foreground,
               ),
               onPressed: () =>
                   ConnectActions.run(context, connect.togglePlayPause),

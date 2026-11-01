@@ -193,19 +193,24 @@ class _PlayButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
+    final hyper = tokens.hyperMaterial;
     return Material(
-      color: tokens.accent,
+      color: hyper ? Theme.of(context).colorScheme.primary : tokens.accent,
       shape: tokens.squareCorners
           ? RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))
           : const CircleBorder(),
-      elevation: 3,
+      elevation: hyper ? 0 : 3,
       child: InkWell(
         mouseCursor: SystemMouseCursors.click,
         onTap: onPressed,
         customBorder: const CircleBorder(),
         child: SizedBox.square(
           dimension: _size,
-          child: Icon(Icons.play_arrow_rounded, size: 22, color: tokens.onAccent),
+          child: Icon(
+            Icons.play_arrow_rounded,
+            size: 22,
+            color: hyper ? Theme.of(context).colorScheme.onPrimary : tokens.onAccent,
+          ),
         ),
       ),
     );

@@ -191,7 +191,7 @@ class WebLoginFlow extends ChangeNotifier {
     ++_revision;
     spDc = null;
     _notice = null;
-    _fail('登录已失效，已清除登录状态，请重新登录');
+    _fail('Spotify 拒绝了这次登录（HTTP 401），请重试；反复出现时多半是代理或 VPN 出口被拦截');
   }
 }
 

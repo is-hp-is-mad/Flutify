@@ -93,12 +93,12 @@ void main() {
     );
   });
 
-  test('Web token 401 丢弃 Cookie，重试从 Web 登录开始', () async {
+  test('Web token 401 显示原因，重试从 Web 登录开始', () async {
     final t = build(prepare: () async => throw WebTokenHttpException(401));
     await t.flow.poll();
     expect(t.flow.stage, WebLoginStage.failed);
     expect(t.flow.webSignedIn, isFalse);
-    expect(t.flow.error, contains('重新登录'));
+    expect(t.flow.error, contains('HTTP 401'));
     expect(t.finished, isEmpty);
     await t.flow.retry();
     expect(t.flow.stage, WebLoginStage.webSignIn);

@@ -890,7 +890,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'The accent follows the artwork of what\'s playing';
 
   @override
-  String get settingsGlassSection => 'Liquid glass';
+  String get settingsGlassSection => 'Material';
 
   @override
   String get settingsGlassPreview => 'Glass preview';
@@ -900,6 +900,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsGlassOpacity => 'Opacity';
+
+  @override
+  String get settingsGlassMaterial => 'Material';
+
+  @override
+  String get settingsGlassMaterialLiquid => 'MD3E';
+
+  @override
+  String get settingsGlassMaterialHyper => 'Soft-light glass (Beta)';
+
+  @override
+  String get settingsHyperGlassPreview => 'Soft-light glass';
+
+  @override
+  String get settingsHyperBlurPreview => 'Blur';
+
+  @override
+  String get settingsHyperGlassNote =>
+      'Soft-light glass (Beta): menus, dialogs, bottom sheets, toasts, the bottom bar and the player use HyperOS materials. Shaders are compiled in the background after launch.';
 
   @override
   String get settingsTextShapeSection => 'Text & shape';
@@ -1437,6 +1456,53 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsVersion => 'Version';
+
+  @override
+  String get shortcutEditHint =>
+      'Click a shortcut to change it and press the new keys. Esc cancels, Backspace clears.';
+
+  @override
+  String get shortcutPressKeys => 'Press keys…';
+
+  @override
+  String get shortcutNone => 'Not set';
+
+  @override
+  String get shortcutNeedsModifier =>
+      'Must include Ctrl, Alt or Win, unless it is a function key (F1–F24).';
+
+  @override
+  String shortcutConflict(String action) {
+    return 'Already used by \"$action\".';
+  }
+
+  @override
+  String get shortcutGlobalSection => 'Global shortcuts';
+
+  @override
+  String get shortcutGlobalHint =>
+      'Control playback while the window is in the background.';
+
+  @override
+  String shortcutGlobalFailed(String actions) {
+    return 'Could not register these global shortcuts, another app may be using them: $actions';
+  }
+
+  @override
+  String get shortcutResetAll => 'Reset to defaults';
+
+  @override
+  String get settingsCloseToTray => 'Minimize to tray on close';
+
+  @override
+  String get settingsCloseToTraySubtitle =>
+      'Keep running in the system tray after closing the window, without stopping the music.';
+
+  @override
+  String get trayShow => 'Show Flutify';
+
+  @override
+  String get trayQuit => 'Quit';
 
   @override
   String get settingsShortcuts => 'Keyboard shortcuts';

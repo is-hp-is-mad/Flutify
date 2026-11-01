@@ -90,9 +90,11 @@ class ExpressiveCard extends StatelessWidget {
                             color: colorScheme.surfaceContainerHigh,
                             shape: isCircular ? BoxShape.circle : BoxShape.rectangle,
                             borderRadius: isCircular ? null : tokens.radius(MD3EShapes.radiusMedium),
-                            boxShadow: [
-                              BoxShadow(color: Colors.black.withAlpha(60), blurRadius: 10, offset: const Offset(0, 4)),
-                            ],
+                            boxShadow: tokens.hyperMaterial
+                                ? null
+                                : [
+                                    BoxShadow(color: Colors.black.withAlpha(60), blurRadius: 10, offset: const Offset(0, 4)),
+                                  ],
                           ),
                           clipBehavior: Clip.antiAlias,
                           child: CoverImage(
@@ -161,6 +163,9 @@ class _HoverPlayButtonState extends State<_HoverPlayButton> {
     const curve = Curves.easeOutBack;
     final duration = context.motion(const Duration(milliseconds: 220));
     final tokens = context.tokens;
+    final hyper = tokens.hyperMaterial;
+    // 柔光玻璃：小一号的白色圆钮，不变形、没有投影
+    final size = hyper ? 36.0 : _size;
     return IgnorePointer(
       ignoring: !widget.visible,
       child: AnimatedSlide(
@@ -184,16 +189,24 @@ class _HoverPlayButtonState extends State<_HoverPlayButton> {
                 child: AnimatedContainer(
                   duration: context.motion(const Duration(milliseconds: 180)),
                   curve: Curves.easeOutCubic,
-                  width: _size,
-                  height: _size,
+                  width: size,
+                  height: size,
                   decoration: BoxDecoration(
-                    color: tokens.accent,
-                    borderRadius: BorderRadius.circular(_pressed ? 14 : (tokens.squareCorners ? 12 : _size / 2)),
-                    boxShadow: [
-                      BoxShadow(color: Colors.black.withAlpha(110), blurRadius: 10, offset: const Offset(0, 4)),
-                    ],
+                    color: hyper ? const Color(0xe6ffffff) : tokens.accent,
+                    borderRadius: hyper
+                        ? BorderRadius.circular(size / 2)
+                        : BorderRadius.circular(_pressed ? 14 : (tokens.squareCorners ? 12 : _size / 2)),
+                    boxShadow: hyper
+                        ? null
+                        : [
+                            BoxShadow(color: Colors.black.withAlpha(110), blurRadius: 10, offset: const Offset(0, 4)),
+                          ],
                   ),
-                  child: Icon(Icons.play_arrow_rounded, color: tokens.onAccent, size: 28),
+                  child: Icon(
+                    Icons.play_arrow_rounded,
+                    color: hyper ? Colors.black : tokens.onAccent,
+                    size: hyper ? 22 : 28,
+                  ),
                 ),
               ),
             ),

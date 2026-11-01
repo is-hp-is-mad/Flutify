@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:material_3_expressive/material_3_expressive.dart'
     show M3ELoadingIndicator, M3EProgressIndicator;
 
+import '../../core/theme/flutify_tokens.dart';
+
 /// 行内加载圈：MD3E 圆形进度（不定进度时无轨道，与原生观感一致）。
 ///
 /// 尺寸显式给出（不用 LayoutBuilder：它不支持固有尺寸查询，放进按钮图标槽等位置会报错）。
@@ -23,6 +25,22 @@ class FlutifySpinner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (context.tokens.hyperMaterial) {
+      return Semantics(
+        label: semanticsLabel,
+        value: value == null ? null : '${(value! * 100).round()}%',
+        child: Center(
+          child: SizedBox.square(
+            dimension: size,
+            child: CircularProgressIndicator(
+              value: value,
+              strokeWidth: strokeWidth,
+              color: color ?? Theme.of(context).colorScheme.primary,
+            ),
+          ),
+        ),
+      );
+    }
     return Semantics(
       label: semanticsLabel,
       value: value == null ? null : '${(value! * 100).round()}%',
@@ -48,6 +66,13 @@ class FlutifyLoadingIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (context.tokens.hyperMaterial) {
+      return FlutifySpinner(
+        size: 32,
+        strokeWidth: 3,
+        semanticsLabel: semanticsLabel,
+      );
+    }
     return Semantics(
       label: semanticsLabel,
       child: M3ELoadingIndicator(
@@ -75,6 +100,17 @@ class FlutifyLinearProgress extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    if (context.tokens.hyperMaterial) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(2),
+        child: LinearProgressIndicator(
+          value: value?.clamp(0.0, 1.0),
+          minHeight: thickness ?? 3,
+          color: color ?? colorScheme.primary,
+          backgroundColor: trackColor ?? colorScheme.surfaceContainerHighest,
+        ),
+      );
+    }
     return Semantics(
       value: value == null ? null : '${(value!.clamp(0.0, 1.0) * 100).round()}%',
       child: M3EProgressIndicator.linear(

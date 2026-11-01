@@ -14,6 +14,7 @@ import '../../widgets/cover_image.dart';
 import '../../widgets/create_playlist_dialog.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/filter_pill.dart';
+import '../../widgets/menu/desktop_menu.dart';
 import '../../widgets/user_avatar.dart';
 
 enum _LibraryFilter { playlists, artists, albums }
@@ -240,7 +241,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
               padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
               child: Row(
                 children: [
-                  PopupMenuButton<_LibrarySort>(
+                  FlutifyPopupMenuButton<_LibrarySort>(
                     initialValue: _sort,
                     onSelected: (s) => setState(() => _sort = s),
                     itemBuilder: (_) => [

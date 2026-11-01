@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../../l10n/l10n.dart';
+import '../../../models/shortcut_settings.dart';
 import '../../../providers/connect_provider.dart';
 import '../../../providers/playback_provider.dart';
 import 'connect_actions.dart';
@@ -27,18 +28,19 @@ class PlaybackShortcuts {
         ctx.findAncestorWidgetOfExactType<EditableText>() != null;
   }
 
-  /// 空格播放/暂停，用于 `Focus.onKeyEvent`。
+  /// 播放 / 暂停键（默认空格），用于 `Focus.onKeyEvent`。
   /// 不能放进 CallbackShortcuts：它命中即吞掉按键，输入框就敲不进空格；这里在输入框聚焦时返回 ignored，让按键继续交给输入框。
   static KeyEventResult onSpaceKey(BuildContext context, KeyEvent event) {
-    if (event.logicalKey != LogicalKeyboardKey.space)
+    final combo = AppShortcuts.comboOf(
+      AppShortcuts.of(context),
+      AppShortcut.playPause,
+    );
+    if (combo == null || !AppShortcuts.matches(combo, event)) {
       return KeyEventResult.ignored;
-    final kb = HardwareKeyboard.instance;
-    if (kb.isControlPressed ||
-        kb.isAltPressed ||
-        kb.isMetaPressed ||
-        kb.isShiftPressed)
+    }
+    if (!combo.hasCommandModifier && _isTextInputFocused()) {
       return KeyEventResult.ignored;
-    if (_isTextInputFocused()) return KeyEventResult.ignored;
+    }
     if (event is KeyDownEvent) togglePlayPause(context);
     return KeyEventResult.handled;
   }
@@ -101,13 +103,17 @@ class PlaybackShortcuts {
 
   static Map<ShortcutActivator, VoidCallback> bindings(BuildContext context) {
     final a = actions(context);
+    final settings = AppShortcuts.of(context);
     return {
-      PlatformShortcuts.primary(LogicalKeyboardKey.arrowRight): a.next,
-      PlatformShortcuts.primary(LogicalKeyboardKey.arrowLeft): a.previous,
-      PlatformShortcuts.primary(LogicalKeyboardKey.arrowUp): a.volumeUp,
-      PlatformShortcuts.primary(LogicalKeyboardKey.arrowDown): a.volumeDown,
-      PlatformShortcuts.primary(LogicalKeyboardKey.keyS): a.shuffle,
-      PlatformShortcuts.primary(LogicalKeyboardKey.keyR): a.repeat,
+      for (final (action, callback) in [
+        (AppShortcut.next, a.next),
+        (AppShortcut.previous, a.previous),
+        (AppShortcut.volumeUp, a.volumeUp),
+        (AppShortcut.volumeDown, a.volumeDown),
+        (AppShortcut.shuffle, a.shuffle),
+        (AppShortcut.repeat, a.repeat),
+      ])
+        ?AppShortcuts.activator(settings, action): callback,
     };
   }
 }

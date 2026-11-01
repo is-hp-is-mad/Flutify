@@ -15,13 +15,16 @@ class MD3ETypography {
   /// App 全局字族名，与 pubspec.yaml 中 `family: MiSans` 对应。
   static const String fontFamily = 'MiSans';
 
-  static TextTheme createTextTheme([TextTheme? base]) {
+  /// 柔光玻璃的字族：同样是 MiSans，字重封顶到 Demibold（见 pubspec.yaml）。
+  static const String hyperFontFamily = 'MiSansHyper';
+
+  static TextTheme createTextTheme([TextTheme? base, String family = fontFamily]) {
     final t = base ?? Typography.material2021().englishLike;
 
     /// 统一套用字族、行高与行距分布；[weight] / [spacing] 为各层级的差异项。
     TextStyle? style(TextStyle? s, FontWeight weight, double height, [double spacing = 0]) {
       return s?.copyWith(
-        fontFamily: fontFamily,
+        fontFamily: family,
         fontWeight: weight,
         height: height,
         letterSpacing: spacing,

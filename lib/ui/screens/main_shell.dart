@@ -26,6 +26,12 @@ import '../shell/mobile/mobile_bottom_bar.dart';
 import '../shell/shell_layout_controller.dart';
 import '../widgets/connect/playback_shortcuts.dart';
 import '../widgets/keyboard_shortcuts.dart';
+import '../widgets/toast/app_toast.dart';
+import '../shell/desktop/desktop_integration.dart';
+import '../shell/desktop/desktop_window.dart';
+import '../../l10n/l10n.dart';
+import 'settings/widgets/shortcuts_dialog.dart';
+import '../../models/shortcut_settings.dart';
 import '../widgets/playback_error_listener.dart';
 import '../widgets/track_hotkeys.dart';
 import 'home/home_screen.dart';
@@ -253,15 +259,15 @@ class _MainShellState extends State<MainShell> {
   /// 桌面快捷键（与 Spotify 桌面端一致）。输入框聚焦时空格会被 TextField 拦截，不会误触。
   /// 播放类按键在远程模式下控制正在播放的其他设备（[PlaybackShortcuts]）。
   /// 主修饰键按平台取（macOS ⌘，其余 Ctrl），见 [PlatformShortcuts]。
-  Map<ShortcutActivator, VoidCallback> _shortcuts() => {
+  Map<ShortcutActivator, VoidCallback> _shortcuts() {
+    final settings = AppShortcuts.of(context);
+    return {
     ...PlaybackShortcuts.bindings(context),
-    PlatformShortcuts.primary(LogicalKeyboardKey.keyK):
-        _searchFocus.requestFocus,
+    ?AppShortcuts.activator(settings, AppShortcut.search): _searchFocus.requestFocus,
     PlatformShortcuts.primary(LogicalKeyboardKey.keyL):
         _searchFocus.requestFocus,
-    const SingleActivator(LogicalKeyboardKey.arrowLeft, alt: true): _navigateBack,
-    const SingleActivator(LogicalKeyboardKey.arrowRight, alt: true):
-        _navigateForward,
+    ?AppShortcuts.activator(settings, AppShortcut.back): _navigateBack,
+    ?AppShortcuts.activator(settings, AppShortcut.forward): _navigateForward,
     // 浏览器式后退 / 前进：鼠标驱动（如 Logi Options+）常把侧键模拟成 ⌘[ / ⌘]
     if (PlatformShortcuts.useMeta) ...{
       const SingleActivator(LogicalKeyboardKey.bracketLeft, meta: true):
@@ -269,8 +275,7 @@ class _MainShellState extends State<MainShell> {
       const SingleActivator(LogicalKeyboardKey.bracketRight, meta: true):
           _navigateForward,
     },
-    const SingleActivator(LogicalKeyboardKey.f11): () =>
-        ImmersiveLyricsScreen.open(context),
+    ?AppShortcuts.activator(settings, AppShortcut.immersive): () => ImmersiveLyricsScreen.open(context),
     // Mac 键盘上 F11 默认是「显示桌面」：另给 ⌘⇧F（与 Apple Music 全屏播放器同键，菜单栏「窗口」里有同一项）
     if (PlatformShortcuts.useMeta)
       const SingleActivator(
@@ -279,7 +284,56 @@ class _MainShellState extends State<MainShell> {
         shift: true,
       ): () =>
           ImmersiveLyricsScreen.open(context),
-  };
+    };
+  }
+
+  ShortcutSettings? _appliedShortcuts;
+  (bool, Locale)? _appliedTray;
+
+  /// 全局快捷键与托盘：设置或语言变化后重新注册（测试和移动端是空操作）。
+  void _syncDesktopIntegration(AppPreferences? prefs) {
+    if (prefs == null || !DesktopWindow.enabled) return;
+    final tray = (prefs.closeToTray, Localizations.localeOf(context));
+    if (prefs.shortcuts == _appliedShortcuts && tray == _appliedTray) return;
+    _appliedShortcuts = prefs.shortcuts;
+    _appliedTray = tray;
+    final playback = PlaybackShortcuts.actions(context);
+    void playPause() => PlaybackShortcuts.togglePlayPause(context);
+    unawaited(
+      GlobalHotkeys.apply(prefs.shortcuts, {
+        AppShortcut.playPause: playPause,
+        AppShortcut.next: playback.next,
+        AppShortcut.previous: playback.previous,
+        AppShortcut.volumeUp: playback.volumeUp,
+        AppShortcut.volumeDown: playback.volumeDown,
+      }).then((failed) {
+        if (failed.isEmpty || !mounted) return;
+        final l10n = context.l10n;
+        AppToast.show(
+          context,
+          l10n.shortcutGlobalFailed(
+            failed.map((a) => ShortcutsDialog.labelOf(l10n, a)).join('、'),
+          ),
+          tone: ToastTone.warning,
+        );
+      }),
+    );
+    final l10n = context.l10n;
+    unawaited(
+      DesktopTray.instance.apply(
+        enabled: prefs.closeToTray,
+        items: [
+          ('show', l10n.trayShow, DesktopWindow.showWindow),
+          ('sep1', null, () {}),
+          ('playPause', l10n.shortcutPlayPause, playPause),
+          ('next', l10n.shortcutNext, playback.next),
+          ('previous', l10n.shortcutPrevious, playback.previous),
+          ('sep2', null, () {}),
+          ('quit', l10n.trayQuit, DesktopWindow.quit),
+        ],
+      ),
+    );
+  }
 
   Widget _pages() => IndexedStack(
     index: _currentIndex,
@@ -299,6 +353,11 @@ class _MainShellState extends State<MainShell> {
       PlaybackErrorListener(child: _buildLayout(context));
 
   Widget _buildLayout(BuildContext context) {
+    // 改键后立即重建：绑定表在 build 里生成
+    final prefs = context.select<PreferencesProvider?, AppPreferences?>(
+      (p) => p?.prefs,
+    );
+    _syncDesktopIntegration(prefs);
     // sizeOf 只在尺寸变化时触发重建（MediaQuery.of 会随键盘动画每帧重建）
     final width = MediaQuery.sizeOf(context).width;
     final isDesktop = ShellBreakpoints.isDesktop(width);

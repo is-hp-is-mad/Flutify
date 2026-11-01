@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:hyper_glass/hyper_glass.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/theme/flutify_tokens.dart';
 import '../../../l10n/l10n.dart';
 import '../../../models/track.dart';
 import '../../screens/player/immersive_lyrics_screen.dart';
@@ -43,75 +45,78 @@ class PanelLyricsCard extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(28),
         child: BackdropGroup(
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              LyricsBackdrop(imageUrl: track.coverUrl),
-              LyricsView(
-                key: ValueKey((track.id, remote)),
-                track: track,
-                remote: remote,
-                topInset: _barHeight + (expanded ? 8 : 0),
-                bottomInset: 16,
-                // 与全屏歌词同一套 Apple 样式（对焦模糊、逐行滚动、翻译小字），
-                // 只是字号 / 留白按右栏宽度缩小
-                appleMusicStyle: true,
-                appleFontSize: expanded ? 28 : 24,
-                applePadding: 22,
-              ),
-              // 顶部渐暗：保证按钮与标题在任何封面色上都清晰
-              const Positioned(
-                left: 0,
-                right: 0,
-                top: 0,
-                height: _barHeight + 16,
-                child: IgnorePointer(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Color(0x66000000), Color(0x00000000)],
+          child: _withBackdrop(
+            context,
+            LyricsBackdrop(imageUrl: track.coverUrl),
+            Stack(
+              fit: StackFit.expand,
+              children: [
+                LyricsView(
+                  key: ValueKey((track.id, remote)),
+                  track: track,
+                  remote: remote,
+                  topInset: _barHeight + (expanded ? 8 : 0),
+                  bottomInset: 16,
+                  // 与全屏歌词同一套 Apple 样式（对焦模糊、逐行滚动、翻译小字），
+                  // 只是字号 / 留白按右栏宽度缩小
+                  appleMusicStyle: true,
+                  appleFontSize: expanded ? 28 : 24,
+                  applePadding: 22,
+                ),
+                // 顶部渐暗：保证按钮与标题在任何封面色上都清晰
+                const Positioned(
+                  left: 0,
+                  right: 0,
+                  top: 0,
+                  height: _barHeight + 16,
+                  child: IgnorePointer(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Color(0x66000000), Color(0x00000000)],
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              Positioned(
-                left: 14,
-                right: 10,
-                top: 10,
-                height: 36,
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: expanded
-                          ? _TrackLabel(track: track)
-                          : _CardLabel(text: l10n.lyricsTitle),
-                    ),
-                    const LyricsTranslationButton(),
-                    const SizedBox(width: 8),
-                    GlassIconButton(
-                      icon: expanded
-                          ? Icons.close_fullscreen_rounded
-                          : Icons.open_in_full_rounded,
-                      tooltip: expanded
-                          ? l10n.lyricsCollapse
-                          : l10n.lyricsExpand,
-                      size: 36,
-                      onPressed: layout.toggleLyricsExpanded,
-                    ),
-                    const SizedBox(width: 8),
-                    GlassIconButton(
-                      icon: Icons.fullscreen_rounded,
-                      tooltip: l10n.lyricsImmersive,
-                      size: 36,
-                      onPressed: () => ImmersiveLyricsScreen.open(context),
-                    ),
-                  ],
+                Positioned(
+                  left: 14,
+                  right: 10,
+                  top: 10,
+                  height: 36,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: expanded
+                            ? _TrackLabel(track: track)
+                            : _CardLabel(text: l10n.lyricsTitle),
+                      ),
+                      const LyricsTranslationButton(),
+                      const SizedBox(width: 8),
+                      GlassIconButton(
+                        icon: expanded
+                            ? Icons.close_fullscreen_rounded
+                            : Icons.open_in_full_rounded,
+                        tooltip: expanded
+                            ? l10n.lyricsCollapse
+                            : l10n.lyricsExpand,
+                        size: 36,
+                        onPressed: layout.toggleLyricsExpanded,
+                      ),
+                      const SizedBox(width: 8),
+                      GlassIconButton(
+                        icon: Icons.fullscreen_rounded,
+                        tooltip: l10n.lyricsImmersive,
+                        size: 36,
+                        onPressed: () => ImmersiveLyricsScreen.open(context),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -186,4 +191,18 @@ class _TrackLabel extends StatelessWidget {
       ],
     );
   }
+}
+
+/// 材质为「柔光玻璃」时以歌词背景为 [HyperGlassScene] 的采样源，右上角的玻璃按钮
+/// 画成真正的柔光玻璃（与全屏歌词同一套）；否则保持原来的背景 + 内容叠放。
+Widget _withBackdrop(BuildContext context, Widget backdrop, Widget content) {
+  final tokens = context.tokens;
+  if (tokens.hyperMaterial && !tokens.powerSaving) {
+    return HyperGlassScene(
+      background: backdrop,
+      captureScale: 0.25,
+      child: content,
+    );
+  }
+  return Stack(fit: StackFit.expand, children: [backdrop, content]);
 }

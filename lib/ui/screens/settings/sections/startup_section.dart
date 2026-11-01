@@ -13,6 +13,7 @@ import '../../../../services/deep_link/spotify_link_handler.dart';
 import '../../../widgets/toast/app_toast.dart';
 import '../widgets/settings_section.dart';
 import '../widgets/settings_segmented.dart';
+import '../../../shell/desktop/desktop_integration.dart';
 
 /// 启动：启动时打开的页面；桌面端另有「记住窗口大小和位置」（下次启动生效）。
 class StartupSection extends StatelessWidget {
@@ -24,8 +25,8 @@ class StartupSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final provider = context.read<PreferencesProvider>();
-    final (startPage, rememberWindow) = context.select<PreferencesProvider, (StartPage, bool)>(
-      (p) => (p.prefs.startPage, p.prefs.rememberWindow),
+    final (startPage, rememberWindow, closeToTray) = context.select<PreferencesProvider, (StartPage, bool, bool)>(
+      (p) => (p.prefs.startPage, p.prefs.rememberWindow, p.prefs.closeToTray),
     );
 
     return SettingsSection(
@@ -50,6 +51,13 @@ class StartupSection extends StatelessWidget {
             subtitle: l10n.settingsRememberWindowSubtitle,
             value: rememberWindow,
             onChanged: (v) => provider.update(provider.prefs.copyWith(rememberWindow: v)),
+          ),
+        if (DesktopTray.supported)
+          SettingsSwitchTile(
+            title: l10n.settingsCloseToTray,
+            subtitle: l10n.settingsCloseToTraySubtitle,
+            value: closeToTray,
+            onChanged: (v) => provider.update(provider.prefs.copyWith(closeToTray: v)),
           ),
         if (SpotifyLinkHandler.canSetDefault) const _SpotifyLinksTile(),
       ],

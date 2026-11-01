@@ -107,6 +107,9 @@ void main() {
       300,
       scrollable: scrollable,
     );
+    // 「材质」分区多了一行，按步长滚动可能停在目标只露出一半的位置
+    await tester.ensureVisible(find.text('方正'));
+    await settle(tester);
     await tester.tap(find.text('方正'));
     await settle(tester);
     expect(settingsContext(tester).tokens.squareCorners, isTrue);

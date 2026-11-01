@@ -8,6 +8,9 @@ import '../../../l10n/l10n.dart';
 import '../../widgets/connect/playback_shortcuts.dart';
 import '../../widgets/keyboard_shortcuts.dart';
 import 'desktop_window.dart';
+import 'package:provider/provider.dart';
+import '../../../models/shortcut_settings.dart';
+import '../../../providers/preferences_provider.dart';
 
 /// 菜单里依赖主界面的动作，由 [MainShell] 挂载时注册进 [MacMenuBar.actions]、卸载时清空。
 ///
@@ -80,6 +83,7 @@ class _MacMenuBarState extends State<MacMenuBar> {
   /// 菜单按语言与注册的动作缓存：两者变化时才重建，
   /// 避免窗口拖动等高频重建反复序列化菜单走原生通道。
   Locale? _menuLocale;
+  ShortcutSettings? _menuKeys;
   MacMenuActions? _menuActions;
 
   @override
@@ -109,16 +113,20 @@ class _MacMenuBarState extends State<MacMenuBar> {
     super.didChangeDependencies();
     // 非 macOS 原生窗口模式（其他平台 / 测试）不构建菜单
     if (!DesktopWindow.macNativeWindow) return;
+    context.watch<PreferencesProvider?>(); // 改键后菜单上显示的键位跟着变
     _rebuildMenus();
   }
 
   void _rebuildMenus() {
     final locale = Localizations.localeOf(context);
     final actions = MacMenuBar.actions.value;
+    final keys = AppShortcuts.of(context);
     if (_menus == null ||
         _menuLocale != locale ||
+        _menuKeys != keys ||
         !identical(_menuActions, actions)) {
       _menuLocale = locale;
+      _menuKeys = keys;
       _menuActions = actions;
       _menus = _buildMenus(context);
     }
@@ -138,6 +146,9 @@ class _MacMenuBarState extends State<MacMenuBar> {
     // 引擎先把按键交给 Flutter，页面内绑定命中就不再触发菜单；菜单项主要提供点击入口与键位展示
     final shell = _menuActions;
     final playback = shell?.playback;
+    final keys = AppShortcuts.of(context);
+    SingleActivator? shortcut(AppShortcut action) =>
+        AppShortcuts.activator(keys, action);
 
     List<PlatformMenuItem> provided(List<PlatformProvidedMenuItemType> types) =>
         [
@@ -197,16 +208,12 @@ class _MacMenuBarState extends State<MacMenuBar> {
               ),
               PlatformMenuItem(
                 label: l10n.shortcutNext,
-                shortcut: PlatformShortcuts.primary(
-                  LogicalKeyboardKey.arrowRight,
-                ),
+                shortcut: shortcut(AppShortcut.next),
                 onSelected: playback?.next,
               ),
               PlatformMenuItem(
                 label: l10n.shortcutPrevious,
-                shortcut: PlatformShortcuts.primary(
-                  LogicalKeyboardKey.arrowLeft,
-                ),
+                shortcut: shortcut(AppShortcut.previous),
                 onSelected: playback?.previous,
               ),
             ],
@@ -215,14 +222,12 @@ class _MacMenuBarState extends State<MacMenuBar> {
             members: [
               PlatformMenuItem(
                 label: l10n.shortcutVolumeUp,
-                shortcut: PlatformShortcuts.primary(LogicalKeyboardKey.arrowUp),
+                shortcut: shortcut(AppShortcut.volumeUp),
                 onSelected: playback?.volumeUp,
               ),
               PlatformMenuItem(
                 label: l10n.shortcutVolumeDown,
-                shortcut: PlatformShortcuts.primary(
-                  LogicalKeyboardKey.arrowDown,
-                ),
+                shortcut: shortcut(AppShortcut.volumeDown),
                 onSelected: playback?.volumeDown,
               ),
             ],
@@ -231,12 +236,12 @@ class _MacMenuBarState extends State<MacMenuBar> {
             members: [
               PlatformMenuItem(
                 label: l10n.shortcutShuffle,
-                shortcut: PlatformShortcuts.primary(LogicalKeyboardKey.keyS),
+                shortcut: shortcut(AppShortcut.shuffle),
                 onSelected: playback?.shuffle,
               ),
               PlatformMenuItem(
                 label: l10n.shortcutRepeat,
-                shortcut: PlatformShortcuts.primary(LogicalKeyboardKey.keyR),
+                shortcut: shortcut(AppShortcut.repeat),
                 onSelected: playback?.repeat,
               ),
             ],
@@ -251,18 +256,12 @@ class _MacMenuBarState extends State<MacMenuBar> {
             members: [
               PlatformMenuItem(
                 label: l10n.shortcutBack,
-                shortcut: const SingleActivator(
-                  LogicalKeyboardKey.arrowLeft,
-                  alt: true,
-                ),
+                shortcut: shortcut(AppShortcut.back),
                 onSelected: shell?.onBack,
               ),
               PlatformMenuItem(
                 label: l10n.shortcutForward,
-                shortcut: const SingleActivator(
-                  LogicalKeyboardKey.arrowRight,
-                  alt: true,
-                ),
+                shortcut: shortcut(AppShortcut.forward),
                 onSelected: shell?.onForward,
               ),
             ],
@@ -275,7 +274,7 @@ class _MacMenuBarState extends State<MacMenuBar> {
               ),
               PlatformMenuItem(
                 label: l10n.shortcutSearch,
-                shortcut: PlatformShortcuts.primary(LogicalKeyboardKey.keyK),
+                shortcut: shortcut(AppShortcut.search),
                 onSelected: shell == null
                     ? null
                     : () => _showWindowThen(shell.onSearch),

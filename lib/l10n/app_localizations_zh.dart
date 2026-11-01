@@ -860,7 +860,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsDynamicAccentSubtitle => '强调色随正在播放的专辑封面变化';
 
   @override
-  String get settingsGlassSection => '液态玻璃';
+  String get settingsGlassSection => '材质';
 
   @override
   String get settingsGlassPreview => '玻璃预览';
@@ -870,6 +870,25 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsGlassOpacity => '不透明度';
+
+  @override
+  String get settingsGlassMaterial => '材质';
+
+  @override
+  String get settingsGlassMaterialLiquid => 'MD3E';
+
+  @override
+  String get settingsGlassMaterialHyper => '柔光玻璃（Beta）';
+
+  @override
+  String get settingsHyperGlassPreview => '柔光玻璃';
+
+  @override
+  String get settingsHyperBlurPreview => '模糊';
+
+  @override
+  String get settingsHyperGlassNote =>
+      '柔光玻璃（Beta）：菜单、弹窗、底部弹层、提示、底栏和播放页都换成 HyperOS 材质。启动后会在后台编译着色器。';
 
   @override
   String get settingsTextShapeSection => '文字与形状';
@@ -1374,6 +1393,49 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsVersion => '版本';
+
+  @override
+  String get shortcutEditHint => '点击键帽修改，按下新的组合键保存；Esc 取消，Backspace 清除。';
+
+  @override
+  String get shortcutPressKeys => '请按下组合键…';
+
+  @override
+  String get shortcutNone => '未设置';
+
+  @override
+  String get shortcutNeedsModifier => '需要包含 Ctrl、Alt 或 Win，功能键（F1~F24）除外。';
+
+  @override
+  String shortcutConflict(String action) {
+    return '已被「$action」占用。';
+  }
+
+  @override
+  String get shortcutGlobalSection => '全局快捷键';
+
+  @override
+  String get shortcutGlobalHint => '窗口不在前台时也能控制播放。';
+
+  @override
+  String shortcutGlobalFailed(String actions) {
+    return '以下全局快捷键注册失败，可能被其他软件占用：$actions';
+  }
+
+  @override
+  String get shortcutResetAll => '恢复默认';
+
+  @override
+  String get settingsCloseToTray => '关闭时最小化到托盘';
+
+  @override
+  String get settingsCloseToTraySubtitle => '关闭窗口后继续在系统托盘运行，音乐不中断。';
+
+  @override
+  String get trayShow => '显示 Flutify';
+
+  @override
+  String get trayQuit => '退出';
 
   @override
   String get settingsShortcuts => '键盘快捷键';
@@ -2886,7 +2948,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get settingsDynamicAccentSubtitle => '強調色隨正在播放的專輯封面變化';
 
   @override
-  String get settingsGlassSection => '液態玻璃';
+  String get settingsGlassSection => '材質';
 
   @override
   String get settingsGlassPreview => '玻璃預覽';
@@ -2896,6 +2958,25 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get settingsGlassOpacity => '不透明度';
+
+  @override
+  String get settingsGlassMaterial => '材質';
+
+  @override
+  String get settingsGlassMaterialLiquid => 'MD3E';
+
+  @override
+  String get settingsGlassMaterialHyper => '柔光玻璃（Beta）';
+
+  @override
+  String get settingsHyperGlassPreview => '柔光玻璃';
+
+  @override
+  String get settingsHyperBlurPreview => '模糊';
+
+  @override
+  String get settingsHyperGlassNote =>
+      '柔光玻璃（Beta）：選單、彈窗、底部彈層、提示、底欄和播放頁都換成 HyperOS 材質。啟動後會在背景編譯著色器。';
 
   @override
   String get settingsTextShapeSection => '文字與形狀';
@@ -3399,6 +3480,49 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get settingsVersion => '版本';
+
+  @override
+  String get shortcutEditHint => '點擊鍵帽修改，按下新的組合鍵儲存；Esc 取消，Backspace 清除。';
+
+  @override
+  String get shortcutPressKeys => '請按下組合鍵…';
+
+  @override
+  String get shortcutNone => '未設定';
+
+  @override
+  String get shortcutNeedsModifier => '需要包含 Ctrl、Alt 或 Win，功能鍵（F1~F24）除外。';
+
+  @override
+  String shortcutConflict(String action) {
+    return '已被「$action」占用。';
+  }
+
+  @override
+  String get shortcutGlobalSection => '全域快速鍵';
+
+  @override
+  String get shortcutGlobalHint => '視窗不在前景時也能控制播放。';
+
+  @override
+  String shortcutGlobalFailed(String actions) {
+    return '以下全域快速鍵註冊失敗，可能被其他軟體占用：$actions';
+  }
+
+  @override
+  String get shortcutResetAll => '恢復預設';
+
+  @override
+  String get settingsCloseToTray => '關閉時最小化到系統匣';
+
+  @override
+  String get settingsCloseToTraySubtitle => '關閉視窗後繼續在系統匣執行，音樂不中斷。';
+
+  @override
+  String get trayShow => '顯示 Flutify';
+
+  @override
+  String get trayQuit => '結束';
 
   @override
   String get settingsShortcuts => '鍵盤快捷鍵';

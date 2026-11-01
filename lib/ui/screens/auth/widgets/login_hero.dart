@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
 import 'flutify_mark.dart';
+import '../../../../core/theme/flutify_tokens.dart';
 
 /// 登录页主视觉：品牌标坐落在一枚缓慢自转的 MD3E 表现力形状（十二瓣曲奇）上，
 /// 外圈再叠一枚反向转动、更淡的柔和爆裂形，形成有层次的「呼吸」感。
@@ -40,6 +41,23 @@ class _LoginHeroState extends State<LoginHero>
     super.dispose();
   }
 
+  /// 表现力形状是 MD3E 的标志，柔光玻璃下换成圆形。
+  Widget _shape(BuildContext context, M3EShapeKind kind, double size, Color color) {
+    if (context.tokens.hyperMaterial) {
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+      );
+    }
+    return M3EShapeContainer(
+      kind: kind,
+      width: size,
+      height: size,
+      color: color,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -51,20 +69,20 @@ class _LoginHeroState extends State<LoginHero>
         children: [
           RotationTransition(
             turns: ReverseAnimation(_spin),
-            child: M3EShapeContainer(
-              kind: M3EShapeKind.softBurst,
-              width: s,
-              height: s,
-              color: colorScheme.primary.withAlpha(22),
+            child: _shape(
+              context,
+              M3EShapeKind.softBurst,
+              s,
+              colorScheme.primary.withAlpha(22),
             ),
           ),
           RotationTransition(
             turns: _spin,
-            child: M3EShapeContainer(
-              kind: M3EShapeKind.cookie12Sided,
-              width: s * 0.78,
-              height: s * 0.78,
-              color: colorScheme.primaryContainer,
+            child: _shape(
+              context,
+              M3EShapeKind.cookie12Sided,
+              s * 0.78,
+              colorScheme.primaryContainer,
             ),
           ),
           FlutifyMark(size: s * 0.42),

@@ -37,6 +37,8 @@ class ContextPlayButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final uri = playbackContext.uri;
     final tokens = context.tokens;
+    final hyper = tokens.hyperMaterial;
+    final scheme = Theme.of(context).colorScheme;
     final (isPlayingThis, isThisContext) = context.select<PlaybackProvider, (bool, bool)>(
       (p) => (p.isPlayingContext(uri), p.playbackContext.uri == uri),
     );
@@ -47,11 +49,12 @@ class ContextPlayButton extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         boxShadow: [
-          if (elevated) BoxShadow(color: Colors.black.withAlpha(70), blurRadius: 16, offset: const Offset(0, 6)),
+          if (elevated && !hyper)
+            BoxShadow(color: Colors.black.withAlpha(70), blurRadius: 16, offset: const Offset(0, 6)),
         ],
       ),
       child: Material(
-        color: tokens.accent,
+        color: hyper ? scheme.primary : tokens.accent,
         shape: const CircleBorder(),
         child: InkWell(
           customBorder: const CircleBorder(),
@@ -70,7 +73,7 @@ class ContextPlayButton extends StatelessWidget {
                 },
           child: Icon(
             isPlayingThis ? Icons.pause_rounded : Icons.play_arrow_rounded,
-            color: tokens.onAccent,
+            color: hyper ? scheme.onPrimary : tokens.onAccent,
             size: size * 0.6,
           ),
         ),

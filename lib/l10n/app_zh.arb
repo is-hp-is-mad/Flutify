@@ -485,10 +485,16 @@
   "settingsAccentCustom": "自定义颜色",
   "settingsDynamicAccent": "跟随封面取色",
   "settingsDynamicAccentSubtitle": "强调色随正在播放的专辑封面变化",
-  "settingsGlassSection": "液态玻璃",
+  "settingsGlassSection": "材质",
   "settingsGlassPreview": "玻璃预览",
   "settingsGlassBlur": "模糊强度",
   "settingsGlassOpacity": "不透明度",
+  "settingsGlassMaterial": "材质",
+  "settingsGlassMaterialLiquid": "MD3E",
+  "settingsGlassMaterialHyper": "柔光玻璃（Beta）",
+  "settingsHyperGlassPreview": "柔光玻璃",
+  "settingsHyperBlurPreview": "模糊",
+  "settingsHyperGlassNote": "柔光玻璃（Beta）：菜单、弹窗、底部弹层、提示、底栏和播放页都换成 HyperOS 材质。启动后会在后台编译着色器。",
   "settingsTextShapeSection": "文字与形状",
   "settingsFontScale": "字号",
   "settingsFontPreview": "夜空中最亮的星",
@@ -711,6 +717,33 @@
   "settingsCleared": "已清除",
   "settingsAboutSection": "关于",
   "settingsVersion": "版本",
+  "@shortcutConflict": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
+  "@shortcutGlobalFailed": {
+    "placeholders": {
+      "actions": {
+        "type": "String"
+      }
+    }
+  },
+  "shortcutEditHint": "点击键帽修改，按下新的组合键保存；Esc 取消，Backspace 清除。",
+  "shortcutPressKeys": "请按下组合键…",
+  "shortcutNone": "未设置",
+  "shortcutNeedsModifier": "需要包含 Ctrl、Alt 或 Win，功能键（F1~F24）除外。",
+  "shortcutConflict": "已被「{action}」占用。",
+  "shortcutGlobalSection": "全局快捷键",
+  "shortcutGlobalHint": "窗口不在前台时也能控制播放。",
+  "shortcutGlobalFailed": "以下全局快捷键注册失败，可能被其他软件占用：{actions}",
+  "shortcutResetAll": "恢复默认",
+  "settingsCloseToTray": "关闭时最小化到托盘",
+  "settingsCloseToTraySubtitle": "关闭窗口后继续在系统托盘运行，音乐不中断。",
+  "trayShow": "显示 Flutify",
+  "trayQuit": "退出",
   "settingsShortcuts": "键盘快捷键",
   "settingsLicenses": "开源许可",
   "shortcutPlayPause": "播放 / 暂停",

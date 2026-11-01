@@ -3,14 +3,15 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/md3e_shapes.dart';
 import '../../../l10n/l10n.dart';
 import 'queue_list.dart';
-import 'package:material_3_expressive/material_3_expressive.dart' show M3EButton;
+import '../../widgets/app_modal.dart';
+import '../../widgets/app_button.dart';
 
 /// 播放队列底部面板（移动端）：拖拽把手 + 标题「播放队列 / 完成」+ [QueueList]。
 class QueueSheet extends StatelessWidget {
   const QueueSheet({super.key});
 
   static Future<void> show(BuildContext context) {
-    return showModalBottomSheet(
+    return showAppBottomSheet(
       context: context,
       useRootNavigator: true,
       isScrollControlled: true,
@@ -55,7 +56,7 @@ class QueueSheet extends StatelessWidget {
                       ),
                     ),
                   ),
-                  M3EButton.text(
+                  AppButton.text(
                     onPressed: () => Navigator.pop(context),
                     child: Text(
                       l10n.commonDone,

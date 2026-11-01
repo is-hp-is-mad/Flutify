@@ -857,7 +857,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsDynamicAccentSubtitle => '再生中のアートワークに合わせてアクセントカラーを変更します';
 
   @override
-  String get settingsGlassSection => 'リキッドガラス';
+  String get settingsGlassSection => 'マテリアル';
 
   @override
   String get settingsGlassPreview => 'ガラス効果のプレビュー';
@@ -867,6 +867,25 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsGlassOpacity => '不透明度';
+
+  @override
+  String get settingsGlassMaterial => 'マテリアル';
+
+  @override
+  String get settingsGlassMaterialLiquid => 'MD3E';
+
+  @override
+  String get settingsGlassMaterialHyper => 'ソフトライトガラス（Beta）';
+
+  @override
+  String get settingsHyperGlassPreview => 'ソフトライトガラス';
+
+  @override
+  String get settingsHyperBlurPreview => 'ぼかし';
+
+  @override
+  String get settingsHyperGlassNote =>
+      'ソフトライトガラス（ベータ）：メニュー、ダイアログ、ボトムシート、通知、ボトムバー、プレーヤーに HyperOS の質感を使います。シェーダーは起動後にバックグラウンドでコンパイルします。';
 
   @override
   String get settingsTextShapeSection => '文字と形';
@@ -1378,6 +1397,51 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsVersion => 'バージョン';
+
+  @override
+  String get shortcutEditHint =>
+      'キーをクリックして変更し、新しい組み合わせを押します。Esc で取り消し、Backspace で解除。';
+
+  @override
+  String get shortcutPressKeys => 'キーを押してください…';
+
+  @override
+  String get shortcutNone => '未設定';
+
+  @override
+  String get shortcutNeedsModifier => 'Ctrl、Alt、Win のいずれかが必要です（F1～F24 を除く）。';
+
+  @override
+  String shortcutConflict(String action) {
+    return '「$action」で使用中です。';
+  }
+
+  @override
+  String get shortcutGlobalSection => 'グローバルショートカット';
+
+  @override
+  String get shortcutGlobalHint => 'ウィンドウがバックグラウンドでも再生を操作できます。';
+
+  @override
+  String shortcutGlobalFailed(String actions) {
+    return '次のグローバルショートカットを登録できません。他のアプリが使用中の可能性があります：$actions';
+  }
+
+  @override
+  String get shortcutResetAll => '既定に戻す';
+
+  @override
+  String get settingsCloseToTray => '閉じるときにトレイへ最小化';
+
+  @override
+  String get settingsCloseToTraySubtitle =>
+      'ウィンドウを閉じてもシステムトレイで動作を続け、音楽は止まりません。';
+
+  @override
+  String get trayShow => 'Flutify を表示';
+
+  @override
+  String get trayQuit => '終了';
 
   @override
   String get settingsShortcuts => 'キーボードショートカット';

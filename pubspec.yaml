@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 0.0.19+19
+version: 0.0.20+20
 
 environment:
   sdk: ^3.12.0
@@ -72,9 +72,19 @@ dependencies:
   audio_service: ^0.18.19
   pinyin: ^3.3.0
   device_info_plus: ^13.3.0
+  # 柔光玻璃（HyperOS 材质移植），见 packages/hyper_glass/FLUTIFY_PATCH.md
+  hyper_glass:
+    path: packages/hyper_glass
+  hotkey_manager: ^0.2.3
+  tray_manager: ^0.5.3
 
 
 dependency_overrides:
+  # Linux 发行包不依赖 keybinder / appindicator，见两个包的 FLUTIFY_PATCH.md
+  hotkey_manager_linux:
+    path: packages/hotkey_manager_linux
+  tray_manager:
+    path: packages/tray_manager
   # 本地补丁：WebView2 播放时允许本机 EME 页面选择音频输出设备，见 packages/flutter_inappwebview_windows/FLUTIFY_PATCH.md
   flutter_inappwebview_windows:
     path: packages/flutter_inappwebview_windows
@@ -107,12 +117,27 @@ flutter:
 
   # EME 播放器的 HLS.js 引擎（WebView2 隐藏页用，Widevine 全曲播放）
   assets:
+    - assets/fonts/HyperMaterialIcons.otf
     - assets/js/hls.min.js
+    - assets/tray/tray.ico
     - assets/updates/windows_update.ps1
 
   # MiSans（小米，可免费商用）：全量中日韩字形 TTF，仅打包实际用到的 4 个字重。
   # w800 / w900 没有对应文件，按 CSS 字重匹配规则回落到 Bold。
   fonts:
+    # 柔光玻璃用：字重封顶到 Demibold（miuix 的层级靠字号，不靠粗体）。
+    # 引擎只看字体文件自身的字重，不看这里写的 weight：同一文件写成 800 只会触发合成加粗。
+    # 所以 DemiboldCap 是 Demibold 改了 OS/2 字重标记（900）的副本，w700 以上都落到它，字形仍是 MiSans。
+    - family: MiSansHyper
+      fonts:
+        - asset: assets/fonts/MiSans/MiSans-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/MiSans/MiSans-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/MiSans/MiSans-Demibold.ttf
+          weight: 600
+        - asset: assets/fonts/MiSans/MiSans-DemiboldCap.ttf
+          weight: 900
     - family: MiSans
       fonts:
         - asset: assets/fonts/MiSans/MiSans-Regular.ttf
