@@ -327,25 +327,30 @@ class _PlayerSceneViewState extends State<PlayerSceneView> {
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        TickerMode(
-                          enabled: canvasActive,
-                          child: FittedBox(
-                            child: SwipeableArtwork(
-                              url: track.coverUrl,
-                              size: 400,
-                              child: canvasActive
-                                  ? CanvasArtwork(
+                        FittedBox(
+                          child: SwipeableArtwork(
+                            url: track.coverUrl,
+                            size: 400,
+                            dragScale: size / 400,
+                            child: canvasActive
+                                ? TickerMode(
+                                    // 只用于暂停/恢复 Canvas 视频（CanvasArtwork
+                                    // 读它决定 active）；绝不能包在
+                                    // SwipeableArtwork 外层，否则会冻结
+                                    // 滑动回弹和换封面淡入动画
+                                    enabled: isEnlarged,
+                                    child: CanvasArtwork(
                                       track: track,
                                       size: 400,
                                       remote: remote,
                                       borderRadius: BorderRadius.zero,
-                                    )
-                                  : CoverImage(
-                                      url: track.coverUrl,
-                                      size: 400,
-                                      borderRadius: BorderRadius.zero,
                                     ),
-                            ),
+                                  )
+                                : CoverImage(
+                                    url: track.coverUrl,
+                                    size: 400,
+                                    borderRadius: BorderRadius.zero,
+                                  ),
                           ),
                         ),
                         if (isEnlarged)

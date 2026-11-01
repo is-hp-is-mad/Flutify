@@ -832,14 +832,25 @@ void main() {
     await tester.tap(find.byType(MiniPlayer));
     await settle(tester);
 
+    // 回归：封面子树的动画绝不能被 TickerMode 静音
+    // （静音会冻结松手回弹和换封面淡入，封面停在滑出半截的位置）
+    final artworkContext = tester.element(find.byType(SwipeableArtwork));
+    expect(TickerMode.valuesOf(artworkContext).enabled, isTrue);
+
     await tester.drag(find.byType(SwipeableArtwork), const Offset(-220, 0));
     await settle(tester);
     expect(playback.currentTrack?.id, 'synthetic-2');
+    expect(artworkDriftX(tester), closeTo(0, 0.01));
 
     // 小幅拖动不切歌，松手回弹
     await tester.drag(find.byType(SwipeableArtwork), const Offset(-20, 0));
     await settle(tester);
     expect(playback.currentTrack?.id, 'synthetic-2');
+    expect(
+      artworkDriftX(tester),
+      closeTo(0, 0.01),
+      reason: '松手后回弹动画必须播完，封面不能停在滑出的位置',
+    );
   });
 
   testWidgets('swiping lyrics down removes the sheet and its modal barrier', (
@@ -1019,4 +1030,18 @@ Future<void> settle(WidgetTester tester) async {
   for (var i = 0; i < 10; i++) {
     await tester.pump(const Duration(milliseconds: 100));
   }
+}
+
+/// 封面在 400 坐标系里的水平偏移（Transform.translate 的 x）。
+/// 回弹正常播完时为 0；若动画被 TickerMode 冻结会停在松手时的位置。
+double artworkDriftX(WidgetTester tester) {
+  final transform = tester.widget<Transform>(
+    find
+        .descendant(
+          of: find.byType(SwipeableArtwork),
+          matching: find.byType(Transform),
+        )
+        .first,
+  );
+  return transform.transform.getTranslation().x;
 }
