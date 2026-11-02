@@ -12,7 +12,9 @@ import '../../../models/artist.dart';
 import '../../../models/playback_context.dart';
 import '../../../models/share_target.dart';
 import '../../../models/track.dart';
+import '../../../models/watch_feed.dart';
 import '../../../providers/library_provider.dart';
+import '../../../providers/spotify_provider.dart';
 import '../../../services/spotify_api_service.dart';
 import '../../navigation/app_routes.dart';
 import '../../widgets/content_bottom_spacer.dart';
@@ -20,6 +22,8 @@ import '../../widgets/empty_state.dart';
 import '../../widgets/expressive_card.dart';
 import '../../widgets/share/share_button.dart';
 import '../../widgets/track_tile.dart';
+import '../watchfeed/widgets/watch_feed_entity_button.dart';
+import '../watchfeed/widgets/watch_feed_shelf_row.dart';
 import 'widgets/collection_hero.dart';
 import 'widgets/collection_widgets.dart';
 import 'widgets/artist_catalog_widgets.dart';
@@ -47,6 +51,13 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
   void initState() {
     super.initState();
     _load();
+    // 官方「Explore 某艺人」入口（以热门第一首为种子）；推迟到首帧后，避免 build 期通知。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(
+        context.read<SpotifyProvider>().loadArtistSeedShelf(widget.artist.id),
+      );
+    });
   }
 
   /// 热门曲目与作品集失败时由数据层返回空列表；登录后调用本方法重新加载。
@@ -78,6 +89,9 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
     final artist = _artist;
     final isFollowing = context.select<LibraryProvider, bool>(
       (l) => l.isFollowing(artist.id),
+    );
+    final seedShelf = context.select<SpotifyProvider, WatchFeedShelf?>(
+      (p) => p.seedShelfFor(widget.artist.id),
     );
     final playbackContext = PlaybackContext.artist(
       artist.name,
@@ -134,6 +148,10 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
                           CollectionActionRow(
                             tracks: topTracks,
                             playbackContext: playbackContext,
+                            afterPlay: WatchFeedEntityButton(
+                              feedUri: 'spotify:watch-feed:artist:${artist.id}',
+                              name: artist.name,
+                            ),
                             leading: [
                               _FollowButton(
                                 following: isFollowing,
@@ -186,6 +204,20 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
                         playbackContext: playbackContext,
                       ),
                       childCount: visibleCount,
+                    ),
+                  ),
+
+                // 官方发现流入口（「Explore 某艺人」：本人歌曲 / 相似艺人 / 相似歌曲），无内容时不占位。
+                if (seedShelf != null)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: WatchFeedShelfRow(
+                        shelf: seedShelf,
+                        fallbackTitle: l10n.watchFeedDiscoverTitle,
+                        aspectRatio: 9 / 16,
+                        cardWidth: 120,
+                      ),
                     ),
                   ),
 
