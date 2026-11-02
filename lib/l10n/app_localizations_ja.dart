@@ -1139,6 +1139,45 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsTaskbarLyricsFontSize => '文字サイズ';
 
   @override
+  String get settingsHomeWidgetsSection => 'ホーム画面ウィジェット';
+
+  @override
+  String get settingsHomeWidgetsSubtitle =>
+      'HyperOS ではウィジェット一覧の一番下にある「Android ウィジェット」に Flutify があります。ここで「追加」をタップして直接配置することもでき、長押しでサイズを変更できます';
+
+  @override
+  String get homeWidgetNowPlaying => '再生バー';
+
+  @override
+  String get homeWidgetNowPlayingDesc =>
+      'アートワーク、曲名と前へ / 再生 / 次へを表示する細長いバー。標準 4×1';
+
+  @override
+  String get homeWidgetAlbumCard => 'アルバムカード';
+
+  @override
+  String get homeWidgetAlbumCardDesc => '大きなアートワーク。背景はジャケットの色から生成。標準 4×2';
+
+  @override
+  String get homeWidgetCover => 'カバー';
+
+  @override
+  String get homeWidgetCoverDesc => 'ジャケットを全面に表示し、再生ボタン付き。標準 2×2';
+
+  @override
+  String get homeWidgetUpNext => '次に再生';
+
+  @override
+  String get homeWidgetUpNextDesc => '再生中の曲とキュー。行をタップするとその曲を再生。標準 4×3';
+
+  @override
+  String get homeWidgetAdd => '追加';
+
+  @override
+  String get homeWidgetPinUnsupported =>
+      'このランチャーはアプリからのウィジェット追加に対応していません。ホーム画面を長押ししてウィジェット一覧から追加してください';
+
+  @override
   String get settingsCopyLog => '診断ログをコピー';
 
   @override

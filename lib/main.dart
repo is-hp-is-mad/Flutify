@@ -100,6 +100,7 @@ import 'services/audio/audio_output_service.dart';
 import 'services/lyric_bridge/lyric_bridge_channel.dart';
 import 'services/lyric_bridge/lyric_metadata_controls.dart';
 import 'ui/widgets/hyper_surface.dart';
+import 'services/widget/widget_bridge.dart';
 import 'ui/widgets/update_prompt.dart';
 import 'core/theme/md3e_theme.dart';
 import 'ui/widgets/hyper_icons.dart';
@@ -273,6 +274,13 @@ Future<Widget> _initializeApp(ValueChanged<String> reportStage) async {
   final lyricBridge = Platform.isAndroid && systemControls != null
       ? LyricMetadataControls(systemControls, MethodChannelLyricBridge())
       : null;
+  // Android 桌面小组件：与 :251 同一封面落盘 resolver，非 Android 不建桥（通道未注册）
+  final widgetBridge = Platform.isAndroid
+      ? WidgetBridge(
+          artworkFile: (url) async =>
+              (await artworkCache.getSingleFile(url)).path,
+        )
+      : null;
   final baseControls = lyricBridge ?? systemControls;
   final mediaControls = taskbarLyrics == null
       ? baseControls
@@ -370,6 +378,7 @@ Future<Widget> _initializeApp(ValueChanged<String> reportStage) async {
     qqLyricsTranslation: qqLyricsTranslation,
     taskbarLyrics: taskbarLyrics,
     lyricBridge: lyricBridge,
+    widgetBridge: widgetBridge,
     playbackRegionGate: playbackRegionGate,
     updateService: UpdateService(
       storage: storageService,
@@ -422,6 +431,9 @@ class FlutifyApp extends StatelessWidget {
   /// 蓝牙（车机）歌词 / Flyme 状态栏歌词（Android）；已包含在 [mediaControls] 里，这里供界面层绑定。
   final LyricMetadataControls? lyricBridge;
 
+  /// Android 桌面小组件桥：与媒体控制同一差异同步点，把播放态推给原生 Glance widget；非 Android 为 null。
+  final WidgetBridge? widgetBridge;
+
   /// 起播前的网络出口地区门控；为空时不做地区检测（测试默认）。
   ///
   /// 由 main 创建、和 PlaybackProvider / AutomaticGatewayBinding 共用同一个实例：
@@ -447,6 +459,7 @@ class FlutifyApp extends StatelessWidget {
     this.qqLyricsTranslation,
     this.taskbarLyrics,
     this.lyricBridge,
+    this.widgetBridge,
     this.playbackRegionGate,
     this.updateService,
   });
@@ -510,8 +523,13 @@ class FlutifyApp extends StatelessWidget {
             DesktopWindow.addBeforeCloseHook(playback.flushSession);
             // 与 App 同生命周期，不需要单独释放
             final controls = mediaControls;
-            if (controls != null)
-              mediaSync = MediaControlsSync(playback, controls);
+            if (controls != null) {
+              mediaSync = MediaControlsSync(
+                playback,
+                controls,
+                widget: widgetBridge,
+              );
+            }
             return playback;
           },
         ),
@@ -530,6 +548,15 @@ class FlutifyApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) {
             final preferences = PreferencesProvider(storageService);
+            // 小组件文字随 App 语言（同步成 Android 单应用语言）
+            final bridge = widgetBridge;
+            if (bridge != null) {
+              unawaited(bridge.syncLanguage(preferences.prefs.language));
+              preferences.addListener(
+                () =>
+                    unawaited(bridge.syncLanguage(preferences.prefs.language)),
+              );
+            }
             final proxy = networkProxy;
             if (proxy == null) return preferences;
             // 设置页改了代理即时生效（只在代理相关字段变化时重配，避免无谓地重读系统代理）
@@ -617,6 +644,7 @@ class FlutifyApp extends StatelessWidget {
         ),
         Provider<TaskbarLyricsControls?>.value(value: taskbarLyrics),
         Provider<LyricMetadataControls?>.value(value: lyricBridge),
+        Provider<WidgetBridge?>.value(value: widgetBridge),
         // 设置页「存储」分组：音频缓存占用 / 上限 / 清除
         Provider<AudioCacheStore?>.value(
           value: trackAudioLoader is AudioCacheStore

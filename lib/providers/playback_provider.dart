@@ -416,6 +416,38 @@ class PlaybackProvider extends ChangeNotifier {
     ];
   }
 
+  /// 接下来最多 [limit] 首（用户队列在前、再接上下文顺序），供桌面小组件「待播清单」。
+  ///
+  /// 与 [userQueue] + [upNext] 同序，但只取前几项，不为整张歌单分配列表（播放中通知很频繁）。
+  List<SpotifyTrack> upcomingTracks(int limit) {
+    final result = <SpotifyTrack>[
+      for (final e in _userQueue.take(limit)) e.track,
+    ];
+    for (var pos = _orderPos + 1;
+        result.length < limit && pos < _order.length;
+        pos++) {
+      result.add(_contextTracks[_order[pos]]);
+    }
+    return result;
+  }
+
+  /// 播放 [upcomingTracks] 的第 [index] 项；该位置已不是 [trackId]（队列已变）时不动并返回 false。
+  Future<bool> playUpcoming(int index, String trackId) async {
+    if (index < 0) return false;
+    if (index < _userQueue.length) {
+      if (_userQueue[index].track.id != trackId) return false;
+      await playFromUserQueue(index);
+      return true;
+    }
+    final upNextIndex = index - _userQueue.length;
+    final pos = _orderPos + 1 + upNextIndex;
+    if (pos >= _order.length || _contextTracks[_order[pos]].id != trackId) {
+      return false;
+    }
+    await playFromUpNext(upNextIndex);
+    return true;
+  }
+
   /// 当前曲目播完后暂停、不接下一首（睡眠定时器「本首结束时」）；生效一次后自动复位。
   bool get stopAfterCurrent => _stopAfterCurrent;
   bool _stopAfterCurrent = false;

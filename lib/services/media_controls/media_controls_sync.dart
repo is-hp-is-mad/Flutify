@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../models/track.dart';
 import '../../providers/playback_provider.dart';
+import '../widget/widget_bridge.dart';
 import 'system_media_controls.dart';
 
 /// 媒体卡片的替代来源（例如在其他设备上播放时的 Connect 远程设备，见 [ConnectMediaSource]）。
@@ -39,8 +40,12 @@ abstract interface class MediaSourceOverride {
 class MediaControlsSync {
   final PlaybackProvider playback;
   final SystemMediaControls controls;
+  final WidgetBridge? widget;
 
   static const Duration timelineInterval = Duration(seconds: 5);
+
+  /// 桌面小组件「待播清单」最多显示几首。
+  static const int widgetQueueLength = 6;
 
   MediaSourceOverride? _override;
   StreamSubscription<MediaControlEvent>? _events;
@@ -49,12 +54,18 @@ class MediaControlsSync {
   MediaTrackInfo? _lastTrack;
   MediaPlaybackInfo? _lastPlayback;
   DateTime _lastPlaybackAt = DateTime.now();
+  // 小组件待播清单的差异键（来源名 + 曲目 id）
+  String? _widgetQueueKey;
 
-  MediaControlsSync(this.playback, this.controls) {
+  MediaControlsSync(this.playback, this.controls, {this.widget}) {
+    widget?.onPlayQueueItem = _playQueueItem;
     playback.addListener(_sync);
     playback.positionNotifier.addListener(_onPosition);
     _events = controls.events.listen(_onEvent);
     _sync();
+    // 上次会话在 PlaybackProvider 构造时已同步还原；此时仍无曲目说明没有会话，
+    // 清掉小组件里上一个进程留下的旧曲目
+    if (_trackKey == null) unawaited(widget?.clear());
   }
 
   /// 接上 / 换掉替代来源（App 启动时由 main.dart 接上 Connect）。
@@ -79,9 +90,11 @@ class MediaControlsSync {
       _trackKey = key;
       _lastTrack = track;
       unawaited(controls.setTrack(track));
+      unawaited(_pushWidgetTrack(track));
       _lastPlayback = null;
     }
     if (track == null) return;
+    _pushWidgetQueue();
     final next = _playbackInfo();
     final last = _lastPlayback;
     if (last == null ||
@@ -114,6 +127,44 @@ class MediaControlsSync {
     _lastPlayback = info;
     _lastPlaybackAt = DateTime.now();
     unawaited(controls.setPlayback(info));
+    final track = _lastTrack;
+    if (track != null && track.id.isNotEmpty) {
+      unawaited(widget?.update(track, info));
+    }
+  }
+
+  // 曲目变化时同步桌面小组件；无曲目时清空
+  Future<void> _pushWidgetTrack(MediaTrackInfo? track) {
+    final bridge = widget;
+    if (bridge == null) return Future.value();
+    if (track == null || track.id.isEmpty) {
+      _widgetQueueKey = null;
+      return bridge.clear();
+    }
+    return bridge.update(track, _playbackInfo());
+  }
+
+  // 待播清单只在内容变化时下发；远程播放（Connect）时本机队列不相关，清单为空
+  void _pushWidgetQueue() {
+    final bridge = widget;
+    if (bridge == null) return;
+    final remote = _remote;
+    final contextName = remote ? '' : playback.playbackContext.name;
+    final next = remote
+        ? const <MediaTrackInfo>[]
+        : [
+            for (final t in playback.upcomingTracks(widgetQueueLength))
+              trackInfo(t),
+          ];
+    final key = [contextName, for (final t in next) t.id].join('\u0000');
+    if (key == _widgetQueueKey) return;
+    _widgetQueueKey = key;
+    unawaited(bridge.updateQueue(contextName, next));
+  }
+
+  Future<bool> _playQueueItem(int index, String trackId) {
+    if (_remote) return Future.value(false);
+    return playback.playUpcoming(index, trackId);
   }
 
   MediaTrackInfo? _localTrack() {
@@ -137,7 +188,8 @@ class MediaControlsSync {
     final hasError = playback.playbackError != null;
     return MediaPlaybackInfo(
       playing: !hasError && playback.isPlaybackActive,
-      buffering: playback.isBuffering ||
+      buffering:
+          playback.isBuffering ||
           (playback.isPlaybackActive && !playback.isPlaying) ||
           hasError,
       position: playback.position,
@@ -177,6 +229,9 @@ class MediaControlsSync {
   }
 
   void dispose() {
+    if (widget?.onPlayQueueItem == _playQueueItem) {
+      widget?.onPlayQueueItem = null;
+    }
     _override?.changes.removeListener(_sync);
     _override?.position.removeListener(_onPosition);
     playback.removeListener(_sync);
