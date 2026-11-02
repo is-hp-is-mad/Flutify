@@ -1140,6 +1140,43 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsTaskbarLyricsFontSize => '字号';
 
   @override
+  String get settingsHomeWidgetsSection => '桌面小组件';
+
+  @override
+  String get settingsHomeWidgetsSubtitle =>
+      '澎湃 OS 的小组件列表里，Flutify 在最底部的「安卓小部件」分区；也可以在这里点「添加」直接放到桌面，之后长按可调整大小';
+
+  @override
+  String get homeWidgetNowPlaying => '播放条';
+
+  @override
+  String get homeWidgetNowPlayingDesc => '细长横条，封面、歌名与上一首 / 播放 / 下一首；默认 4×1';
+
+  @override
+  String get homeWidgetAlbumCard => '专辑卡片';
+
+  @override
+  String get homeWidgetAlbumCardDesc => '大封面，背景随封面取色；默认 4×2';
+
+  @override
+  String get homeWidgetCover => '方形封面';
+
+  @override
+  String get homeWidgetCoverDesc => '封面满幅铺底，带播放键；默认 2×2';
+
+  @override
+  String get homeWidgetUpNext => '待播清单';
+
+  @override
+  String get homeWidgetUpNextDesc => '当前曲目与接下来播放，点一行直接播放；默认 4×3';
+
+  @override
+  String get homeWidgetAdd => '添加';
+
+  @override
+  String get homeWidgetPinUnsupported => '当前桌面不支持从应用内添加，请长按桌面在小组件列表里添加';
+
+  @override
   String get settingsCopyLog => '复制诊断日志';
 
   @override
@@ -3229,6 +3266,43 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get settingsTaskbarLyricsFontSize => '字號';
+
+  @override
+  String get settingsHomeWidgetsSection => '桌面小工具';
+
+  @override
+  String get settingsHomeWidgetsSubtitle =>
+      '澎湃 OS 的小工具列表裡，Flutify 在最底部的「安卓小工具」分區；也可以在這裡點「新增」直接放到桌面，之後長按可調整大小';
+
+  @override
+  String get homeWidgetNowPlaying => '播放條';
+
+  @override
+  String get homeWidgetNowPlayingDesc => '細長橫條，封面、歌名與上一首 / 播放 / 下一首；預設 4×1';
+
+  @override
+  String get homeWidgetAlbumCard => '專輯卡片';
+
+  @override
+  String get homeWidgetAlbumCardDesc => '大封面，背景隨封面取色；預設 4×2';
+
+  @override
+  String get homeWidgetCover => '方形封面';
+
+  @override
+  String get homeWidgetCoverDesc => '封面滿版鋪底，附播放鍵；預設 2×2';
+
+  @override
+  String get homeWidgetUpNext => '待播清單';
+
+  @override
+  String get homeWidgetUpNextDesc => '目前曲目與接下來播放，點一列直接播放；預設 4×3';
+
+  @override
+  String get homeWidgetAdd => '新增';
+
+  @override
+  String get homeWidgetPinUnsupported => '目前的桌面不支援從應用程式內新增，請長按桌面在小工具列表裡新增';
 
   @override
   String get settingsCopyLog => '復制診斷日志';

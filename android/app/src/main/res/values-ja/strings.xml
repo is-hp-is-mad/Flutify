@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Flutify</string>
+    <string name="widget_name_now_playing">Flutify 再生バー</string>
+    <string name="widget_desc_now_playing">再生中の曲と再生操作を表示する細長いバー</string>
+    <string name="widget_name_album_card">Flutify アルバムカード</string>
+    <string name="widget_desc_album_card">大きなアートワーク。背景はジャケットの色から生成</string>
+    <string name="widget_name_cover">Flutify カバー</string>
+    <string name="widget_desc_cover">ジャケットを全面に表示し、再生ボタン付き</string>
+    <string name="widget_name_up_next">Flutify 次に再生</string>
+    <string name="widget_desc_up_next">再生中の曲とキュー。行をタップするとその曲を再生</string>
+    <string name="widget_cd_play_pause">再生または一時停止</string>
+    <string name="widget_cd_previous">前の曲</string>
+    <string name="widget_cd_next">次の曲</string>
+    <string name="widget_cd_open_app">Flutify を開く</string>
+    <string name="widget_empty_hint">再生していません</string>
+    <string name="widget_playing_from">%1$s から</string>
+    <string name="widget_up_next">次に再生</string>
+    <string name="widget_queue_empty">キューに曲がありません</string>
+    <string name="widget_preview_context">ミッドナイト・ドライブ</string>
+</resources>
