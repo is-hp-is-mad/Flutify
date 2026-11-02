@@ -52,6 +52,14 @@ class PathfinderOperation {
     'queryTrackCreditsGroupedModal',
     'f135fb9be58a72d041ab5d214d817021a272405d883860468e2627afb01a3ca9',
   );
+
+  /// 实体竖滑视频流（艺人 / 专辑 / 歌单页「观看」入口，桌面网页版 1.3.9 抓包）：
+  /// 变量 watchFeedUri = `spotify:watch-feed:{artist|album|playlist}:<id>`、offset、limit。
+  /// 只接受实体 feed，`discovery-feed`（#标签）会被服务端判为类型不符。
+  static const watchFeedEntity = PathfinderOperation(
+    'watchFeedEntity',
+    'd1a805f815ee0c20281330317d8c00c8fce9026686a86c38bc700ccaefb9ac5c',
+  );
 }
 
 /// 桌面版在 home / browse 类查询中声明的终端类型（xpui 中 IntegrationDesktop）。

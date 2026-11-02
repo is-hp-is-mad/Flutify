@@ -39,6 +39,7 @@ import 'library/library_screen.dart';
 import 'player/immersive_lyrics_screen.dart';
 import 'search/search_screen.dart';
 import 'settings/settings_screen.dart';
+import '../shell/shell_chrome.dart';
 
 /// 响应式主框架：持有三个 Tab 的嵌套 Navigator、导航历史、全局搜索词与桌面布局状态，
 /// 按窗口宽度交给桌面三栏框架（[DesktopShell]）或移动端底部导航布局。
@@ -401,14 +402,26 @@ class _MainShellState extends State<MainShell> {
       );
     }
 
-    // 移动端：内容铺到底部导航之下（毛玻璃透出内容），导航与迷你播放器高度经 MediaQuery 传给页面
-    return Scaffold(
-      extendBody: true,
-      body: _pages(),
-      bottomNavigationBar: MobileBottomBar(
-        selectedIndex: _currentIndex,
-        onSelected: _select,
-      ),
+    // 移动端：内容铺到底部导航之下（毛玻璃透出内容），导航与迷你播放器高度经 MediaQuery 传给页面。
+    // 当前 Tab 的顶层是全屏沉浸页（发现流）时整条边框隐藏，见 ShellChrome。
+    final pages = _pages();
+    return ListenableBuilder(
+      listenable: ShellChrome.instance,
+      builder: (context, _) {
+        final hidden = ShellChrome.instance.hiddenFor(
+          _navigatorKeys[_currentIndex].currentState,
+        );
+        return Scaffold(
+          extendBody: true,
+          body: pages,
+          bottomNavigationBar: hidden
+              ? null
+              : MobileBottomBar(
+                  selectedIndex: _currentIndex,
+                  onSelected: _select,
+                ),
+        );
+      },
     );
   }
 }

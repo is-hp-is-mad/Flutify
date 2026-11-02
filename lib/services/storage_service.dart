@@ -53,6 +53,10 @@ class StorageService {
       'ui_immersive_screen'; // 沉浸式歌词铺满整个屏幕
   static const String _keyImmersivePinned =
       'ui_immersive_pinned'; // 沉浸式歌词固定控制区（不自动收起）
+  static const String _keyWatchFeedOnboarding =
+      'watch_feed_onboarding_shown'; // 发现流「上滑看更多」引导是否已展示
+  static const String _keyWatchFeedPivotHint =
+      'watch_feed_pivot_hint_shown'; // 发现流「左右滑切换」引导是否已展示
   static const String _keyAppearance = 'ui_appearance'; // 外观设置 JSON
   static const String _keyPreferences =
       'app_prefs'; // 其余界面偏好 JSON（AppPreferences）
@@ -375,6 +379,18 @@ class StorageService {
       _prefs.getBool(_keyImmersiveScreen) ?? false;
   Future<bool> setImmersiveScreenFullscreen(bool value) =>
       _prefs.setBool(_keyImmersiveScreen, value);
+
+  /// 发现流竖滑引导是否已展示过；默认 false。
+  bool get watchFeedOnboardingShown =>
+      _prefs.getBool(_keyWatchFeedOnboarding) ?? false;
+  Future<bool> setWatchFeedOnboardingShown(bool value) =>
+      _prefs.setBool(_keyWatchFeedOnboarding, value);
+
+  /// 发现流横滑（切换关联 feed）引导是否已展示过；默认 false。
+  bool get watchFeedPivotHintShown =>
+      _prefs.getBool(_keyWatchFeedPivotHint) ?? false;
+  Future<bool> setWatchFeedPivotHintShown(bool value) =>
+      _prefs.setBool(_keyWatchFeedPivotHint, value);
 
   /// 沉浸式歌词是否固定控制区（不自动收成底部迷你栏）；默认 false。
   bool get immersivePinned => _prefs.getBool(_keyImmersivePinned) ?? false;

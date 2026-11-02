@@ -30,4 +30,21 @@ class PreferencesProvider extends ChangeNotifier {
     _storage.setImmersiveScreenFullscreen(value);
     notifyListeners();
   }
+
+  /// 发现流的一次性引导（桥接独立存储键，见 StorageService）。
+  bool get watchFeedOnboardingShown => _storage.watchFeedOnboardingShown;
+
+  void setWatchFeedOnboardingShown(bool value) {
+    if (value == watchFeedOnboardingShown) return;
+    _storage.setWatchFeedOnboardingShown(value);
+    notifyListeners();
+  }
+
+  bool get watchFeedPivotHintShown => _storage.watchFeedPivotHintShown;
+
+  void setWatchFeedPivotHintShown(bool value) {
+    if (value == watchFeedPivotHintShown) return;
+    _storage.setWatchFeedPivotHintShown(value);
+    notifyListeners();
+  }
 }

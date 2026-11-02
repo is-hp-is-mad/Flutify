@@ -12,6 +12,7 @@ import '../../../models/playback_context.dart';
 import '../../../models/playlist.dart';
 import '../../../models/share_target.dart';
 import '../../../models/track.dart';
+import '../../../models/watch_feed.dart';
 import '../../../providers/playback_provider.dart';
 import '../../../providers/spotify_provider.dart';
 import '../../navigation/app_routes.dart';
@@ -23,6 +24,7 @@ import '../../widgets/filter_pill.dart';
 import '../../widgets/skeleton.dart';
 import '../../widgets/track_tile.dart';
 import '../detail/widgets/collection_widgets.dart';
+import '../watchfeed/widgets/watch_feed_shelf_row.dart';
 import '../../widgets/flutify_progress.dart';
 import '../../widgets/app_button.dart';
 
@@ -53,6 +55,10 @@ class _SearchScreenState extends State<SearchScreen> {
     super.initState();
     // 顶栏输入时本页也要切换「浏览 / 结果」
     _searchController.addListener(_onQueryChanged);
+    // 官方发现流入口（「Discover something new」）：幂等，失败时入口隐藏。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<SpotifyProvider>().loadDiscoverShelf();
+    });
   }
 
   @override
@@ -232,6 +238,7 @@ class _BrowseView extends StatelessWidget {
     final categories = context.select<SpotifyProvider, List<SpotifyCategory>>((s) => s.categories);
     final recent = context.select<SpotifyProvider, List<String>>((s) => s.recentSearches);
     final isLoading = context.select<SpotifyProvider, bool>((s) => s.isLoadingHome);
+    final discover = context.select<SpotifyProvider, WatchFeedShelf?>((s) => s.discoverShelf);
 
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),
@@ -268,6 +275,18 @@ class _BrowseView extends StatelessWidget {
             ),
           ),
         ],
+
+        // 官方竖滑发现流入口：#标签视频卡片行（位于「浏览全部」之前）。
+        if (discover != null)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: WatchFeedShelfRow(
+                shelf: discover,
+                fallbackTitle: l10n.watchFeedDiscoverTitle,
+              ),
+            ),
+          ),
 
         SliverToBoxAdapter(
           child: Padding(

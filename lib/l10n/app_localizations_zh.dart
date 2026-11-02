@@ -336,6 +336,28 @@ class AppLocalizationsZh extends AppLocalizations {
   String get searchBrowseAll => '浏览全部';
 
   @override
+  String get watchFeedDiscoverTitle => '发现新内容';
+
+  @override
+  String get watchFeedPaused => '已暂停，轻点继续播放';
+
+  @override
+  String get watchFeedMute => '静音';
+
+  @override
+  String get watchFeedUnmute => '取消静音';
+
+  @override
+  String watchFeedMonthlyListeners(String count) {
+    return '$count 位月度听众';
+  }
+
+  @override
+  String watchFeedEntityTooltip(String name) {
+    return '用短视频探索「$name」';
+  }
+
+  @override
   String get searchCategoriesFailedTitle => '无法加载分类';
 
   @override
@@ -2425,6 +2447,28 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get searchBrowseAll => '瀏覽全部';
+
+  @override
+  String get watchFeedDiscoverTitle => '探索新內容';
+
+  @override
+  String get watchFeedPaused => '已暫停，輕點繼續播放';
+
+  @override
+  String get watchFeedMute => '靜音';
+
+  @override
+  String get watchFeedUnmute => '取消靜音';
+
+  @override
+  String watchFeedMonthlyListeners(String count) {
+    return '$count 位每月聽眾';
+  }
+
+  @override
+  String watchFeedEntityTooltip(String name) {
+    return '用短影片探索「$name」';
+  }
 
   @override
   String get searchCategoriesFailedTitle => '無法載入分類';
