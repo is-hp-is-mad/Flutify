@@ -22,6 +22,7 @@ import '../shell/desktop/desktop_shell.dart';
 import '../shell/desktop/desktop_top_bar.dart';
 import '../shell/desktop/mac_menu_bar.dart';
 import '../shell/shell_breakpoints.dart';
+import '../shell/mobile/android_floating_bar.dart';
 import '../shell/mobile/mobile_bottom_bar.dart';
 import '../shell/shell_layout_controller.dart';
 import '../widgets/connect/playback_shortcuts.dart';
@@ -73,6 +74,9 @@ class _MainShellState extends State<MainShell> {
   final FocusNode _searchFocus = FocusNode(debugLabel: 'desktop-search');
 
   final ShellLayoutController _layout = ShellLayoutController();
+
+  /// 移动端页面的滚动方向，Android 悬浮底栏据此收放。
+  final FloatingBarFold _barFold = FloatingBarFold();
 
   // 各 Tab 根页面只创建一次，切换 Tab 与窗口尺寸变化时不再重新构造
   late final List<Widget> _roots = [
@@ -159,6 +163,7 @@ class _MainShellState extends State<MainShell> {
     _searchController.dispose();
     _searchFocus.dispose();
     _layout.dispose();
+    _barFold.dispose();
     for (final h in _histories) {
       h.dispose();
     }
@@ -404,10 +409,14 @@ class _MainShellState extends State<MainShell> {
     // 移动端：内容铺到底部导航之下（毛玻璃透出内容），导航与迷你播放器高度经 MediaQuery 传给页面
     return Scaffold(
       extendBody: true,
-      body: _pages(),
+      body: NotificationListener<ScrollNotification>(
+        onNotification: _barFold.handle,
+        child: _pages(),
+      ),
       bottomNavigationBar: MobileBottomBar(
         selectedIndex: _currentIndex,
         onSelected: _select,
+        fold: _barFold,
       ),
     );
   }

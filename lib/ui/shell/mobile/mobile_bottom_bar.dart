@@ -9,24 +9,37 @@ import '../../../l10n/l10n.dart';
 import '../../widgets/hyper_surface.dart';
 import '../../widgets/mini_player.dart';
 import '../desktop/desktop_window.dart';
+import 'android_floating_bar.dart';
 
 /// 移动端底部区域：悬浮胶囊迷你播放器 + 悬浮药丸式液态玻璃底部导航（iOS 风格）。
 ///
 /// 配合 `Scaffold(extendBody: true)` 使用：内容滚动到导航药丸下方时透过模糊可见；
 /// 渐变遮罩放在导航区域，避免迷你播放器下缘出现一条矩形白边。
 /// 整体高度通过 MediaQuery 底部 padding 传给页面（见 ContentBottomSpacer）。
+/// Android 的柔光玻璃换成随滚动收放的 [AndroidFloatingBar]，其他平台与材质不变。
 class MobileBottomBar extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onSelected;
+
+  /// 页面滚动驱动的收起状态，只有 [AndroidFloatingBar] 用。
+  final FloatingBarFold? fold;
 
   const MobileBottomBar({
     super.key,
     required this.selectedIndex,
     required this.onSelected,
+    this.fold,
   });
 
   @override
   Widget build(BuildContext context) {
+    if (AndroidFloatingBar.enabled(context)) {
+      return AndroidFloatingBar(
+        selectedIndex: selectedIndex,
+        onSelected: onSelected,
+        fold: fold,
+      );
+    }
     final colorScheme = Theme.of(context).colorScheme;
     return Column(
       mainAxisSize: MainAxisSize.min,

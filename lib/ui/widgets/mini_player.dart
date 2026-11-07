@@ -79,14 +79,17 @@ class MiniPlayer extends StatelessWidget {
                           left: 28,
                           right: 28,
                           bottom: 3,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(1),
-                            child: PlaybackProgressLine(
-                              height: 2,
-                              color: MiniPlayerStyle.foreground(context),
-                              backgroundColor: MiniPlayerStyle.foreground(
-                                context,
-                              ).withAlpha(40),
+                          child: MiniPlayerFoldAway(
+                            fold: MiniPlayerDock.maybeOf(context),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(1),
+                              child: PlaybackProgressLine(
+                                height: 2,
+                                color: MiniPlayerStyle.foreground(context),
+                                backgroundColor: MiniPlayerStyle.foreground(
+                                  context,
+                                ).withAlpha(40),
+                              ),
                             ),
                           ),
                         ),
@@ -121,8 +124,10 @@ class _MiniPlayerRow extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
-        final showDevice = width >= 340;
-        final showLike = width >= 260;
+        // Android 悬浮栏：与导航同宽、不放设备键；心形随下沉收起，不看此刻的宽度
+        final dock = MiniPlayerDock.maybeOf(context);
+        final showDevice = dock == null && width >= 340;
+        final showLike = dock != null || width >= 260;
         final artwork = MiniPlayerStyle.artworkSize(context);
         final foreground = MiniPlayerStyle.foreground(
           context,
@@ -195,7 +200,16 @@ class _MiniPlayerRow extends StatelessWidget {
                   onPressed: () => DevicePickerSheet.show(context),
                 ),
 
-              if (showLike) LikeButton(track: track, size: 22, inactiveColor: secondary),
+              if (showLike)
+                MiniPlayerFoldAway(
+                  fold: dock,
+                  collapse: true,
+                  child: LikeButton(
+                    track: track,
+                    size: 22,
+                    inactiveColor: secondary,
+                  ),
+                ),
 
               PlayPauseButton(
                 size: 40,
