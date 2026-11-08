@@ -106,6 +106,10 @@ class CollectionHero extends StatefulWidget {
   /// 收起后标题栏左侧的操作（通常是 36–44px 的播放键）。
   final Widget? collapsedAction;
 
+  /// 吸顶标题栏下方的附加常驻组件（如桌面端表格列头）。
+  final Widget? pinnedBottom;
+  final double pinnedBottomHeight;
+
   const CollectionHero({
     super.key,
     required this.typeLabel,
@@ -115,6 +119,8 @@ class CollectionHero extends StatefulWidget {
     this.circularCover = false,
     this.meta,
     this.collapsedAction,
+    this.pinnedBottom,
+    this.pinnedBottomHeight = 0,
   });
 
   @override
@@ -180,11 +186,13 @@ class _HeroDelegate extends SliverPersistentHeaderDelegate {
   /// 宽布局封面边长：窄一些的内容区用 192，避免标题被挤成一列。
   double get _wideCover => width >= 760 ? 232 : 192;
 
-  @override
-  double get minExtent => _barHeight + topPadding;
+  double get _bottomHeight => (wide && hero.pinnedBottom != null) ? hero.pinnedBottomHeight : 0.0;
 
   @override
-  double get maxExtent => wide ? _wideCover + 72 : topPadding + 400;
+  double get minExtent => _barHeight + _bottomHeight + topPadding;
+
+  @override
+  double get maxExtent => wide ? _wideCover + 72 + _bottomHeight : topPadding + 400;
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
@@ -251,52 +259,71 @@ class _HeroDelegate extends SliverPersistentHeaderDelegate {
               ignoring: barOpacity == 0,
               child: Opacity(
                 opacity: barOpacity,
-                child: context.tokens.hyperMaterial
-                    ? Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          HyperAppBarBackground(tintColor: tone, showBottomLine: !wide),
-                          Padding(
-                            padding: EdgeInsets.fromLTRB(showBack ? 60 : 16, topPadding, 16, 0),
-                            child: Row(
-                              children: [
-                                if (hero.collapsedAction != null) ...[hero.collapsedAction!, const SizedBox(width: 12)],
-                                Expanded(
-                                  child: Text(
-                                    hero.title,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700, color: barForeground),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      )
-                    : ColoredBox(
-                        color: barColor,
-                        child: Padding(
-                          padding: EdgeInsets.fromLTRB(showBack ? 60 : 16, topPadding, 16, 0),
-                          child: Row(
-                            children: [
-                              if (hero.collapsedAction != null) ...[hero.collapsedAction!, const SizedBox(width: 12)],
-                              Expanded(
-                                child: Text(
-                                  hero.title,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700, color: barForeground),
-                                ),
+                child: Builder(
+                  builder: (context) {
+                    final titleRow = SizedBox(
+                      height: _barHeight + topPadding,
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(showBack ? 60 : 16, topPadding, 16, 0),
+                        child: Row(
+                          children: [
+                            if (hero.collapsedAction != null) ...[hero.collapsedAction!, const SizedBox(width: 12)],
+                            Expanded(
+                              child: Text(
+                                hero.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700, color: barForeground),
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
+                    );
+
+                    final hasBottom = wide && hero.pinnedBottom != null;
+
+                    if (context.tokens.hyperMaterial) {
+                      return Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          HyperAppBarBackground(tintColor: tone, showBottomLine: true),
+                          Column(
+                            children: [
+                              titleRow,
+                              if (hasBottom)
+                                SizedBox(
+                                  height: hero.pinnedBottomHeight,
+                                  child: hero.pinnedBottom!,
+                                ),
+                            ],
+                          ),
+                        ],
+                      );
+                    }
+
+                    return DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: barColor,
+                        border: hasBottom
+                            ? Border(bottom: BorderSide(color: scheme.onSurface.withAlpha(28)))
+                            : null,
+                      ),
+                      child: Column(
+                        children: [
+                          titleRow,
+                          if (hasBottom)
+                            SizedBox(
+                              height: hero.pinnedBottomHeight,
+                              child: hero.pinnedBottom!,
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
           ),

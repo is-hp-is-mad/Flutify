@@ -177,14 +177,14 @@ class HyperAppBarBackground extends StatelessWidget {
   const HyperAppBarBackground({super.key, this.tintColor, this.showBottomLine = true});
 
   /// 从上到下每一条的 LM 半径。
-  static const List<double> bandRadii = [60, 52, 44, 36, 28, 20, 12, 5];
+  static const List<double> bandRadii = [60, 52, 44, 36, 28, 20, 16, 12];
 
   // 遮罩的位置取自 miuix 的 gradientBlur，强度减弱：系统顶部几乎不透明，这里要让模糊看得见
-  static const List<double> _tintAlpha = [0.78, 0.66, 0.42, 0.18, 0];
+  static const List<double> _tintAlpha = [0.82, 0.70, 0.48, 0.24, 0.05];
   static const List<double> _tintStops = [0, 0.5, 0.72, 0.88, 1];
 
-  // 着色玻璃（Tint Glass）：色彩高饱和晶莹透亮，同时透出下方滚动的曲目与渐变模糊
-  static const List<double> _translucentTintAlpha = [0.86, 0.72, 0.52, 0.30, 0.12];
+  // 着色玻璃（Tint Glass）：色彩高饱和晶莹透亮，加厚下沿着色层（消除漏光与浅色模式黑字直透）
+  static const List<double> _translucentTintAlpha = [0.94, 0.86, 0.74, 0.58, 0.42];
 
   @override
   Widget build(BuildContext context) {

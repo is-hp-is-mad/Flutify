@@ -229,6 +229,14 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
               ownerName: playlist.ownerName,
               summary: summary,
             ),
+            pinnedBottom: columns != null
+                ? TrackTableHeaderContent(
+                    columns: columns,
+                    sort: _sort,
+                    onSort: (key) => setState(() => _sort = _sort.tap(key)),
+                  )
+                : null,
+            pinnedBottomHeight: TrackTableHeader.height,
             collapsedAction: ContextPlayButton(
               tracks: sorted,
               playbackContext: playbackContext,
@@ -347,10 +355,13 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
             )
           else ...[
             if (columns != null)
-              TrackTableHeader(
+              SliverToBoxAdapter(
+                child: TrackTableHeaderContent(
                 columns: columns,
                 sort: _sort,
-                onSort: (key) => setState(() => _sort = _sort.tap(key)),
+                  onSort: (key) => setState(() => _sort = _sort.tap(key)),
+                  showBottomBorder: true,
+                ),
               ),
             if (visible.isEmpty)
               CollectionPlaceholder(

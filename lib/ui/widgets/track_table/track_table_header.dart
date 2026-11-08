@@ -1,10 +1,7 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/flutify_tokens.dart';
 import '../../../l10n/l10n.dart';
-import '../hyper_surface.dart';
 import '../hover_builder.dart';
 import 'track_sort.dart';
 import 'track_table_columns.dart';
@@ -16,42 +13,29 @@ import '../../screens/detail/widgets/collection_hero.dart';
 /// - 列宽与 TrackTile 共用 [TrackTableColumns]，逐列对齐；
 /// - 点列名按该列排序（规则见 [TrackSort.tap]），当前排序列高亮并带方向箭头；
 /// - 吸顶后铺上底色，避免与下面滚动的曲目重叠。
-class TrackTableHeader extends StatelessWidget {
+/// 桌面曲目表格的列表头内容（纯 Widget，用于一体化吸顶栏或流式列表）：
+/// `#` · 标题 · [艺人] · [专辑] · [添加日期] · 🕒
+///
+/// - 列宽与 TrackTile 共用 [TrackTableColumns]，逐列对齐；
+/// - 点列名按该列排序（规则见 [TrackSort.tap]），当前排序列高亮并带方向箭头。
+class TrackTableHeaderContent extends StatelessWidget {
   final TrackTableColumns columns;
   final TrackSort sort;
   final ValueChanged<TrackSortKey> onSort;
+  final bool showBottomBorder;
 
-  const TrackTableHeader({super.key, required this.columns, required this.sort, required this.onSort});
-
-  static const double height = 40;
+  const TrackTableHeaderContent({
+    super.key,
+    required this.columns,
+    required this.sort,
+    required this.onSort,
+    this.showBottomBorder = false,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return SliverPersistentHeader(
-      pinned: true,
-      delegate: _Delegate(columns: columns, sort: sort, onSort: onSort),
-    );
-  }
-}
-
-class _Delegate extends SliverPersistentHeaderDelegate {
-  final TrackTableColumns columns;
-  final TrackSort sort;
-  final ValueChanged<TrackSortKey> onSort;
-
-  _Delegate({required this.columns, required this.sort, required this.onSort});
-
-  @override
-  double get minExtent => TrackTableHeader.height;
-
-  @override
-  double get maxExtent => TrackTableHeader.height;
-
-  @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     final l10n = context.l10n;
     final scheme = Theme.of(context).colorScheme;
-    final stuck = overlapsContent || shrinkOffset > 0;
 
     Widget cell(TrackSortKey key, String label, {TextAlign align = TextAlign.start}) => _SortLabel(
       label: label,
@@ -61,7 +45,9 @@ class _Delegate extends SliverPersistentHeaderDelegate {
       onTap: () => onSort(key),
     );
 
-    final content = Padding(
+    final row = SizedBox(
+      height: TrackTableHeader.height,
+      child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: TrackTableColumns.horizontalPadding),
         child: Row(
           children: [
@@ -97,13 +83,62 @@ class _Delegate extends SliverPersistentHeaderDelegate {
             const SizedBox(width: TrackTableColumns.actionWidth),
           ],
         ),
-      );
+      ),
+    );
 
-    final tone = CollectionTint.maybeOf(context);
+    if (showBottomBorder) {
+      return DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: scheme.onSurface.withAlpha(20))),
+        ),
+        child: row,
+      );
+    }
+    return row;
+  }
+}
+
+/// 桌面曲目表格的列表头（Sliver，独立使用时的回退兼容实现）
+class TrackTableHeader extends StatelessWidget {
+  final TrackTableColumns columns;
+  final TrackSort sort;
+  final ValueChanged<TrackSortKey> onSort;
+
+  const TrackTableHeader({super.key, required this.columns, required this.sort, required this.onSort});
+
+  static const double height = 40;
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverPersistentHeader(
+      pinned: true,
+      delegate: _Delegate(columns: columns, sort: sort, onSort: onSort),
+    );
+  }
+}
+
+class _Delegate extends SliverPersistentHeaderDelegate {
+  final TrackTableColumns columns;
+  final TrackSort sort;
+  final ValueChanged<TrackSortKey> onSort;
+
+  _Delegate({required this.columns, required this.sort, required this.onSort});
+
+  @override
+  double get minExtent => TrackTableHeader.height;
+
+  @override
+  double get maxExtent => TrackTableHeader.height;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    final scheme = Theme.of(context).colorScheme;
+    final stuck = overlapsContent || shrinkOffset > 0;
+    final content = TrackTableHeaderContent(columns: columns, sort: sort, onSort: onSort);
 
     if (context.tokens.hyperMaterial) {
       if (!stuck) return content;
-      // 吸顶时铺上融合歌单色调的坚实底色（100% 不透明），防止下方曲目透字重叠，并彻底消除跨组件滤镜夹缝
+      final tone = CollectionTint.maybeOf(context);
       final headerSolidColor = Color.alphaBlend(
         (tone ?? scheme.primary).withValues(alpha: 0.20),
         scheme.surface,

@@ -15,6 +15,8 @@ void main() {
     String title = 'After Hours',
     ThemeData? theme,
     bool pushed = false,
+    Widget? pinnedBottom,
+    double pinnedBottomHeight = 0,
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1.0;
@@ -32,6 +34,8 @@ void main() {
               imageUrl: '',
               meta: const Text('The Weeknd · 2020 · 14 首歌曲'),
               collapsedAction: const Icon(Icons.play_circle_fill_rounded, key: Key('bar-action')),
+              pinnedBottom: pinnedBottom,
+              pinnedBottomHeight: pinnedBottomHeight,
             ),
             const SliverToBoxAdapter(child: CollectionHeroFade(child: SizedBox(height: 80))),
             SliverList.builder(itemCount: 40, itemBuilder: (_, i) => SizedBox(height: 56, child: Text('row $i'))),
@@ -71,6 +75,33 @@ void main() {
       title: '一首非常非常长的歌单标题用来测试自动缩小字号是否会溢出 Extended Deluxe Edition Remastered',
     );
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('desktop: pinnedBottom integrates seamlessly with collapsed bar into a 104dp header', (tester) async {
+    const bottomKey = Key('pinned-bottom-header');
+    await pumpHero(
+      tester,
+      size: const Size(1280, 800),
+      pinnedBottom: const SizedBox(key: bottomKey, height: 40, child: Text('Track Table Header')),
+      pinnedBottomHeight: 40,
+    );
+
+    // 展开状态下吸顶条不可见
+    final bottomFinder = find.byKey(bottomKey);
+    Opacity bottomOpacity() => tester.widget<Opacity>(find.ancestor(of: bottomFinder, matching: find.byType(Opacity)).first);
+    expect(bottomOpacity().opacity, 0);
+
+    // 向上滚动收起
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -600));
+    await tester.pumpAndSettle();
+
+    // 滚动收起后，pinnedBottom 出现在吸顶栏内
+    expect(find.byKey(bottomKey), findsOneWidget);
+    // 验证其位置在标题栏正下方（y = 64，高度 40）
+    final bottomPos = tester.getTopLeft(find.byKey(bottomKey));
+    expect(bottomPos.dy, closeTo(64, 0.5));
+    final bottomSize = tester.getSize(find.byKey(bottomKey));
+    expect(bottomSize.height, 40);
   });
 
   testWidgets('scrolling collapses into a pinned bar with the play action', (tester) async {
