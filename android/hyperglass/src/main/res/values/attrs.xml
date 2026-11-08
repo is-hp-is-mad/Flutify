@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <attr name="hg_glassToken" format="string" />
+    <attr name="hg_blendToken" format="string" />
+    <attr name="hg_bloomStrokeToken" format="string" />
+    <attr name="hg_shadowToken" format="string" />
+    <attr name="hg_cornerRadius" format="dimension" />
+    <attr name="hg_blurRadius" format="dimension" />
+    <attr name="hg_useSuperellipse" format="boolean" />
+    <attr name="hg_pressLightEnabled" format="boolean" />
+    <attr name="hg_fallbackColor" format="color" />
+
+    <declare-styleable name="HyperGlassView">
+        <attr name="hg_glassToken" />
+        <attr name="hg_blendToken" />
+        <attr name="hg_bloomStrokeToken" />
+        <attr name="hg_shadowToken" />
+        <attr name="hg_cornerRadius" />
+        <attr name="hg_blurRadius" />
+        <attr name="hg_useSuperellipse" />
+        <attr name="hg_pressLightEnabled" />
+        <attr name="hg_fallbackColor" />
+    </declare-styleable>
+
+    <declare-styleable name="HyperGlassFrameLayout">
+        <attr name="hg_glassToken" />
+        <attr name="hg_blendToken" />
+        <attr name="hg_bloomStrokeToken" />
+        <attr name="hg_shadowToken" />
+        <attr name="hg_cornerRadius" />
+        <attr name="hg_blurRadius" />
+        <attr name="hg_useSuperellipse" />
+        <attr name="hg_pressLightEnabled" />
+        <attr name="hg_fallbackColor" />
+    </declare-styleable>
+</resources>

@@ -15,8 +15,10 @@
    - 在 `view_shadow.dart`、`hyper_glass.dart`、`hyper_glass_renderer.dart` 全面接入。
 3. **`HyperGlassScene` 调度防漏机制**：
    - 新增 `_dirty` 标记：在后台快照运行中若发生新调度，帧回调自动排队补发，解决动画中状态丢帧。
-4. **原生 ROM 桥接引入**：
-   - 引入 `native_rom.dart`（`HyperNativeRom`），为 Xiaomi HyperOS 3/4 真机反射调用系统级材质与阴影提供直接支持，并在非小米设备安全降级。
+4. **原生 ROM 桥接引入与多档原生渲染模式对齐**：
+   - 引入 `native_rom.dart`（`HyperNativeRom` 与 `HyperRenderController`），支持三种渲染模式：小米原生（`xiaomi_native`）、小米移植（`xiaomi_port`）、纯移植（`flutter_port`）。
+   - `HyperRenderController` 支持设备能力查询（`getCapabilities`）与切换底层管线（`setPortBackend`）。
+   - `HyperGlass` 与 `HyperBlendBlur` 在 Android 端接入 `HyperNativeRomSurface`，支持 `updateSurface` 动态刷新材质与参数。
 
 ## 相对来源的改动
 

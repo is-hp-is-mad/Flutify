@@ -16,6 +16,8 @@ class MainActivity : AudioServiceActivity() {
         AudioOutputPlugin.register(flutterEngine, this)
         // 系统里点开的 spotify: / open.spotify.com 链接
         SpotifyLinkPlugin.register(flutterEngine, this)
+        // 小米 HyperOS 柔光玻璃与跨品牌 Android 原生渲染
+        HyperGlassPlugin.register(flutterEngine, this)
         if (!flutterEngine.plugins.has(AppleMusicBackgroundPlugin::class.java)) {
             flutterEngine.plugins.add(AppleMusicBackgroundPlugin())
         }
