@@ -5,7 +5,6 @@ import 'package:flutify_app/ui/widgets/track_table/track_sort.dart';
 import 'package:flutify_app/ui/widgets/track_table/track_table_columns.dart';
 import 'package:flutify_app/ui/widgets/track_table/track_table_header.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutify_app/l10n/app_localizations.dart';
 
