@@ -115,67 +115,79 @@ class TrackTableHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final tone = CollectionTint.maybeOf(context);
-    final hyper = context.tokens.hyperMaterial;
+    return SliverLayoutBuilder(
+      builder: (context, constraints) {
+        // 当 scrollOffset > 0 时，说明表头已滑动到 64dp 处停住吸附；
+        // 当 scrollOffset == 0 时，说明表头还在流式向上滑动，背景完全透明！
+        final bool stuck = constraints.scrollOffset > 0;
+        final scheme = Theme.of(context).colorScheme;
+        final tone = CollectionTint.maybeOf(context);
+        final hyper = context.tokens.hyperMaterial;
 
-    final content = TrackTableHeaderContent(
-      columns: columns,
-      sort: sort,
-      onSort: onSort,
-    );
+        final content = TrackTableHeaderContent(
+          columns: columns,
+          sort: sort,
+          onSort: onSort,
+          showBottomBorder: !stuck,
+        );
 
-    final Widget bar;
-    if (hyper) {
-      final effectiveColor = tone ?? scheme.surface;
-      bar = Stack(
-        fit: StackFit.expand,
-        children: [
-          // 向上延伸 1dp 彻底消除与 64dp 顶栏在不同 DPI 下的亚像素缝隙
-          Positioned(
-            top: -1,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: ClipRect(
-              child: BackdropFilter.grouped(
-                filter: ImageFilter.blur(
-                  sigmaX: HyperBlendSurface.blurSigma(20),
-                  sigmaY: HyperBlendSurface.blurSigma(20),
-                  tileMode: TileMode.mirror,
-                ),
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: effectiveColor.withValues(alpha: 0.70),
-                    border: Border(
-                      bottom: BorderSide(
-                        color: Colors.white.withValues(alpha: 0.12),
-                        width: 0.6,
+        final Widget bar;
+        if (!stuck) {
+          // 未滑动到 64dp 前：随页面正常流动，100% 透明无底色，绝不显现突兀色块
+          bar = content;
+        } else if (hyper) {
+          // 滑动到 64dp 停住吸附时：呈现高饱和 Tint Glass 与 BackdropFilter 柔光毛玻璃
+          final effectiveColor = tone ?? scheme.surface;
+          bar = Stack(
+            fit: StackFit.expand,
+            children: [
+              // 向上延伸 1dp 彻底消除与 64dp 顶栏在不同 DPI 下的亚像素缝隙
+              Positioned(
+                top: -1,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: ClipRect(
+                  child: BackdropFilter.grouped(
+                    filter: ImageFilter.blur(
+                      sigmaX: HyperBlendSurface.blurSigma(20),
+                      sigmaY: HyperBlendSurface.blurSigma(20),
+                      tileMode: TileMode.mirror,
+                    ),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: effectiveColor.withValues(alpha: 0.70),
+                        border: Border(
+                          bottom: BorderSide(
+                            color: Colors.white.withValues(alpha: 0.12),
+                            width: 0.6,
+                          ),
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
+              content,
+            ],
+          );
+        } else {
+          bar = DecoratedBox(
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainer,
+              border: Border(bottom: BorderSide(color: scheme.onSurface.withAlpha(28))),
             ),
-          ),
-          content,
-        ],
-      );
-    } else {
-      bar = DecoratedBox(
-        decoration: BoxDecoration(
-          color: scheme.surfaceContainer,
-          border: Border(bottom: BorderSide(color: scheme.onSurface.withAlpha(28))),
-        ),
-        child: content,
-      );
-    }
+            child: content,
+          );
+        }
 
-    return PinnedHeaderSliver(
-      child: SizedBox(
-        height: height,
-        child: bar,
-      ),
+        return PinnedHeaderSliver(
+          child: SizedBox(
+            height: height,
+            child: bar,
+          ),
+        );
+      },
     );
   }
 }
