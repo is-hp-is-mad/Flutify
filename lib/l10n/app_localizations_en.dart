@@ -791,6 +791,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get trackNewPlaylist => 'New playlist';
 
   @override
+  String get trackQuickAdd => 'Add';
+
+  @override
+  String get trackQuickLike => 'Like';
+
+  @override
+  String get trackQuickLiked => 'Liked';
+
+  @override
   String get toastLikeAdded => 'Added to Liked Songs';
 
   @override

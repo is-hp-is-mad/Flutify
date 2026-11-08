@@ -1475,6 +1475,24 @@ abstract class AppLocalizations {
   /// **'新建歌单'**
   String get trackNewPlaylist;
 
+  /// 移动端曲目菜单顶部快捷操作：添加到歌单（短文案）
+  ///
+  /// In zh, this message translates to:
+  /// **'添加'**
+  String get trackQuickAdd;
+
+  /// 移动端曲目菜单顶部快捷操作：点赞（短文案）
+  ///
+  /// In zh, this message translates to:
+  /// **'点赞'**
+  String get trackQuickLike;
+
+  /// 移动端曲目菜单顶部快捷操作：已点赞，点按取消（短文案）
+  ///
+  /// In zh, this message translates to:
+  /// **'已点赞'**
+  String get trackQuickLiked;
+
   /// No description provided for @toastLikeAdded.
   ///
   /// In zh, this message translates to:

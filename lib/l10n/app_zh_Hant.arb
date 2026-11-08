@@ -417,6 +417,9 @@
     }
   },
   "trackNewPlaylist": "新建歌單",
+  "trackQuickAdd": "添加",
+  "trackQuickLike": "點贊",
+  "trackQuickLiked": "已點贊",
   "toastLikeAdded": "已添加到已點贊的歌曲",
   "toastLikeRemoved": "已從已點贊的歌曲中移除",
   "toastAddedToQueue": "已添加到播放隊列",

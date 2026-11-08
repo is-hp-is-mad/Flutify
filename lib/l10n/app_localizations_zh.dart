@@ -766,6 +766,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get trackNewPlaylist => '新建歌单';
 
   @override
+  String get trackQuickAdd => '添加';
+
+  @override
+  String get trackQuickLike => '点赞';
+
+  @override
+  String get trackQuickLiked => '已点赞';
+
+  @override
   String get toastLikeAdded => '已添加到已点赞的歌曲';
 
   @override
@@ -2855,6 +2864,15 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get trackNewPlaylist => '新建歌單';
+
+  @override
+  String get trackQuickAdd => '添加';
+
+  @override
+  String get trackQuickLike => '點贊';
+
+  @override
+  String get trackQuickLiked => '已點贊';
 
   @override
   String get toastLikeAdded => '已添加到已點贊的歌曲';
