@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/flutify_tokens.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
@@ -61,6 +62,15 @@ class TrackMenu {
     Offset? position,
     VoidCallback? onConnect,
   }) {
+    // 柔光玻璃主题下：全尺寸统一使用小米 ArcAnimation 悬浮果冻菜单
+    if (context.tokens.hyperMaterial) {
+      return _showDesktop(
+        context,
+        track,
+        position ?? DesktopMenu.anchorOf(context),
+        onConnect,
+      );
+    }
     if (!GlassMenuScope.of(context) &&
         !ShellBreakpoints.isDesktop(MediaQuery.sizeOf(context).width)) {
       return TrackOptionsSheet.show(context, track);

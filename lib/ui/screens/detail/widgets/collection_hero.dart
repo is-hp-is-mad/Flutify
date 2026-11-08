@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/flutify_tokens.dart';
+import '../../../widgets/hyper_surface.dart';
 import '../../../../core/utils/artwork_palette.dart';
 import '../../../shell/shell_breakpoints.dart';
 import '../../../widgets/cover_image.dart';
-import '../../../widgets/hyper_surface.dart';
 
 // 歌单 / 专辑 / 艺人详情页的大头图（Spotify 新版桌面端风格）。
 //
@@ -241,31 +241,66 @@ class _HeroDelegate extends SliverPersistentHeaderDelegate {
               ignoring: barOpacity == 0,
               child: Opacity(
                 opacity: barOpacity,
-                child: ColoredBox(
-                  color: barColor,
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(showBack ? 60 : 16, topPadding, 16, 0),
-                    child: Row(
-                      children: [
-                        if (hero.collapsedAction != null) ...[hero.collapsedAction!, const SizedBox(width: 12)],
-                        Expanded(
-                          child: Text(
-                            hero.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(
-                              context,
-                            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700, color: barForeground),
+                child: context.tokens.hyperMaterial
+                    ? Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          const HyperAppBarBackground(),
+                          DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: barColor.withValues(alpha: 0.5),
+                            ),
+                          ),
+                          Padding(
+                            padding: EdgeInsets.fromLTRB(showBack ? 60 : 16, topPadding, 16, 0),
+                            child: Row(
+                              children: [
+                                if (hero.collapsedAction != null) ...[hero.collapsedAction!, const SizedBox(width: 12)],
+                                Expanded(
+                                  child: Text(
+                                    hero.title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700, color: barForeground),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      )
+                    : ColoredBox(
+                        color: barColor,
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(showBack ? 60 : 16, topPadding, 16, 0),
+                          child: Row(
+                            children: [
+                              if (hero.collapsedAction != null) ...[hero.collapsedAction!, const SizedBox(width: 12)],
+                              Expanded(
+                                child: Text(
+                                  hero.title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700, color: barForeground),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                ),
+                      ),
               ),
             ),
           ),
-          if (showBack) Positioned(left: 8, top: topPadding + 12, child: const _BackCircle()),
+          if (showBack)
+            Positioned(
+              left: 8,
+              top: topPadding + 12,
+              child: _BackCircle(floating: shrinkOffset > 10),
+            ),
         ],
       ),
     );
@@ -463,17 +498,18 @@ class _HeroCover extends StatelessWidget {
 
 /// 移动端返回键：半透明黑底圆钮，在任何封面色上都清晰。
 class _BackCircle extends StatelessWidget {
-  const _BackCircle();
+  final bool floating;
+  const _BackCircle({this.floating = false});
 
   @override
   Widget build(BuildContext context) {
     if (context.tokens.hyperMaterial) {
       return Tooltip(
         message: MaterialLocalizations.of(context).backButtonTooltip,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () => Navigator.of(context).maybePop(),
-          child: const HyperCircleIcon(Icons.arrow_back_ios_new),
+        child: HyperBackButton(
+          floating: floating,
+          color: Colors.white,
+          onPressed: () => Navigator.of(context).maybePop(),
         ),
       );
     }

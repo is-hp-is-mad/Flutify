@@ -70,16 +70,11 @@ class _HyperBottomBarState extends State<HyperBottomBar> with TickerProviderStat
   // and item n-1 has marginEnd = 3dp.
   ({double barWidth, double itemWidth, double step}) _metrics(double maxWidth) {
     final n = widget.items.length;
-    final avail = math.max(0.0, maxWidth - 48);
-    if (n <= 3) {
-      // BottomNavigatorLayoutHelper.applyTwoOrThreeItemsRule: 88dp per item, -10dp overlap -> 250dp for 3 items.
-      final itemW = math.min(88.0, (avail - 6 + 10 * (n - 1)) / n);
-      final step = itemW - 10;
-      return (barWidth: 6 + itemW + step * (n - 1), itemWidth: itemW, step: step);
-    }
-    final barW = avail > 400 ? 344.0 : avail;
-    final itemW = (barW - 6 + 10 * (n - 1)) / n;
-    return (barWidth: barW, itemWidth: itemW, step: itemW - 10);
+    // 自适应宽度：小屏幕自适应填充（与上方 MiniPlayer 胶囊宽度一致，左右留 40dp 边距），大屏幕按比例最大 480
+    final avail = math.max(0.0, maxWidth - 40);
+    final barW = avail.clamp(280.0, 480.0);
+    final itemW = (barW - 6) / n;
+    return (barWidth: barW, itemWidth: itemW, step: itemW);
   }
 
   int _hitIndex(double dx, double step, int n) => ((dx - 3) / step).floor().clamp(0, n - 1);

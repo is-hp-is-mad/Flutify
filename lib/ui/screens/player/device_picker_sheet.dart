@@ -35,16 +35,20 @@ class DevicePickerSheet extends StatelessWidget {
 
   static Future<void> show(BuildContext context) {
     context.read<ConnectProvider?>()?.refresh();
-    if (ShellBreakpoints.isDesktop(MediaQuery.sizeOf(context).width)) {
+    final isDesktop = ShellBreakpoints.isDesktop(MediaQuery.sizeOf(context).width);
+    final hyper = context.tokens.hyperMaterial;
+    if (isDesktop || hyper) {
       final tokens = context.tokens;
       return showAppDialog<void>(
         context: context,
         useRootNavigator: true,
         barrierColor: Colors.black26,
         builder: (dialogContext) => AppDialog(
-          alignment: Alignment.bottomRight,
-          // 贴在播放栏（90）之上、右侧留白与播放栏内边距一致
-          insetPadding: const EdgeInsets.fromLTRB(24, 24, 16, 100),
+          alignment: isDesktop ? Alignment.bottomRight : Alignment.bottomCenter,
+          // 悬浮在播放栏上方，留出安全间距
+          insetPadding: isDesktop
+              ? const EdgeInsets.fromLTRB(24, 24, 16, 100)
+              : const EdgeInsets.fromLTRB(16, 24, 16, 96),
           backgroundColor: Theme.of(
             dialogContext,
           ).colorScheme.surfaceContainerHigh,
