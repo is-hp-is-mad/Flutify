@@ -41,6 +41,8 @@ class MiniPlayerBounds extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Android 悬浮栏自己定位和定宽
+    if (MiniPlayerDock.maybeOf(context) != null) return child;
     if (!context.tokens.hyperMaterial) {
       return Padding(
         padding: const EdgeInsets.fromLTRB(10, 6, 10, 8),
@@ -59,6 +61,60 @@ class MiniPlayerBounds extends StatelessWidget {
               width: barW,
               child: child,
             ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Android 悬浮栏里的迷你播放器：外框由悬浮栏定位（不加 [MiniPlayerBounds] 的边距），
+/// [fold] 是下沉进度（0 在导航上方，1 收在两枚圆钮之间）。
+class MiniPlayerDock extends InheritedWidget {
+  final Animation<double> fold;
+
+  const MiniPlayerDock({super.key, required this.fold, required super.child});
+
+  /// 不登记依赖：只读一次动画对象，进度由 [MiniPlayerFoldAway] 自己监听。
+  static Animation<double>? maybeOf(BuildContext context) =>
+      context.getInheritedWidgetOfExactType<MiniPlayerDock>()?.fold;
+
+  @override
+  bool updateShouldNotify(MiniPlayerDock oldWidget) => fold != oldWidget.fold;
+}
+
+/// 播放器下沉时先淡出的部分（心形、进度线）。[fold] 为 null 时原样显示。
+class MiniPlayerFoldAway extends StatelessWidget {
+  final Animation<double>? fold;
+
+  /// 同时让出宽度（行内的按钮）。
+  final bool collapse;
+  final Widget child;
+
+  const MiniPlayerFoldAway({
+    super.key,
+    required this.fold,
+    this.collapse = false,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final fold = this.fold;
+    if (fold == null) return child;
+    return AnimatedBuilder(
+      animation: fold,
+      child: child,
+      builder: (context, child) {
+        final shown = (1 - fold.value.clamp(0.0, 1.0) * 2).clamp(0.0, 1.0);
+        if (shown == 0) return const SizedBox.shrink();
+        final faded = Opacity(opacity: shown, child: child);
+        if (!collapse) return faded;
+        return ClipRect(
+          child: Align(
+            alignment: Alignment.centerLeft,
+            widthFactor: shown,
+            child: faded,
           ),
         );
       },
@@ -118,7 +174,11 @@ class MiniPlayerSwipe extends StatefulWidget {
   final ValueChanged<bool> onSwipe; // true = 下一首
   final Widget child;
 
-  const MiniPlayerSwipe({super.key, required this.onSwipe, required this.child});
+  const MiniPlayerSwipe({
+    super.key,
+    required this.onSwipe,
+    required this.child,
+  });
 
   @override
   State<MiniPlayerSwipe> createState() => _MiniPlayerSwipeState();
@@ -168,8 +228,8 @@ class _MiniPlayerSwipeState extends State<MiniPlayerSwipe>
       );
     }
     return GestureDetector(
-      onHorizontalDragUpdate: (d) => _offset.value =
-          (_offset.value + d.delta.dx).clamp(-_reach, _reach),
+      onHorizontalDragUpdate: (d) =>
+          _offset.value = (_offset.value + d.delta.dx).clamp(-_reach, _reach),
       onHorizontalDragEnd: _end,
       child: AnimatedBuilder(
         animation: _offset,
