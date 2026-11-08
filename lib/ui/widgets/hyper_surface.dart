@@ -218,6 +218,38 @@ class HyperAppBarBackground extends StatelessWidget {
       valueListenable: DesktopWindow.fullscreenTransition,
       builder: (context, transitioning, _) {
         if (transitioning) return solid;
+        if (isDesktop) {
+          // 桌面横屏端：底层垫页面底色彻底杜绝文字穿透，上层铺高饱和渐变着色层（0.95 -> 0.85），
+          // 无缝衔接吸顶表头，完全消除交界切线
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              ColoredBox(color: window),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      effectiveColor.withValues(alpha: 0.95),
+                      effectiveColor.withValues(alpha: 0.85),
+                    ],
+                  ),
+                ),
+              ),
+              if (tintColor != null && showBottomLine)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  height: 0.6,
+                  child: ColoredBox(
+                    color: Colors.white.withValues(alpha: 0.12),
+                  ),
+                ),
+            ],
+          );
+        }
         return Stack(
           fit: StackFit.expand,
           children: [
