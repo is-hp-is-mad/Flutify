@@ -2,7 +2,10 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:hyper_glass/hyper_ui.dart' show HySegmented;
 import 'package:provider/provider.dart';
+
+import '../../../core/theme/flutify_tokens.dart';
 
 import '../../../l10n/l10n.dart';
 import '../../../models/album.dart';
@@ -187,25 +190,34 @@ class _SearchScreenState extends State<SearchScreen> {
             ),
 
             if (!isQueryEmpty)
-              SizedBox(
-                height: 40,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  itemCount: searchFilters.length,
-                  itemBuilder: (context, index) => Padding(
-                    padding: const EdgeInsets.only(right: 8.0),
-                    // Center：横向列表会给子项 40 高的紧约束，胶囊要按内容高度居中，不被拉满
-                    child: Center(
-                      child: FilterPill(
-                        label: searchFilters[index],
-                        isSelected: _searchFilterIndex == index,
-                        onTap: () => setState(() => _searchFilterIndex = index),
+              context.tokens.hyperMaterial
+                  ? Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: HySegmented(
+                        items: searchFilters,
+                        index: _searchFilterIndex,
+                        onChanged: (index) => setState(() => _searchFilterIndex = index),
+                      ),
+                    )
+                  : SizedBox(
+                      height: 40,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        itemCount: searchFilters.length,
+                        itemBuilder: (context, index) => Padding(
+                          padding: const EdgeInsets.only(right: 8.0),
+                          // Center：横向列表会给子项 40 高的紧约束，胶囊要按内容高度居中，不被拉满
+                          child: Center(
+                            child: FilterPill(
+                              label: searchFilters[index],
+                              isSelected: _searchFilterIndex == index,
+                              onTap: () => setState(() => _searchFilterIndex = index),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
-              ),
 
             Expanded(
               child: isQueryEmpty

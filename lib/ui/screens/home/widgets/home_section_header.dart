@@ -30,7 +30,7 @@ class HomeSectionHeader extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  title,
+                  context.l10n.homeSectionTitle(title),
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w600,
                     color: colorScheme.onSurface,

@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'app_localizations.dart';
 
 export 'app_localizations.dart';
+export 'model_labels.dart';
 
 /// 界面文案入口：组件内统一写 `context.l10n.xxx`。
 ///

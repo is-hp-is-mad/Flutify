@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:hyper_glass/hyper_ui.dart' show Pressable;
+import 'package:hyper_glass/hyper_ui.dart' show HyTextTabs, Pressable;
 
 import '../../../../core/theme/flutify_tokens.dart';
 import '../../../../l10n/l10n.dart';
@@ -49,14 +49,15 @@ class HomeChipBar extends StatelessWidget {
   static const double pillHeight = 40;
 
   /// 标签行高度：胶囊与头像取大者，再加上下留白。
-  static double extentOf(BuildContext context) {
+  static double extentOf(BuildContext context, {bool hasSubChips = false}) {
     final pill =
         TextMetrics.lineHeight(
           context,
           Theme.of(context).textTheme.labelMedium,
         ) +
         10;
-    return math.max(pill, _leadingSize) + _verticalPadding * 2;
+    final base = math.max(pill, _leadingSize) + _verticalPadding * 2;
+    return hasSubChips ? base + 40 : base;
   }
 
   /// 选中的 facet 属于哪个一级标签（一级本身或其二级标签）。
@@ -74,73 +75,168 @@ class HomeChipBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final parent = _parent;
+    final hyper = context.tokens.hyperMaterial;
 
-    final pills = <Widget>[
-      if (parent == null) ...[
-        FilterPill(
-          label: l10n.filterAll,
-          isSelected: true,
-          onTap: () => onSelected(''),
-        ),
-        for (final chip in chips)
-          FilterPill(
-            label: chip.label,
-            isSelected: false,
-            onTap: () => onSelected(chip.id),
-          ),
-      ] else ...[
-        _ClearPill(tooltip: l10n.homeClearFilter, onTap: () => onSelected('')),
-        FilterPill(
-          label: parent.label,
-          isSelected: selected == parent.id,
-          onTap: () => onSelected(parent.id),
-        ),
-        for (final sub in parent.subChips)
-          FilterPill(
-            label: sub.label,
-            isSelected: selected == sub.id,
-            onTap: () => onSelected(sub.id),
-          ),
-      ],
-    ];
+    final Widget content;
+    if (hyper) {
+      final items = [
+        l10n.filterAll,
+        for (final chip in chips) l10n.homeChipLabel(chip.label, chip.id),
+      ];
+      final primaryIndex = parent == null
+          ? 0
+          : (chips.contains(parent) ? chips.indexOf(parent) + 1 : 0);
 
-    final content = Padding(
-      padding: const EdgeInsets.symmetric(vertical: _verticalPadding),
-      child: Row(
-        children: [
-          if (leading != null)
-            Padding(
-              padding: const EdgeInsets.only(left: 16),
-              child: leading!,
-            ),
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: EdgeInsets.fromLTRB(
-                leading == null ? 16 : 10,
-                0,
-                16,
-                0,
-              ),
-              child: Row(
-                children: [
-                  for (final pill in pills)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 12),
-                      child: SizedBox(height: pillHeight, child: pill),
+      content = Padding(
+        padding: const EdgeInsets.symmetric(vertical: _verticalPadding),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                if (leading != null)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 16),
+                    child: leading!,
+                  ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    padding: EdgeInsets.fromLTRB(
+                      leading == null ? 16 : 10,
+                      0,
+                      16,
+                      0,
                     ),
-                ],
-              ),
+                    child: HyTextTabs(
+                      items: items,
+                      index: primaryIndex,
+                      onChanged: (index) {
+                        if (index == 0) {
+                          onSelected('');
+                        } else {
+                          final chip = chips[index - 1];
+                          if (parent?.id == chip.id) {
+                            onSelected('');
+                          } else {
+                            onSelected(chip.id);
+                          }
+                        }
+                      },
+                    ),
+                  ),
+                ),
+                if (trailing != null)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: trailing!,
+                  ),
+              ],
             ),
+            if (parent != null && parent.subChips.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: EdgeInsets.fromLTRB(
+                    leading == null ? 16 : 10,
+                    0,
+                    16,
+                    0,
+                  ),
+                  child: Row(
+                    children: [
+                      for (final sub in parent.subChips)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: FilterPill(
+                            label: l10n.homeChipLabel(sub.label, sub.id),
+                            isSelected: selected == sub.id,
+                            onTap: () {
+                              if (selected == sub.id) {
+                                onSelected(parent.id);
+                              } else {
+                                onSelected(sub.id);
+                              }
+                            },
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      );
+    } else {
+      final pills = <Widget>[
+        if (parent == null) ...[
+          FilterPill(
+            label: l10n.filterAll,
+            isSelected: true,
+            onTap: () => onSelected(''),
           ),
-          if (trailing != null)
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: trailing!,
+          for (final chip in chips)
+            FilterPill(
+              label: l10n.homeChipLabel(chip.label, chip.id),
+              isSelected: false,
+              onTap: () => onSelected(chip.id),
+            ),
+        ] else ...[
+          _ClearPill(tooltip: l10n.homeClearFilter, onTap: () => onSelected('')),
+          FilterPill(
+            label: l10n.homeChipLabel(parent.label, parent.id),
+            isSelected: selected == parent.id,
+            onTap: () => onSelected(parent.id),
+          ),
+          for (final sub in parent.subChips)
+            FilterPill(
+              label: l10n.homeChipLabel(sub.label, sub.id),
+              isSelected: selected == sub.id,
+              onTap: () => onSelected(sub.id),
             ),
         ],
-      ),
-    );
+      ];
+
+      content = Padding(
+        padding: const EdgeInsets.symmetric(vertical: _verticalPadding),
+        child: Row(
+          children: [
+            if (leading != null)
+              Padding(
+                padding: const EdgeInsets.only(left: 16),
+                child: leading!,
+              ),
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: EdgeInsets.fromLTRB(
+                  leading == null ? 16 : 10,
+                  0,
+                  16,
+                  0,
+                ),
+                child: Row(
+                  children: [
+                    for (final pill in pills)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 12),
+                        child: SizedBox(height: pillHeight, child: pill),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            if (trailing != null)
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: trailing!,
+              ),
+          ],
+        ),
+      );
+    }
 
     if (!pinned) {
       return SliverToBoxAdapter(
@@ -150,10 +246,11 @@ class HomeChipBar extends StatelessWidget {
       );
     }
 
+    final hasSubChips = hyper && parent != null && parent.subChips.isNotEmpty;
     return SliverPersistentHeader(
       pinned: true,
       delegate: _ChipBarDelegate(
-        extent: extentOf(context),
+        extent: extentOf(context, hasSubChips: hasSubChips),
         background: background ?? const SizedBox.shrink(),
         child: content,
       ),

@@ -278,7 +278,7 @@ class HyperCircleIcon extends StatelessWidget {
   /// AppBar 的图标槽：未发生滚动时不画实体底盘，采用 HyperOS 原生纤细图标避免遮挡正文。
   static Widget inIconSlot(IconData icon) => Center(
     child: Icon(
-      icon == Icons.arrow_back_rounded ? Icons.arrow_back_ios_new : icon,
+      icon,
       size: 19,
     ),
   );
@@ -353,7 +353,7 @@ class HyperBackButton extends StatelessWidget {
               ],
             ),
             child: Center(
-              child: Icon(Icons.arrow_back_ios_new, color: fg, size: 19),
+              child: Icon(Icons.arrow_back_rounded, color: fg, size: 19),
             ),
           ),
         ),

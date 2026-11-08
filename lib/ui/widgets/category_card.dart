@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:hyper_glass/hyper_ui.dart' show Pressable;
 import '../../core/theme/flutify_tokens.dart';
 import '../../core/theme/md3e_shapes.dart';
+import '../../l10n/l10n.dart';
 import '../../models/category.dart';
 import 'cover_image.dart';
 
@@ -42,7 +43,7 @@ class CategoryCard extends StatelessWidget {
             left: 14,
             right: 60,
             child: Text(
-              category.name,
+              context.l10n.categoryName(category.name, category.id),
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 17,

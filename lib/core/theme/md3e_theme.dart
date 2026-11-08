@@ -102,7 +102,7 @@ class MD3ETheme {
       // 所有默认的返回 / 关闭键都换成左上角的圆形玻璃按钮
       actionIconTheme: ActionIconThemeData(
         backButtonIconBuilder: (_) =>
-            const Icon(Icons.arrow_back_ios_new, size: 19),
+            const Icon(Icons.arrow_back_rounded, size: 19),
         closeButtonIconBuilder: (_) =>
             const Icon(Icons.close_rounded, size: 22),
       ),

@@ -400,7 +400,7 @@ class FloatingBar extends StatelessWidget {
                     child!,
                   ],
                 ),
-                child: Center(child: Icon(Icons.arrow_back_ios_new, color: fg, size: 19)),
+                child: Center(child: Icon(Icons.arrow_back_rounded, color: fg, size: 19)),
               ),
             ),
           ),
