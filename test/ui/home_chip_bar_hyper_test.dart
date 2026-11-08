@@ -153,4 +153,56 @@ void main() {
     expect(find.text('音乐'), findsOneWidget);
     expect(find.text('播客'), findsOneWidget);
   });
+
+  testWidgets('HomeChipBar pinned: true with subChips lays out without overflow', (tester) async {
+    final chips = [
+      const HomeChip(
+        id: 'music',
+        label: 'Music',
+        subChips: [
+          HomeChip(id: 'sub-following', label: 'Following'),
+        ],
+      ),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('zh'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        theme: ThemeData(
+          useMaterial3: true,
+          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xff277af7)),
+          extensions: const [
+            FlutifyTokens(
+              accent: Color(0xff277af7),
+              onAccent: Colors.white,
+              glassSigma: 20,
+              glassTint: 0.1,
+              glassOpacity: 0.5,
+              cornerScale: 1.0,
+              squareCorners: false,
+              hyperMaterial: true,
+            ),
+          ],
+        ),
+        home: Scaffold(
+          body: CustomScrollView(
+            slivers: [
+              HomeChipBar(
+                chips: chips,
+                selected: 'music',
+                pinned: true,
+                onSelected: (_) {},
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    expect(find.text('已关注'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }

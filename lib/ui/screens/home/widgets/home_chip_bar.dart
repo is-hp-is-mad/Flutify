@@ -57,7 +57,7 @@ class HomeChipBar extends StatelessWidget {
         ) +
         10;
     final base = math.max(pill, _leadingSize) + _verticalPadding * 2;
-    return hasSubChips ? base + 40 : base;
+    return hasSubChips ? base + 48 : base;
   }
 
   /// 选中的 facet 属于哪个一级标签（一级本身或其二级标签）。

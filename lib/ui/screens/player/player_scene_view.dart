@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 
 import '../../../core/theme/flutify_tokens.dart';
 import '../../../l10n/l10n.dart';
-import '../../../l10n/model_labels.dart';
 import '../../../models/playback_context.dart';
 import '../../../models/track.dart';
 import '../../../providers/connect_provider.dart';

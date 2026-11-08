@@ -65,6 +65,12 @@ extension ModelLabels on AppLocalizations {
     if (normId == 'all' || normLabel == 'all') {
       return filterAll;
     }
+    if (normId == 'downloaded' || normLabel == 'downloaded') {
+      if (isZhHant) return '已下載';
+      if (isZh) return '已下载';
+      if (isJa) return 'ダウンロード済み';
+      return 'Downloaded';
+    }
     return label;
   }
 
@@ -192,6 +198,43 @@ extension ModelLabels on AppLocalizations {
     if (key == 'rnb' || key == 'r_and_b' || nameKey == 'r&b') {
       return 'R&B';
     }
+    if (key == 'mandopop' || nameKey == 'mandopop' || nameKey == 'mando pop') {
+      if (isJa) return 'マンドポップ';
+      if (isZhHant) return '華語流行';
+      return '华语流行';
+    }
+    if (key == 'cantopop' || nameKey == 'cantopop' || nameKey == 'canto pop') {
+      if (isJa) return '広東ポップ';
+      if (isZhHant) return '粵語流行';
+      return '粤语流行';
+    }
+    if (key == 'blues' || nameKey == 'blues') {
+      if (isJa) return 'ブルース';
+      return '蓝调';
+    }
+    if (key == 'soul' || nameKey == 'soul') {
+      if (isJa) return 'ソウル';
+      if (isZhHant) return '靈魂樂';
+      return '灵魂乐';
+    }
+    if (key == 'latin' || nameKey == 'latin') {
+      if (isJa) return 'ラテン';
+      return '拉丁';
+    }
+    if (key == 'romance' || nameKey == 'romance') {
+      if (isJa) return 'ロマンス';
+      return '浪漫';
+    }
+    if (key == 'wellness' || nameKey == 'wellness') {
+      if (isJa) return 'ウェルネス';
+      if (isZhHant) return '療癒健康';
+      return '疗愈健康';
+    }
+    if (key == 'in_the_car' || key == 'travel' || nameKey == 'in the car' || nameKey == 'travel') {
+      if (isJa) return 'ドライブ';
+      if (isZhHant) return '駕駛旅途';
+      return '驾驶旅途';
+    }
 
     return name;
   }
@@ -295,6 +338,45 @@ extension ModelLabels on AppLocalizations {
       if (isJa) return 'おすすめのエピソード';
       if (isZhHant) return '為你推薦的單集';
       return '为你推荐的单集';
+    }
+    if (key == 'popular playlists' || key == 'top playlists') {
+      if (isJa) return '人気のプレイリスト';
+      if (isZhHant) return '熱門歌單';
+      return '热门歌单';
+    }
+    if (key == 'trending now' || key == 'trending') {
+      if (isJa) return '急上昇中';
+      if (isZhHant) return '當前流行';
+      return '当前流行';
+    }
+    if (key == 'new releases' || key == 'new release') {
+      if (isJa) return '最新リリース';
+      if (isZhHant) return '最新發行';
+      return '最新发行';
+    }
+    if (key == 'charts') {
+      if (isJa) return 'ランキング';
+      return '排行榜';
+    }
+    if (key == 'top tracks' || key == 'popular tracks') {
+      if (isJa) return '人気の楽曲';
+      if (isZhHant) return '熱門單曲';
+      return '热门单曲';
+    }
+    if (key == "editor's picks" || key == "editors' picks") {
+      if (isJa) return 'エディターのおすすめ';
+      if (isZhHant) return '編輯精選';
+      return '编辑精选';
+    }
+    if (key == 'fresh finds') {
+      if (isJa) return '注目の新世代';
+      if (isZhHant) return '最新發掘';
+      return '最新发掘';
+    }
+    if (key == 'radar') {
+      if (isJa) return 'レーダー';
+      if (isZhHant) return '音樂雷達';
+      return '音乐雷达';
     }
 
     return title;

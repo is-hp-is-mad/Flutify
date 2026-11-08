@@ -192,7 +192,7 @@ class _SearchScreenState extends State<SearchScreen> {
             if (!isQueryEmpty)
               context.tokens.hyperMaterial
                   ? Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 8.0),
                       child: HySegmented(
                         items: searchFilters,
                         index: _searchFilterIndex,

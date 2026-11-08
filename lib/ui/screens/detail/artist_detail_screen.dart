@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 
 import '../../../core/utils/formatters.dart';
 import '../../../l10n/l10n.dart';
-import '../../../l10n/model_labels.dart';
 import '../../../models/album.dart';
 import '../../../models/artist.dart';
 import '../../../models/playback_context.dart';

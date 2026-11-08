@@ -10,6 +10,7 @@ import '../../widgets/content_bottom_spacer.dart';
 import '../../widgets/expressive_card.dart';
 import 'widgets/home_item_card.dart';
 import '../../../core/theme/flutify_tokens.dart';
+import '../../../l10n/l10n.dart';
 import '../../widgets/hyper_surface.dart';
 
 /// 主页分区的「显示全部」：网格展示该分区的全部条目。
@@ -65,7 +66,7 @@ class _HomeSectionScreenState extends State<HomeSectionScreen> {
                 ? const HyperAppBarBackground()
                 : null,
             title: Text(
-              _section.title,
+              context.l10n.homeSectionTitle(_section.title),
               style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
