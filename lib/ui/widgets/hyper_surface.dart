@@ -173,8 +173,14 @@ class HyperBlendSurface extends StatelessWidget {
 class HyperAppBarBackground extends StatelessWidget {
   final Color? tintColor;
   final bool showBottomLine;
+  final bool gradient;
 
-  const HyperAppBarBackground({super.key, this.tintColor, this.showBottomLine = true});
+  const HyperAppBarBackground({
+    super.key,
+    this.tintColor,
+    this.showBottomLine = true,
+    this.gradient = true,
+  });
 
   /// 从上到下每一条的 LM 半径。
   static const List<double> bandRadii = [60, 52, 44, 36, 28, 20, 12, 4];
@@ -201,6 +207,31 @@ class HyperAppBarBackground extends StatelessWidget {
       valueListenable: DesktopWindow.fullscreenTransition,
       builder: (context, transitioning, _) {
         if (transitioning) return solid;
+        if (!gradient) {
+          return ClipRect(
+            child: BackdropFilter.grouped(
+              filter: ImageFilter.blur(
+                sigmaX: HyperBlendSurface.blurSigma(20),
+                sigmaY: HyperBlendSurface.blurSigma(20),
+                tileMode: TileMode.mirror,
+              ),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: effectiveColor.withValues(alpha: 0.70),
+                  border: (tintColor != null && showBottomLine)
+                      ? Border(
+                          bottom: BorderSide(
+                            color: Colors.white.withValues(alpha: 0.12),
+                            width: 0.6,
+                          ),
+                        )
+                      : null,
+                ),
+                child: const SizedBox.expand(),
+              ),
+            ),
+          );
+        }
         return Stack(
           fit: StackFit.expand,
           children: [

@@ -255,7 +255,11 @@ class _HeroDelegate extends SliverPersistentHeaderDelegate {
                     ? Stack(
                         fit: StackFit.expand,
                         children: [
-                          HyperAppBarBackground(tintColor: tone, showBottomLine: !wide),
+                          HyperAppBarBackground(
+                            tintColor: tone,
+                            showBottomLine: !wide,
+                            gradient: !wide,
+                          ),
                           Padding(
                             padding: EdgeInsets.fromLTRB(showBack ? 60 : 16, topPadding, 16, 0),
                             child: Row(
