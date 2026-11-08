@@ -1,8 +1,11 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/flutify_tokens.dart';
 import '../../../l10n/l10n.dart';
 import '../hover_builder.dart';
+import '../hyper_surface.dart';
 import 'track_sort.dart';
 import 'track_table_columns.dart';
 import '../../screens/detail/widgets/collection_hero.dart';
@@ -98,7 +101,9 @@ class TrackTableHeaderContent extends StatelessWidget {
   }
 }
 
-/// 桌面曲目表格的列表头（Sliver，独立使用时的回退兼容实现）
+/// 桌面曲目表格的列表头（Sliver）：
+/// 平时随页面流动，当滑动到 64dp（吸顶标题栏下方）时自动停留在该位置吸顶，
+/// 并呈现高饱和 Tint Glass 着色玻璃与毛玻璃效果。
 class TrackTableHeader extends StatelessWidget {
   final TrackTableColumns columns;
   final TrackSort sort;
@@ -110,64 +115,69 @@ class TrackTableHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SliverPersistentHeader(
-      pinned: true,
-      delegate: _Delegate(columns: columns, sort: sort, onSort: onSort),
-    );
-  }
-}
-
-class _Delegate extends SliverPersistentHeaderDelegate {
-  final TrackTableColumns columns;
-  final TrackSort sort;
-  final ValueChanged<TrackSortKey> onSort;
-
-  _Delegate({required this.columns, required this.sort, required this.onSort});
-
-  @override
-  double get minExtent => TrackTableHeader.height;
-
-  @override
-  double get maxExtent => TrackTableHeader.height;
-
-  @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     final scheme = Theme.of(context).colorScheme;
-    final stuck = overlapsContent || shrinkOffset > 0;
-    final content = TrackTableHeaderContent(columns: columns, sort: sort, onSort: onSort);
+    final tone = CollectionTint.maybeOf(context);
+    final hyper = context.tokens.hyperMaterial;
 
-    if (context.tokens.hyperMaterial) {
-      if (!stuck) return content;
-      final tone = CollectionTint.maybeOf(context);
-      final headerSolidColor = Color.alphaBlend(
-        (tone ?? scheme.primary).withValues(alpha: 0.20),
-        scheme.surface,
-      );
-      return DecoratedBox(
-        decoration: BoxDecoration(
-          color: headerSolidColor,
-          border: Border(
-            bottom: BorderSide(
-              color: Colors.white.withValues(alpha: 0.10),
-              width: 0.6,
+    final content = TrackTableHeaderContent(
+      columns: columns,
+      sort: sort,
+      onSort: onSort,
+    );
+
+    final Widget bar;
+    if (hyper) {
+      final effectiveColor = tone ?? scheme.surface;
+      bar = Stack(
+        fit: StackFit.expand,
+        children: [
+          // 向上延伸 1dp 彻底消除与 64dp 顶栏在不同 DPI 下的亚像素缝隙
+          Positioned(
+            top: -1,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: ClipRect(
+              child: BackdropFilter.grouped(
+                filter: ImageFilter.blur(
+                  sigmaX: HyperBlendSurface.blurSigma(20),
+                  sigmaY: HyperBlendSurface.blurSigma(20),
+                  tileMode: TileMode.mirror,
+                ),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: effectiveColor.withValues(alpha: 0.70),
+                    border: Border(
+                      bottom: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.12),
+                        width: 0.6,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
+          content,
+        ],
+      );
+    } else {
+      bar = DecoratedBox(
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainer,
+          border: Border(bottom: BorderSide(color: scheme.onSurface.withAlpha(28))),
         ),
         child: content,
       );
     }
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: stuck ? scheme.surfaceContainer : null,
-        border: Border(bottom: BorderSide(color: scheme.onSurface.withAlpha(28))),
+    return PinnedHeaderSliver(
+      child: SizedBox(
+        height: height,
+        child: bar,
       ),
-      child: content,
     );
   }
-
-  @override
-  bool shouldRebuild(_Delegate old) => old.columns != columns || old.sort != sort || old.onSort != onSort;
 }
 
 /// 可点击的列名（或图标）：悬停变亮，当前排序列高亮并显示 ▲ / ▼。

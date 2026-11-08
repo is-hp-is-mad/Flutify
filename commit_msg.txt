@@ -1,7 +1,8 @@
-fix(ui): unify desktop sticky header and deepen tint glass
+fix(ui): pin table header only when scrolled to sticky threshold
 
-- Unify desktop playlist sticky header into a single 104dp Tint Glass surface in CollectionHero, completely eliminating push collision, seams, and song text bleed-through
-- Refactor TrackTableHeaderContent for reuse between unified sticky bar and flowing track list
-- Deepen and saturate Tint Glass alphas ([0.94, 0.86, 0.74, 0.58, 0.42]) and gradient blur (LM 12 on bottom band) for rich Xiaomi HyperOS demo aesthetics
+- Revert premature top bar header insertion from CollectionHero, ensuring only a single header exists
+- Implement TrackTableHeader using PinnedHeaderSliver: flows naturally below action row, and pins precisely at 64dp under collapsed title bar when scrolled to threshold
+- Apply Tint Glass backdrop blur, 70% saturated surface color, and 1dp negative top margin to eliminate sub-pixel seams
+- Add dedicated regression test in track_table_header_test.dart
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
