@@ -156,14 +156,16 @@ class SkipButton extends StatelessWidget {
 class LikeButton extends StatelessWidget {
   final SpotifyTrack track;
   final double size;
-  final Color inactiveColor;
+  final Color? inactiveColor;
 
-  const LikeButton({super.key, required this.track, this.size = 24, this.inactiveColor = Colors.white});
+  const LikeButton({super.key, required this.track, this.size = 24, this.inactiveColor});
 
   @override
   Widget build(BuildContext context) {
     final liked = context.select<LibraryProvider, bool>((l) => l.isLiked(track.id));
-    final primary = Theme.of(context).colorScheme.primary;
+    final colorScheme = Theme.of(context).colorScheme;
+    final primary = colorScheme.primary;
+    final inactive = inactiveColor ?? colorScheme.onSurfaceVariant;
     return IconButton(
       tooltip: liked ? context.l10n.likeRemove : context.l10n.likeAdd,
       icon: AnimatedSwitcher(
@@ -173,7 +175,7 @@ class LikeButton extends StatelessWidget {
           liked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
           key: ValueKey(liked),
           size: size,
-          color: liked ? primary : inactiveColor,
+          color: liked ? primary : inactive,
         ),
       ),
       onPressed: () => context.read<LibraryProvider>().toggleLike(track),

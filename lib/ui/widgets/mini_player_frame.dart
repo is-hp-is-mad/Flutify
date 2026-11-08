@@ -14,11 +14,11 @@ abstract final class MiniPlayerStyle {
   static const double _hyperMaxWidth = 480;
 
   static double artworkSize(BuildContext context) =>
-      context.tokens.hyperMaterial ? 40 : 44;
+      context.tokens.hyperMaterial ? 36 : 44;
 
   static EdgeInsets rowPadding(BuildContext context) =>
       context.tokens.hyperMaterial
-      ? const EdgeInsets.fromLTRB(8, 8, 6, 8)
+      ? const EdgeInsets.fromLTRB(8, 5, 6, 5)
       : const EdgeInsets.fromLTRB(7, 7, 8, 9);
 
   /// 文字和图标颜色。[onSurface] 为 false 时画在封面色上（展开动画里的那一份）。
@@ -87,7 +87,7 @@ class MiniPlayerSurface extends StatelessWidget {
         material: HyperBlendSurface.bar(context),
         borderRadius: tokens.squareCorners
             ? tokens.radius(16)
-            : BorderRadius.circular(28),
+            : BorderRadius.circular(24),
         bloom: HyperBlendSurface.barBloom(context),
         shadow: true,
         child: child,

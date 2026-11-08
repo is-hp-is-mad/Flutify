@@ -103,38 +103,22 @@ class _Delegate extends SliverPersistentHeaderDelegate {
 
     if (context.tokens.hyperMaterial) {
       if (!stuck) return content;
-      return ClipRect(
-        child: BackdropFilter.grouped(
-          filter: ImageFilter.blur(
-            sigmaX: HyperBlendSurface.blurSigma(24),
-            sigmaY: HyperBlendSurface.blurSigma(24),
-            tileMode: TileMode.mirror,
-          ),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: tone != null
-                  ? LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        tone.withValues(alpha: 0.24),
-                        tone.withValues(alpha: 0.10),
-                      ],
-                    )
-                  : null,
-              color: tone == null ? scheme.surface.withValues(alpha: 0.65) : null,
-              border: Border(
-                bottom: BorderSide(
-                  color: tone != null
-                      ? Colors.white.withValues(alpha: 0.10)
-                      : scheme.onSurface.withAlpha(24),
-                  width: 0.6,
-                ),
-              ),
+      // 吸顶时铺上融合歌单色调的坚实底色（100% 不透明），防止下方曲目透字重叠，并彻底消除跨组件滤镜夹缝
+      final headerSolidColor = Color.alphaBlend(
+        (tone ?? scheme.primary).withValues(alpha: 0.20),
+        scheme.surface,
+      );
+      return DecoratedBox(
+        decoration: BoxDecoration(
+          color: headerSolidColor,
+          border: Border(
+            bottom: BorderSide(
+              color: Colors.white.withValues(alpha: 0.10),
+              width: 0.6,
             ),
-            child: content,
           ),
         ),
+        child: content,
       );
     }
 

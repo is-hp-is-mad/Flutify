@@ -195,7 +195,7 @@ class _MiniPlayerRow extends StatelessWidget {
                   onPressed: () => DevicePickerSheet.show(context),
                 ),
 
-              if (showLike) LikeButton(track: track, size: 22),
+              if (showLike) LikeButton(track: track, size: 22, inactiveColor: secondary),
 
               PlayPauseButton(
                 size: 40,

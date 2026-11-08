@@ -108,7 +108,7 @@ class _HyperBottomBarState extends State<HyperBottomBar> with TickerProviderStat
                 child: DecoratedBox(
                   decoration: BoxDecoration(
                     color: (dark ? Colors.white : Colors.black).withValues(alpha: alpha),
-                    borderRadius: BorderRadius.circular(25),
+                    borderRadius: BorderRadius.circular(29),
                   ),
                 ),
               ),
@@ -155,7 +155,7 @@ class _HyperBottomBarState extends State<HyperBottomBar> with TickerProviderStat
 
     final wrapped = widget.surface != null
         ? widget.surface!(inner)
-        : FloatSurface(radius: 28, child: inner);
+        : FloatSurface(radius: 32, child: inner);
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -219,7 +219,7 @@ class _HyperBottomBarState extends State<HyperBottomBar> with TickerProviderStat
         return Center(
           child: SizedBox(
             width: m.barWidth,
-            height: 56,
+            height: 64,
             child: _bar(dark, m.barWidth, m.itemWidth, m.step),
           ),
         );
@@ -250,7 +250,7 @@ class _HyperBottomBarState extends State<HyperBottomBar> with TickerProviderStat
             left: (c.maxWidth - m.barWidth) / 2,
             width: m.barWidth,
             bottom: 24 + bottom,
-            height: 56,
+            height: 64,
             child: _bar(dark, m.barWidth, m.itemWidth, m.step),
           ),
         ],

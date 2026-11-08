@@ -91,7 +91,7 @@ class _GlassNavigationPill extends StatelessWidget {
           gradientBackground: false,
           surface: (child) => HyperBlendSurface(
             material: HyperBlendSurface.bar(context),
-            borderRadius: BorderRadius.circular(28),
+            borderRadius: BorderRadius.circular(32),
             bloom: HyperBlendSurface.barBloom(context),
             shadow: true,
             child: child,
