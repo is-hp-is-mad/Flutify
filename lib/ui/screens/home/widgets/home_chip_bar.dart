@@ -9,7 +9,7 @@ import '../../../widgets/filter_pill.dart';
 import '../../../widgets/hover_builder.dart';
 import '../../../widgets/text_metrics.dart';
 
-/// 主页顶部筛选标签栏（滚动时吸顶，与官方一致）。
+/// 主页顶部筛选标签栏（遵循小米 HyperOS 规范，默认随页面内容滚动，仅在顶部可见）。
 ///
 /// 标签来自服务端 homeChips：
 /// - 未选中任何标签：「全部」+ 各一级标签；
@@ -24,29 +24,30 @@ class HomeChipBar extends StatelessWidget {
   final Widget? leading;
   final Widget? trailing;
 
-  /// 与页面背景同位置的渐变切片，吸顶时遮住下方滚动内容。
-  final Widget background;
+  /// 与页面背景同位置的渐变切片，吸顶时遮住下方滚动内容（若不吸顶或为 null 则全透光）。
+  final Widget? background;
+
+  /// 是否吸顶（默认为 true 以兼容既有吸顶场景；在小米 HyperOS 主页中显式传入 false 随页面滚动）。
+  final bool pinned;
 
   const HomeChipBar({
     super.key,
     required this.chips,
     required this.selected,
     required this.onSelected,
-    required this.background,
+    this.background,
+    this.pinned = true,
     this.leading,
     this.trailing,
   });
 
   static const double _verticalPadding = 8;
-  static const double _leadingSize = 32;
+  static const double _leadingSize = 36;
 
-  /// 胶囊高度：与音乐库侧栏的筛选胶囊一致（侧栏行高 44 − 上下留白 12 = 32）。
-  ///
-  /// 必须显式给定：FilterPill 的容器带 alignment，父级高度有界时会撑满父级 ——
-  /// 标签栏整行高约 48px，不限高胶囊就会比侧栏的大一圈。
-  static const double pillHeight = 32;
+  /// 胶囊高度：遵循小米 HyperOS 规范（36dp 圆润药丸）。
+  static const double pillHeight = 36;
 
-  /// 标签行高度：胶囊（上下共 10 内边距 + 实测一行文字）与头像取大者，再加上下留白。
+  /// 标签行高度：胶囊与头像取大者，再加上下留白。
   static double extentOf(BuildContext context) {
     final pill =
         TextMetrics.lineHeight(
@@ -61,8 +62,9 @@ class HomeChipBar extends StatelessWidget {
   HomeChip? get _parent {
     if (selected.isEmpty) return null;
     for (final chip in chips) {
-      if (chip.id == selected || chip.subChips.any((s) => s.id == selected))
+      if (chip.id == selected || chip.subChips.any((s) => s.id == selected)) {
         return chip;
+      }
     }
     return null;
   }
@@ -101,45 +103,58 @@ class HomeChipBar extends StatelessWidget {
       ],
     ];
 
+    final content = Padding(
+      padding: const EdgeInsets.symmetric(vertical: _verticalPadding),
+      child: Row(
+        children: [
+          if (leading != null)
+            Padding(
+              padding: const EdgeInsets.only(left: 16),
+              child: leading!,
+            ),
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: EdgeInsets.fromLTRB(
+                leading == null ? 16 : 10,
+                0,
+                16,
+                0,
+              ),
+              child: Row(
+                children: [
+                  for (final pill in pills)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: SizedBox(height: pillHeight, child: pill),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          if (trailing != null)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: trailing!,
+            ),
+        ],
+      ),
+    );
+
+    if (!pinned) {
+      return SliverToBoxAdapter(
+        child: background == null
+            ? content
+            : Stack(children: [Positioned.fill(child: background!), content]),
+      );
+    }
+
     return SliverPersistentHeader(
       pinned: true,
       delegate: _ChipBarDelegate(
         extent: extentOf(context),
-        background: background,
-        child: Row(
-          children: [
-            if (leading != null)
-              Padding(
-                padding: const EdgeInsets.only(left: 16),
-                child: leading!,
-              ),
-            Expanded(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: EdgeInsets.fromLTRB(
-                  leading == null ? 16 : 10,
-                  0,
-                  16,
-                  0,
-                ),
-                child: Row(
-                  children: [
-                    for (final pill in pills)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: SizedBox(height: pillHeight, child: pill),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-            if (trailing != null)
-              Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: trailing!,
-              ),
-          ],
-        ),
+        background: background ?? const SizedBox.shrink(),
+        child: content,
       ),
     );
   }
@@ -189,8 +204,10 @@ class _ClearPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    // 与胶囊同高（见 HomeChipBar.pillHeight）
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final hyper = context.tokens.hyperMaterial;
+    final isDark = theme.brightness == Brightness.dark;
     const size = HomeChipBar.pillHeight;
     return Tooltip(
       message: tooltip,
@@ -203,15 +220,21 @@ class _ClearPill extends StatelessWidget {
             width: size,
             height: size,
             decoration: BoxDecoration(
-              color: hovered
-                  ? colorScheme.surfaceContainerHighest
-                  : colorScheme.surfaceContainerHigh,
+              color: hyper
+                  ? (isDark
+                      ? (hovered ? const Color(0x24ffffff) : const Color(0x14ffffff))
+                      : (hovered ? const Color(0x14000000) : const Color(0x0a000000)))
+                  : (hovered
+                      ? colorScheme.surfaceContainerHighest
+                      : colorScheme.surfaceContainerHigh),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.close_rounded,
               size: 18,
-              color: colorScheme.onSurface,
+              color: hyper
+                  ? colorScheme.onSurface.withValues(alpha: 0.85)
+                  : colorScheme.onSurface,
             ),
           ),
         ),

@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -100,6 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     chips: home.chips,
                     selected: facet,
                     onSelected: provider.selectHomeFacet,
+                    pinned: false,
                     trailing: IconButton(
                       tooltip: context.l10n.homeRefresh,
                       onPressed:
@@ -111,18 +113,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       iconSize: 20,
                       visualDensity: VisualDensity.compact,
                     ),
-                    background: HomeTopGradient(
-                      tint: _hoverTint,
-                      topOffset: MediaQuery.paddingOf(context).top,
-                      background: theme.scaffoldBackgroundColor,
-                    ),
                     leading: desktop
                         ? null
                         : MouseRegion(
                             cursor: SystemMouseCursors.click,
                             child: GestureDetector(
                               onTap: widget.onOpenSettings,
-                              child: const UserAvatar(size: 32),
+                              child: const UserAvatar(size: 36),
                             ),
                           ),
                   ),
@@ -138,6 +135,26 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
+          // 移动端状态栏柔光玻璃穿透模糊（内容滑向顶部时可穿透并带有柔光模糊）
+          if (!desktop)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              height: MediaQuery.paddingOf(context).top,
+              child: IgnorePointer(
+                child: ClipRect(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                    child: Container(
+                      color: theme.scaffoldBackgroundColor.withValues(
+                        alpha: theme.brightness == Brightness.dark ? 0.35 : 0.55,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
