@@ -6,13 +6,27 @@ import 'package:flutter/gestures.dart';
 
 /// Shared Apple-style timing for the Android player's coordinated transitions.
 abstract final class PlayerLyricsMotion {
-  // Responsive takeoff with a long, gentle landing; no bounce or second easing
-  // on any component. The scene's geometry receives this already-eased value.
+  // Responsive takeoff with a long, gentle landing; no bounce.
+  // The scene's geometry receives this already-eased value.
   static const curve = Cubic(0.22, 0.8, 0.22, 1);
+
+  /// Glass frame and translation chip. UIKit ease-in-out, so the material
+  /// forms and dissolves across the whole flight. The geometry curve above
+  /// is front-loaded; using it for opacity makes the frame pop in and vanish
+  /// while the metadata is still moving.
+  static const frameCurve = Cubic(0.42, 0.0, 0.58, 1);
   static const duration = Duration(milliseconds: 640);
   static const chromeDuration = Duration(milliseconds: 300);
   static const foldCurve = Cubic(0.32, 0.72, 0, 1);
   static const foldDuration = Duration(milliseconds: 420);
+
+  /// Translation chip while the card folds. [chrome] is already on [foldCurve],
+  /// which drops most of the way in the first 100ms. This ease-out keeps the
+  /// chip readable as it rides the card, then settles it away.
+  static const chipFoldCurve = Cubic(0.0, 0.6, 0.2, 1.0);
+
+  static double chipFold(double chrome) =>
+      chipFoldCurve.transform(chrome.clamp(0.0, 1.0));
   static const idleDelay = Duration(milliseconds: 3500);
 }
 
@@ -28,14 +42,26 @@ class PlayerLyricsController extends ChangeNotifier {
   PlayerLyricsController({required TickerProvider vsync})
     : transition = AnimationController(vsync: vsync),
       queueTransition = AnimationController(vsync: vsync),
+      frame = AnimationController(vsync: vsync),
+      translationReveal = AnimationController(vsync: vsync),
       chrome = AnimationController(vsync: vsync, value: 1) {
     transition.addListener(notifyListeners);
     queueTransition.addListener(notifyListeners);
+    frame.addListener(notifyListeners);
+    translationReveal.addListener(notifyListeners);
     chrome.addListener(notifyListeners);
   }
 
   final AnimationController transition;
   final AnimationController queueTransition;
+
+  /// 0–1 presence of the glass frame. Same flight length as [transition],
+  /// eased with [PlayerLyricsMotion.frameCurve].
+  final AnimationController frame;
+
+  /// 0–1 presence of the lyrics translation chip. Tracks lyrics only, so it
+  /// pops back when leaving lyrics for the queue while the frame stays.
+  final AnimationController translationReveal;
   final AnimationController chrome;
   final Map<int, Offset> _pointers = {};
   Timer? _timer;
@@ -69,6 +95,8 @@ class PlayerLyricsController extends ChangeNotifier {
     if (reduceMotion) {
       transition.value = _lyrics || _queue ? 1 : 0;
       queueTransition.value = _queue ? 1 : 0;
+      frame.value = _lyrics || _queue ? 1 : 0;
+      translationReveal.value = _lyrics ? 1 : 0;
       chrome.value = _idle ? 0 : 1;
     }
     if (accessibleNavigation) {
@@ -128,6 +156,26 @@ class PlayerLyricsController extends ChangeNotifier {
     // Equal timing keeps queue <= shared progress; the remainder is lyrics.
     queueTransition
         .animateTo(queue ? 1 : 0, duration: duration, curve: curve)
+        .whenCompleteOrCancel(() {
+          if (!_disposed) _scheduleIdle();
+        });
+    // Material uses its own curve but the same duration, so a reversal
+    // continues from the current value and still lands with the geometry.
+    frame
+        .animateTo(
+          lyrics || queue ? 1 : 0,
+          duration: duration,
+          curve: PlayerLyricsMotion.frameCurve,
+        )
+        .whenCompleteOrCancel(() {
+          if (!_disposed) _scheduleIdle();
+        });
+    translationReveal
+        .animateTo(
+          lyrics ? 1 : 0,
+          duration: duration,
+          curve: PlayerLyricsMotion.frameCurve,
+        )
         .whenCompleteOrCancel(() {
           if (!_disposed) _scheduleIdle();
         });
@@ -249,6 +297,8 @@ class PlayerLyricsController extends ChangeNotifier {
         _pointers.isNotEmpty ||
         transition.isAnimating ||
         queueTransition.isAnimating ||
+        frame.isAnimating ||
+        translationReveal.isAnimating ||
         transition.value != 1 ||
         queueTransition.value != (_queue ? 1 : 0)) {
       return;
@@ -279,6 +329,8 @@ class PlayerLyricsController extends ChangeNotifier {
     _timer?.cancel();
     transition.dispose();
     queueTransition.dispose();
+    frame.dispose();
+    translationReveal.dispose();
     chrome.dispose();
     super.dispose();
   }
