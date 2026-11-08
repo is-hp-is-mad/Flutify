@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 
 import '../../../core/utils/formatters.dart';
 import '../../../l10n/l10n.dart';
-import '../../../l10n/model_labels.dart';
 import '../../../models/album.dart';
 import '../../../models/artist.dart';
 import '../../../models/playback_context.dart';
@@ -287,7 +286,7 @@ class _FollowButton extends StatelessWidget {
         child: Text(
           following ? context.l10n.artistFollowing : context.l10n.artistFollow,
           key: ValueKey(following),
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: const TextStyle(fontWeight: FontWeight.w600),
         ),
       ),
     );

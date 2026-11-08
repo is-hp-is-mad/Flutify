@@ -69,7 +69,7 @@ class UserAvatar extends StatelessWidget {
         trimmed.characters.first.toUpperCase(),
         // 字号随头像缩放，不受用户字号设置影响（否则大字号时溢出圆形）
         textScaler: TextScaler.noScaling,
-        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: size * 0.42, height: 1),
+        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: size * 0.42, height: 1),
       ),
     );
   }

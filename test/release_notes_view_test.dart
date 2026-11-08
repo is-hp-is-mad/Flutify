@@ -71,7 +71,7 @@ void main() {
       spans.any(
         (s) =>
             s.text == '自动播放相似歌曲' &&
-            s.style?.fontWeight == FontWeight.w700,
+            s.style?.fontWeight == FontWeight.w600,
       ),
       isTrue,
     );

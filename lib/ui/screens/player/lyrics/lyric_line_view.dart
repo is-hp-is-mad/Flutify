@@ -184,7 +184,7 @@ class _LineText extends StatelessWidget {
               textAlign: centered ? TextAlign.center : TextAlign.start,
               style: TextStyle(
                 fontSize: fontSize,
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w600,
                 color: Colors.white.withValues(alpha: opacity),
                 // 中文歌词：字距只轻微收紧，行高放宽并上下均分，多行时汉字不挤、不裁切
                 letterSpacing: -0.2,

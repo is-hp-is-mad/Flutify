@@ -35,16 +35,20 @@ class DevicePickerSheet extends StatelessWidget {
 
   static Future<void> show(BuildContext context) {
     context.read<ConnectProvider?>()?.refresh();
-    if (ShellBreakpoints.isDesktop(MediaQuery.sizeOf(context).width)) {
+    final isDesktop = ShellBreakpoints.isDesktop(MediaQuery.sizeOf(context).width);
+    final hyper = context.tokens.hyperMaterial;
+    if (isDesktop || hyper) {
       final tokens = context.tokens;
       return showAppDialog<void>(
         context: context,
         useRootNavigator: true,
         barrierColor: Colors.black26,
         builder: (dialogContext) => AppDialog(
-          alignment: Alignment.bottomRight,
-          // 贴在播放栏（90）之上、右侧留白与播放栏内边距一致
-          insetPadding: const EdgeInsets.fromLTRB(24, 24, 16, 100),
+          alignment: isDesktop ? Alignment.bottomRight : Alignment.bottomCenter,
+          // 悬浮在播放栏上方，留出安全间距
+          insetPadding: isDesktop
+              ? const EdgeInsets.fromLTRB(24, 24, 16, 100)
+              : const EdgeInsets.fromLTRB(16, 24, 16, 96),
           backgroundColor: Theme.of(
             dialogContext,
           ).colorScheme.surfaceContainerHigh,
@@ -82,7 +86,7 @@ class DevicePickerSheet extends StatelessWidget {
               Text(
                 l10n.deviceConnectTitle,
                 style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(height: 16),
@@ -144,7 +148,7 @@ class _DeviceList extends StatelessWidget {
               l10n.connectOtherDevices,
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -241,7 +245,7 @@ class _CurrentDeviceCard extends StatelessWidget {
                       l10n.deviceCurrent,
                       style: theme.textTheme.labelMedium?.copyWith(
                         color: accent,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -250,7 +254,7 @@ class _CurrentDeviceCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     if (nowPlaying.isNotEmpty)
@@ -370,7 +374,7 @@ class _DeviceTile extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                       color: selected ? theme.colorScheme.primary : null,
                     ),
                   ),
@@ -615,7 +619,7 @@ class _InlineRow extends StatelessWidget {
                     style: TextStyle(
                       color: color,
                       fontSize: 12,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   if (subtitle != null)
@@ -702,7 +706,7 @@ class _LocalOutputSectionState extends State<_LocalOutputSection> {
             l10n.audioOutputTitle,
             style: theme.textTheme.labelLarge?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w600,
             ),
           ),
         );

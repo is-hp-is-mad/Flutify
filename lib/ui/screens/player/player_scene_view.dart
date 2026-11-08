@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 
 import '../../../core/theme/flutify_tokens.dart';
 import '../../../l10n/l10n.dart';
-import '../../../l10n/model_labels.dart';
 import '../../../models/playback_context.dart';
 import '../../../models/track.dart';
 import '../../../providers/connect_provider.dart';
@@ -599,7 +598,7 @@ class _TopBar extends StatelessWidget {
                     playbackContext.name,
                     style: const TextStyle(
                       fontSize: 12,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w600,
                       color: Colors.white,
                     ),
                     maxLines: 1,
@@ -674,7 +673,7 @@ class _TitleRow extends StatelessWidget {
             height: compact
                 ? TextMetrics.lineHeight(
                     context,
-                    titleStyle.copyWith(fontWeight: FontWeight.w800),
+                    titleStyle.copyWith(fontWeight: FontWeight.w600),
                   )
                 : null,
             child: Align(
@@ -693,7 +692,7 @@ class _TitleRow extends StatelessWidget {
                   key: ValueKey(track.id),
                   style: titleStyle.copyWith(
                     fontSize: compact ? titleSize : null,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w600,
                     color: Colors.white,
                   ),
                 ),
@@ -1001,7 +1000,7 @@ class _MiniBar extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.labelLarge?.copyWith(
                     color: Colors.white,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 Text(

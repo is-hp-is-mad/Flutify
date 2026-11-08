@@ -76,4 +76,11 @@ void main() {
     expect(dark.colorScheme.primary, isNot(AccentPreset.spotify.color));
     provider.dispose();
   });
+
+  test('legacy settings with hyperRenderMode parse gracefully', () async {
+    final storage = await freshStorage({'ui_appearance': '{"glassMaterial":"hyper","hyperRenderMode":"xiaomi_native"}'});
+    final provider = AppearanceProvider(storage);
+    expect(provider.settings.glassMaterial, GlassMaterial.hyper);
+    provider.dispose();
+  });
 }

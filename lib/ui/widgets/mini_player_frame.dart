@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../core/theme/flutify_tokens.dart';
@@ -8,15 +10,15 @@ import 'hyper_surface.dart';
 ///
 /// MD3E：横向铺满、封面取色的胶囊。柔光玻璃：与底栏等宽、等高的浮动控件材质，下方内容透过模糊可见。
 abstract final class MiniPlayerStyle {
-  /// 与底栏（miuix BottomNavigator）相同：最宽 344，左右留 24。
-  static const double _hyperMaxWidth = 344;
+  /// 与底栏（miuix BottomNavigator）相同：自适应宽度（小屏横向填满留 20dp 边距，大屏最大 480）。
+  static const double _hyperMaxWidth = 480;
 
   static double artworkSize(BuildContext context) =>
-      context.tokens.hyperMaterial ? 40 : 44;
+      context.tokens.hyperMaterial ? 36 : 44;
 
   static EdgeInsets rowPadding(BuildContext context) =>
       context.tokens.hyperMaterial
-      ? const EdgeInsets.fromLTRB(8, 8, 6, 8)
+      ? const EdgeInsets.fromLTRB(8, 5, 6, 5)
       : const EdgeInsets.fromLTRB(7, 7, 8, 9);
 
   /// 文字和图标颜色。[onSurface] 为 false 时画在封面色上（展开动画里的那一份）。
@@ -39,22 +41,83 @@ class MiniPlayerBounds extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Android 悬浮栏自己定位和定宽
+    if (MiniPlayerDock.maybeOf(context) != null) return child;
     if (!context.tokens.hyperMaterial) {
       return Padding(
         padding: const EdgeInsets.fromLTRB(10, 6, 10, 8),
         child: child,
       );
     }
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 6, 24, 8),
-      child: Align(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(
-            maxWidth: MiniPlayerStyle._hyperMaxWidth,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // 自适应宽度：与底部 Tab 栏完全一致（小屏两侧留 20dp，大屏等比例最大 480）
+        final avail = math.max(0.0, constraints.maxWidth - 40);
+        final barW = avail.clamp(280.0, MiniPlayerStyle._hyperMaxWidth);
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(0, 6, 0, 8),
+          child: Center(
+            child: SizedBox(
+              width: barW,
+              child: child,
+            ),
           ),
-          child: child,
-        ),
-      ),
+        );
+      },
+    );
+  }
+}
+
+/// Android 悬浮栏里的迷你播放器：外框由悬浮栏定位（不加 [MiniPlayerBounds] 的边距），
+/// [fold] 是下沉进度（0 在导航上方，1 收在两枚圆钮之间）。
+class MiniPlayerDock extends InheritedWidget {
+  final Animation<double> fold;
+
+  const MiniPlayerDock({super.key, required this.fold, required super.child});
+
+  /// 不登记依赖：只读一次动画对象，进度由 [MiniPlayerFoldAway] 自己监听。
+  static Animation<double>? maybeOf(BuildContext context) =>
+      context.getInheritedWidgetOfExactType<MiniPlayerDock>()?.fold;
+
+  @override
+  bool updateShouldNotify(MiniPlayerDock oldWidget) => fold != oldWidget.fold;
+}
+
+/// 播放器下沉时先淡出的部分（心形、进度线）。[fold] 为 null 时原样显示。
+class MiniPlayerFoldAway extends StatelessWidget {
+  final Animation<double>? fold;
+
+  /// 同时让出宽度（行内的按钮）。
+  final bool collapse;
+  final Widget child;
+
+  const MiniPlayerFoldAway({
+    super.key,
+    required this.fold,
+    this.collapse = false,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final fold = this.fold;
+    if (fold == null) return child;
+    return AnimatedBuilder(
+      animation: fold,
+      child: child,
+      builder: (context, child) {
+        final shown = (1 - fold.value.clamp(0.0, 1.0) * 2).clamp(0.0, 1.0);
+        if (shown == 0) return const SizedBox.shrink();
+        final faded = Opacity(opacity: shown, child: child);
+        if (!collapse) return faded;
+        return ClipRect(
+          child: Align(
+            alignment: Alignment.centerLeft,
+            widthFactor: shown,
+            child: faded,
+          ),
+        );
+      },
     );
   }
 }
@@ -80,7 +143,7 @@ class MiniPlayerSurface extends StatelessWidget {
         material: HyperBlendSurface.bar(context),
         borderRadius: tokens.squareCorners
             ? tokens.radius(16)
-            : BorderRadius.circular(28),
+            : BorderRadius.circular(24),
         bloom: HyperBlendSurface.barBloom(context),
         shadow: true,
         child: child,
@@ -111,7 +174,11 @@ class MiniPlayerSwipe extends StatefulWidget {
   final ValueChanged<bool> onSwipe; // true = 下一首
   final Widget child;
 
-  const MiniPlayerSwipe({super.key, required this.onSwipe, required this.child});
+  const MiniPlayerSwipe({
+    super.key,
+    required this.onSwipe,
+    required this.child,
+  });
 
   @override
   State<MiniPlayerSwipe> createState() => _MiniPlayerSwipeState();
@@ -161,8 +228,8 @@ class _MiniPlayerSwipeState extends State<MiniPlayerSwipe>
       );
     }
     return GestureDetector(
-      onHorizontalDragUpdate: (d) => _offset.value =
-          (_offset.value + d.delta.dx).clamp(-_reach, _reach),
+      onHorizontalDragUpdate: (d) =>
+          _offset.value = (_offset.value + d.delta.dx).clamp(-_reach, _reach),
       onHorizontalDragEnd: _end,
       child: AnimatedBuilder(
         animation: _offset,

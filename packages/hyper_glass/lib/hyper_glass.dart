@@ -7,4 +7,5 @@ export 'src/hyper_glass.dart';
 export 'src/hyper_glass_renderer.dart';
 export 'src/glass_presets.dart';
 export 'src/glass_tokens.g.dart';
+export 'src/native_rom.dart';
 export 'src/view_shadow.dart';

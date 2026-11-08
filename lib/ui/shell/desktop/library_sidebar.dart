@@ -214,7 +214,7 @@ class _Header extends StatelessWidget {
                     Text(
                       l10n.navLibrary,
                       style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
@@ -246,10 +246,10 @@ class _FilterRow extends StatelessWidget {
       LibraryKind.artist: l10n.filterArtists,
     };
     return SizedBox(
-      height: 44,
+      height: 48,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
         children: [
           if (selected != null) ...[
             IconButton(
@@ -257,8 +257,8 @@ class _FilterRow extends StatelessWidget {
               tooltip: l10n.libraryClearFilter,
               onPressed: () => onSelected(null),
               style: IconButton.styleFrom(
-                fixedSize: const Size(32, 32),
-                minimumSize: const Size(32, 32),
+                fixedSize: const Size(40, 40),
+                minimumSize: const Size(40, 40),
                 padding: EdgeInsets.zero,
                 backgroundColor: Theme.of(
                   context,
@@ -426,7 +426,7 @@ class _SignInCard extends StatelessWidget {
             Text(
               l10n.shellSignInTitle,
               style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 6),

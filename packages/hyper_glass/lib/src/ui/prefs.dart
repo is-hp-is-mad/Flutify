@@ -294,25 +294,41 @@ class HyButton extends StatelessWidget {
   }
 }
 
-/// FilterSortView: a 34dp thumb sliding in a 3dp padded track.
+/// FilterSortView: a 34dp thumb sliding in a 3dp padded track on dual leading/trailing springs (PILL_FAST / PILL_SLOW).
 class HySegmented extends StatefulWidget {
   const HySegmented({super.key, required this.items, required this.index, required this.onChanged});
   final List<String> items;
   final int index;
   final ValueChanged<int> onChanged;
-
   @override
   State<HySegmented> createState() => _HySegmentedState();
 }
 
-class _HySegmentedState extends State<HySegmented> {
-  /// The thumb's left edge while it follows the finger; null otherwise.
-  double? _drag;
+class _HySegmentedState extends State<HySegmented> with TickerProviderStateMixin {
+  late final _left = SpringValue(this, value: widget.index.toDouble());
+  late final _right = SpringValue(this, value: widget.index + 1.0);
+  late final _press = SpringValue(this, value: 0, damping: 0.85, response: 0.2);
+  bool _dragging = false;
 
-  void _end(double w) {
-    final to = ((_drag ?? 0) / w).round().clamp(0, widget.items.length - 1);
-    setState(() => _drag = null);
-    if (to != widget.index) widget.onChanged(to);
+  @override
+  void didUpdateWidget(HySegmented old) {
+    super.didUpdateWidget(old);
+    if (old.index == widget.index) return;
+    _moveTo(widget.index, old.index);
+  }
+
+  void _moveTo(int i, int from) {
+    final forward = i >= from;
+    _left.to(i.toDouble(), damping: forward ? 0.75 : 0.7, response: forward ? 0.5 : 0.4);
+    _right.to(i + 1.0, damping: forward ? 0.7 : 0.75, response: forward ? 0.4 : 0.5);
+  }
+
+  @override
+  void dispose() {
+    _left.dispose();
+    _right.dispose();
+    _press.dispose();
+    super.dispose();
   }
 
   @override
@@ -320,16 +336,57 @@ class _HySegmentedState extends State<HySegmented> {
     final dark = HyperTheme.isDark(context);
     return LayoutBuilder(
       builder: (context, c) {
-        final w = (c.maxWidth - 6) / widget.items.length;
-        final drag = _drag;
-        final selected = drag == null ? widget.index : (drag / w).round();
+        final n = widget.items.length;
+        final w = (c.maxWidth - 6) / n;
+        int hit(double dx) => ((dx - 3) / w).floor().clamp(0, n - 1);
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onHorizontalDragUpdate: (d) => setState(
-            () => _drag = ((drag ?? w * widget.index) + d.delta.dx).clamp(0.0, w * (widget.items.length - 1)),
-          ),
-          onHorizontalDragEnd: (_) => _end(w),
-          onHorizontalDragCancel: () => _end(w),
+          onTapDown: (d) {
+            _press.to(1);
+            final h = hit(d.localPosition.dx);
+            if (h != widget.index) _moveTo(h, widget.index);
+          },
+          onTapUp: (d) {
+            _press.to(0);
+            final h = hit(d.localPosition.dx);
+            if (h != widget.index) {
+              widget.onChanged(h);
+            } else {
+              _moveTo(widget.index, widget.index);
+            }
+          },
+          onTapCancel: () {
+            if (_dragging) return;
+            _press.to(0);
+            _moveTo(widget.index, widget.index);
+          },
+          onHorizontalDragStart: (d) {
+            _dragging = true;
+            _press.to(1);
+            final h = hit(d.localPosition.dx);
+            if (h != widget.index) {
+              _moveTo(h, widget.index);
+              widget.onChanged(h);
+            }
+          },
+          onHorizontalDragUpdate: (d) {
+            final h = hit(d.localPosition.dx);
+            if (h != widget.index) {
+              _moveTo(h, widget.index);
+              widget.onChanged(h);
+            }
+          },
+          onHorizontalDragEnd: (_) {
+            _dragging = false;
+            _press.to(0);
+            _moveTo(widget.index, widget.index);
+          },
+          onHorizontalDragCancel: () {
+            if (!_dragging) return;
+            _dragging = false;
+            _press.to(0);
+            _moveTo(widget.index, widget.index);
+          },
           child: Container(
             height: 40,
             padding: const EdgeInsets.all(3),
@@ -339,32 +396,43 @@ class _HySegmentedState extends State<HySegmented> {
             ),
             child: Stack(
               children: [
-                AnimatedPositioned(
-                  duration: drag == null ? const Duration(milliseconds: 260) : Duration.zero,
-                  curve: Curves.easeOutCubic,
-                  left: drag ?? w * widget.index,
-                  top: 0,
-                  bottom: 0,
-                  width: w,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(color: dark ? const Color(0x33ffffff) : Colors.white, borderRadius: BorderRadius.circular(17)),
-                  ),
+                AnimatedBuilder(
+                  animation: Listenable.merge([_left.c, _right.c, _press.c]),
+                  builder: (_, _) {
+                    final l = _left.value * w, r = _right.value * w;
+                    final pw = (r - l).clamp(w, c.maxWidth - 6);
+                    final p = _press.value.clamp(0.0, 1.0);
+                    final sx = 1.0 - (6.0 / pw) * p;
+                    final sy = 1.0 - (6.0 / 34.0) * p;
+                    return Positioned(
+                      left: l,
+                      top: 0,
+                      bottom: 0,
+                      width: pw,
+                      child: Transform(
+                        alignment: Alignment.center,
+                        transform: Matrix4.diagonal3Values(sx, sy, 1),
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: dark ? const Color(0x33ffffff) : Colors.white,
+                            borderRadius: BorderRadius.circular(17),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
                 ),
                 Row(
                   children: [
                     for (final (i, l) in widget.items.indexed)
                       Expanded(
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () => widget.onChanged(i),
-                          child: Center(
-                            child: Text(
-                              l,
-                              style: TextStyle(
-                                color: i == selected ? Hy.text(dark) : Hy.sub(dark),
-                                fontSize: Hy.body2,
-                                fontWeight: i == selected ? FontWeight.w600 : FontWeight.w400,
-                              ),
+                        child: Center(
+                          child: Text(
+                            l,
+                            style: TextStyle(
+                              color: i == widget.index ? Hy.text(dark) : Hy.sub(dark),
+                              fontSize: Hy.body2,
+                              fontWeight: i == widget.index ? FontWeight.w600 : FontWeight.w400,
                             ),
                           ),
                         ),

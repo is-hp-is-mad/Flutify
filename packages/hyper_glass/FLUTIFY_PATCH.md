@@ -1,8 +1,24 @@
 # hyper_glass（Flutify 内置）
 
-来源：`D:\miuiweather\flutter\hyper_showcase\packages\hyper_glass`（2026-11-01 同步）。旧来源 `flutter/hyper_glass` 已停止更新。上游规则看它旁边的 `PORTING.md`（第 4 节使用规则、第 7 节内存规则）。
+来源：`D:\miuiweather\flutter\hyper_showcase\packages\hyper_glass`（2026-11-01 初次同步，2026-11-08 对齐 2026-11-07 Debug 编译版）。旧来源 `flutter/hyper_glass` 已停止更新。上游规则看它旁边的 `PORTING.md`（第 4 节使用规则、第 7 节内存规则）。
 
 同步方法：拷 `lib/` 与 `shaders/`（不拷 `shader_layout.g.dart` 以外的生成脚本），再按下面逐条重做。上游的 `test/errors_test.dart` 里「shadow before init」与这里的改动 6 冲突，不拷。
+
+## 2026-11-08 对齐与完善点（Debug 编译版）
+
+1. **`mi_blend_blur.frag` 渐变混色模糊升级**：
+   - 接入原生 `uGradientBlur`（基于 ROM `019_3917.sksl`）与 `uOverlayMask`（17 段 `OverlayMaskConfig` 平滑 alpha 衰减曲线 `overlayMaskFactor`）。
+   - 支持三路采样插值（sharp 0dp -> mid ~10dp -> full blur 40/60dp）。
+   - `HyperBlendBlur` 与 `HyperPage` 现可直接通过 `gradientBlur: true` 与 `overlayMask: ...` 原生呈现顶栏渐变模糊，无需层层叠加裁剪遮罩。
+2. **GPU 跨帧延期安全释放（`deferDispose`）**：
+   - 在 `HyperGlassRenderer` 中实现 `deferDispose({image, shader})` 双代缓存，防止 `Picture.toImageSync` 等中间资源在光栅线程绘制完成前被过早释放导致黑屏、撕裂或崩溃。
+   - 在 `view_shadow.dart`、`hyper_glass.dart`、`hyper_glass_renderer.dart` 全面接入。
+3. **`HyperGlassScene` 调度防漏机制**：
+   - 新增 `_dirty` 标记：在后台快照运行中若发生新调度，帧回调自动排队补发，解决动画中状态丢帧。
+4. **原生 ROM 桥接引入与多档原生渲染模式对齐**：
+   - 引入 `native_rom.dart`（`HyperNativeRom` 与 `HyperRenderController`），支持三种渲染模式：小米原生（`xiaomi_native`）、小米移植（`xiaomi_port`）、纯移植（`flutter_port`）。
+   - `HyperRenderController` 支持设备能力查询（`getCapabilities`）与切换底层管线（`setPortBackend`）。
+   - `HyperGlass` 与 `HyperBlendBlur` 在 Android 端接入 `HyperNativeRomSurface`，支持 `updateSurface` 动态刷新材质与参数。
 
 ## 相对来源的改动
 

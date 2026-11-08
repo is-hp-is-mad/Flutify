@@ -1,7 +1,9 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:hyper_glass/hyper_ui.dart' show Pressable;
 import '../../core/theme/flutify_tokens.dart';
 import '../../core/theme/md3e_shapes.dart';
+import '../../l10n/l10n.dart';
 import '../../models/category.dart';
 import 'cover_image.dart';
 
@@ -17,44 +19,41 @@ class CategoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      mouseCursor: SystemMouseCursors.click,
-      onTap: onTap,
-      borderRadius: context.tokens.radius(MD3EShapes.radiusLarge),
-      child: Container(
-        height: 100,
-        decoration: BoxDecoration(
-          color: category.color,
-          borderRadius: context.tokens.radius(MD3EShapes.radiusLarge),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              category.color.withAlpha(240),
-              category.color,
-            ],
-          ),
+    final tokens = context.tokens;
+    final card = Container(
+      height: 100,
+      decoration: BoxDecoration(
+        color: category.color,
+        borderRadius: tokens.radius(MD3EShapes.radiusLarge),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            category.color.withAlpha(240),
+            category.color,
+          ],
         ),
-        clipBehavior: Clip.antiAlias,
-        child: Stack(
-          children: [
-            // Title
-            Positioned(
-              top: 14,
-              left: 14,
-              right: 60,
-              child: Text(
-                category.name,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.3,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          // Title
+          Positioned(
+            top: 14,
+            left: 14,
+            right: 60,
+            child: Text(
+              context.l10n.categoryName(category.name, category.id),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+                letterSpacing: -0.3,
               ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
+          ),
 
             // Tilted cover in bottom-right corner
             Positioned(
@@ -81,7 +80,20 @@ class CategoryCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
+      );
+
+    if (tokens.hyperMaterial) {
+      return Pressable(
+        onTap: onTap,
+        child: card,
+      );
+    }
+
+    return InkWell(
+      mouseCursor: SystemMouseCursors.click,
+      onTap: onTap,
+      borderRadius: tokens.radius(MD3EShapes.radiusLarge),
+      child: card,
     );
   }
 }

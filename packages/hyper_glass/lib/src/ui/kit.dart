@@ -325,10 +325,6 @@ class FloatingBar extends StatelessWidget {
   final Color? foreground;
   final List<Widget> actions;
 
-  // MIUIWeather gradientBlur mask: alpha stops (pp+0x2bc00) at positions (pp+0x2bc08), top to bottom.
-  static const _maskAlpha = [1.0, 0.98, 0.8, 0.5, 0.0];
-  static const _maskStops = [0.0, 0.52, 0.74, 0.85, 1.0];
-
   @override
   Widget build(BuildContext context) {
     final top = this.top ?? MediaQuery.paddingOf(context).top;
@@ -350,38 +346,14 @@ class FloatingBar extends StatelessWidget {
               builder: (context, v, _) {
                 if (v <= 0.001) return const SizedBox.shrink();
                 final mask = maskColor;
-                final blur = ShaderMask(
-                  blendMode: BlendMode.dstIn,
-                  shaderCallback: (r) => LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [for (final a in _maskAlpha) Colors.white.withValues(alpha: a)],
-                    stops: _maskStops,
-                  ).createShader(r),
-                  child: HyperBlendBlur(
-                    material: mask != null
-                        ? (maskBlur ?? BlendMaterial(sigma: 20, layers: const [], fallback: mask))
-                        : (dark ? BlendMaterial.appBarDark : BlendMaterial.appBarLight),
-                    borderRadius: 0,
-                    opacity: v,
-                  ),
-                );
-                if (mask == null) return blur;
-                return Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    blur,
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [for (final a in _maskAlpha) mask.withValues(alpha: a * v)],
-                          stops: _maskStops,
-                        ),
-                      ),
-                    ),
-                  ],
+                return HyperBlendBlur(
+                  material: mask != null
+                      ? (maskBlur ?? BlendMaterial(sigma: 20, layers: const [], fallback: mask))
+                      : (dark ? BlendMaterial.appBarDark : BlendMaterial.appBarLight),
+                  borderRadius: 0,
+                  opacity: v,
+                  gradientBlur: true,
+                  overlayMask: mask?.withValues(alpha: dark ? 0.45 : 0.35),
                 );
               },
             ),
@@ -428,7 +400,7 @@ class FloatingBar extends StatelessWidget {
                     child!,
                   ],
                 ),
-                child: Center(child: Icon(Icons.arrow_back_ios_new, color: fg, size: 19)),
+                child: Center(child: Icon(Icons.arrow_back_rounded, color: fg, size: 19)),
               ),
             ),
           ),

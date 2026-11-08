@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/flutify_tokens.dart';
+import '../../../widgets/hyper_surface.dart';
 import '../../../../core/utils/artwork_palette.dart';
 import '../../../shell/shell_breakpoints.dart';
 import '../../../widgets/cover_image.dart';
-import '../../../widgets/hyper_surface.dart';
 
 // 歌单 / 专辑 / 艺人详情页的大头图（Spotify 新版桌面端风格）。
 //
@@ -49,7 +49,7 @@ class CollectionTint extends InheritedWidget {
 
   /// 头部底色：深色主题略压暗（配浅色文字），浅色主题提亮成淡彩（配深色文字）。
   static Color toneFor(Color art, Brightness brightness) =>
-      brightness == Brightness.dark ? Color.lerp(art, Colors.black, 0.15)! : Color.lerp(art, Colors.white, 0.55)!;
+      brightness == Brightness.dark ? Color.lerp(art, Colors.black, 0.05)! : Color.lerp(art, Colors.white, 0.45)!;
 
   /// 头部底边的颜色（已向页面底色过渡一段），[CollectionHeroFade] 从这里接着淡出。
   static Color heroBottom(Color tone, ColorScheme scheme) => Color.lerp(tone, scheme.surface, 0.35)!;
@@ -207,12 +207,22 @@ class _HeroDelegate extends SliverPersistentHeaderDelegate {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [tone, CollectionTint.heroBottom(tone, scheme)],
+          // 背景随内容一起上移并淡出，吸顶后完全退场让给着色玻璃（否则会变成实色遮挡下方曲目）
+          Positioned(
+            left: 0,
+            right: 0,
+            top: -shrinkOffset,
+            height: maxExtent,
+            child: Opacity(
+              opacity: contentOpacity,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [tone, CollectionTint.heroBottom(tone, scheme)],
+                  ),
+                ),
               ),
             ),
           ),
@@ -241,31 +251,65 @@ class _HeroDelegate extends SliverPersistentHeaderDelegate {
               ignoring: barOpacity == 0,
               child: Opacity(
                 opacity: barOpacity,
-                child: ColoredBox(
-                  color: barColor,
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(showBack ? 60 : 16, topPadding, 16, 0),
-                    child: Row(
-                      children: [
-                        if (hero.collapsedAction != null) ...[hero.collapsedAction!, const SizedBox(width: 12)],
-                        Expanded(
-                          child: Text(
-                            hero.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(
-                              context,
-                            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700, color: barForeground),
+                child: context.tokens.hyperMaterial
+                    ? Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          HyperAppBarBackground(
+                            tintColor: tone,
+                            showBottomLine: !wide,
+                            isDesktop: wide,
+                          ),
+                          Padding(
+                            padding: EdgeInsets.fromLTRB(showBack ? 60 : 16, topPadding, 16, 0),
+                            child: Row(
+                              children: [
+                                if (hero.collapsedAction != null) ...[hero.collapsedAction!, const SizedBox(width: 12)],
+                                Expanded(
+                                  child: Text(
+                                    hero.title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600, color: barForeground),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      )
+                    : ColoredBox(
+                        color: barColor,
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(showBack ? 60 : 16, topPadding, 16, 0),
+                          child: Row(
+                            children: [
+                              if (hero.collapsedAction != null) ...[hero.collapsedAction!, const SizedBox(width: 12)],
+                              Expanded(
+                                child: Text(
+                                  hero.title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600, color: barForeground),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                ),
+                      ),
               ),
             ),
           ),
-          if (showBack) Positioned(left: 8, top: topPadding + 12, child: const _BackCircle()),
+          if (showBack)
+            Positioned(
+              left: 8,
+              top: topPadding + 12,
+              child: _BackCircle(floating: shrinkOffset > 10),
+            ),
         ],
       ),
     );
@@ -303,7 +347,7 @@ class _WideContent extends StatelessWidget {
             child: LayoutBuilder(
               builder: (context, box) {
                 final titleStyle = theme.textTheme.displayLarge!.copyWith(
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w600,
                   height: 1.1,
                   letterSpacing: -0.5,
                 );
@@ -416,7 +460,7 @@ class _NarrowContent extends StatelessWidget {
             hero.title,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+            style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
           ),
           if (hero.meta != null) ...[
             const SizedBox(height: 6),
@@ -463,17 +507,18 @@ class _HeroCover extends StatelessWidget {
 
 /// 移动端返回键：半透明黑底圆钮，在任何封面色上都清晰。
 class _BackCircle extends StatelessWidget {
-  const _BackCircle();
+  final bool floating;
+  const _BackCircle({this.floating = false});
 
   @override
   Widget build(BuildContext context) {
     if (context.tokens.hyperMaterial) {
       return Tooltip(
         message: MaterialLocalizations.of(context).backButtonTooltip,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () => Navigator.of(context).maybePop(),
-          child: const HyperCircleIcon(Icons.arrow_back_rounded),
+        child: HyperBackButton(
+          floating: floating,
+          color: Colors.white,
+          onPressed: () => Navigator.of(context).maybePop(),
         ),
       );
     }

@@ -15,12 +15,12 @@ void main() {
         home: Scaffold(
           body: Column(
             children: [
-              // 侧栏用法：SizedBox(44) + 横向 ListView
+              // 侧栏用法：SizedBox(48) + 横向 ListView
               SizedBox(
-                height: 44,
+                height: 48,
                 child: ListView(
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
                   children: [
                     FilterPill(label: '歌单', isSelected: false, onTap: () {}),
                   ],
@@ -28,7 +28,7 @@ void main() {
               ),
               // 主页用法：横向 SingleChildScrollView + Row + 限高（与 HomeChipBar 内相同）
               SizedBox(
-                height: 48,
+                height: 56,
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),

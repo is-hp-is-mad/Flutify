@@ -263,7 +263,7 @@ class _ArtistCatalogScreenState extends State<ArtistCatalogScreen> {
                 header: true,
                 child: Text(
                   title,
-                  style: titleStyle?.copyWith(fontWeight: FontWeight.w800),
+                  style: titleStyle?.copyWith(fontWeight: FontWeight.w600),
                 ),
               ),
             ),

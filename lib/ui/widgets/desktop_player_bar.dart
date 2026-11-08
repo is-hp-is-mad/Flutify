@@ -167,56 +167,67 @@ class PlayerBarGlassCapsule extends StatelessWidget {
       ),
       child: Builder(
         builder: (context) {
+          final hyper = tokens.hyperMaterial;
           final corner = tokens.corner(28);
-          final shadow = BoxDecoration(
-            borderRadius: tokens.radius(28),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withAlpha(isDark ? 70 : 36),
-                blurRadius: 28,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          );
-          final glass = LiquidGlass(
-            borderRadius: tokens.radius(28),
-            // 玻璃之上再罩一层极淡的表面色：深色压暗、浅色提亮，保证控件可读
-            child: ColoredBox(
-              color: colorScheme.surfaceContainerLowest.withAlpha(
-                isDark ? 72 : 104,
-              ),
-              child: SizedBox(
-                height: DesktopPlayerBar.capsuleHeight,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: child,
-                ),
-              ),
+          // 在 hyperMaterial 模式下，移除外层实体黑影，改用 HyperBlendSurface 自带的 ViewShadow(hollow: true)，
+          // 避免 BackdropFilter 把纯黑投影模糊进玻璃体导致发灰变脏
+          final shadow = hyper
+              ? null
+              : BoxDecoration(
+                  borderRadius: tokens.radius(28),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withAlpha(isDark ? 70 : 36),
+                      blurRadius: 28,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                );
+          final barContent = SizedBox(
+            height: DesktopPlayerBar.capsuleHeight,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: child,
             ),
           );
+          // 在 hyperMaterial 模式下，移除多余的深色底色垫层，恢复纯净通透与晶莹漫反射发丝描边
+          final glassChild = hyper
+              ? barContent
+              : ColoredBox(
+                  color: colorScheme.surfaceContainerLowest.withAlpha(
+                    isDark ? 72 : 104,
+                  ),
+                  child: barContent,
+                );
+          final glass = LiquidGlass(
+            borderRadius: tokens.radius(28),
+            child: glassChild,
+          );
           if (attachment == null) {
-            return DecoratedBox(decoration: shadow, child: glass);
+            return shadow == null
+                ? glass
+                : DecoratedBox(decoration: shadow, child: glass);
           }
           // 挂件与胶囊同宽，上卷部分（一个圆角高）叠在胶囊底角之上，露出部分占底部；
           // 投影包裹整个「胶囊 + 底座」组合，避免胶囊自己的阴影落在衔接缝上
-          return DecoratedBox(
-            decoration: shadow,
-            child: Stack(
-              children: [
-                Padding(
-                  padding: EdgeInsets.only(bottom: attachmentVisibleHeight),
-                  child: glass,
-                ),
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  height: attachmentVisibleHeight + corner,
-                  child: attachment!,
-                ),
-              ],
-            ),
+          final body = Stack(
+            children: [
+              Padding(
+                padding: EdgeInsets.only(bottom: attachmentVisibleHeight),
+                child: glass,
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: attachmentVisibleHeight + corner,
+                child: attachment!,
+              ),
+            ],
           );
+          return shadow == null
+              ? body
+              : DecoratedBox(decoration: shadow, child: body);
         },
       ),
     );
@@ -339,7 +350,7 @@ class _NowPlayingInfo extends StatelessWidget {
               _HoverLink(
                 text: track.name,
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w600,
                   color: colorScheme.onSurface,
                 ),
                 marquee: true,

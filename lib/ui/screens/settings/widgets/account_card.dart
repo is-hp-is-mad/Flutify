@@ -55,7 +55,7 @@ class _SignedOut extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(l10n.accountTitle, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+              Text(l10n.accountTitle, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
               const SizedBox(height: 2),
               Text(
                 l10n.accountSignedOutMessage,
@@ -116,7 +116,7 @@ class _SignedIn extends StatelessWidget {
                 name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 2),
               Text(

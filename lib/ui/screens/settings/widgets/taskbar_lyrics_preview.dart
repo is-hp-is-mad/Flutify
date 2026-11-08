@@ -107,7 +107,7 @@ class _TaskbarLyricsPreviewState extends State<TaskbarLyricsPreview> {
                       current,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: ink, fontSize: 14 * widget.fontScale, fontWeight: FontWeight.w700, height: 1.2),
+                      style: TextStyle(color: ink, fontSize: 14 * widget.fontScale, fontWeight: FontWeight.w600, height: 1.2),
                     ),
                     Text(
                       next,

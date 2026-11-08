@@ -2,7 +2,10 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:hyper_glass/hyper_ui.dart' show HySegmented;
 import 'package:provider/provider.dart';
+
+import '../../../core/theme/flutify_tokens.dart';
 
 import '../../../l10n/l10n.dart';
 import '../../../models/album.dart';
@@ -158,7 +161,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 children: [
                   Text(
                     l10n.navSearch,
-                    style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900),
+                    style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 14),
                   TextField(
@@ -187,25 +190,34 @@ class _SearchScreenState extends State<SearchScreen> {
             ),
 
             if (!isQueryEmpty)
-              SizedBox(
-                height: 40,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  itemCount: searchFilters.length,
-                  itemBuilder: (context, index) => Padding(
-                    padding: const EdgeInsets.only(right: 8.0),
-                    // Center：横向列表会给子项 40 高的紧约束，胶囊要按内容高度居中，不被拉满
-                    child: Center(
-                      child: FilterPill(
-                        label: searchFilters[index],
-                        isSelected: _searchFilterIndex == index,
-                        onTap: () => setState(() => _searchFilterIndex = index),
+              context.tokens.hyperMaterial
+                  ? Padding(
+                      padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 8.0),
+                      child: HySegmented(
+                        items: searchFilters,
+                        index: _searchFilterIndex,
+                        onChanged: (index) => setState(() => _searchFilterIndex = index),
+                      ),
+                    )
+                  : SizedBox(
+                      height: 40,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        itemCount: searchFilters.length,
+                        itemBuilder: (context, index) => Padding(
+                          padding: const EdgeInsets.only(right: 8.0),
+                          // Center：横向列表会给子项 40 高的紧约束，胶囊要按内容高度居中，不被拉满
+                          child: Center(
+                            child: FilterPill(
+                              label: searchFilters[index],
+                              isSelected: _searchFilterIndex == index,
+                              onTap: () => setState(() => _searchFilterIndex = index),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
-              ),
 
             Expanded(
               child: isQueryEmpty
@@ -243,7 +255,7 @@ class _BrowseView extends StatelessWidget {
               child: Row(
                 children: [
                   Expanded(
-                    child: Text(l10n.searchRecent, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                    child: Text(l10n.searchRecent, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
                   ),
                   AppButton.text(
                     onPressed: () => context.read<SpotifyProvider>().clearRecentSearches(),
@@ -272,7 +284,7 @@ class _BrowseView extends StatelessWidget {
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: Text(l10n.searchBrowseAll, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+            child: Text(l10n.searchBrowseAll, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
           ),
         ),
         if (categories.isEmpty)
@@ -456,7 +468,7 @@ class _SearchResults extends StatelessWidget {
                 ),
                 title: Text(
                   artist.name,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 subtitle: Text(l10n.typeArtist),
                 trailing: const Icon(Icons.chevron_right_rounded),
@@ -486,7 +498,7 @@ class _SearchResults extends StatelessWidget {
                 ),
                 title: Text(
                   playlist.name,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 subtitle: Text(
                   l10n.subtitleJoin(l10n.typePlaylist, playlist.ownerName),
@@ -569,7 +581,7 @@ class _ResultHeader extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Text(
         title,
-        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
       ),
     );
   }

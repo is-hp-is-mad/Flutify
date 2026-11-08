@@ -1,9 +1,14 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/flutify_tokens.dart';
 import '../../../l10n/l10n.dart';
 import '../hover_builder.dart';
+import '../hyper_surface.dart';
 import 'track_sort.dart';
 import 'track_table_columns.dart';
+import '../../screens/detail/widgets/collection_hero.dart';
 
 /// 桌面曲目表格的列表头（Sliver，吸顶在详情页收起后的标题栏之下）：
 /// `#` · 标题 · [艺人] · [专辑] · [添加日期] · 🕒
@@ -11,42 +16,29 @@ import 'track_table_columns.dart';
 /// - 列宽与 TrackTile 共用 [TrackTableColumns]，逐列对齐；
 /// - 点列名按该列排序（规则见 [TrackSort.tap]），当前排序列高亮并带方向箭头；
 /// - 吸顶后铺上底色，避免与下面滚动的曲目重叠。
-class TrackTableHeader extends StatelessWidget {
+/// 桌面曲目表格的列表头内容（纯 Widget，用于一体化吸顶栏或流式列表）：
+/// `#` · 标题 · [艺人] · [专辑] · [添加日期] · 🕒
+///
+/// - 列宽与 TrackTile 共用 [TrackTableColumns]，逐列对齐；
+/// - 点列名按该列排序（规则见 [TrackSort.tap]），当前排序列高亮并带方向箭头。
+class TrackTableHeaderContent extends StatelessWidget {
   final TrackTableColumns columns;
   final TrackSort sort;
   final ValueChanged<TrackSortKey> onSort;
+  final bool showBottomBorder;
 
-  const TrackTableHeader({super.key, required this.columns, required this.sort, required this.onSort});
-
-  static const double height = 40;
+  const TrackTableHeaderContent({
+    super.key,
+    required this.columns,
+    required this.sort,
+    required this.onSort,
+    this.showBottomBorder = false,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return SliverPersistentHeader(
-      pinned: true,
-      delegate: _Delegate(columns: columns, sort: sort, onSort: onSort),
-    );
-  }
-}
-
-class _Delegate extends SliverPersistentHeaderDelegate {
-  final TrackTableColumns columns;
-  final TrackSort sort;
-  final ValueChanged<TrackSortKey> onSort;
-
-  _Delegate({required this.columns, required this.sort, required this.onSort});
-
-  @override
-  double get minExtent => TrackTableHeader.height;
-
-  @override
-  double get maxExtent => TrackTableHeader.height;
-
-  @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     final l10n = context.l10n;
     final scheme = Theme.of(context).colorScheme;
-    final stuck = overlapsContent || shrinkOffset > 0;
 
     Widget cell(TrackSortKey key, String label, {TextAlign align = TextAlign.start}) => _SortLabel(
       label: label,
@@ -56,11 +48,8 @@ class _Delegate extends SliverPersistentHeaderDelegate {
       onTap: () => onSort(key),
     );
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: stuck ? scheme.surfaceContainer : null,
-        border: Border(bottom: BorderSide(color: scheme.onSurface.withAlpha(28))),
-      ),
+    final row = SizedBox(
+      height: TrackTableHeader.height,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: TrackTableColumns.horizontalPadding),
         child: Row(
@@ -99,10 +88,118 @@ class _Delegate extends SliverPersistentHeaderDelegate {
         ),
       ),
     );
+
+    if (showBottomBorder) {
+      return DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: scheme.onSurface.withAlpha(20))),
+        ),
+        child: row,
+      );
+    }
+    return row;
   }
+}
+
+/// 桌面曲目表格的列表头（Sliver）：
+/// 平时随页面流动，当滑动到 64dp（吸顶标题栏下方）时自动停留在该位置吸顶，
+/// 并呈现高饱和 Tint Glass 着色玻璃与毛玻璃效果。
+class TrackTableHeader extends StatelessWidget {
+  final TrackTableColumns columns;
+  final TrackSort sort;
+  final ValueChanged<TrackSortKey> onSort;
+
+  const TrackTableHeader({super.key, required this.columns, required this.sort, required this.onSort});
+
+  static const double height = 40;
 
   @override
-  bool shouldRebuild(_Delegate old) => old.columns != columns || old.sort != sort || old.onSort != onSort;
+  Widget build(BuildContext context) {
+    return SliverLayoutBuilder(
+      builder: (context, constraints) {
+        // 当 scrollOffset > 0 时，说明表头已滑动到 64dp 处停住吸附；
+        // 当 scrollOffset == 0 时，说明表头还在流式向上滑动，背景完全透明！
+        final bool stuck = constraints.scrollOffset > 0;
+        final scheme = Theme.of(context).colorScheme;
+        final tone = CollectionTint.maybeOf(context);
+        final hyper = context.tokens.hyperMaterial;
+
+        final content = TrackTableHeaderContent(
+          columns: columns,
+          sort: sort,
+          onSort: onSort,
+          showBottomBorder: !stuck,
+        );
+
+        final Widget bar;
+        if (!stuck) {
+          // 未滑动到 64dp 前：随页面正常流动，100% 透明无底色，绝不显现突兀色块
+          bar = content;
+        } else if (hyper) {
+          // 滑动到 64dp 停住吸附时：接续顶栏 [60, 52, 44, 36]，呈现下半段 [28, 20, 12, 4] 渐变模糊，
+          // 上沿着色 0.65 与顶栏底沿 0.65 浑然一体，下沿平滑羽化至 0.18
+          final effectiveColor = tone ?? scheme.surface;
+          bar = Stack(
+            fit: StackFit.expand,
+            children: [
+              Column(
+                children: [
+                  for (final radius in const [28.0, 20.0, 12.0, 4.0])
+                    Expanded(
+                      child: ClipRect(
+                        child: BackdropFilter.grouped(
+                          filter: ImageFilter.blur(
+                            sigmaX: HyperBlendSurface.blurSigma(radius),
+                            sigmaY: HyperBlendSurface.blurSigma(radius),
+                            tileMode: TileMode.mirror,
+                          ),
+                          child: const SizedBox.expand(),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      effectiveColor.withValues(alpha: 0.65),
+                      effectiveColor.withValues(alpha: 0.18),
+                    ],
+                  ),
+                  border: Border(
+                    bottom: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.12),
+                      width: 0.6,
+                    ),
+                  ),
+                ),
+                child: const SizedBox.expand(),
+              ),
+              content,
+            ],
+          );
+        } else {
+          bar = DecoratedBox(
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainer,
+              border: Border(bottom: BorderSide(color: scheme.onSurface.withAlpha(28))),
+            ),
+            child: content,
+          );
+        }
+
+        return PinnedHeaderSliver(
+          child: SizedBox(
+            height: height,
+            child: bar,
+          ),
+        );
+      },
+    );
+  }
 }
 
 /// 可点击的列名（或图标）：悬停变亮，当前排序列高亮并显示 ▲ / ▼。

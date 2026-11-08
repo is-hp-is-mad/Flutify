@@ -93,4 +93,6 @@ dependencies {
     // 桌面小组件：Glance（核心自带 GlanceTheme，31+ 自动 Material You 动态取色）+ Palette 封面取色
     implementation("androidx.glance:glance-appwidget:1.1.1")
     implementation("androidx.palette:palette:1.0.0")
+    // 小米柔光玻璃与跨品牌通用 Android SDK
+    implementation(project(":hyperglass"))
 }

@@ -527,7 +527,7 @@ class _ProgressOverlay extends StatelessWidget {
             Text(
               text,
               style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 8),
@@ -593,7 +593,7 @@ class _RegionBlockedView extends StatelessWidget {
                     l10n.webLoginRegionBlockedTitle,
                     textAlign: TextAlign.center,
                     style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -601,7 +601,7 @@ class _RegionBlockedView extends StatelessWidget {
                     code,
                     style: theme.textTheme.labelLarge?.copyWith(
                       color: colorScheme.error,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w600,
                       letterSpacing: 1,
                     ),
                   ),

@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:hyper_glass/hyper_ui.dart' show Pressable;
 
 import '../../../../core/theme/flutify_tokens.dart';
 import '../../../../core/theme/md3e_shapes.dart';
@@ -40,7 +41,7 @@ class HomeShortcutsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final titleStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700, height: 1.25);
+    final titleStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600, height: 1.25);
     final twoLines = TextMetrics.lineHeight(context, titleStyle) * 2 + 8;
 
     return SliverPadding(
@@ -130,54 +131,73 @@ class _ShortcutTileState extends State<_ShortcutTile> {
     return HoverBuilder(
       cursor: SystemMouseCursors.click,
       onHoverChanged: _onHoverChanged,
-      builder: (context, hovered) => Material(
-        color: hovered ? colorScheme.surfaceContainerHighest : colorScheme.surfaceContainerHigh,
-        borderRadius: radius,
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          mouseCursor: SystemMouseCursors.click,
-          onTap: () => HomeItemActions.open(context, item),
-          hoverColor: Colors.transparent,
-          child: Row(
-            children: [
-              // 封面贴左、上下居中；行高大于封面时（大字号）上下留白
-              SizedBox(
-                width: cover,
-                height: cover,
-                child: CoverImage(
-                  url: liked ? HomeItemCard.likedSongsCover : item.imageUrl,
-                  size: cover,
-                  circular: item.isCircular,
-                  placeholderIcon: item.isCircular ? Icons.person_rounded : Icons.music_note_rounded,
-                ),
+      builder: (context, hovered) {
+        final content = Row(
+          children: [
+            // 封面贴左、上下居中；行高大于封面时（大字号）上下留白
+            SizedBox(
+              width: cover,
+              height: cover,
+              child: CoverImage(
+                url: liked ? HomeItemCard.likedSongsCover : item.imageUrl,
+                size: cover,
+                circular: item.isCircular,
+                placeholderIcon: item.isCircular ? Icons.person_rounded : Icons.music_note_rounded,
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  HomeItemCard.titleOf(context.l10n, item),
-                  style: titleStyle,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                HomeItemCard.titleOf(context.l10n, item),
+                style: titleStyle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-              if (showPlay)
-                AnimatedOpacity(
-                  opacity: hovered ? 1 : 0,
-                  duration: context.motion(const Duration(milliseconds: 160)),
-                  child: IgnorePointer(
-                    ignoring: !hovered,
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: _PlayButton(onPressed: () => HomeItemActions.play(context, item)),
-                    ),
+            ),
+            if (showPlay)
+              AnimatedOpacity(
+                opacity: hovered ? 1 : 0,
+                duration: context.motion(const Duration(milliseconds: 160)),
+                child: IgnorePointer(
+                  ignoring: !hovered,
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: _PlayButton(onPressed: () => HomeItemActions.play(context, item)),
                   ),
-                )
-              else
-                const SizedBox(width: 8),
-            ],
+                ),
+              )
+            else
+              const SizedBox(width: 8),
+          ],
+        );
+
+        if (tokens.hyperMaterial) {
+          return Pressable(
+            onTap: () => HomeItemActions.open(context, item),
+            child: AnimatedContainer(
+              duration: context.motion(const Duration(milliseconds: 200)),
+              decoration: BoxDecoration(
+                color: hovered ? colorScheme.surfaceContainerHighest : colorScheme.surfaceContainerHigh,
+                borderRadius: radius,
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: content,
+            ),
+          );
+        }
+
+        return Material(
+          color: hovered ? colorScheme.surfaceContainerHighest : colorScheme.surfaceContainerHigh,
+          borderRadius: radius,
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            mouseCursor: SystemMouseCursors.click,
+            onTap: () => HomeItemActions.open(context, item),
+            hoverColor: Colors.transparent,
+            child: content,
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -194,24 +214,42 @@ class _PlayButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = context.tokens;
     final hyper = tokens.hyperMaterial;
+
+    final icon = SizedBox.square(
+      dimension: _size,
+      child: Icon(
+        Icons.play_arrow_rounded,
+        size: 22,
+        color: hyper ? Theme.of(context).colorScheme.onPrimary : tokens.onAccent,
+      ),
+    );
+
+    if (hyper) {
+      return Pressable(
+        onTap: onPressed,
+        child: Container(
+          width: _size,
+          height: _size,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primary,
+            shape: BoxShape.circle,
+          ),
+          child: icon,
+        ),
+      );
+    }
+
     return Material(
-      color: hyper ? Theme.of(context).colorScheme.primary : tokens.accent,
+      color: tokens.accent,
       shape: tokens.squareCorners
           ? RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))
           : const CircleBorder(),
-      elevation: hyper ? 0 : 3,
+      elevation: 3,
       child: InkWell(
         mouseCursor: SystemMouseCursors.click,
         onTap: onPressed,
         customBorder: const CircleBorder(),
-        child: SizedBox.square(
-          dimension: _size,
-          child: Icon(
-            Icons.play_arrow_rounded,
-            size: 22,
-            color: hyper ? Theme.of(context).colorScheme.onPrimary : tokens.onAccent,
-          ),
-        ),
+        child: icon,
       ),
     );
   }

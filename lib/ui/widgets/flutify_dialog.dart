@@ -57,14 +57,88 @@ class FlutifyDialog extends StatelessWidget {
   }
 
   Widget _buildDialog(BuildContext context) {
+    final hyper = context.tokens.hyperMaterial;
+    final isPortrait = MediaQuery.sizeOf(context).width < 600;
+
+    // 仅限柔光玻璃主题的竖屏模式下：依据 demo 完全对齐小米 HyperOS 原生弹窗规范
+    if (hyper && isPortrait) {
+      final dark = Theme.of(context).brightness == Brightness.dark;
+      final scheme = Theme.of(context).colorScheme;
+      final contentWidget = Container(
+        constraints: const BoxConstraints(minWidth: 280, maxWidth: 440),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  if (icon != null) ...[
+                    IconTheme.merge(
+                      data: IconThemeData(color: scheme.primary, size: 28),
+                      child: icon!,
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: scheme.onSurface,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (content != null) ...[
+              const SizedBox(height: 14),
+              Flexible(
+                child: Padding(
+                  padding: contentPadding ?? const EdgeInsets.symmetric(horizontal: 24),
+                  child: DefaultTextStyle(
+                    style: TextStyle(
+                      color: dark ? const Color(0xb3ffffff) : const Color(0x99000000),
+                      fontSize: 15,
+                      height: 1.45,
+                    ),
+                    textAlign: TextAlign.center,
+                    child: content!,
+                  ),
+                ),
+              ),
+            ],
+            if (actions.isNotEmpty) ...[
+              const SizedBox(height: 20),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
+                child: _HyperActions(actions),
+              ),
+            ] else ...[
+              const SizedBox(height: 18),
+            ],
+          ],
+        ),
+      );
+      return HyperBlendSurface(
+        material: HyperBlendSurface.dialog(context),
+        borderRadius: BorderRadius.circular(context.tokens.corner(28)),
+        bloom: HyperBlendSurface.dialogBloom(context),
+        child: contentWidget,
+      );
+    }
+
     final theme = M3ETheme.of(context);
     final dialogTheme = theme.dialogTheme;
     final scheme = theme.colorScheme;
     final padding = dialogTheme.padding;
     final hasActions = actions.isNotEmpty;
     final hasBelowHeader = content != null || hasActions;
-    // 柔光玻璃：容器换成 HyperOS 弹窗混色模糊，去掉实色底与投影；标题居中，按钮等宽铺满
-    final hyper = context.tokens.hyperMaterial;
     final align = icon == null && !hyper
         ? CrossAxisAlignment.start
         : CrossAxisAlignment.center;
@@ -175,10 +249,6 @@ class FlutifyDialog extends StatelessWidget {
   }
 }
 
-/// HyperOS 弹窗按钮：高 50、圆角 25、间距 12 的等宽胶囊，主按钮在右侧、实色。
-///
-/// 调用方传的是 [AppButton]：这里读它的标签与回调重新排版，MD3E 下原样显示。
-/// 没有实色按钮时，多个按钮里的最后一个（确认）视为主按钮；其他类型的组件原样放进去。
 class _HyperActions extends StatelessWidget {
   final List<Widget> actions;
 

@@ -89,7 +89,7 @@ class SettingsSegmented<T> extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.labelLarge?.copyWith(
-                              fontWeight: value == selected ? FontWeight.w700 : FontWeight.w500,
+                              fontWeight: value == selected ? FontWeight.w600 : FontWeight.w500,
                               color: value == selected ? colorScheme.onSurface : colorScheme.onSurfaceVariant,
                             ),
                           ),

@@ -10,6 +10,7 @@ import '../../widgets/content_bottom_spacer.dart';
 import '../detail/widgets/collection_widgets.dart';
 import '../home/widgets/home_shelf.dart';
 import '../../../core/theme/flutify_tokens.dart';
+import '../../../l10n/l10n.dart';
 import '../../widgets/hyper_surface.dart';
 
 /// 分类页（browsePage）：分类下的分区卡架，与主页同一套卡片与点击行为。
@@ -68,8 +69,8 @@ class _CategoryScreenState extends State<CategoryScreen> {
                 ? const HyperAppBarBackground()
                 : null,
             title: Text(
-              widget.category.name,
-              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+              context.l10n.categoryName(widget.category.name, widget.category.id),
+              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -82,7 +83,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
           else if (sections == null)
             const CollectionPlaceholder(loading: true)
           else if (sections.isEmpty)
-            CollectionPlaceholder(message: widget.category.name, icon: Icons.category_rounded)
+            CollectionPlaceholder(message: context.l10n.categoryName(widget.category.name, widget.category.id), icon: Icons.category_rounded)
           else
             for (final section in sections)
               SliverToBoxAdapter(

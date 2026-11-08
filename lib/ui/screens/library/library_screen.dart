@@ -182,7 +182,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                           )
                         : Text(
                             l10n.navLibrary,
-                            style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+                            style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
                           ),
                   ),
                   IconButton(
@@ -257,7 +257,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                           const SizedBox(width: 4),
                           Text(
                             _sort == _LibrarySort.recent ? l10n.librarySortRecent : l10n.librarySortAlphabetical,
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: colorScheme.onSurfaceVariant),
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: colorScheme.onSurfaceVariant),
                           ),
                         ],
                       ),
@@ -318,7 +318,7 @@ class _LibraryList extends StatelessWidget {
           leading: _ItemCover(item: item, size: 56),
           title: Text(
             item.title,
-            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -377,7 +377,7 @@ class _LibraryGrid extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 item.title,
-                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),

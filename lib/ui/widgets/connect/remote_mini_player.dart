@@ -80,26 +80,29 @@ class RemoteMiniPlayer extends StatelessWidget {
                           left: 28,
                           right: 28,
                           bottom: 3,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(1),
-                            child: RemoteProgressBuilder(
-                              builder: (context, positionMs, durationMs) =>
-                                  LinearProgressIndicator(
-                                    value: durationMs <= 0
-                                        ? 0
-                                        : (positionMs / durationMs).clamp(
-                                            0.0,
-                                            1.0,
-                                          ),
-                                    minHeight: 2,
-                                    backgroundColor:
-                                        MiniPlayerStyle.foreground(
-                                          context,
-                                        ).withAlpha(40),
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      MiniPlayerStyle.foreground(context),
+                          child: MiniPlayerFoldAway(
+                            fold: MiniPlayerDock.maybeOf(context),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(1),
+                              child: RemoteProgressBuilder(
+                                builder: (context, positionMs, durationMs) =>
+                                    LinearProgressIndicator(
+                                      value: durationMs <= 0
+                                          ? 0
+                                          : (positionMs / durationMs).clamp(
+                                              0.0,
+                                              1.0,
+                                            ),
+                                      minHeight: 2,
+                                      backgroundColor:
+                                          MiniPlayerStyle.foreground(
+                                            context,
+                                          ).withAlpha(40),
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        MiniPlayerStyle.foreground(context),
+                                      ),
                                     ),
-                                  ),
+                              ),
                             ),
                           ),
                         ),
@@ -168,7 +171,7 @@ class _RemoteMiniRow extends StatelessWidget {
                     text: title,
                     edgeFadeInset: 4,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                       color: foreground,
                     ),
                   ),
@@ -200,10 +203,15 @@ class _RemoteMiniRow extends StatelessWidget {
               ),
             ),
           ),
-          IconButton(
-            tooltip: context.l10n.deviceConnectTitle,
-            icon: Icon(Icons.devices_rounded, color: tokens.accent, size: 20),
-            onPressed: () => DevicePickerSheet.show(context),
+          // Android 悬浮栏收起后让出宽度给歌名
+          MiniPlayerFoldAway(
+            fold: MiniPlayerDock.maybeOf(context),
+            collapse: true,
+            child: IconButton(
+              tooltip: context.l10n.deviceConnectTitle,
+              icon: Icon(Icons.devices_rounded, color: tokens.accent, size: 20),
+              onPressed: () => DevicePickerSheet.show(context),
+            ),
           ),
           SizedBox.square(
             dimension: 40,

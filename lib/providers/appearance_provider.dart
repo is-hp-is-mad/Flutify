@@ -21,12 +21,15 @@ class AppearanceProvider extends ChangeNotifier {
 
   AppearanceProvider(this._storage) {
     final raw = _storage.appearanceJson;
-    if (raw.isEmpty) return;
-    try {
-      final json = jsonDecode(raw);
-      if (json is Map<String, dynamic>) _settings = AppearanceSettings.fromJson(json);
-    } catch (_) {
-      // 存储内容损坏：沿用默认外观
+    if (raw.isNotEmpty) {
+      try {
+        final json = jsonDecode(raw);
+        if (json is Map<String, dynamic>) {
+          _settings = AppearanceSettings.fromJson(json);
+        }
+      } catch (_) {
+        // 存储内容损坏：沿用默认外观
+      }
     }
   }
 

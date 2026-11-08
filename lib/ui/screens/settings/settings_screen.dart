@@ -74,33 +74,62 @@ const List<Widget> _singleColumn = [
 ];
 
 /// 移动端：单列、限宽 720（平板横屏时不拉得过长）。
-class _MobileSettings extends StatelessWidget {
+class _MobileSettings extends StatefulWidget {
   const _MobileSettings();
+
+  @override
+  State<_MobileSettings> createState() => _MobileSettingsState();
+}
+
+class _MobileSettingsState extends State<_MobileSettings> {
+  final _scroll = ScrollController();
+  bool _floating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scroll.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    final f = _scroll.hasClients && _scroll.offset > 4;
+    if (f != _floating) setState(() => _floating = f);
+  }
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final hyper = context.tokens.hyperMaterial;
     return Scaffold(
-      // 柔光玻璃的顶栏是模糊的：内容要延伸到它下面才有东西可模糊
       extendBodyBehindAppBar: hyper,
       appBar: AppBar(
         title: Text(context.l10n.commonSettings),
         backgroundColor: hyper ? Colors.transparent : null,
         flexibleSpace: hyper ? const HyperAppBarBackground() : null,
+        leading: hyper
+            ? HyperBackButton(
+                floating: _floating,
+                onPressed: () => Navigator.maybePop(context),
+              )
+            : null,
       ),
       body: SafeArea(
-        top: false, // AppBar already consumes the status bar inset.
-        bottom: false, // Included in the scroll padding below.
+        top: false,
+        bottom: false,
         child: Align(
           alignment: Alignment.topCenter,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 720),
             child: ListView(
-              // 末尾留白 = 底部播放栏 / 导航占位（MediaQuery 底部 padding）+ 基础间距
+              controller: _scroll,
               padding: EdgeInsets.fromLTRB(
                 16,
-                // 这里的 context 在 Scaffold 外层，MediaQuery 还不含顶栏高度，要自己加上
-                8 + (hyper ? MediaQuery.paddingOf(context).top + kToolbarHeight : 0),
+                16 + (hyper ? MediaQuery.paddingOf(context).top + kToolbarHeight : 0),
                 16,
                 MediaQuery.paddingOf(context).bottom + 40,
               ),
@@ -193,7 +222,7 @@ class _DesktopSettings extends StatelessWidget {
                   children: [
                     Text(
                       context.l10n.commonSettings,
-                      style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900, letterSpacing: -0.5),
+                      style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w600, letterSpacing: -0.5),
                     ),
                     const SizedBox(height: 24),
                     body,

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:hyper_glass/hyper_glass.dart';
 
 import '../../../core/theme/flutify_tokens.dart';
+import '../../widgets/hyper_surface.dart';
 import '../../widgets/liquid_glass.dart';
 import 'player_lyrics_layout.dart';
 import 'player_lyrics_motion.dart';
@@ -432,39 +433,40 @@ class _AndroidPlayerSceneState extends State<AndroidPlayerScene>
                             ),
                             slot(
                               PlayerSceneSlot.surface,
-                              // 柔光玻璃：官方 HyperGlassScene 让卡片玻璃随 progress 渐显，保持原样。
-                              // MD3E：用非线性 _FrameReveal 过渡，避免方框突然出现 / 消失。
-                              context.tokens.hyperMaterial
-                                  ? IgnorePointer(
-                                      ignoring: progress == 0,
-                                      child: Opacity(
-                                        opacity: progress,
-                                        child: _cardHitRegion(
-                                          LiquidGlass(
-                                            key: const ValueKey(
-                                              'lyrics-control-card',
-                                            ),
-                                            borderRadius: context.tokens.radius(
-                                              28,
-                                            ),
-                                            child: const ColoredBox(
-                                              color: Color(0x59101216),
+                                // 柔光玻璃：官方 HyperGlassScene 让卡片玻璃随 progress 渐显，保持原样。
+                                // MD3E：用非线性 _FrameReveal 过渡，避免方框突然出现 / 消失。
+                                context.tokens.hyperMaterial
+                                    ? IgnorePointer(
+                                        ignoring: progress == 0,
+                                        child: Opacity(
+                                          opacity: progress,
+                                          child: _cardHitRegion(
+                                            HyperBlendSurface(
+                                              key: const ValueKey(
+                                                'lyrics-control-card',
+                                              ),
+                                              material: HyperBlendSurface.bar(context),
+                                              borderRadius: context.tokens.radius(28),
+                                              bloom: HyperBlendSurface.barBloom(context),
+                                              shadow: true,
+                                              child: const ColoredBox(
+                                                color: Color(0x33101216),
+                                              ),
                                             ),
                                           ),
                                         ),
-                                      ),
-                                    )
-                                  : _FrameReveal(
-                                      t: _motion.frame.value,
-                                      blurSigma: context.tokens.glassSigma,
-                                      borderRadius: context.tokens.radius(28),
-                                      child: _cardHitRegion(
-                                        const ColoredBox(
-                                          key: ValueKey('lyrics-control-card'),
-                                          color: Color(0x59101216),
+                                      )
+                                    : _FrameReveal(
+                                        t: _motion.frame.value,
+                                        blurSigma: context.tokens.glassSigma,
+                                        borderRadius: context.tokens.radius(28),
+                                        child: _cardHitRegion(
+                                          const ColoredBox(
+                                            key: ValueKey('lyrics-control-card'),
+                                            color: Color(0x59101216),
+                                          ),
                                         ),
                                       ),
-                                    ),
                             ),
                             slot(
                               PlayerSceneSlot.title,

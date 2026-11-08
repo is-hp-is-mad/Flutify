@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:hyper_glass/hyper_ui.dart' show Pressable;
 import 'package:provider/provider.dart';
 
+import '../../core/theme/flutify_tokens.dart';
 import '../../l10n/l10n.dart';
 import '../../models/playback_state.dart';
 import '../../models/track.dart';
@@ -32,6 +34,47 @@ class PlayPauseButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final (isPlaying, isBuffering) =
         context.select<PlaybackProvider, (bool, bool)>((p) => (p.isPlaying, p.isBuffering));
+    final tokens = context.tokens;
+
+    final inner = Stack(
+      alignment: Alignment.center,
+      children: [
+        if (isBuffering)
+          SizedBox(
+            width: size - 8,
+            height: size - 8,
+            child: FlutifySpinner(size: size - 8, color: foreground.withAlpha(90)),
+          ),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 180),
+          transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
+          child: Icon(
+            isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+            key: ValueKey(isPlaying),
+            color: foreground,
+            size: iconSize,
+          ),
+        ),
+      ],
+    );
+
+    if (tokens.hyperMaterial) {
+      return SizedBox(
+        width: size,
+        height: size,
+        child: Pressable(
+          onTap: () => context.read<PlaybackProvider>().togglePlayPause(),
+          child: AnimatedContainer(
+            duration: backgroundAnimationDuration,
+            decoration: BoxDecoration(
+              color: background,
+              shape: BoxShape.circle,
+            ),
+            child: inner,
+          ),
+        ),
+      );
+    }
 
     return SizedBox(
       width: size,
@@ -44,27 +87,7 @@ class PlayPauseButton extends StatelessWidget {
           customBorder: const CircleBorder(),
           mouseCursor: SystemMouseCursors.click,
           onTap: () => context.read<PlaybackProvider>().togglePlayPause(),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              if (isBuffering)
-                SizedBox(
-                  width: size - 8,
-                  height: size - 8,
-                  child: FlutifySpinner(size: size - 8, color: foreground.withAlpha(90)),
-                ),
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 180),
-                transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
-                child: Icon(
-                  isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                  key: ValueKey(isPlaying),
-                  color: foreground,
-                  size: iconSize,
-                ),
-              ),
-            ],
-          ),
+          child: inner,
         ),
       ),
     );
@@ -156,14 +179,16 @@ class SkipButton extends StatelessWidget {
 class LikeButton extends StatelessWidget {
   final SpotifyTrack track;
   final double size;
-  final Color inactiveColor;
+  final Color? inactiveColor;
 
-  const LikeButton({super.key, required this.track, this.size = 24, this.inactiveColor = Colors.white});
+  const LikeButton({super.key, required this.track, this.size = 24, this.inactiveColor});
 
   @override
   Widget build(BuildContext context) {
     final liked = context.select<LibraryProvider, bool>((l) => l.isLiked(track.id));
-    final primary = Theme.of(context).colorScheme.primary;
+    final colorScheme = Theme.of(context).colorScheme;
+    final primary = colorScheme.primary;
+    final inactive = inactiveColor ?? colorScheme.onSurfaceVariant;
     return IconButton(
       tooltip: liked ? context.l10n.likeRemove : context.l10n.likeAdd,
       icon: AnimatedSwitcher(
@@ -173,7 +198,7 @@ class LikeButton extends StatelessWidget {
           liked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
           key: ValueKey(liked),
           size: size,
-          color: liked ? primary : inactiveColor,
+          color: liked ? primary : inactive,
         ),
       ),
       onPressed: () => context.read<LibraryProvider>().toggleLike(track),

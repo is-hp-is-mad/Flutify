@@ -40,7 +40,7 @@ class ShelfSection extends StatelessWidget {
                     Text(
                       title,
                       style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w600,
                         color: colorScheme.onSurface,
                       ),
                     ),
@@ -63,7 +63,7 @@ class ShelfSection extends StatelessWidget {
                     context.l10n.commonShowAll,
                     style: TextStyle(
                       color: colorScheme.primary,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w500,
                       fontSize: 13,
                     ),
                   ),

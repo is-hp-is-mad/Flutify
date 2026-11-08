@@ -17,6 +17,7 @@ import '../../shell/shell_breakpoints.dart';
 import '../../widgets/content_bottom_spacer.dart';
 import '../../widgets/menu/desktop_menu.dart';
 import '../../widgets/share/share_button.dart';
+import '../../widgets/sliver_clip.dart';
 import '../../widgets/toast/app_toast.dart';
 import '../../widgets/track_table/track_list_toolbar.dart';
 import '../../widgets/track_table/track_sort.dart';
@@ -360,24 +361,33 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
             else
               // 定高列表：行高由原型行量出（随字号缩放自适应）。长歌单滚动时不必逐行测量、
               // 也不用估算总长度，滚动条比例稳定，拖动滚动条跳到中段也只布局可见行。
-              SliverPrototypeExtentList(
-                prototypeItem: TrackTile(
-                  track: visible.first,
-                  index: visible.length,
-                  showCover: true,
-                  columns: columns,
-                ),
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) => _buildTile(
-                    visible[index],
-                    index,
-                    queue: sorted,
-                    ctx: playbackContext,
-                    columns: columns,
-                    ownPlaylistId: isOwn ? playlist.id : null,
-                  ),
-                  childCount: visible.length,
-                ),
+              Builder(
+                builder: (context) {
+                  final list = SliverPrototypeExtentList(
+                    prototypeItem: TrackTile(
+                      track: visible.first,
+                      index: visible.length,
+                      showCover: true,
+                      columns: columns,
+                    ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) => _buildTile(
+                        visible[index],
+                        index,
+                        queue: sorted,
+                        ctx: playbackContext,
+                        columns: columns,
+                        ownPlaylistId: isOwn ? playlist.id : null,
+                      ),
+                      childCount: visible.length,
+                    ),
+                  );
+                  if (columns != null) {
+                    final stickyTop = 64.0 + TrackTableHeader.height + MediaQuery.paddingOf(context).top;
+                    return SliverTopClip(top: stickyTop, sliver: list);
+                  }
+                  return list;
+                },
               ),
           ],
 
@@ -620,7 +630,7 @@ class _PlaylistMeta extends StatelessWidget {
                 ownerName,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontWeight: FontWeight.w700),
+                style: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
             Flexible(

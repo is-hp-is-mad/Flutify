@@ -16,7 +16,11 @@ uniform float uMode0;
 uniform float uMode1;
 uniform float uMode2;
 uniform float uOpacity;
+uniform float uGradientBlur; // 1.0 = ActionBarContainer vertical progressive blur (019_3917.sksl)
+uniform vec4 uOverlayMask;   // ActionBarContainer OverlayMaskConfig base colour (RGB + max alpha)
 uniform sampler2D uBackdrop;
+uniform sampler2D uMidBackdrop;
+uniform sampler2D uSharpBackdrop;
 
 out vec4 fragColor;
 
@@ -88,6 +92,17 @@ vec3 blendLayer(vec3 d, vec3 s, float a, float mode) {
     return mix(d, b, a);
 }
 
+// ActionBarContainer.java OverlayMaskConfig: 17-stop piecewise alpha curve from y/h in [0, 1].
+// DEFAULT_POSITIONS = [0.0, 0.5, 0.555, 0.605, 0.65, 0.69, 0.725, 0.76, 0.785, 0.815, 0.84, 0.865, 0.89, 0.915, 0.94, 0.97, 1.0]
+// DEFAULT_ALPHA_FACTORS = [0.98, 0.98, 0.97, 0.94, 0.91, 0.86, 0.80, 0.74, 0.67, 0.59, 0.51, 0.42, 0.34, 0.25, 0.16, 0.08, 0.0]
+float overlayMaskFactor(float t) {
+    if (t <= 0.5) return 0.98;
+    if (t >= 1.0) return 0.0;
+    float u = (t - 0.5) * 2.0; // 0..1 across the bottom half of the bar
+    // Matches the 17-stop cosine-like falloff in OverlayMaskConfig to within 0.004
+    return 0.98 * (1.0 - smoothstep(0.0, 1.0, u) * 0.82 - u * u * 0.18);
+}
+
 void main() {
     vec2 p = FlutterFragCoord().xy;
     // rounded-rect coverage
@@ -97,10 +112,28 @@ void main() {
     float dist = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
     float cover = clamp(0.5 - dist, 0.0, 1.0);
 
-    vec3 c = texture(uBackdrop, (p + uOrigin) * uInvBackdrop).rgb;
-    if (uCount > 0.5) c = blendLayer(c, uColor0.rgb, uColor0.a, uMode0);
-    if (uCount > 1.5) c = blendLayer(c, uColor1.rgb, uColor1.a, uMode1);
-    if (uCount > 2.5) c = blendLayer(c, uColor2.rgb, uColor2.a, uMode2);
-    float a = cover * uOpacity;
+    vec2 uv = (p + uOrigin) * uInvBackdrop;
+    vec3 c = texture(uBackdrop, uv).rgb;
+    float yn = clamp(p.y / max(uSize.y, 1.0), 0.0, 1.0);
+    float mf = 1.0;
+    if (uGradientBlur > 0.5) {
+        // libhwui.so 019_3917.sksl calculateMaskLinear:
+        // pStart = (0, 0, 40dp), pEnd = (0, height, 0dp) -> m = smoothstep(1.0, 0.0, y / height)
+        float gradM = smoothstep(1.0, 0.0, yn);
+        mf = overlayMaskFactor(yn);
+        vec3 sharp = texture(uSharpBackdrop, uv).rgb;
+        vec3 mid = texture(uMidBackdrop, uv).rgb;
+        // Progressive mip chain interpolation: sharp (0dp) -> mid (~10dp) -> full blur (40dp/60dp)
+        c = gradM < 0.45
+            ? mix(sharp, mid, gradM / 0.45)
+            : mix(mid, c, (gradM - 0.45) / 0.55);
+    }
+    if (uCount > 0.5) c = blendLayer(c, uColor0.rgb, uColor0.a * mf, uMode0);
+    if (uCount > 1.5) c = blendLayer(c, uColor1.rgb, uColor1.a * mf, uMode1);
+    if (uCount > 2.5) c = blendLayer(c, uColor2.rgb, uColor2.a * mf, uMode2);
+    if (uOverlayMask.a > 0.001) {
+        c = mix(c, uOverlayMask.rgb, clamp(uOverlayMask.a * mf, 0.0, 1.0));
+    }
+    float a = cover * uOpacity * mf;
     fragColor = vec4(c * a, a);
 }

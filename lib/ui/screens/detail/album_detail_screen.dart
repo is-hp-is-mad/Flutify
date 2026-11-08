@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 
 import '../../../core/utils/formatters.dart';
 import '../../../l10n/l10n.dart';
-import '../../../l10n/model_labels.dart';
 import '../../../models/album.dart';
 import '../../../models/playback_context.dart';
 import '../../../models/share_target.dart';
@@ -110,7 +109,7 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
                                     album.artistNames,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(fontWeight: FontWeight.w700),
+                                    style: const TextStyle(fontWeight: FontWeight.w600),
                                   ),
                                 ),
                               ],
@@ -208,7 +207,7 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
                             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                             child: Text(
                               l10n.albumMoreBy(mainArtist.name),
-                              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
                             ),
                           ),
                           SizedBox(

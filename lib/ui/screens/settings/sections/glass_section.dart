@@ -13,7 +13,7 @@ import '../widgets/settings_slider_tile.dart';
 /// 材质：在「MD3E」和「柔光玻璃（Beta）」之间切换，各自有不同的预览和选项。
 ///
 /// MD3E：实时预览 + 模糊强度 + 不透明度；拖动滑杆时只把草稿值交给预览（局部重绘），
-/// 松手才写入全局外观。柔光玻璃：动态预览（玻璃卡片 + 可展开的模糊菜单），选项待定。
+/// 松手才写入全局外观。柔光玻璃：动态预览（玻璃卡片 + 可展开的模糊菜单）。
 class GlassSection extends StatefulWidget {
   const GlassSection({super.key});
 
@@ -63,30 +63,30 @@ class _GlassSectionState extends State<GlassSection> {
             ),
           ),
         ] else ...[
-        Padding(
-          padding: const EdgeInsets.all(12),
-          child: GlassPreview(blur: _blurDraft, opacity: _opacityDraft),
-        ),
-        SettingsSliderTile(
-          title: l10n.settingsGlassBlur,
-          labelOf: _percent,
-          value: settings.glassBlur,
-          divisions: 20,
-          minIcon: Icons.blur_off_rounded,
-          maxIcon: Icons.blur_on_rounded,
-          onPreview: (v) => setState(() => _blurDraft = v),
-          onChanged: (v) => provider.update(settings.copyWith(glassBlur: v)),
-        ),
-        SettingsSliderTile(
-          title: l10n.settingsGlassOpacity,
-          labelOf: _percent,
-          value: settings.glassOpacity,
-          divisions: 20,
-          minIcon: Icons.circle_outlined,
-          maxIcon: Icons.circle_rounded,
-          onPreview: (v) => setState(() => _opacityDraft = v),
-          onChanged: (v) => provider.update(settings.copyWith(glassOpacity: v)),
-        ),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: GlassPreview(blur: _blurDraft, opacity: _opacityDraft),
+          ),
+          SettingsSliderTile(
+            title: l10n.settingsGlassBlur,
+            labelOf: _percent,
+            value: settings.glassBlur,
+            divisions: 20,
+            minIcon: Icons.blur_off_rounded,
+            maxIcon: Icons.blur_on_rounded,
+            onPreview: (v) => setState(() => _blurDraft = v),
+            onChanged: (v) => provider.update(settings.copyWith(glassBlur: v)),
+          ),
+          SettingsSliderTile(
+            title: l10n.settingsGlassOpacity,
+            labelOf: _percent,
+            value: settings.glassOpacity,
+            divisions: 20,
+            minIcon: Icons.circle_outlined,
+            maxIcon: Icons.circle_rounded,
+            onPreview: (v) => setState(() => _opacityDraft = v),
+            onChanged: (v) => provider.update(settings.copyWith(glassOpacity: v)),
+          ),
         ],
       ],
     );

@@ -136,7 +136,7 @@ class _SectionHeader extends StatelessWidget {
                 title,
                 style: Theme.of(
                   context,
-                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -240,7 +240,7 @@ class _QueueRow extends StatelessWidget {
         title,
         style: TextStyle(
           color: highlighted ? colorScheme.primary : colorScheme.onSurface,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w600,
         ),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,

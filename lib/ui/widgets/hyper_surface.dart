@@ -171,19 +171,44 @@ class HyperBlendSurface extends StatelessWidget {
 /// `BackdropFilter` 不能加渐变遮罩（遮罩的离屏层里没有背景可采样），所以切成几条，模糊半径逐条
 /// 减小到接近 0，再叠一层同样渐隐的窗口色盖住接缝。
 class HyperAppBarBackground extends StatelessWidget {
-  const HyperAppBarBackground({super.key});
+  final Color? tintColor;
+  final bool showBottomLine;
+  final bool isDesktop;
 
-  /// 从上到下每一条的 LM 半径。
-  static const List<double> bandRadii = [60, 52, 44, 36, 28, 20, 12, 5];
+  const HyperAppBarBackground({
+    super.key,
+    this.tintColor,
+    this.showBottomLine = true,
+    this.isDesktop = false,
+  });
 
-  // 遮罩的位置取自 miuix 的 gradientBlur，强度减弱：系统顶部几乎不透明，这里要让模糊看得见
-  static const List<double> _tintAlpha = [0.78, 0.66, 0.42, 0.18, 0];
-  static const List<double> _tintStops = [0, 0.5, 0.72, 0.88, 1];
+  /// 移动端：从上到下每一条的 LM 半径，平滑羽化归零。
+  static const List<double> bandRadii = [60, 52, 44, 36, 28, 20, 12, 4];
+
+  /// 桌面端：从上到下每一条的 LM 半径，与表头下半段 [28, 20, 12, 4] 顺畅衔接。
+  static const List<double> desktopBandRadii = [60, 52, 44, 36];
+
+  // 遮罩的位置取自 miuix 的 gradientBlur
+  static const List<double> _tintAlpha = [0.82, 0.70, 0.48, 0.24, 0.0];
+  static const List<double> _tintStops = [0, 0.48, 0.70, 0.88, 1.0];
+
+  // 移动端着色玻璃（Tint Glass）：色彩高饱和晶莹透亮，下沿平滑羽化归零
+  static const List<double> _translucentTintAlpha = [0.90, 0.78, 0.55, 0.25, 0.0];
+
+  // 桌面端着色玻璃（Tint Glass）：保留通透渐变，下沿 0.65 保底与表头完美无缝咬合
+  static const List<double> _desktopTintAlpha = [0.92, 0.85, 0.76, 0.65];
+  static const List<double> _desktopTintStops = [0.0, 0.35, 0.70, 1.0];
 
   @override
   Widget build(BuildContext context) {
     final window = Theme.of(context).colorScheme.surface;
-    final solid = ColoredBox(color: window);
+    final effectiveColor = tintColor ?? window;
+    final alphas = isDesktop
+        ? _desktopTintAlpha
+        : (tintColor != null ? _translucentTintAlpha : _tintAlpha);
+    final stops = isDesktop ? _desktopTintStops : _tintStops;
+    final activeBandRadii = isDesktop ? desktopBandRadii : bandRadii;
+    final solid = ColoredBox(color: effectiveColor);
     if (context.tokens.powerSaving ||
         PerfFlags.noBackdrop ||
         DebugToggles.of(context).isOff(DebugToggle.glassBackdrop)) {
@@ -198,7 +223,7 @@ class HyperAppBarBackground extends StatelessWidget {
           children: [
             Column(
               children: [
-                for (final radius in bandRadii)
+                for (final radius in activeBandRadii)
                   Expanded(
                     child: ClipRect(
                       child: BackdropFilter.grouped(
@@ -219,12 +244,22 @@ class HyperAppBarBackground extends StatelessWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    for (final a in _tintAlpha) window.withValues(alpha: a),
+                    for (final a in alphas) effectiveColor.withValues(alpha: a),
                   ],
-                  stops: _tintStops,
+                  stops: stops,
                 ),
               ),
             ),
+            if (tintColor != null && showBottomLine)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: 0.6,
+                child: ColoredBox(
+                  color: Colors.white.withValues(alpha: 0.12),
+                ),
+              ),
           ],
         );
       },
@@ -240,15 +275,11 @@ class HyperCircleIcon extends StatelessWidget {
 
   static const double size = 40;
 
-  /// AppBar 的图标槽：按钮比 24dp 的图标位大，放不下的部分往外溢出。
-  static Widget inIconSlot(IconData icon) => SizedBox.square(
-    dimension: 24,
-    child: OverflowBox(
-      minWidth: size,
-      maxWidth: size,
-      minHeight: size,
-      maxHeight: size,
-      child: HyperCircleIcon(icon),
+  /// AppBar 的图标槽：未发生滚动时不画实体底盘，采用 HyperOS 原生纤细图标避免遮挡正文。
+  static Widget inIconSlot(IconData icon) => Center(
+    child: Icon(
+      icon,
+      size: 19,
     ),
   );
 
@@ -266,6 +297,64 @@ class HyperCircleIcon extends StatelessWidget {
             icon,
             size: 22,
             color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+
+/// HyperOS 规范的返回按钮：未发生滚动时为纯净纤细箭头（19dp），一旦向下滑动列表触发顶栏模糊，
+/// 背后平滑淡入并弹性缩放浮现出一个细节性的柔光玻璃圆形突出底座（HyperBlendSurface）。
+class HyperBackButton extends StatelessWidget {
+  final VoidCallback? onPressed;
+  final bool floating;
+  final Color? color;
+
+  const HyperBackButton({
+    super.key,
+    this.onPressed,
+    this.floating = false,
+    this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final fg = color ?? Theme.of(context).colorScheme.onSurface;
+    return Center(
+      child: SizedBox.square(
+        dimension: 40,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onPressed ?? () => Navigator.maybePop(context),
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(end: floating ? 1 : 0),
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOut,
+            builder: (context, v, child) => Stack(
+              fit: StackFit.expand,
+              children: [
+                if (v > 0.001)
+                  Transform.scale(
+                    scale: 0.8 + 0.2 * v,
+                    child: Opacity(
+                      opacity: v,
+                      child: HyperBlendSurface(
+                        material: HyperBlendSurface.bar(context),
+                        borderRadius: BorderRadius.circular(20),
+                        bloom: HyperBlendSurface.barBloom(context),
+                        shadow: true,
+                        child: const SizedBox.expand(),
+                      ),
+                    ),
+                  ),
+                child!,
+              ],
+            ),
+            child: Center(
+              child: Icon(Icons.arrow_back_rounded, color: fg, size: 19),
+            ),
           ),
         ),
       ),
