@@ -1,8 +1,0 @@
-fix(ui): pin table header only when scrolled to sticky threshold
-
-- Revert premature top bar header insertion from CollectionHero, ensuring only a single header exists
-- Implement TrackTableHeader using PinnedHeaderSliver: flows naturally below action row, and pins precisely at 64dp under collapsed title bar when scrolled to threshold
-- Apply Tint Glass backdrop blur, 70% saturated surface color, and 1dp negative top margin to eliminate sub-pixel seams
-- Add dedicated regression test in track_table_header_test.dart
-
-Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>

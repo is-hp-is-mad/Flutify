@@ -132,7 +132,7 @@ void main() {
       expect(title.text, _longTrack.name);
       // Same metadata as the mobile lyrics card: bold, shrunk with the cover.
       expect(title.style?.fontSize, closeTo(22 * 0.65, 0.5));
-      expect(title.style?.fontWeight, FontWeight.w800);
+      expect(title.style?.fontWeight, FontWeight.w600);
       expect(_titleScroll, findsOneWidget);
       expect(_offset(tester), 0);
       await tester.pump(const Duration(seconds: 3));
