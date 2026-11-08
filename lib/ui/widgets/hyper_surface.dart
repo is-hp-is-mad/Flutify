@@ -171,7 +171,9 @@ class HyperBlendSurface extends StatelessWidget {
 /// `BackdropFilter` 不能加渐变遮罩（遮罩的离屏层里没有背景可采样），所以切成几条，模糊半径逐条
 /// 减小到接近 0，再叠一层同样渐隐的窗口色盖住接缝。
 class HyperAppBarBackground extends StatelessWidget {
-  const HyperAppBarBackground({super.key});
+  final Color? tintColor;
+
+  const HyperAppBarBackground({super.key, this.tintColor});
 
   /// 从上到下每一条的 LM 半径。
   static const List<double> bandRadii = [60, 52, 44, 36, 28, 20, 12, 5];
@@ -180,10 +182,17 @@ class HyperAppBarBackground extends StatelessWidget {
   static const List<double> _tintAlpha = [0.78, 0.66, 0.42, 0.18, 0];
   static const List<double> _tintStops = [0, 0.5, 0.72, 0.88, 1];
 
+  // 着色玻璃（Tint Glass）：更轻薄、更透明，透出下方滚动的曲目与背景
+  static const List<double> _translucentTintAlpha = [0.52, 0.38, 0.20, 0.06, 0];
+
   @override
   Widget build(BuildContext context) {
     final window = Theme.of(context).colorScheme.surface;
-    final solid = ColoredBox(color: window);
+    final effectiveColor = tintColor != null
+        ? Color.lerp(window, tintColor, 0.45)!
+        : window;
+    final alphas = tintColor != null ? _translucentTintAlpha : _tintAlpha;
+    final solid = ColoredBox(color: effectiveColor);
     if (context.tokens.powerSaving ||
         PerfFlags.noBackdrop ||
         DebugToggles.of(context).isOff(DebugToggle.glassBackdrop)) {
@@ -219,12 +228,22 @@ class HyperAppBarBackground extends StatelessWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    for (final a in _tintAlpha) window.withValues(alpha: a),
+                    for (final a in alphas) effectiveColor.withValues(alpha: a),
                   ],
                   stops: _tintStops,
                 ),
               ),
             ),
+            if (tintColor != null)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: 0.6,
+                child: ColoredBox(
+                  color: Colors.white.withValues(alpha: 0.1),
+                ),
+              ),
           ],
         );
       },

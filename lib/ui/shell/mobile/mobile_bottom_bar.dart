@@ -84,7 +84,7 @@ class _GlassNavigationPill extends StatelessWidget {
 
     if (tokens.hyperMaterial) {
       return Padding(
-        padding: EdgeInsets.fromLTRB(20, 0, 20, bottomSafe + 12),
+        padding: EdgeInsets.only(bottom: bottomSafe + 12),
         child: HyperBottomBar(
           index: selectedIndex,
           onChanged: onSelected,

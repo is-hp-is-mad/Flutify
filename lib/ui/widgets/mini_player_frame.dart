@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../core/theme/flutify_tokens.dart';
@@ -8,8 +10,8 @@ import 'hyper_surface.dart';
 ///
 /// MD3E：横向铺满、封面取色的胶囊。柔光玻璃：与底栏等宽、等高的浮动控件材质，下方内容透过模糊可见。
 abstract final class MiniPlayerStyle {
-  /// 与底栏（miuix BottomNavigator）相同：最宽 344，左右留 24。
-  static const double _hyperMaxWidth = 344;
+  /// 与底栏（miuix BottomNavigator）相同：自适应宽度（小屏横向填满留 20dp 边距，大屏最大 480）。
+  static const double _hyperMaxWidth = 480;
 
   static double artworkSize(BuildContext context) =>
       context.tokens.hyperMaterial ? 40 : 44;
@@ -45,16 +47,21 @@ class MiniPlayerBounds extends StatelessWidget {
         child: child,
       );
     }
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 6, 24, 8),
-      child: Align(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(
-            maxWidth: MiniPlayerStyle._hyperMaxWidth,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // 自适应宽度：与底部 Tab 栏完全一致（小屏两侧留 20dp，大屏等比例最大 480）
+        final avail = math.max(0.0, constraints.maxWidth - 40);
+        final barW = avail.clamp(280.0, MiniPlayerStyle._hyperMaxWidth);
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(0, 6, 0, 8),
+          child: Center(
+            child: SizedBox(
+              width: barW,
+              child: child,
+            ),
           ),
-          child: child,
-        ),
-      ),
+        );
+      },
     );
   }
 }

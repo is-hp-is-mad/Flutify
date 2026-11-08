@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:hyper_glass/hyper_glass.dart';
 
 import '../../../core/theme/flutify_tokens.dart';
+import '../../widgets/hyper_surface.dart';
 import '../../widgets/liquid_glass.dart';
 import 'player_lyrics_layout.dart';
 import 'player_lyrics_motion.dart';
@@ -425,15 +426,28 @@ class _AndroidPlayerSceneState extends State<AndroidPlayerScene>
                                 child: Opacity(
                                   opacity: progress,
                                   child: _cardHitRegion(
-                                    LiquidGlass(
-                                      key: const ValueKey(
-                                        'lyrics-control-card',
-                                      ),
-                                      borderRadius: context.tokens.radius(28),
-                                      child: const ColoredBox(
-                                        color: Color(0x59101216),
-                                      ),
-                                    ),
+                                    context.tokens.hyperMaterial
+                                        ? HyperBlendSurface(
+                                            key: const ValueKey(
+                                              'lyrics-control-card',
+                                            ),
+                                            material: HyperBlendSurface.bar(context),
+                                            borderRadius: context.tokens.radius(28),
+                                            bloom: HyperBlendSurface.barBloom(context),
+                                            shadow: true,
+                                            child: const ColoredBox(
+                                              color: Color(0x33101216),
+                                            ),
+                                          )
+                                        : LiquidGlass(
+                                            key: const ValueKey(
+                                              'lyrics-control-card',
+                                            ),
+                                            borderRadius: context.tokens.radius(28),
+                                            child: const ColoredBox(
+                                              color: Color(0x59101216),
+                                            ),
+                                          ),
                                   ),
                                 ),
                               ),

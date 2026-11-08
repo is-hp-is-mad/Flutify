@@ -245,12 +245,7 @@ class _HeroDelegate extends SliverPersistentHeaderDelegate {
                     ? Stack(
                         fit: StackFit.expand,
                         children: [
-                          const HyperAppBarBackground(),
-                          DecoratedBox(
-                            decoration: BoxDecoration(
-                              color: barColor.withValues(alpha: 0.5),
-                            ),
-                          ),
+                          HyperAppBarBackground(tintColor: barColor),
                           Padding(
                             padding: EdgeInsets.fromLTRB(showBack ? 60 : 16, topPadding, 16, 0),
                             child: Row(
@@ -514,7 +509,7 @@ class _BackCircle extends StatelessWidget {
       );
     }
     return IconButton(
-      icon: const Icon(Icons.arrow_back_ios_new),
+      icon: const Icon(Icons.arrow_back_rounded),
       tooltip: MaterialLocalizations.of(context).backButtonTooltip,
       onPressed: () => Navigator.of(context).maybePop(),
       style: IconButton.styleFrom(

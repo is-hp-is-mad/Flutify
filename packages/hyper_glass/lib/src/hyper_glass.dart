@@ -749,28 +749,19 @@ class _RenderGlass extends RenderBox {
       ..scale(size.width / w, size.height / h);
     for (final (shader, mode) in layers) {
       final rect = Rect.fromLTWH(0, 0, fw, fh);
-      if (ui.ImageFilter.isShaderFilterSupported) {
-        // Impeller's FlutterFragCoord is in device space, so the overlay is rendered at the origin first
-        final rec = ui.PictureRecorder();
-        Canvas(rec).drawRect(
-          rect,
-          Paint()
-            ..shader = shader
-            ..blendMode = BlendMode.src,
-        );
-        final pic = rec.endRecording();
-        final img = pic.toImageSync(w, h);
-        pic.dispose();
-        canvas.drawImage(img, Offset.zero, Paint()..blendMode = mode);
-        _overlayImages.add(img);
-      } else {
-        canvas.drawRect(
-          rect,
-          Paint()
-            ..shader = shader
-            ..blendMode = mode,
-        );
-      }
+      // FlutterFragCoord is in device space; render overlay at the origin first to keep coordinates aligned
+      final rec = ui.PictureRecorder();
+      Canvas(rec).drawRect(
+        rect,
+        Paint()
+          ..shader = shader
+          ..blendMode = BlendMode.src,
+      );
+      final pic = rec.endRecording();
+      final img = pic.toImageSync(w, h);
+      pic.dispose();
+      canvas.drawImage(img, Offset.zero, Paint()..blendMode = mode);
+      _overlayImages.add(img);
       _overlayShaders.add(shader);
     }
     canvas.restore();
