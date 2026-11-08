@@ -894,21 +894,6 @@ class AppLocalizationsZh extends AppLocalizations {
       '柔光玻璃（Beta）：菜单、弹窗、底部弹层、提示、底栏和播放页都换成 HyperOS 材质。启动后会在后台编译着色器。';
 
   @override
-  String get settingsHyperRenderMode => '渲染方式（仅限安卓）';
-
-  @override
-  String get settingsHyperRenderModeXiaomiNative => '小米原生';
-
-  @override
-  String get settingsHyperRenderModeXiaomiPort => '小米移植';
-
-  @override
-  String get settingsHyperRenderModeFlutterPort => '纯移植';
-
-  @override
-  String get settingsHyperRenderModeDesktopSubtitle => '仅限安卓平台生效，当前平台使用纯移植管线';
-
-  @override
   String get settingsTextShapeSection => '文字与形状';
 
   @override
@@ -2998,21 +2983,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   @override
   String get settingsHyperGlassNote =>
       '柔光玻璃（Beta）：選單、彈窗、底部彈層、提示、底欄和播放頁都換成 HyperOS 材質。啟動後會在背景編譯著色器。';
-
-  @override
-  String get settingsHyperRenderMode => '渲染方式（僅限安卓）';
-
-  @override
-  String get settingsHyperRenderModeXiaomiNative => '小米原生';
-
-  @override
-  String get settingsHyperRenderModeXiaomiPort => '小米移植';
-
-  @override
-  String get settingsHyperRenderModeFlutterPort => '純移植';
-
-  @override
-  String get settingsHyperRenderModeDesktopSubtitle => '僅限安卓平台生效，當前平台使用純移植管線';
 
   @override
   String get settingsTextShapeSection => '文字與形狀';

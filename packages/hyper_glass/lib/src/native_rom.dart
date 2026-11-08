@@ -31,7 +31,7 @@ class HyperRenderController extends ChangeNotifier {
   HyperRenderController._();
   static final HyperRenderController instance = HyperRenderController._();
 
-  HyperRenderMode _mode = HyperRenderMode.xiaomiPort;
+  HyperRenderMode _mode = HyperRenderMode.flutterPort;
   HyperRenderMode get mode => _mode;
 
   bool _queried = false;

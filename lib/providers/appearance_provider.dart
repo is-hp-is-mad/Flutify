@@ -1,16 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:hyper_glass/hyper_glass.dart';
 
 import '../core/theme/accent_colors.dart';
 import '../core/theme/md3e_theme.dart';
 import '../models/appearance.dart';
 import '../services/storage_service.dart';
 
-/// 外观设置：主题模式、强调色、动态取色、液态玻璃、纯黑、字号、圆角、减弱动效、柔光渲染模式。
+/// 外观设置：主题模式、强调色、动态取色、液态玻璃、纯黑、字号、圆角、减弱动效。
 ///
 /// - 修改立即通知（界面实时预览），写入存储做 300ms 防抖（拖动滑杆时不会每帧写盘）；
 /// - 动态取色的封面色由 `DynamicAccentSync` 写入 [setArtworkColor]，关闭动态取色时忽略。
@@ -22,26 +20,16 @@ class AppearanceProvider extends ChangeNotifier {
   Timer? _saveTimer;
 
   AppearanceProvider(this._storage) {
-    var hasSavedRenderMode = false;
     final raw = _storage.appearanceJson;
     if (raw.isNotEmpty) {
       try {
         final json = jsonDecode(raw);
         if (json is Map<String, dynamic>) {
           _settings = AppearanceSettings.fromJson(json);
-          hasSavedRenderMode = json.containsKey('hyperRenderMode');
         }
       } catch (_) {
         // 存储内容损坏：沿用默认外观
       }
-    }
-    hyperRenderController.setMode(_settings.hyperRenderMode);
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      hyperRenderController.ensureCapabilitiesLoaded().then((_) {
-        if (!hasSavedRenderMode && hyperRenderController.xiaomiNativeSupported) {
-          update(_settings.copyWith(hyperRenderMode: HyperRenderMode.xiaomiNative));
-        }
-      }).catchError((Object _) {});
     }
   }
 
@@ -55,7 +43,6 @@ class AppearanceProvider extends ChangeNotifier {
   void update(AppearanceSettings settings) {
     if (settings == _settings) return;
     _settings = settings;
-    hyperRenderController.setMode(settings.hyperRenderMode);
     notifyListeners();
     _saveTimer?.cancel();
     _saveTimer = Timer(const Duration(milliseconds: 300), _save);

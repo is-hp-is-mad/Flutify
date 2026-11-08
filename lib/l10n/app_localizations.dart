@@ -1721,36 +1721,6 @@ abstract class AppLocalizations {
   /// **'柔光玻璃（Beta）：菜单、弹窗、底部弹层、提示、底栏和播放页都换成 HyperOS 材质。启动后会在后台编译着色器。'**
   String get settingsHyperGlassNote;
 
-  /// No description provided for @settingsHyperRenderMode.
-  ///
-  /// In zh, this message translates to:
-  /// **'渲染方式（仅限安卓）'**
-  String get settingsHyperRenderMode;
-
-  /// No description provided for @settingsHyperRenderModeXiaomiNative.
-  ///
-  /// In zh, this message translates to:
-  /// **'小米原生'**
-  String get settingsHyperRenderModeXiaomiNative;
-
-  /// No description provided for @settingsHyperRenderModeXiaomiPort.
-  ///
-  /// In zh, this message translates to:
-  /// **'小米移植'**
-  String get settingsHyperRenderModeXiaomiPort;
-
-  /// No description provided for @settingsHyperRenderModeFlutterPort.
-  ///
-  /// In zh, this message translates to:
-  /// **'纯移植'**
-  String get settingsHyperRenderModeFlutterPort;
-
-  /// No description provided for @settingsHyperRenderModeDesktopSubtitle.
-  ///
-  /// In zh, this message translates to:
-  /// **'仅限安卓平台生效，当前平台使用纯移植管线'**
-  String get settingsHyperRenderModeDesktopSubtitle;
-
   /// No description provided for @settingsTextShapeSection.
   ///
   /// In zh, this message translates to:

@@ -924,22 +924,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Soft-light glass (Beta): menus, dialogs, bottom sheets, toasts, the bottom bar and the player use HyperOS materials. Shaders are compiled in the background after launch.';
 
   @override
-  String get settingsHyperRenderMode => 'Render Mode (Android Only)';
-
-  @override
-  String get settingsHyperRenderModeXiaomiNative => 'Xiaomi Native';
-
-  @override
-  String get settingsHyperRenderModeXiaomiPort => 'Xiaomi Port';
-
-  @override
-  String get settingsHyperRenderModeFlutterPort => 'Pure Port';
-
-  @override
-  String get settingsHyperRenderModeDesktopSubtitle =>
-      'Only effective on Android; using pure Flutter pipeline on this platform';
-
-  @override
   String get settingsTextShapeSection => 'Text & shape';
 
   @override

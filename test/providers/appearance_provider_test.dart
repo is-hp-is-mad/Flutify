@@ -3,7 +3,6 @@ import 'package:flutify_app/providers/appearance_provider.dart';
 import 'package:flutify_app/services/storage_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hyper_glass/hyper_glass.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -78,44 +77,10 @@ void main() {
     provider.dispose();
   });
 
-  test('hyperRenderMode defaults to xiaomiPort and drives hyperRenderController', () async {
-    final storage = await freshStorage();
+  test('legacy settings with hyperRenderMode parse gracefully', () async {
+    final storage = await freshStorage({'ui_appearance': '{"glassMaterial":"hyper","hyperRenderMode":"xiaomi_native"}'});
     final provider = AppearanceProvider(storage);
-    expect(provider.settings.hyperRenderMode, HyperRenderMode.xiaomiPort);
-    expect(hyperRenderController.mode, HyperRenderMode.xiaomiPort);
-
-    provider.update(provider.settings.copyWith(hyperRenderMode: HyperRenderMode.xiaomiNative));
-    expect(hyperRenderController.mode, HyperRenderMode.xiaomiNative);
+    expect(provider.settings.glassMaterial, GlassMaterial.hyper);
     provider.dispose();
-
-    final restored = AppearanceProvider(storage);
-    expect(restored.settings.hyperRenderMode, HyperRenderMode.xiaomiNative);
-    expect(hyperRenderController.mode, HyperRenderMode.xiaomiNative);
-
-    restored.update(restored.settings.copyWith(hyperRenderMode: HyperRenderMode.flutterPort));
-    expect(hyperRenderController.mode, HyperRenderMode.flutterPort);
-    restored.dispose();
-
-    final restoredFlutter = AppearanceProvider(storage);
-    expect(restoredFlutter.settings.hyperRenderMode, HyperRenderMode.flutterPort);
-    expect(hyperRenderController.mode, HyperRenderMode.flutterPort);
-    restoredFlutter.dispose();
-  });
-
-  test('hyperRenderMode parses from id or name, and invalid value falls back to default', () async {
-    final nativeById = await freshStorage({'ui_appearance': '{"hyperRenderMode":"xiaomi_native"}'});
-    expect(AppearanceProvider(nativeById).settings.hyperRenderMode, HyperRenderMode.xiaomiNative);
-
-    final portById = await freshStorage({'ui_appearance': '{"hyperRenderMode":"xiaomi_port"}'});
-    expect(AppearanceProvider(portById).settings.hyperRenderMode, HyperRenderMode.xiaomiPort);
-
-    final flutterById = await freshStorage({'ui_appearance': '{"hyperRenderMode":"flutter_port"}'});
-    expect(AppearanceProvider(flutterById).settings.hyperRenderMode, HyperRenderMode.flutterPort);
-
-    final nativeByName = await freshStorage({'ui_appearance': '{"hyperRenderMode":"xiaomiNative"}'});
-    expect(AppearanceProvider(nativeByName).settings.hyperRenderMode, HyperRenderMode.xiaomiNative);
-
-    final invalid = await freshStorage({'ui_appearance': '{"hyperRenderMode":"unknown_mode"}'});
-    expect(AppearanceProvider(invalid).settings.hyperRenderMode, HyperRenderMode.xiaomiPort);
   });
 }

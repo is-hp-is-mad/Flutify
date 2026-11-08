@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:hyper_glass/hyper_glass.dart';
 
 /// 圆角风格：影响卡片、封面、面板、按钮等所有圆角。
 enum CornerStyle {
@@ -56,9 +55,6 @@ class AppearanceSettings {
 
   final GlassMaterial glassMaterial;
 
-  /// 安卓端柔光玻璃原生渲染模式（小米原生、小米移植、纯移植）。
-  final HyperRenderMode hyperRenderMode;
-
   /// 液态玻璃模糊强度 0~1。
   final double glassBlur;
 
@@ -94,7 +90,6 @@ class AppearanceSettings {
     this.accent = const Color(0xFF1ED760),
     this.dynamicAccent = false,
     this.glassMaterial = GlassMaterial.liquid,
-    this.hyperRenderMode = HyperRenderMode.xiaomiPort,
     this.glassBlur = 0.6,
     this.glassOpacity = 0.3,
     this.pureBlack = false,
@@ -112,7 +107,6 @@ class AppearanceSettings {
     Color? accent,
     bool? dynamicAccent,
     GlassMaterial? glassMaterial,
-    HyperRenderMode? hyperRenderMode,
     double? glassBlur,
     double? glassOpacity,
     bool? pureBlack,
@@ -127,7 +121,6 @@ class AppearanceSettings {
       accent: accent ?? this.accent,
       dynamicAccent: dynamicAccent ?? this.dynamicAccent,
       glassMaterial: glassMaterial ?? this.glassMaterial,
-      hyperRenderMode: hyperRenderMode ?? this.hyperRenderMode,
       glassBlur: glassBlur ?? this.glassBlur,
       glassOpacity: glassOpacity ?? this.glassOpacity,
       pureBlack: pureBlack ?? this.pureBlack,
@@ -144,7 +137,6 @@ class AppearanceSettings {
         'accent': accent.toARGB32(),
         'dynamicAccent': dynamicAccent,
         'glassMaterial': glassMaterial.name,
-        'hyperRenderMode': hyperRenderMode.id,
         'glassBlur': glassBlur,
         'glassOpacity': glassOpacity,
         'pureBlack': pureBlack,
@@ -160,13 +152,6 @@ class AppearanceSettings {
     const d = defaults;
     T pick<T extends Enum>(List<T> values, Object? name, T fallback) =>
         values.firstWhere((v) => v.name == name, orElse: () => fallback);
-    HyperRenderMode pickRenderMode(Object? raw, HyperRenderMode fallback) {
-      if (raw is! String) return fallback;
-      return HyperRenderMode.values.firstWhere(
-        (m) => m.id == raw || m.name == raw,
-        orElse: () => fallback,
-      );
-    }
     double unit(Object? v, double fallback) => v is num ? v.toDouble().clamp(0.0, 1.0) : fallback;
 
     return AppearanceSettings(
@@ -174,7 +159,6 @@ class AppearanceSettings {
       accent: json['accent'] is int ? Color(json['accent'] as int) : d.accent,
       dynamicAccent: json['dynamicAccent'] is bool ? json['dynamicAccent'] as bool : d.dynamicAccent,
       glassMaterial: pick(GlassMaterial.values, json['glassMaterial'], d.glassMaterial),
-      hyperRenderMode: pickRenderMode(json['hyperRenderMode'], d.hyperRenderMode),
       glassBlur: unit(json['glassBlur'], d.glassBlur),
       glassOpacity: unit(json['glassOpacity'], d.glassOpacity),
       pureBlack: json['pureBlack'] is bool ? json['pureBlack'] as bool : d.pureBlack,
@@ -198,7 +182,6 @@ class AppearanceSettings {
       other.accent == accent &&
       other.dynamicAccent == dynamicAccent &&
       other.glassMaterial == glassMaterial &&
-      other.hyperRenderMode == hyperRenderMode &&
       other.glassBlur == glassBlur &&
       other.glassOpacity == glassOpacity &&
       other.pureBlack == pureBlack &&
@@ -214,7 +197,6 @@ class AppearanceSettings {
         accent,
         dynamicAccent,
         glassMaterial,
-        hyperRenderMode,
         glassBlur,
         glassOpacity,
         pureBlack,

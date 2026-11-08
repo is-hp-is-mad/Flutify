@@ -1,6 +1,4 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:hyper_glass/hyper_glass.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../l10n/l10n.dart';
@@ -15,7 +13,7 @@ import '../widgets/settings_slider_tile.dart';
 /// 材质：在「MD3E」和「柔光玻璃（Beta）」之间切换，各自有不同的预览和选项。
 ///
 /// MD3E：实时预览 + 模糊强度 + 不透明度；拖动滑杆时只把草稿值交给预览（局部重绘），
-/// 松手才写入全局外观。柔光玻璃：动态预览（玻璃卡片 + 可展开的模糊菜单），支持选择安卓原生渲染方式。
+/// 松手才写入全局外观。柔光玻璃：动态预览（玻璃卡片 + 可展开的模糊菜单）。
 class GlassSection extends StatefulWidget {
   const GlassSection({super.key});
 
@@ -26,12 +24,6 @@ class GlassSection extends StatefulWidget {
 class _GlassSectionState extends State<GlassSection> {
   double? _blurDraft;
   double? _opacityDraft;
-
-  @override
-  void initState() {
-    super.initState();
-    hyperRenderController.ensureCapabilitiesLoaded();
-  }
 
   static String _percent(double v) => '${(v * 100).round()}%';
 
@@ -69,47 +61,6 @@ class _GlassSectionState extends State<GlassSection> {
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
             ),
-          ),
-          ListenableBuilder(
-            listenable: hyperRenderController,
-            builder: (context, _) {
-              final isAndroid = defaultTargetPlatform == TargetPlatform.android;
-              final currentMode = settings.hyperRenderMode;
-              final subtitle = isAndroid
-                  ? switch (currentMode) {
-                      HyperRenderMode.xiaomiNative => hyperRenderController.xiaomiNativeSupported
-                          ? '已命中小米 HyperOS 原生接口 (View.setMiGlass)'
-                          : '当前设备非小米 ROM · 已触发防崩溃平滑降级',
-                      HyperRenderMode.xiaomiPort =>
-                        '已启用小米移植通用 Android SDK (${hyperRenderController.portBackend})',
-                      HyperRenderMode.flutterPort => '基于纯 Flutter FragmentShader 跨平台管线',
-                    }
-                  : l10n.settingsHyperRenderModeDesktopSubtitle;
-
-              return SettingsTile(
-                title: l10n.settingsHyperRenderMode,
-                subtitle: subtitle,
-                below: Opacity(
-                  opacity: isAndroid ? 1.0 : 0.55,
-                  child: IgnorePointer(
-                    ignoring: !isAndroid,
-                    child: SettingsSegmented<HyperRenderMode>(
-                      values: HyperRenderMode.values,
-                      selected: isAndroid ? currentMode : HyperRenderMode.flutterPort,
-                      labelOf: (m) => switch (m) {
-                        HyperRenderMode.xiaomiNative => l10n.settingsHyperRenderModeXiaomiNative,
-                        HyperRenderMode.xiaomiPort => l10n.settingsHyperRenderModeXiaomiPort,
-                        HyperRenderMode.flutterPort => l10n.settingsHyperRenderModeFlutterPort,
-                      },
-                      onChanged: (m) {
-                        hyperRenderController.setMode(m);
-                        provider.update(settings.copyWith(hyperRenderMode: m));
-                      },
-                    ),
-                  ),
-                ),
-              );
-            },
           ),
         ] else ...[
           Padding(
