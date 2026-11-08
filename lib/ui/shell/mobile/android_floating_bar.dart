@@ -14,35 +14,47 @@ import '../../widgets/hyper_surface.dart';
 import '../../widgets/mini_player.dart';
 import '../../widgets/mini_player_frame.dart';
 
-/// 页面纵向滚动的方向：往下读收起底栏，往回滚或回到顶部时展开。
+/// 页面纵向滚动驱动的收起状态：往下读收起底栏，回到顶部才展开，往回滚保持收起。
 class FloatingBarFold extends ValueNotifier<bool> {
   FloatingBarFold() : super(false);
 
-  /// 同一方向累计滚过这么远才切换，手指轻微抖动不会来回收放。
+  /// 往下累计滚过这么远才收起，手指轻微抖动不会收起。
   static const double _threshold = 24;
   double _travel = 0;
+
+  /// 手动展开后，正在进行的这次滚动（多半是惯性）不再把栏收回去，下一次滚动开始才恢复。
+  bool _held = false;
+
+  /// 点按圆钮或换 Tab 时展开。
+  void expand() {
+    _travel = 0;
+    _held = true;
+    value = false;
+  }
 
   /// 给 `NotificationListener<ScrollNotification>` 用，不拦截通知。
   bool handle(ScrollNotification notification) {
     final metrics = notification.metrics;
-    if (notification is! ScrollUpdateNotification ||
-        metrics.axis != Axis.vertical) {
+    if (metrics.axis != Axis.vertical) return false;
+    if (notification is ScrollStartNotification) {
+      _travel = 0;
+      _held = false;
       return false;
     }
+    if (notification is! ScrollUpdateNotification) return false;
     if (metrics.pixels <= metrics.minScrollExtent) {
       _travel = 0;
       value = false;
       return false;
     }
     final delta = notification.scrollDelta ?? 0;
-    if (delta == 0 || metrics.outOfRange) return false;
-    if (delta.sign != _travel.sign) _travel = 0;
-    _travel += delta;
-    if (_travel > _threshold) {
-      value = true;
-    } else if (_travel < -_threshold) {
-      value = false;
+    if (_held || metrics.outOfRange) return false;
+    if (delta <= 0) {
+      _travel = 0;
+      return false;
     }
+    _travel += delta;
+    if (_travel > _threshold) value = true;
     return false;
   }
 }
@@ -51,7 +63,7 @@ class FloatingBarFold extends ValueNotifier<bool> {
 ///
 /// - 展开：左右各留 16，播放器（高 56）在导航（高 64）上方，间隔 8；
 /// - 往下滚动收起：导航药丸向左缩成当前 Tab 的圆形按钮，右端分裂出搜索圆钮，其余项淡出；
-///   播放器下沉到两枚圆钮之间并变窄，心形与进度线收起；往回滚沿原路展开。全部由弹簧驱动；
+///   播放器下沉到两枚圆钮之间并变窄，心形与进度线收起；回到顶部或点按圆钮沿原路展开。全部由弹簧驱动；
 /// - 选中胶囊的两条边各走一根弹簧，移动时拉长、落位回弹；移动或拖动时胶囊浮起、放大下方内容并亮起边缘。
 ///
 /// 材质、图标与配色和 [HyperBottomBar] 相同。报给 Scaffold 的高度固定为展开时的高度，
@@ -144,7 +156,7 @@ class _AndroidFloatingBarState extends State<AndroidFloatingBar>
       if (i != AndroidFloatingBar.searchIndex) _anchor = i;
       _settle(i, forward: i > old.selectedIndex);
       // 换了 Tab 就展开（收起时只能经搜索圆钮换 Tab）
-      widget.fold?.value = false;
+      widget.fold?.expand();
     }
   }
 
@@ -188,7 +200,7 @@ class _AndroidFloatingBarState extends State<AndroidFloatingBar>
     );
   }
 
-  void _expand() => widget.fold?.value = false;
+  void _expand() => widget.fold?.expand();
 
   void _dragStart() {
     if (!context.reduceMotion) _lift.to(1);

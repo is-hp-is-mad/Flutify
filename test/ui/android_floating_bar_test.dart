@@ -269,7 +269,7 @@ void main() {
     expect(find.byType(HyperBottomBar), findsOneWidget);
   });
 
-  testWidgets('滚动方向驱动收放：往下读收起，往回或回到顶部展开', (tester) async {
+  testWidgets('滚动驱动收放：往下读收起，往回滚保持收起，回到顶部才展开', (tester) async {
     final fold = FloatingBarFold();
     addTearDown(fold.dispose);
     final controller = ScrollController();
@@ -294,12 +294,40 @@ void main() {
     expect(fold.value, isTrue);
     await tester.drag(find.byType(ListView), const Offset(0, 100));
     await tester.pump();
-    expect(fold.value, isFalse);
-    await tester.drag(find.byType(ListView), const Offset(0, -300));
-    await tester.pump();
-    expect(fold.value, isTrue);
+    expect(fold.value, isTrue, reason: '往回滚但没到顶，保持收起');
     controller.jumpTo(0);
     await tester.pump();
     expect(fold.value, isFalse);
+  });
+
+  testWidgets('惯性滚动中手动展开，这次滚动不再收回去；下一次往下滚才收起', (tester) async {
+    final fold = FloatingBarFold();
+    addTearDown(fold.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NotificationListener<ScrollNotification>(
+          onNotification: fold.handle,
+          child: ListView.builder(
+            itemCount: 500,
+            itemBuilder: (_, i) => SizedBox(height: 60, child: Text('$i')),
+          ),
+        ),
+      ),
+    );
+    await tester.fling(find.byType(ListView), const Offset(0, -400), 4000);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(fold.value, isTrue);
+
+    fold.expand();
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    expect(fold.value, isFalse, reason: '惯性还在走，但不再收起');
+    await tester.pumpAndSettle();
+
+    await tester.drag(find.byType(ListView), const Offset(0, -300));
+    await tester.pump();
+    expect(fold.value, isTrue);
   });
 }

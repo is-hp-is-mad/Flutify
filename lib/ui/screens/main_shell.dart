@@ -75,7 +75,7 @@ class _MainShellState extends State<MainShell> {
 
   final ShellLayoutController _layout = ShellLayoutController();
 
-  /// 移动端页面的滚动方向，Android 悬浮底栏据此收放。
+  /// 移动端页面的滚动位置，Android 悬浮底栏据此收放。
   final FloatingBarFold _barFold = FloatingBarFold();
 
   // 各 Tab 根页面只创建一次，切换 Tab 与窗口尺寸变化时不再重新构造
