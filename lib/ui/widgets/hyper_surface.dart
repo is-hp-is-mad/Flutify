@@ -173,30 +173,41 @@ class HyperBlendSurface extends StatelessWidget {
 class HyperAppBarBackground extends StatelessWidget {
   final Color? tintColor;
   final bool showBottomLine;
-  final bool gradient;
+  final bool isDesktop;
 
   const HyperAppBarBackground({
     super.key,
     this.tintColor,
     this.showBottomLine = true,
-    this.gradient = true,
+    this.isDesktop = false,
   });
 
-  /// 从上到下每一条的 LM 半径。
+  /// 移动端：从上到下每一条的 LM 半径，平滑羽化归零。
   static const List<double> bandRadii = [60, 52, 44, 36, 28, 20, 12, 4];
+
+  /// 桌面端：从上到下每一条的 LM 半径，下沿保留柔光防护不归零。
+  static const List<double> desktopBandRadii = [60, 52, 44, 36, 28, 24];
 
   // 遮罩的位置取自 miuix 的 gradientBlur
   static const List<double> _tintAlpha = [0.82, 0.70, 0.48, 0.24, 0.0];
   static const List<double> _tintStops = [0, 0.48, 0.70, 0.88, 1.0];
 
-  // 着色玻璃（Tint Glass）：色彩高饱和晶莹透亮，下沿平滑羽化归零，恢复优雅通透的渐变模糊
+  // 移动端着色玻璃（Tint Glass）：色彩高饱和晶莹透亮，下沿平滑羽化归零
   static const List<double> _translucentTintAlpha = [0.90, 0.78, 0.55, 0.25, 0.0];
+
+  // 桌面端着色玻璃（Tint Glass）：保留通透渐变，下沿 0.68 保底，彻底消除文字穿透并无缝衔接表头
+  static const List<double> _desktopTintAlpha = [0.92, 0.86, 0.80, 0.74, 0.68];
+  static const List<double> _desktopTintStops = [0.0, 0.25, 0.50, 0.75, 1.0];
 
   @override
   Widget build(BuildContext context) {
     final window = Theme.of(context).colorScheme.surface;
     final effectiveColor = tintColor ?? window;
-    final alphas = tintColor != null ? _translucentTintAlpha : _tintAlpha;
+    final alphas = isDesktop
+        ? _desktopTintAlpha
+        : (tintColor != null ? _translucentTintAlpha : _tintAlpha);
+    final stops = isDesktop ? _desktopTintStops : _tintStops;
+    final activeBandRadii = isDesktop ? desktopBandRadii : bandRadii;
     final solid = ColoredBox(color: effectiveColor);
     if (context.tokens.powerSaving ||
         PerfFlags.noBackdrop ||
@@ -207,37 +218,12 @@ class HyperAppBarBackground extends StatelessWidget {
       valueListenable: DesktopWindow.fullscreenTransition,
       builder: (context, transitioning, _) {
         if (transitioning) return solid;
-        if (!gradient) {
-          return ClipRect(
-            child: BackdropFilter.grouped(
-              filter: ImageFilter.blur(
-                sigmaX: HyperBlendSurface.blurSigma(20),
-                sigmaY: HyperBlendSurface.blurSigma(20),
-                tileMode: TileMode.mirror,
-              ),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: effectiveColor.withValues(alpha: 0.70),
-                  border: (tintColor != null && showBottomLine)
-                      ? Border(
-                          bottom: BorderSide(
-                            color: Colors.white.withValues(alpha: 0.12),
-                            width: 0.6,
-                          ),
-                        )
-                      : null,
-                ),
-                child: const SizedBox.expand(),
-              ),
-            ),
-          );
-        }
         return Stack(
           fit: StackFit.expand,
           children: [
             Column(
               children: [
-                for (final radius in bandRadii)
+                for (final radius in activeBandRadii)
                   Expanded(
                     child: ClipRect(
                       child: BackdropFilter.grouped(
@@ -260,7 +246,7 @@ class HyperAppBarBackground extends StatelessWidget {
                   colors: [
                     for (final a in alphas) effectiveColor.withValues(alpha: a),
                   ],
-                  stops: _tintStops,
+                  stops: stops,
                 ),
               ),
             ),

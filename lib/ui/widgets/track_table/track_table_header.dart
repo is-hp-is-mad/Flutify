@@ -136,35 +136,37 @@ class TrackTableHeader extends StatelessWidget {
           // 未滑动到 64dp 前：随页面正常流动，100% 透明无底色，绝不显现突兀色块
           bar = content;
         } else if (hyper) {
-          // 滑动到 64dp 停住吸附时：呈现高饱和 Tint Glass 与 BackdropFilter 柔光毛玻璃
+          // 滑动到 64dp 停住吸附时：呈现高饱和 Tint Glass 与 BackdropFilter 柔光毛玻璃，承接顶栏渐变
           final effectiveColor = tone ?? scheme.surface;
           bar = Stack(
             fit: StackFit.expand,
             children: [
-              // 向上延伸 1dp 彻底消除与 64dp 顶栏在不同 DPI 下的亚像素缝隙
-              Positioned(
-                top: -1,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: ClipRect(
-                  child: BackdropFilter.grouped(
-                    filter: ImageFilter.blur(
-                      sigmaX: HyperBlendSurface.blurSigma(20),
-                      sigmaY: HyperBlendSurface.blurSigma(20),
-                      tileMode: TileMode.mirror,
-                    ),
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: effectiveColor.withValues(alpha: 0.70),
-                        border: Border(
-                          bottom: BorderSide(
-                            color: Colors.white.withValues(alpha: 0.12),
-                            width: 0.6,
-                          ),
+              // 顶边精确对齐 64dp 顶栏（无 top: -1 重叠），彻底消除交界处深色小横线
+              ClipRect(
+                child: BackdropFilter.grouped(
+                  filter: ImageFilter.blur(
+                    sigmaX: HyperBlendSurface.blurSigma(24),
+                    sigmaY: HyperBlendSurface.blurSigma(24),
+                    tileMode: TileMode.mirror,
+                  ),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          effectiveColor.withValues(alpha: 0.68),
+                          effectiveColor.withValues(alpha: 0.58),
+                        ],
+                      ),
+                      border: Border(
+                        bottom: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.12),
+                          width: 0.6,
                         ),
                       ),
                     ),
+                    child: const SizedBox.expand(),
                   ),
                 ),
               ),
