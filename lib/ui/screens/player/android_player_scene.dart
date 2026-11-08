@@ -677,12 +677,13 @@ class _FrameReveal extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final reveal = t.clamp(0.0, 1.0);
+    final scale = reveal == 0 ? 1.0 : 0.96 + 0.04 * reveal;
     return IgnorePointer(
       ignoring: reveal == 0,
       child: Opacity(
         opacity: reveal,
         child: Transform.scale(
-          scale: 0.96 + 0.04 * reveal,
+          scale: scale,
           alignment: Alignment.bottomCenter,
           filterQuality: FilterQuality.low,
           child: LiquidGlass(
