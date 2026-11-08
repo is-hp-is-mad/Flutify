@@ -467,44 +467,6 @@ class _AndroidPlayerSceneState extends State<AndroidPlayerScene>
                                           ),
                                         ),
                                       ),
-                                            child: const ColoredBox(
-                                              color: Color(0x59101216),
-                                            ),
-                                          ),
-                                // 柔光玻璃：官方 HyperGlassScene 让卡片玻璃随 progress 渐显，保持原样。
-                                // MD3E：用非线性 _FrameReveal 过渡，避免方框突然出现 / 消失。
-                                context.tokens.hyperMaterial
-                                    ? IgnorePointer(
-                                        ignoring: progress == 0,
-                                        child: Opacity(
-                                          opacity: progress,
-                                          child: _cardHitRegion(
-                                            HyperBlendSurface(
-                                              key: const ValueKey(
-                                                'lyrics-control-card',
-                                              ),
-                                              material: HyperBlendSurface.bar(context),
-                                              borderRadius: context.tokens.radius(28),
-                                              bloom: HyperBlendSurface.barBloom(context),
-                                              shadow: true,
-                                              child: const ColoredBox(
-                                                color: Color(0x33101216),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      )
-                                    : _FrameReveal(
-                                        t: _motion.frame.value,
-                                        blurSigma: context.tokens.glassSigma,
-                                        borderRadius: context.tokens.radius(28),
-                                        child: _cardHitRegion(
-                                          const ColoredBox(
-                                            key: ValueKey('lyrics-control-card'),
-                                            color: Color(0x59101216),
-                                          ),
-                                        ),
-                                      ),
                             ),
                             slot(
                               PlayerSceneSlot.title,
