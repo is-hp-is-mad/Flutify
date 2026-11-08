@@ -4,7 +4,6 @@ import 'package:flutify_app/core/theme/flutify_tokens.dart';
 import 'package:flutify_app/l10n/app_locale.dart';
 import 'package:flutify_app/l10n/app_localizations.dart';
 import 'package:flutify_app/l10n/model_labels.dart';
-import 'package:flutify_app/models/category.dart';
 import 'package:flutify_app/providers/library_provider.dart';
 import 'package:flutify_app/providers/playback_provider.dart';
 import 'package:flutify_app/providers/spotify_provider.dart';
