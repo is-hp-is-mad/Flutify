@@ -2183,6 +2183,78 @@ abstract class AppLocalizations {
   /// **'字号'**
   String get settingsTaskbarLyricsFontSize;
 
+  /// No description provided for @settingsHomeWidgetsSection.
+  ///
+  /// In zh, this message translates to:
+  /// **'桌面小组件'**
+  String get settingsHomeWidgetsSection;
+
+  /// 设置页「桌面小组件」分组说明（仅 Android）：澎湃 OS 里经典小组件藏在列表底部的「安卓小部件」分区，这里提供 App 内直接添加
+  ///
+  /// In zh, this message translates to:
+  /// **'澎湃 OS 的小组件列表里，Flutify 在最底部的「安卓小部件」分区；也可以在这里点「添加」直接放到桌面，之后长按可调整大小'**
+  String get settingsHomeWidgetsSubtitle;
+
+  /// No description provided for @homeWidgetNowPlaying.
+  ///
+  /// In zh, this message translates to:
+  /// **'播放条'**
+  String get homeWidgetNowPlaying;
+
+  /// No description provided for @homeWidgetNowPlayingDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'细长横条，封面、歌名与上一首 / 播放 / 下一首；默认 4×1'**
+  String get homeWidgetNowPlayingDesc;
+
+  /// No description provided for @homeWidgetAlbumCard.
+  ///
+  /// In zh, this message translates to:
+  /// **'专辑卡片'**
+  String get homeWidgetAlbumCard;
+
+  /// No description provided for @homeWidgetAlbumCardDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'大封面，背景随封面取色；默认 4×2'**
+  String get homeWidgetAlbumCardDesc;
+
+  /// No description provided for @homeWidgetCover.
+  ///
+  /// In zh, this message translates to:
+  /// **'方形封面'**
+  String get homeWidgetCover;
+
+  /// No description provided for @homeWidgetCoverDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'封面满幅铺底，带播放键；默认 2×2'**
+  String get homeWidgetCoverDesc;
+
+  /// No description provided for @homeWidgetUpNext.
+  ///
+  /// In zh, this message translates to:
+  /// **'待播清单'**
+  String get homeWidgetUpNext;
+
+  /// No description provided for @homeWidgetUpNextDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前曲目与接下来播放，点一行直接播放；默认 4×3'**
+  String get homeWidgetUpNextDesc;
+
+  /// No description provided for @homeWidgetAdd.
+  ///
+  /// In zh, this message translates to:
+  /// **'添加'**
+  String get homeWidgetAdd;
+
+  /// No description provided for @homeWidgetPinUnsupported.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前桌面不支持从应用内添加，请长按桌面在小组件列表里添加'**
+  String get homeWidgetPinUnsupported;
+
   /// No description provided for @settingsCopyLog.
   ///
   /// In zh, this message translates to:

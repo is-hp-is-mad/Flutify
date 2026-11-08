@@ -4,6 +4,7 @@ plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 val signingProperties = Properties().apply {
@@ -35,6 +36,10 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    buildFeatures {
+        compose = true
     }
 
     defaultConfig {
@@ -85,4 +90,7 @@ dependencies {
     implementation("androidx.media3:media3-datasource:1.11.1")
     // 畅联「本机音频设备」：打开系统输出切换面板（手机扬声器 / 蓝牙 / 有线耳机），各 Android 版本由它适配
     implementation("androidx.mediarouter:mediarouter:1.7.0")
+    // 桌面小组件：Glance（核心自带 GlanceTheme，31+ 自动 Material You 动态取色）+ Palette 封面取色
+    implementation("androidx.glance:glance-appwidget:1.1.1")
+    implementation("androidx.palette:palette:1.0.0")
 }

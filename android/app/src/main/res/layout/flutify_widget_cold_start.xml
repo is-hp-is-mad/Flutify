@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Glance 首次组合完成前的冷启动占位（initialLayout 是传统 RemoteViews，不支持 Glance 布局） -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_cold_start_bg">
+    <ImageView
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:layout_gravity="center"
+        android:src="@drawable/ic_stat_music"
+        android:contentDescription="@string/widget_name_now_playing" />
+</FrameLayout>
