@@ -240,15 +240,11 @@ class HyperCircleIcon extends StatelessWidget {
 
   static const double size = 40;
 
-  /// AppBar 的图标槽：按钮比 24dp 的图标位大，放不下的部分往外溢出。
-  static Widget inIconSlot(IconData icon) => SizedBox.square(
-    dimension: 24,
-    child: OverflowBox(
-      minWidth: size,
-      maxWidth: size,
-      minHeight: size,
-      maxHeight: size,
-      child: HyperCircleIcon(icon),
+  /// AppBar 的图标槽：未发生滚动时不画实体底盘，采用 HyperOS 原生纤细图标避免遮挡正文。
+  static Widget inIconSlot(IconData icon) => Center(
+    child: Icon(
+      icon == Icons.arrow_back_rounded ? Icons.arrow_back_ios_new : icon,
+      size: 19,
     ),
   );
 

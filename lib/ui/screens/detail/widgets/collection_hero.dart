@@ -473,12 +473,12 @@ class _BackCircle extends StatelessWidget {
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: () => Navigator.of(context).maybePop(),
-          child: const HyperCircleIcon(Icons.arrow_back_rounded),
+          child: const HyperCircleIcon(Icons.arrow_back_ios_new),
         ),
       );
     }
     return IconButton(
-      icon: const Icon(Icons.arrow_back_rounded),
+      icon: const Icon(Icons.arrow_back_ios_new),
       tooltip: MaterialLocalizations.of(context).backButtonTooltip,
       onPressed: () => Navigator.of(context).maybePop(),
       style: IconButton.styleFrom(

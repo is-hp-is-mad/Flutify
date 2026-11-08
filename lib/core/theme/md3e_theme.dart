@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hyper_glass/hyper_ui.dart' show Hy;
 
-import '../../ui/widgets/hyper_surface.dart' show HyperCircleIcon;
 
 import '../../models/appearance.dart';
 import 'flutify_tokens.dart';
@@ -103,9 +102,9 @@ class MD3ETheme {
       // 所有默认的返回 / 关闭键都换成左上角的圆形玻璃按钮
       actionIconTheme: ActionIconThemeData(
         backButtonIconBuilder: (_) =>
-            HyperCircleIcon.inIconSlot(Icons.arrow_back_rounded),
+            const Icon(Icons.arrow_back_ios_new, size: 19),
         closeButtonIconBuilder: (_) =>
-            HyperCircleIcon.inIconSlot(Icons.close_rounded),
+            const Icon(Icons.close_rounded, size: 22),
       ),
       // miuix 的层级靠字号而不是粗体，标题都比 MD3 小一档
       textTheme: t.textTheme.copyWith(

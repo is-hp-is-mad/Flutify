@@ -353,7 +353,7 @@ class FloatingBar extends StatelessWidget {
                   borderRadius: 0,
                   opacity: v,
                   gradientBlur: true,
-                  overlayMask: mask ?? (dark ? const Color(0xfa242424) : const Color(0xfaf3f3f3)),
+                  overlayMask: mask?.withValues(alpha: dark ? 0.45 : 0.35),
                 );
               },
             ),

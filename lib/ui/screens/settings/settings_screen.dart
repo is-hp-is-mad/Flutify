@@ -98,7 +98,7 @@ class _MobileSettings extends StatelessWidget {
               padding: EdgeInsets.fromLTRB(
                 16,
                 // 这里的 context 在 Scaffold 外层，MediaQuery 还不含顶栏高度，要自己加上
-                8 + (hyper ? MediaQuery.paddingOf(context).top + kToolbarHeight : 0),
+                16 + (hyper ? MediaQuery.paddingOf(context).top + kToolbarHeight : 0),
                 16,
                 MediaQuery.paddingOf(context).bottom + 40,
               ),

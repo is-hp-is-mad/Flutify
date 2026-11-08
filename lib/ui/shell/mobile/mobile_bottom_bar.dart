@@ -6,7 +6,6 @@ import 'package:hyper_glass/hyper_ui.dart'
 
 import '../../../core/theme/flutify_tokens.dart';
 import '../../../l10n/l10n.dart';
-import '../../widgets/hyper_surface.dart';
 import '../../widgets/mini_player.dart';
 import '../desktop/desktop_window.dart';
 
@@ -83,41 +82,29 @@ class _GlassNavigationPill extends StatelessWidget {
     final bottomSafe = MediaQuery.paddingOf(context).bottom;
 
     if (tokens.hyperMaterial) {
-      // miuix BottomNavigator：高 56、最宽 344，选中项是一枚弹簧胶囊，不靠颜色区分
-      return Padding(
-        padding: EdgeInsets.fromLTRB(24, 0, 24, bottomSafe + 12),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 344, maxHeight: 56),
-            child: HyperBottomBar(
-              index: selectedIndex,
-              onChanged: onSelected,
-              surface: (child) => HyperBlendSurface(
-                material: HyperBlendSurface.bar(context),
-                borderRadius: BorderRadius.circular(28),
-                bloom: HyperBlendSurface.barBloom(context),
-                shadow: true,
-                child: child,
-              ),
-              items: [
-                HyperBottomBarItem(
-                  l10n.navHome,
-                  Icons.home_outlined,
-                  Icons.home_filled,
-                ),
-                HyperBottomBarItem(
-                  l10n.navSearch,
-                  Icons.search_rounded,
-                  Icons.search_rounded,
-                ),
-                HyperBottomBarItem(
-                  l10n.navLibrary,
-                  Icons.library_music_outlined,
-                  Icons.library_music_rounded,
-                ),
-              ],
+      // 对齐 miuix 原生规范：FloatSurface 胶囊悬浮、动态计算指标、果冻弹性形变与自底向上渐变
+      return SizedBox(
+        height: 80 + bottomSafe,
+        child: HyperBottomBar(
+          index: selectedIndex,
+          onChanged: onSelected,
+          items: [
+            HyperBottomBarItem(
+              l10n.navHome,
+              Icons.home_outlined,
+              Icons.home_filled,
             ),
-          ),
+            HyperBottomBarItem(
+              l10n.navSearch,
+              Icons.search_rounded,
+              Icons.search_rounded,
+            ),
+            HyperBottomBarItem(
+              l10n.navLibrary,
+              Icons.library_music_outlined,
+              Icons.library_music_rounded,
+            ),
+          ],
         ),
       );
     }

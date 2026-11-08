@@ -232,7 +232,7 @@ class _ArtistCatalogScreenState extends State<ArtistCatalogScreen> {
                       key: const Key('artist-catalog-back'),
                       behavior: HitTestBehavior.opaque,
                       onTap: () => Navigator.of(context).maybePop(),
-                      child: const HyperCircleIcon(Icons.arrow_back_rounded),
+                      child: const HyperCircleIcon(Icons.arrow_back_ios_new),
                     ),
                   )
                 : Padding(
