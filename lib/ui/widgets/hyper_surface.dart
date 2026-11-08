@@ -172,8 +172,9 @@ class HyperBlendSurface extends StatelessWidget {
 /// 减小到接近 0，再叠一层同样渐隐的窗口色盖住接缝。
 class HyperAppBarBackground extends StatelessWidget {
   final Color? tintColor;
+  final bool showBottomLine;
 
-  const HyperAppBarBackground({super.key, this.tintColor});
+  const HyperAppBarBackground({super.key, this.tintColor, this.showBottomLine = true});
 
   /// 从上到下每一条的 LM 半径。
   static const List<double> bandRadii = [60, 52, 44, 36, 28, 20, 12, 5];
@@ -182,15 +183,13 @@ class HyperAppBarBackground extends StatelessWidget {
   static const List<double> _tintAlpha = [0.78, 0.66, 0.42, 0.18, 0];
   static const List<double> _tintStops = [0, 0.5, 0.72, 0.88, 1];
 
-  // 着色玻璃（Tint Glass）：色彩更饱满浓郁，同时透出下方滚动的曲目与渐变模糊
-  static const List<double> _translucentTintAlpha = [0.62, 0.46, 0.28, 0.10, 0];
+  // 着色玻璃（Tint Glass）：色彩高饱和晶莹透亮，同时透出下方滚动的曲目与渐变模糊
+  static const List<double> _translucentTintAlpha = [0.86, 0.72, 0.52, 0.30, 0.12];
 
   @override
   Widget build(BuildContext context) {
     final window = Theme.of(context).colorScheme.surface;
-    final effectiveColor = tintColor != null
-        ? Color.lerp(window, tintColor, 0.88)!
-        : window;
+    final effectiveColor = tintColor ?? window;
     final alphas = tintColor != null ? _translucentTintAlpha : _tintAlpha;
     final solid = ColoredBox(color: effectiveColor);
     if (context.tokens.powerSaving ||
@@ -234,14 +233,14 @@ class HyperAppBarBackground extends StatelessWidget {
                 ),
               ),
             ),
-            if (tintColor != null)
+            if (tintColor != null && showBottomLine)
               Positioned(
                 left: 0,
                 right: 0,
                 bottom: 0,
                 height: 0.6,
                 child: ColoredBox(
-                  color: Colors.white.withValues(alpha: 0.1),
+                  color: Colors.white.withValues(alpha: 0.12),
                 ),
               ),
           ],

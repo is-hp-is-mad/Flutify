@@ -8,6 +8,7 @@ import '../hyper_surface.dart';
 import '../hover_builder.dart';
 import 'track_sort.dart';
 import 'track_table_columns.dart';
+import '../../screens/detail/widgets/collection_hero.dart';
 
 /// 桌面曲目表格的列表头（Sliver，吸顶在详情页收起后的标题栏之下）：
 /// `#` · 标题 · [艺人] · [专辑] · [添加日期] · 🕒
@@ -98,19 +99,38 @@ class _Delegate extends SliverPersistentHeaderDelegate {
         ),
       );
 
+    final tone = CollectionTint.maybeOf(context);
+
     if (context.tokens.hyperMaterial) {
       if (!stuck) return content;
       return ClipRect(
         child: BackdropFilter.grouped(
           filter: ImageFilter.blur(
-            sigmaX: HyperBlendSurface.blurSigma(28),
-            sigmaY: HyperBlendSurface.blurSigma(28),
+            sigmaX: HyperBlendSurface.blurSigma(24),
+            sigmaY: HyperBlendSurface.blurSigma(24),
             tileMode: TileMode.mirror,
           ),
           child: DecoratedBox(
             decoration: BoxDecoration(
-              color: scheme.surface.withValues(alpha: 0.65),
-              border: Border(bottom: BorderSide(color: scheme.onSurface.withAlpha(24))),
+              gradient: tone != null
+                  ? LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        tone.withValues(alpha: 0.24),
+                        tone.withValues(alpha: 0.10),
+                      ],
+                    )
+                  : null,
+              color: tone == null ? scheme.surface.withValues(alpha: 0.65) : null,
+              border: Border(
+                bottom: BorderSide(
+                  color: tone != null
+                      ? Colors.white.withValues(alpha: 0.10)
+                      : scheme.onSurface.withAlpha(24),
+                  width: 0.6,
+                ),
+              ),
             ),
             child: content,
           ),

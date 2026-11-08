@@ -49,7 +49,7 @@ class CollectionTint extends InheritedWidget {
 
   /// 头部底色：深色主题略压暗（配浅色文字），浅色主题提亮成淡彩（配深色文字）。
   static Color toneFor(Color art, Brightness brightness) =>
-      brightness == Brightness.dark ? Color.lerp(art, Colors.black, 0.15)! : Color.lerp(art, Colors.white, 0.55)!;
+      brightness == Brightness.dark ? Color.lerp(art, Colors.black, 0.05)! : Color.lerp(art, Colors.white, 0.45)!;
 
   /// 头部底边的颜色（已向页面底色过渡一段），[CollectionHeroFade] 从这里接着淡出。
   static Color heroBottom(Color tone, ColorScheme scheme) => Color.lerp(tone, scheme.surface, 0.35)!;
@@ -255,7 +255,7 @@ class _HeroDelegate extends SliverPersistentHeaderDelegate {
                     ? Stack(
                         fit: StackFit.expand,
                         children: [
-                          HyperAppBarBackground(tintColor: barColor),
+                          HyperAppBarBackground(tintColor: tone, showBottomLine: !wide),
                           Padding(
                             padding: EdgeInsets.fromLTRB(showBack ? 60 : 16, topPadding, 16, 0),
                             child: Row(

@@ -282,10 +282,10 @@ class TrackTile extends StatelessWidget {
                     ),
                 ],
 
-                // 已点赞常驻；未点赞只在悬停时出现（保留占位，避免时长列左右跳动）
+                // 已点赞常驻；未点赞只在悬停或移动端时出现（始终保留 40dp 占位，保证各行爱心绝对严格对齐）
                 _Reveal(
                   visible: revealed,
-                  fixedExtent: hoverCapable,
+                  fixedExtent: true,
                   idle: isLiked
                       ? Icon(
                           Icons.favorite_rounded,
@@ -294,6 +294,8 @@ class TrackTile extends StatelessWidget {
                         )
                       : null,
                   child: IconButton(
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
                     icon: Icon(
                       isLiked
                           ? Icons.favorite_rounded
@@ -311,24 +313,30 @@ class TrackTile extends StatelessWidget {
                   ),
                 ),
 
-                _maybeFixedWidth(
-                  columns != null,
-                  Text(
-                    Formatters.formatDurationMs(track.durationMs),
-                    textAlign: TextAlign.right,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w500,
+                SizedBox(
+                  width: TrackTableColumns.durationWidth,
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      Formatters.formatDurationMs(track.durationMs),
+                      textAlign: TextAlign.right,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w500,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
                     ),
                   ),
                 ),
 
                 _Reveal(
                   visible: revealed || alwaysShowMore,
-                  fixedExtent: hoverCapable,
+                  fixedExtent: true,
                   child: Builder(
                     // 独立 context：桌面菜单锚定在按钮下方
                     builder: (buttonContext) => IconButton(
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
                       icon: Icon(
                         hoverCapable
                             ? Icons.more_horiz_rounded
@@ -360,11 +368,6 @@ class TrackTile extends StatelessWidget {
     );
   }
 }
-
-/// 表格模式下时长固定列宽（与列表头的时钟图标对齐）；普通行保持自然宽度。
-Widget _maybeFixedWidth(bool fixed, Widget child) => fixed
-    ? SizedBox(width: TrackTableColumns.durationWidth, child: child)
-    : child;
 
 /// 表格里的文字列（艺人 / 专辑）：单行省略，右侧留出列间距；[onTap] 非空时悬停下划线、可点击。
 class _TextCell extends StatelessWidget {

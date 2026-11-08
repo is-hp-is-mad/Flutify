@@ -563,6 +563,41 @@ void main() {
     Color? titleColor(WidgetTester tester, String name) =>
         tester.widget<Text>(find.text(name)).style?.color;
 
+    testWidgets('TrackTile actions strictly align on narrow screens across long titles', (
+      tester,
+    ) async {
+      const longTrack = SpotifyTrack(
+        id: 'synthetic0000000000000c',
+        name: 'Ignite - Different Heaven Remix With Very Long Title',
+        durationMs: 191000,
+      );
+      const testList = Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TrackTile(track: remote),
+          TrackTile(track: longTrack),
+        ],
+      );
+      await pumpHost(
+        tester,
+        const Size(420, 700),
+        testList,
+      );
+      final buttons = find.byType(IconButton);
+      expect(buttons, findsNWidgets(4));
+      final heart1 = tester.getRect(buttons.at(0));
+      final heart2 = tester.getRect(buttons.at(2));
+      expect(heart1.left, equals(heart2.left));
+      expect(heart1.width, equals(heart2.width));
+      expect(heart1.center.dx, equals(heart2.center.dx));
+
+      final more1 = tester.getRect(buttons.at(1));
+      final more2 = tester.getRect(buttons.at(3));
+      expect(more1.left, equals(more2.left));
+      expect(more1.center.dx, equals(more2.center.dx));
+      await unmount(tester);
+    });
+
     testWidgets('highlights the remote track, not the local one', (
       tester,
     ) async {
