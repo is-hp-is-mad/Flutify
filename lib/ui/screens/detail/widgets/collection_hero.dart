@@ -207,12 +207,22 @@ class _HeroDelegate extends SliverPersistentHeaderDelegate {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [tone, CollectionTint.heroBottom(tone, scheme)],
+          // 背景随内容一起上移并淡出，吸顶后完全退场让给着色玻璃（否则会变成实色遮挡下方曲目）
+          Positioned(
+            left: 0,
+            right: 0,
+            top: -shrinkOffset,
+            height: maxExtent,
+            child: Opacity(
+              opacity: contentOpacity,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [tone, CollectionTint.heroBottom(tone, scheme)],
+                  ),
+                ),
               ),
             ),
           ),
