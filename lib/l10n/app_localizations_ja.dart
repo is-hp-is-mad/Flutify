@@ -762,6 +762,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get trackNewPlaylist => '新しいプレイリスト';
 
   @override
+  String get trackQuickAdd => '追加';
+
+  @override
+  String get trackQuickLike => 'お気に入り';
+
+  @override
+  String get trackQuickLiked => 'お気に入り済み';
+
+  @override
   String get toastLikeAdded => 'お気に入りの曲に追加しました';
 
   @override

@@ -15,6 +15,7 @@ import 'cover_image.dart';
 import 'create_playlist_dialog.dart';
 import 'keyboard_shortcuts.dart';
 import 'menu/desktop_menu.dart';
+import 'menu/mobile_menu.dart';
 import 'share/share_sheet.dart';
 import 'sleep_timer/sleep_timer_menu.dart';
 import 'toast/app_toast.dart';
@@ -62,8 +63,16 @@ class TrackMenu {
     Offset? position,
     VoidCallback? onConnect,
   }) {
-    // 柔光玻璃主题下：全尺寸统一使用小米 ArcAnimation 悬浮果冻菜单
+    // 柔光玻璃主题下：全尺寸统一使用小米 ArcAnimation 悬浮果冻菜单，手机上换成移动端版式
     if (context.tokens.hyperMaterial) {
+      if (_isMobile(context)) {
+        return _showMobile(
+          context,
+          track,
+          position ?? DesktopMenu.anchorOf(context),
+          onConnect,
+        );
+      }
       return _showDesktop(
         context,
         track,
@@ -82,6 +91,11 @@ class TrackMenu {
       onConnect,
     );
   }
+
+  /// 柔光玻璃菜单是否按移动端版式排（窗口宽度低于桌面断点）。
+  static bool _isMobile(BuildContext context) =>
+      context.tokens.hyperMaterial &&
+      !ShellBreakpoints.isDesktop(MediaQuery.sizeOf(context).width);
 
   static void _toast(BuildContext context, String message, IconData icon) {
     if (!context.mounted) return;
@@ -187,6 +201,107 @@ class TrackMenu {
     await perform(context, track, action, position: position);
   }
 
+  /// 移动端柔光玻璃菜单：顶部「添加 / 点赞 / 分享」快捷操作，下面分组排列，
+  /// 「添加到播放队列」「前往专辑」「前往艺人」带一行副标题。
+  static Future<void> _showMobile(
+    BuildContext context,
+    SpotifyTrack track,
+    Offset position,
+    VoidCallback? onConnect,
+  ) async {
+    final l10n = context.l10n;
+    final liked = context.read<LibraryProvider>().isLiked(track.id);
+    final timerOn = context.read<SleepTimerProvider?>()?.active ?? false;
+    final primary = Theme.of(context).colorScheme.primary;
+    const connectId = '\u0000connect';
+    bool has(TrackAction a) => isAvailable(context, track, a);
+
+    final action = await DesktopMenu.show<Object>(context, position, [
+      MobileMenuActionRow<Object>([
+        MobileMenuAction(
+          TrackAction.addToPlaylist,
+          Icons.add_circle_outline_rounded,
+          l10n.trackQuickAdd,
+        ),
+        MobileMenuAction(
+          TrackAction.like,
+          liked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+          liked ? l10n.trackQuickLiked : l10n.trackQuickLike,
+          color: liked ? primary : null,
+        ),
+        if (has(TrackAction.share))
+          MobileMenuAction(
+            TrackAction.share,
+            Icons.ios_share_rounded,
+            l10n.commonShare,
+          ),
+      ]),
+      MobileMenu.divider,
+      MobileMenu.item(
+        TrackAction.addToPlaylist,
+        Icons.playlist_add_rounded,
+        l10n.trackAddToPlaylist,
+        submenu: true,
+      ),
+      MobileMenu.divider,
+      MobileMenu.item(
+        TrackAction.queue,
+        Icons.queue_music_rounded,
+        l10n.trackAddToQueue,
+        subtitle: track.name,
+      ),
+      MobileMenu.item(
+        TrackAction.radio,
+        Icons.sensors_rounded,
+        l10n.trackGoToRadio,
+      ),
+      if (has(TrackAction.sleepTimer))
+        MobileMenu.item(
+          TrackAction.sleepTimer,
+          timerOn ? Icons.bedtime_rounded : Icons.bedtime_outlined,
+          l10n.sleepTimer,
+          iconColor: timerOn ? primary : null,
+          submenu: true,
+        ),
+      MobileMenu.divider,
+      if (has(TrackAction.album))
+        MobileMenu.item(
+          TrackAction.album,
+          Icons.album_outlined,
+          l10n.trackGoToAlbum,
+          subtitle: track.album!.name,
+        ),
+      if (has(TrackAction.artist))
+        MobileMenu.item(
+          TrackAction.artist,
+          Icons.person_outline_rounded,
+          l10n.trackGoToArtist(track.artists.length),
+          subtitle: track.artistNames,
+          submenu: track.artists.length > 1,
+        ),
+      MobileMenu.item(
+        TrackAction.credits,
+        Icons.info_outline_rounded,
+        l10n.trackViewCredits,
+      ),
+      if (onConnect != null) ...[
+        MobileMenu.divider,
+        MobileMenu.item<Object>(
+          connectId,
+          Icons.cast_connected_rounded,
+          l10n.deviceConnectShort,
+        ),
+      ],
+    ]);
+    if (action == null || !context.mounted) return;
+    if (action == connectId) {
+      onConnect?.call();
+      return;
+    }
+    if (action is! TrackAction) return;
+    await perform(context, track, action, position: position);
+  }
+
   /// 执行操作；[position] 为二级菜单弹出位置（快捷键触发时为鼠标位置）。
   static Future<void> perform(
     BuildContext context,
@@ -276,11 +391,14 @@ class TrackMenu {
     final primary = Theme.of(context).colorScheme.primary;
     const createId = '\u0000new';
 
+    final mobile = _isMobile(context);
+    final item = mobile ? MobileMenu.item<String> : DesktopMenu.item<String>;
     final id = await DesktopMenu.show<String>(context, position, [
-      DesktopMenu.item(createId, Icons.add_rounded, l10n.trackNewPlaylist),
-      if (library.ownPlaylists.isNotEmpty) DesktopMenu.divider,
+      item(createId, Icons.add_rounded, l10n.trackNewPlaylist),
+      if (library.ownPlaylists.isNotEmpty)
+        mobile ? MobileMenu.divider : DesktopMenu.divider,
       for (final playlist in library.ownPlaylists)
-        DesktopMenu.item(
+        item(
           playlist.id,
           playlist.tracks.any((t) => t.id == track.id)
               ? Icons.check_circle_rounded

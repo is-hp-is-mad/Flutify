@@ -442,6 +442,18 @@
     }
   },
   "trackNewPlaylist": "新建歌单",
+  "trackQuickAdd": "添加",
+  "@trackQuickAdd": {
+    "description": "移动端曲目菜单顶部快捷操作：添加到歌单（短文案）"
+  },
+  "trackQuickLike": "点赞",
+  "@trackQuickLike": {
+    "description": "移动端曲目菜单顶部快捷操作：点赞（短文案）"
+  },
+  "trackQuickLiked": "已点赞",
+  "@trackQuickLiked": {
+    "description": "移动端曲目菜单顶部快捷操作：已点赞，点按取消（短文案）"
+  },
   "toastLikeAdded": "已添加到已点赞的歌曲",
   "toastLikeRemoved": "已从已点赞的歌曲中移除",
   "toastAddedToQueue": "已添加到播放队列",
