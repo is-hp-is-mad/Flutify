@@ -23,6 +23,7 @@ import '../../widgets/track_table/track_sort.dart';
 import '../../widgets/track_table/track_table_columns.dart';
 import '../../widgets/track_table/track_table_header.dart';
 import '../../widgets/track_tile.dart';
+import '../watchfeed/widgets/watch_feed_entity_button.dart';
 import 'widgets/collection_hero.dart';
 import 'widgets/collection_widgets.dart';
 import '../../widgets/app_button.dart';
@@ -244,6 +245,13 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                 child: CollectionActionRow(
                   tracks: sorted,
                   playbackContext: playbackContext,
+                  // 官方歌单（非「已点赞」、非自建）才可能有视频流；没有内容时按钮自己不显示。
+                  afterPlay: isLikedSongs || isBackupLikedSongs || isOwn
+                      ? null
+                      : WatchFeedEntityButton(
+                          feedUri: 'spotify:watch-feed:playlist:${playlist.id}',
+                          name: playlist.name,
+                        ),
                   trailing: tracks.isEmpty
                       ? null
                       : TrackListToolbar(

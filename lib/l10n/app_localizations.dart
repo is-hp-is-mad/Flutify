@@ -689,6 +689,42 @@ abstract class AppLocalizations {
   /// **'浏览全部'**
   String get searchBrowseAll;
 
+  /// 搜索页官方发现流入口的默认标题（服务端未给标题时使用）
+  ///
+  /// In zh, this message translates to:
+  /// **'发现新内容'**
+  String get watchFeedDiscoverTitle;
+
+  /// 发现流轻点暂停后中央播放图标的无障碍标签
+  ///
+  /// In zh, this message translates to:
+  /// **'已暂停，轻点继续播放'**
+  String get watchFeedPaused;
+
+  /// 发现流顶栏静音按钮提示
+  ///
+  /// In zh, this message translates to:
+  /// **'静音'**
+  String get watchFeedMute;
+
+  /// 发现流顶栏取消静音按钮提示
+  ///
+  /// In zh, this message translates to:
+  /// **'取消静音'**
+  String get watchFeedUnmute;
+
+  /// 桌面版发现流艺人行：月度听众数
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 位月度听众'**
+  String watchFeedMonthlyListeners(String count);
+
+  /// 艺人 / 专辑 / 歌单页操作行里发现流入口按钮的提示
+  ///
+  /// In zh, this message translates to:
+  /// **'用短视频探索「{name}」'**
+  String watchFeedEntityTooltip(String name);
+
   /// No description provided for @searchCategoriesFailedTitle.
   ///
   /// In zh, this message translates to:
