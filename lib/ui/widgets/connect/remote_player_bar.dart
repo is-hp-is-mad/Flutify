@@ -89,7 +89,7 @@ class _RemoteTrackInfo extends StatelessWidget {
               MarqueeText(
                 text: title,
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(height: 2),
@@ -197,7 +197,7 @@ class RemotePlayingStrip extends StatelessWidget {
     if (device == null) return const SizedBox.shrink();
     final style = Theme.of(context).textTheme.labelSmall?.copyWith(
       color: tokens.onAccent,
-      fontWeight: FontWeight.w700,
+      fontWeight: FontWeight.w600,
     );
     // 包裹胶囊底部：总高 = 露出高度 + 胶囊圆角（上卷部分叠在胶囊底角上），
     // 文字放在底部露出区域内；通宽，圆角随胶囊（含设置页的圆角风格）

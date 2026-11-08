@@ -248,7 +248,7 @@ class MD3ETheme {
         centerTitle: false,
         titleTextStyle: textTheme.titleLarge?.copyWith(
           color: colorScheme.onSurface,
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w600,
         ),
       ),
 
@@ -269,7 +269,7 @@ class MD3ETheme {
           if (states.contains(WidgetState.selected)) {
             return TextStyle(
               fontSize: 12,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w600,
               color: colorScheme.primary,
             );
           }
@@ -289,7 +289,7 @@ class MD3ETheme {
         unselectedIconTheme: IconThemeData(color: colorScheme.onSurfaceVariant),
         selectedLabelTextStyle: TextStyle(
           color: colorScheme.primary,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w600,
           fontSize: 12,
         ),
         unselectedLabelTextStyle: TextStyle(
@@ -330,7 +330,7 @@ class MD3ETheme {
           foregroundColor: colorScheme.onPrimary,
           shape: tokens.pillShape,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          textStyle: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
+          textStyle: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
         ).copyWith(mouseCursor: WidgetStateMouseCursor.clickable),
       ),
 

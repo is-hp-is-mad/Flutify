@@ -336,7 +336,7 @@ class _BackupSectionState extends State<BackupSection> {
                           '已落盘的备份歌单（已选 $selectedCount / ${playlists.length}）',
                           style: theme.textTheme.labelMedium?.copyWith(
                             color: colorScheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],

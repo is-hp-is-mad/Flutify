@@ -34,7 +34,7 @@ class SettingsSection extends StatelessWidget {
                     )
                   : theme.textTheme.labelLarge?.copyWith(
                       color: colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                     ),
             ),
           ),

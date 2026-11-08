@@ -86,7 +86,7 @@ class DevicePickerSheet extends StatelessWidget {
               Text(
                 l10n.deviceConnectTitle,
                 style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(height: 16),
@@ -148,7 +148,7 @@ class _DeviceList extends StatelessWidget {
               l10n.connectOtherDevices,
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -245,7 +245,7 @@ class _CurrentDeviceCard extends StatelessWidget {
                       l10n.deviceCurrent,
                       style: theme.textTheme.labelMedium?.copyWith(
                         color: accent,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -254,7 +254,7 @@ class _CurrentDeviceCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     if (nowPlaying.isNotEmpty)
@@ -374,7 +374,7 @@ class _DeviceTile extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                       color: selected ? theme.colorScheme.primary : null,
                     ),
                   ),
@@ -619,7 +619,7 @@ class _InlineRow extends StatelessWidget {
                     style: TextStyle(
                       color: color,
                       fontSize: 12,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   if (subtitle != null)
@@ -706,7 +706,7 @@ class _LocalOutputSectionState extends State<_LocalOutputSection> {
             l10n.audioOutputTitle,
             style: theme.textTheme.labelLarge?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w600,
             ),
           ),
         );

@@ -111,7 +111,7 @@ class _PanelHeader extends StatelessWidget {
                 key: ValueKey(title),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -0.2),
+                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600, letterSpacing: -0.2),
               ),
             ),
           ),

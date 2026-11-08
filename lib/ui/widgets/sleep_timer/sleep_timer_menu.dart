@@ -86,7 +86,7 @@ class _SleepTimerSheet extends StatelessWidget {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
-              child: Text(l10n.sleepTimer, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+              child: Text(l10n.sleepTimer, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
             ),
             if (status != null)
               Padding(

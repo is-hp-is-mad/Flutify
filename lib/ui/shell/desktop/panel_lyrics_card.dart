@@ -138,7 +138,7 @@ class _CardLabel extends StatelessWidget {
         text,
         style: Theme.of(context).textTheme.titleSmall?.copyWith(
           color: Colors.white,
-          fontWeight: FontWeight.w800,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
@@ -171,7 +171,7 @@ class _TrackLabel extends StatelessWidget {
                 text: track.name,
                 style: textTheme.labelLarge?.copyWith(
                   color: Colors.white,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w600,
                   height: 1.2,
                 ),
               ),

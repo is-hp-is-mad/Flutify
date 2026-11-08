@@ -208,7 +208,7 @@ class TrackTile extends StatelessWidget {
                             child: Text(
                               track.name,
                               style: theme.textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
+                                fontWeight: FontWeight.w500,
                                 color: isCurrent
                                     ? colorScheme.primary
                                     : colorScheme.onSurface,
@@ -495,7 +495,7 @@ class _ExplicitBadge extends StatelessWidget {
         'E',
         style: TextStyle(
           fontSize: 9,
-          fontWeight: FontWeight.w800,
+          fontWeight: FontWeight.w600,
           color: colorScheme.onSurface,
         ),
       ),

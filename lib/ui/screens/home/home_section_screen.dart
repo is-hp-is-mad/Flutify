@@ -66,7 +66,7 @@ class _HomeSectionScreenState extends State<HomeSectionScreen> {
                 : null,
             title: Text(
               _section.title,
-              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),

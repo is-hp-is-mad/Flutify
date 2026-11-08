@@ -69,7 +69,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
                 : null,
             title: Text(
               widget.category.name,
-              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),

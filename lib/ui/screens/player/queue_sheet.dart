@@ -52,7 +52,7 @@ class QueueSheet extends StatelessWidget {
                     child: Text(
                       l10n.queueTitle,
                       style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
@@ -62,7 +62,7 @@ class QueueSheet extends StatelessWidget {
                       l10n.commonDone,
                       style: TextStyle(
                         color: colorScheme.primary,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),

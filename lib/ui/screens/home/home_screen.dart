@@ -11,6 +11,7 @@ import '../../navigation/app_routes.dart';
 import '../../shell/shell_breakpoints.dart';
 import '../../widgets/content_bottom_spacer.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/hyper_surface.dart';
 import '../../widgets/user_avatar.dart';
 import '../../widgets/toast/app_toast.dart';
 import '../auth/login_screen.dart';
@@ -42,9 +43,13 @@ class _HomeScreenState extends State<HomeScreen> {
   /// 悬停快捷入口时的封面主色：只驱动顶部渐变（ValueListenable 避免整页重建）。
   final ValueNotifier<Color?> _hoverTint = ValueNotifier(null);
 
+  /// 列表垂直滚动位移：平滑驱动移动端状态栏接管
+  final ValueNotifier<double> _scrollOffset = ValueNotifier(0);
+
   @override
   void dispose() {
     _hoverTint.dispose();
+    _scrollOffset.dispose();
     super.dispose();
   }
 
@@ -92,67 +97,80 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           SafeArea(
             bottom: false,
-            child: RefreshIndicator(
-              onRefresh: _refresh,
-              child: CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: [
-                  HomeChipBar(
-                    chips: home.chips,
-                    selected: facet,
-                    onSelected: provider.selectHomeFacet,
-                    pinned: false,
-                    trailing: IconButton(
-                      tooltip: context.l10n.homeRefresh,
-                      onPressed:
-                          loading ||
-                              !context.read<SpotifyApiService>().isConfigured
+            child: NotificationListener<ScrollNotification>(
+              onNotification: (notification) {
+                if (notification.metrics.axis == Axis.vertical) {
+                  _scrollOffset.value = notification.metrics.pixels;
+                }
+                return false;
+              },
+              child: RefreshIndicator(
+                onRefresh: _refresh,
+                child: CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
+                    HomeChipBar(
+                      chips: home.chips,
+                      selected: facet,
+                      onSelected: provider.selectHomeFacet,
+                      pinned: false,
+                      trailing: IconButton(
+                        tooltip: context.l10n.homeRefresh,
+                        onPressed:
+                            loading ||
+                                !context.read<SpotifyApiService>().isConfigured
+                            ? null
+                            : _refresh,
+                        icon: const Icon(Icons.refresh_rounded),
+                        iconSize: 20,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      leading: desktop
                           ? null
-                          : _refresh,
-                      icon: const Icon(Icons.refresh_rounded),
-                      iconSize: 20,
-                      visualDensity: VisualDensity.compact,
-                    ),
-                    leading: desktop
-                        ? null
-                        : MouseRegion(
-                            cursor: SystemMouseCursors.click,
-                            child: GestureDetector(
-                              onTap: widget.onOpenSettings,
-                              child: const UserAvatar(size: 36),
+                          : MouseRegion(
+                              cursor: SystemMouseCursors.click,
+                              child: GestureDetector(
+                                onTap: widget.onOpenSettings,
+                                child: const UserAvatar(size: 36),
+                              ),
                             ),
-                          ),
-                  ),
-                  ..._content(
-                    context,
-                    home: home,
-                    facet: facet,
-                    loading: loading,
-                    desktop: desktop,
-                  ),
-                  const ContentBottomSpacer(),
-                ],
+                    ),
+                    ..._content(
+                      context,
+                      home: home,
+                      facet: facet,
+                      loading: loading,
+                      desktop: desktop,
+                    ),
+                    const ContentBottomSpacer(),
+                  ],
+                ),
               ),
             ),
           ),
-          // 移动端状态栏柔光玻璃穿透模糊（内容滑向顶部时可穿透并带有柔光模糊）
+          // 移动端状态栏自然通透接管（顶部无滚动时完全透亮无切割，向上滚动时平滑渐变接管）
           if (!desktop)
             Positioned(
               top: 0,
               left: 0,
               right: 0,
-              height: MediaQuery.paddingOf(context).top,
-              child: IgnorePointer(
-                child: ClipRect(
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                    child: Container(
-                      color: theme.scaffoldBackgroundColor.withValues(
-                        alpha: theme.brightness == Brightness.dark ? 0.35 : 0.55,
+              height: MediaQuery.paddingOf(context).top + 20,
+              child: ValueListenableBuilder<double>(
+                valueListenable: _scrollOffset,
+                builder: (context, offset, _) {
+                  final t = (offset / 36.0).clamp(0.0, 1.0);
+                  if (t <= 0.001) return const SizedBox.shrink();
+                  return IgnorePointer(
+                    child: Opacity(
+                      opacity: t,
+                      child: HyperAppBarBackground(
+                        tintColor: theme.scaffoldBackgroundColor,
+                        showBottomLine: false,
+                        isDesktop: false,
                       ),
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
             ),
         ],

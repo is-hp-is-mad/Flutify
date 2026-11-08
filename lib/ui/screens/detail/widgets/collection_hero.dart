@@ -272,7 +272,7 @@ class _HeroDelegate extends SliverPersistentHeaderDelegate {
                                     overflow: TextOverflow.ellipsis,
                                     style: Theme.of(
                                       context,
-                                    ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700, color: barForeground),
+                                    ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600, color: barForeground),
                                   ),
                                 ),
                               ],
@@ -294,7 +294,7 @@ class _HeroDelegate extends SliverPersistentHeaderDelegate {
                                   overflow: TextOverflow.ellipsis,
                                   style: Theme.of(
                                     context,
-                                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700, color: barForeground),
+                                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600, color: barForeground),
                                 ),
                               ),
                             ],
@@ -347,7 +347,7 @@ class _WideContent extends StatelessWidget {
             child: LayoutBuilder(
               builder: (context, box) {
                 final titleStyle = theme.textTheme.displayLarge!.copyWith(
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w600,
                   height: 1.1,
                   letterSpacing: -0.5,
                 );
@@ -460,7 +460,7 @@ class _NarrowContent extends StatelessWidget {
             hero.title,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+            style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
           ),
           if (hero.meta != null) ...[
             const SizedBox(height: 6),

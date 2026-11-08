@@ -158,7 +158,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 children: [
                   Text(
                     l10n.navSearch,
-                    style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900),
+                    style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 14),
                   TextField(
@@ -243,7 +243,7 @@ class _BrowseView extends StatelessWidget {
               child: Row(
                 children: [
                   Expanded(
-                    child: Text(l10n.searchRecent, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                    child: Text(l10n.searchRecent, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
                   ),
                   AppButton.text(
                     onPressed: () => context.read<SpotifyProvider>().clearRecentSearches(),
@@ -272,7 +272,7 @@ class _BrowseView extends StatelessWidget {
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: Text(l10n.searchBrowseAll, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+            child: Text(l10n.searchBrowseAll, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
           ),
         ),
         if (categories.isEmpty)
@@ -456,7 +456,7 @@ class _SearchResults extends StatelessWidget {
                 ),
                 title: Text(
                   artist.name,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 subtitle: Text(l10n.typeArtist),
                 trailing: const Icon(Icons.chevron_right_rounded),
@@ -486,7 +486,7 @@ class _SearchResults extends StatelessWidget {
                 ),
                 title: Text(
                   playlist.name,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 subtitle: Text(
                   l10n.subtitleJoin(l10n.typePlaylist, playlist.ownerName),
@@ -569,7 +569,7 @@ class _ResultHeader extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Text(
         title,
-        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
       ),
     );
   }

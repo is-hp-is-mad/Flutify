@@ -87,7 +87,7 @@ class _CustomColorDialogState extends State<CustomColorDialog> {
                     onChanged: _onHexChanged,
                     inputFormatters: [FilteringTextInputFormatter.allow(RegExp('[0-9a-fA-F]'))],
                     style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                       fontFeatures: const [FontFeature.tabularFigures()],
                     ),
                     decoration: const InputDecoration(prefixText: '#  ', counterText: ''),

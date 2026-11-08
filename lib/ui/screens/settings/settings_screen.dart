@@ -219,7 +219,7 @@ class _DesktopSettings extends StatelessWidget {
                   children: [
                     Text(
                       context.l10n.commonSettings,
-                      style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900, letterSpacing: -0.5),
+                      style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w600, letterSpacing: -0.5),
                     ),
                     const SizedBox(height: 24),
                     body,

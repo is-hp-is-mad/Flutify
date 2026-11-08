@@ -45,7 +45,7 @@ class GlassPreview extends StatelessWidget {
                     const SizedBox(width: 10),
                     Text(
                       context.l10n.settingsGlassPreview,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15),
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15),
                     ),
                   ],
                 ),

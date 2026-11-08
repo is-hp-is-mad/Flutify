@@ -287,7 +287,7 @@ class _FollowButton extends StatelessWidget {
         child: Text(
           following ? context.l10n.artistFollowing : context.l10n.artistFollow,
           key: ValueKey(following),
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: const TextStyle(fontWeight: FontWeight.w600),
         ),
       ),
     );

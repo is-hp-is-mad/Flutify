@@ -91,7 +91,7 @@ class NowPlayingDetails extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
@@ -219,7 +219,7 @@ class _AboutArtistCardState extends State<_AboutArtistCard> {
                         l10n.shellAboutArtist,
                         style: theme.textTheme.titleSmall?.copyWith(
                           color: Colors.white,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
@@ -235,7 +235,7 @@ class _AboutArtistCardState extends State<_AboutArtistCard> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                       if (followers != null && followers > 0) ...[
@@ -292,7 +292,7 @@ class _NextUpCard extends StatelessWidget {
                 child: Text(
                   l10n.queueNextUp,
                   style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),

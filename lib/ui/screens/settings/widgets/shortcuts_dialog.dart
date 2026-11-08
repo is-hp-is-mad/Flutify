@@ -358,7 +358,7 @@ class _KeyCap extends StatelessWidget {
         label,
         textAlign: TextAlign.center,
         style: theme.textTheme.labelMedium?.copyWith(
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );

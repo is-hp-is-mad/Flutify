@@ -73,7 +73,7 @@ void main() {
       ),
     );
     final decoration = pillBox.decoration as BoxDecoration;
-    expect(decoration.borderRadius, BorderRadius.circular(18));
+    expect(decoration.borderRadius, BorderRadius.circular(20));
 
     // 向下滚动列表 200dp
     await tester.drag(find.text('Content Section'), const Offset(0, -200));

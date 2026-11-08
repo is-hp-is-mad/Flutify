@@ -144,7 +144,7 @@ class _HyperGlassPreviewState extends State<HyperGlassPreview>
                                   l10n.settingsHyperGlassPreview,
                                   style: const TextStyle(
                                     color: Colors.white,
-                                    fontWeight: FontWeight.w700,
+                                    fontWeight: FontWeight.w600,
                                     fontSize: 15,
                                   ),
                                 ),

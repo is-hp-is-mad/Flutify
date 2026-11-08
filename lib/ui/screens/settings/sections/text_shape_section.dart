@@ -34,7 +34,7 @@ class _TextShapeSectionState extends State<TextShapeSection> {
     // 全局 textScaler = 系统字号 × 已生效字号；示例文字换成 系统字号 × 草稿字号
     Widget preview = Text(
       l10n.settingsFontPreview,
-      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
     );
     final draft = _fontDraft;
     if (draft != null) {

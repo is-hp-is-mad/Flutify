@@ -158,7 +158,7 @@ class _Header extends StatelessWidget {
                         track?.name ?? context.l10n.lyricsTitle,
                         style: const TextStyle(
                           color: Colors.white,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w600,
                           fontSize: 15,
                         ),
                         maxLines: 1,

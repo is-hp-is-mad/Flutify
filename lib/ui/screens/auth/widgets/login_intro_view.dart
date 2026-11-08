@@ -34,7 +34,7 @@ class LoginIntroView extends StatelessWidget {
           context.l10n.loginTitle,
           textAlign: TextAlign.center,
           style: theme.textTheme.displaySmall?.copyWith(
-            fontWeight: FontWeight.w800,
+            fontWeight: FontWeight.w600,
             letterSpacing: -1.2,
             height: 1.1,
           ),

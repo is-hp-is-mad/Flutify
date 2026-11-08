@@ -55,7 +55,7 @@ class TrackOptionsSheet extends StatelessWidget {
           children: [
             ListTile(
               leading: CoverImage(url: track.coverUrl, size: 48, borderRadius: BorderRadius.circular(6)),
-              title: Text(track.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+              title: Text(track.name, style: const TextStyle(fontWeight: FontWeight.w600)),
               subtitle: Text(track.artistNames, maxLines: 1, overflow: TextOverflow.ellipsis),
             ),
             const Divider(height: 1),
@@ -197,7 +197,7 @@ class TrackOptionsSheet extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
                   child: Text(
                     l10n.trackAddToPlaylist,
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                   ),
                 ),
                 ListTile(
@@ -210,7 +210,7 @@ class TrackOptionsSheet extends StatelessWidget {
                     ),
                     child: const Icon(Icons.add_rounded),
                   ),
-                  title: Text(l10n.trackNewPlaylist, style: const TextStyle(fontWeight: FontWeight.w700)),
+                  title: Text(l10n.trackNewPlaylist, style: const TextStyle(fontWeight: FontWeight.w600)),
                   onTap: () async {
                     final name = await CreatePlaylistDialog.show(ctx);
                     if (name == null) return;
@@ -227,7 +227,7 @@ class TrackOptionsSheet extends StatelessWidget {
                       final contains = playlist.tracks.any((t) => t.id == track.id);
                       return ListTile(
                         leading: CoverImage(url: playlist.coverUrl, size: 48, borderRadius: BorderRadius.circular(6)),
-                        title: Text(playlist.name, style: const TextStyle(fontWeight: FontWeight.w700)),
+                        title: Text(playlist.name, style: const TextStyle(fontWeight: FontWeight.w600)),
                         subtitle: Text(l10n.songCount(playlist.tracks.length)),
                         trailing: contains
                             ? Icon(Icons.check_circle_rounded, color: Theme.of(ctx).colorScheme.primary)

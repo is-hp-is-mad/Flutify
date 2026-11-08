@@ -164,7 +164,7 @@ class _MiniPlayerRow extends StatelessWidget {
                         text: track.name,
                         edgeFadeInset: 4,
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w600,
                           color: foreground,
                         ),
                       ),

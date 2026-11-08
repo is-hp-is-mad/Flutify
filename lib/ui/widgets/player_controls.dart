@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:hyper_glass/hyper_ui.dart' show Pressable;
 import 'package:provider/provider.dart';
 
+import '../../core/theme/flutify_tokens.dart';
 import '../../l10n/l10n.dart';
 import '../../models/playback_state.dart';
 import '../../models/track.dart';
@@ -32,6 +34,47 @@ class PlayPauseButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final (isPlaying, isBuffering) =
         context.select<PlaybackProvider, (bool, bool)>((p) => (p.isPlaying, p.isBuffering));
+    final tokens = context.tokens;
+
+    final inner = Stack(
+      alignment: Alignment.center,
+      children: [
+        if (isBuffering)
+          SizedBox(
+            width: size - 8,
+            height: size - 8,
+            child: FlutifySpinner(size: size - 8, color: foreground.withAlpha(90)),
+          ),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 180),
+          transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
+          child: Icon(
+            isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+            key: ValueKey(isPlaying),
+            color: foreground,
+            size: iconSize,
+          ),
+        ),
+      ],
+    );
+
+    if (tokens.hyperMaterial) {
+      return SizedBox(
+        width: size,
+        height: size,
+        child: Pressable(
+          onTap: () => context.read<PlaybackProvider>().togglePlayPause(),
+          child: AnimatedContainer(
+            duration: backgroundAnimationDuration,
+            decoration: BoxDecoration(
+              color: background,
+              shape: BoxShape.circle,
+            ),
+            child: inner,
+          ),
+        ),
+      );
+    }
 
     return SizedBox(
       width: size,
@@ -44,27 +87,7 @@ class PlayPauseButton extends StatelessWidget {
           customBorder: const CircleBorder(),
           mouseCursor: SystemMouseCursors.click,
           onTap: () => context.read<PlaybackProvider>().togglePlayPause(),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              if (isBuffering)
-                SizedBox(
-                  width: size - 8,
-                  height: size - 8,
-                  child: FlutifySpinner(size: size - 8, color: foreground.withAlpha(90)),
-                ),
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 180),
-                transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
-                child: Icon(
-                  isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                  key: ValueKey(isPlaying),
-                  color: foreground,
-                  size: iconSize,
-                ),
-              ),
-            ],
-          ),
+          child: inner,
         ),
       ),
     );

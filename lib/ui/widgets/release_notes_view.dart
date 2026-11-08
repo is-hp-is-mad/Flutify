@@ -124,7 +124,7 @@ class _ReleaseNotesViewState extends State<ReleaseNotesView> {
         spans.add(
           TextSpan(
             text: m[1],
-            style: const TextStyle(fontWeight: FontWeight.w700),
+            style: const TextStyle(fontWeight: FontWeight.w600),
           ),
         );
       } else if (m[2] != null) {

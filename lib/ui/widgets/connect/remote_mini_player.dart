@@ -168,7 +168,7 @@ class _RemoteMiniRow extends StatelessWidget {
                     text: title,
                     edgeFadeInset: 4,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                       color: foreground,
                     ),
                   ),

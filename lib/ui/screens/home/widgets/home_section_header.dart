@@ -32,7 +32,7 @@ class HomeSectionHeader extends StatelessWidget {
                 Text(
                   title,
                   style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w600,
                     color: colorScheme.onSurface,
                   ),
                   maxLines: 2,
@@ -55,7 +55,7 @@ class HomeSectionHeader extends StatelessWidget {
               onPressed: onShowAll,
               child: Text(
                 context.l10n.commonShowAll,
-                style: TextStyle(color: colorScheme.onSurfaceVariant, fontWeight: FontWeight.w700, fontSize: 13),
+                style: TextStyle(color: colorScheme.onSurfaceVariant, fontWeight: FontWeight.w500, fontSize: 13),
               ),
             ),
         ],

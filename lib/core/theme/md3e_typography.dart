@@ -33,16 +33,16 @@ class MD3ETypography {
     }
 
     return t.copyWith(
-      // 展示级：大号数字 / 英文标题，保留轻微收紧
-      displayLarge: style(t.displayLarge, FontWeight.w800, 1.15, -0.8),
-      displayMedium: style(t.displayMedium, FontWeight.w700, 1.18, -0.4),
-      displaySmall: style(t.displaySmall, FontWeight.w700, 1.2, -0.2),
+      // 展示级：大号数字 / 英文标题，Demibold 封顶保留轻微收紧与呼吸感
+      displayLarge: style(t.displayLarge, FontWeight.w600, 1.15, -0.8),
+      displayMedium: style(t.displayMedium, FontWeight.w600, 1.18, -0.4),
+      displaySmall: style(t.displaySmall, FontWeight.w600, 1.2, -0.2),
       // 标题级：页面大标题、问候语
-      headlineLarge: style(t.headlineLarge, FontWeight.w700, 1.25),
-      headlineMedium: style(t.headlineMedium, FontWeight.w700, 1.28),
+      headlineLarge: style(t.headlineLarge, FontWeight.w600, 1.25),
+      headlineMedium: style(t.headlineMedium, FontWeight.w600, 1.28),
       headlineSmall: style(t.headlineSmall, FontWeight.w600, 1.3),
       // 标题：卡片 / 分区 / 列表主文本
-      titleLarge: style(t.titleLarge, FontWeight.w700, 1.32),
+      titleLarge: style(t.titleLarge, FontWeight.w600, 1.32),
       titleMedium: style(t.titleMedium, FontWeight.w600, 1.4),
       titleSmall: style(t.titleSmall, FontWeight.w600, 1.4),
       // 正文：中文阅读舒适行高

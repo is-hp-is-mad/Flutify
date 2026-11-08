@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:hyper_glass/hyper_ui.dart' show Pressable;
 
 import '../../../../core/theme/flutify_tokens.dart';
 import '../../../../l10n/l10n.dart';
@@ -44,8 +45,8 @@ class HomeChipBar extends StatelessWidget {
   static const double _verticalPadding = 8;
   static const double _leadingSize = 36;
 
-  /// 胶囊高度：遵循小米 HyperOS 规范（36dp 圆润药丸）。
-  static const double pillHeight = 36;
+  /// 胶囊高度：遵循小米 HyperOS 规范（40dp 圆润药丸）。
+  static const double pillHeight = 40;
 
   /// 标签行高度：胶囊与头像取大者，再加上下留白。
   static double extentOf(BuildContext context) {
@@ -125,7 +126,7 @@ class HomeChipBar extends StatelessWidget {
                 children: [
                   for (final pill in pills)
                     Padding(
-                      padding: const EdgeInsets.only(right: 8),
+                      padding: const EdgeInsets.only(right: 12),
                       child: SizedBox(height: pillHeight, child: pill),
                     ),
                 ],
@@ -213,9 +214,8 @@ class _ClearPill extends StatelessWidget {
       message: tooltip,
       child: HoverBuilder(
         cursor: SystemMouseCursors.click,
-        builder: (context, hovered) => GestureDetector(
-          onTap: onTap,
-          child: AnimatedContainer(
+        builder: (context, hovered) {
+          final button = AnimatedContainer(
             duration: context.motion(const Duration(milliseconds: 200)),
             width: size,
             height: size,
@@ -236,8 +236,18 @@ class _ClearPill extends StatelessWidget {
                   ? colorScheme.onSurface.withValues(alpha: 0.85)
                   : colorScheme.onSurface,
             ),
-          ),
-        ),
+          );
+          if (hyper) {
+            return Pressable(
+              onTap: onTap,
+              child: button,
+            );
+          }
+          return GestureDetector(
+            onTap: onTap,
+            child: button,
+          );
+        },
       ),
     );
   }

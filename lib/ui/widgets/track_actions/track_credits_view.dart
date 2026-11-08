@@ -84,7 +84,7 @@ class _TrackCreditsViewState extends State<TrackCreditsView> {
                   children: [
                     Text(
                       l10n.creditsTitle,
-                      style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -0.4),
+                      style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600, letterSpacing: -0.4),
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -165,7 +165,7 @@ class _SectionTitle extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
       child: Text(
         text,
-        style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w800),
+        style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -200,7 +200,7 @@ class _PersonRow extends StatelessWidget {
                 radius: 20,
                 backgroundColor: colorScheme.secondaryContainer,
                 foregroundColor: colorScheme.onSecondaryContainer,
-                child: Text(initial, style: const TextStyle(fontWeight: FontWeight.w800)),
+                child: Text(initial, style: const TextStyle(fontWeight: FontWeight.w600)),
               ),
               const SizedBox(width: 14),
               Expanded(

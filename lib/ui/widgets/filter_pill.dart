@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hyper_glass/hyper_ui.dart' show Pressable;
 
 import '../../core/theme/flutify_tokens.dart';
 import 'hover_builder.dart';
@@ -52,7 +53,7 @@ class FilterPill extends StatelessWidget {
           if (isSelected) {
             backgroundColor = tokens.accent;
             textColor = tokens.onAccent;
-            fontWeight = FontWeight.w700;
+            fontWeight = FontWeight.w600;
           } else {
             backgroundColor = hovered
                 ? colorScheme.surfaceContainerHighest
@@ -62,36 +63,44 @@ class FilterPill extends StatelessWidget {
           }
         }
 
-        return GestureDetector(
-          onTap: onTap,
-          child: AnimatedContainer(
-            duration: context.motion(const Duration(milliseconds: 200)),
-            curve: Curves.easeOutCubic,
-            alignment: Alignment.center,
-            padding: hyper
-                ? const EdgeInsets.symmetric(horizontal: 16, vertical: 7)
-                : const EdgeInsets.fromLTRB(14.0, 5.5, 14.0, 4.5),
-            decoration: BoxDecoration(
-              color: backgroundColor,
-              borderRadius: hyper ? BorderRadius.circular(18) : tokens.pill,
-              boxShadow: isSelected && !hyper
-                  ? [
-                      BoxShadow(
-                        color: tokens.accent.withAlpha(70),
-                        blurRadius: 10,
-                        offset: const Offset(0, 3),
-                      ),
-                    ]
-                  : null,
-            ),
-            child: Text(
-              label,
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: textColor,
-                fontWeight: fontWeight,
-              ),
+        final pillWidget = AnimatedContainer(
+          duration: context.motion(const Duration(milliseconds: 200)),
+          curve: Curves.easeOutCubic,
+          alignment: Alignment.center,
+          padding: hyper
+              ? const EdgeInsets.symmetric(horizontal: 16, vertical: 8)
+              : const EdgeInsets.fromLTRB(14.0, 5.5, 14.0, 4.5),
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: hyper ? BorderRadius.circular(20) : tokens.pill,
+            boxShadow: isSelected && !hyper
+                ? [
+                    BoxShadow(
+                      color: tokens.accent.withAlpha(70),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Text(
+            label,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: textColor,
+              fontWeight: fontWeight,
             ),
           ),
+        );
+
+        if (hyper) {
+          return Pressable(
+            onTap: onTap,
+            child: pillWidget,
+          );
+        }
+        return GestureDetector(
+          onTap: onTap,
+          child: pillWidget,
         );
       },
     );

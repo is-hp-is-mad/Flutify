@@ -221,7 +221,7 @@ class DesktopMenu {
           label,
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
             color: Theme.of(context).colorScheme.onSurfaceVariant,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),

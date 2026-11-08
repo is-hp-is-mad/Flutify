@@ -630,7 +630,7 @@ class _PlaylistMeta extends StatelessWidget {
                 ownerName,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontWeight: FontWeight.w700),
+                style: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
             Flexible(
