@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 默认语言与 App 一致：简体中文（App 内不支持的系统语言也回退到简体中文）；英文见 values-en -->
+<resources>
+    <string name="app_name">Flutify</string>
+    <string name="widget_name_now_playing">Flutify 播放条</string>
+    <string name="widget_desc_now_playing">细长横条，显示当前曲目与播放控制</string>
+    <string name="widget_name_album_card">Flutify 专辑卡片</string>
+    <string name="widget_desc_album_card">大封面，背景随封面取色</string>
+    <string name="widget_name_cover">Flutify 方形封面</string>
+    <string name="widget_desc_cover">封面满幅铺底，带播放键</string>
+    <string name="widget_name_up_next">Flutify 待播清单</string>
+    <string name="widget_desc_up_next">当前曲目与接下来播放，点一行直接播放</string>
+    <string name="widget_cd_play_pause">播放或暂停</string>
+    <string name="widget_cd_previous">上一首</string>
+    <string name="widget_cd_next">下一首</string>
+    <string name="widget_cd_open_app">打开 Flutify</string>
+    <string name="widget_empty_hint">未在播放</string>
+    <string name="widget_playing_from">来自 %1$s</string>
+    <string name="widget_up_next">接下来播放</string>
+    <string name="widget_queue_empty">队列里没有歌曲</string>
+    <string name="widget_preview_context">深夜驾驶</string>
+</resources>

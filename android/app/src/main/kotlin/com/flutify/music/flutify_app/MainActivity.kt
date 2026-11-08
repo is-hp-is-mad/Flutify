@@ -1,6 +1,7 @@
 package com.flutify.music.flutify_app
 
 import android.content.Intent
+import com.flutify.music.flutify_app.widget.WidgetBridgePlugin
 import com.ryanheise.audioservice.AudioServiceActivity
 import io.flutter.embedding.engine.FlutterEngine
 
@@ -16,6 +17,8 @@ class MainActivity : AudioServiceActivity() {
         AudioOutputPlugin.register(flutterEngine, this)
         // 系统里点开的 spotify: / open.spotify.com 链接
         SpotifyLinkPlugin.register(flutterEngine, this)
+        // 桌面小组件：Dart 播放状态 → WidgetStateStore → 刷新 Now Playing
+        WidgetBridgePlugin.register(flutterEngine, applicationContext)
         // 小米 HyperOS 柔光玻璃与跨品牌 Android 原生渲染
         HyperGlassPlugin.register(flutterEngine, this)
         if (!flutterEngine.plugins.has(AppleMusicBackgroundPlugin::class.java)) {

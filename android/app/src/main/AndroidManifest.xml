@@ -10,7 +10,7 @@
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30"/>
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
     <application
-        android:label="Flutify"
+        android:label="@string/app_name"
         android:name="${applicationName}"
         android:networkSecurityConfig="@xml/network_security_config"
         android:icon="@mipmap/ic_launcher">
@@ -81,6 +81,57 @@
             <intent-filter>
                 <action android:name="android.intent.action.MEDIA_BUTTON"/>
             </intent-filter>
+        </receiver>
+        <!-- 桌面小组件（Glance）：播放条 / 专辑卡片 / 方形封面 / 待播清单。播控按钮经媒体键广播走上面这个 receiver -->
+        <!-- 不要加 miuiWidget meta：澎湃 OS 会把它当小米小组件交给服务端列表（侧载应用不收录），
+             反而从「安卓小部件」分区消失；App 内 requestPinAppWidget 也会被转去服务端详情页 -->
+        <receiver
+            android:name=".widget.NowPlayingWidgetReceiver"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="@string/widget_name_now_playing">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/flutify_now_playing_widget_info" />
+        </receiver>
+        <receiver
+            android:name=".widget.AlbumCardWidgetReceiver"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="@string/widget_name_album_card">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/flutify_album_card_widget_info" />
+        </receiver>
+        <receiver
+            android:name=".widget.CoverWidgetReceiver"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="@string/widget_name_cover">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/flutify_cover_widget_info" />
+        </receiver>
+        <receiver
+            android:name=".widget.UpNextWidgetReceiver"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="@string/widget_name_up_next">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/flutify_up_next_widget_info" />
         </receiver>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

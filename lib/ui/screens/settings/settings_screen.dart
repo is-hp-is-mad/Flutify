@@ -10,6 +10,7 @@ import 'sections/appearance_section.dart';
 import 'sections/backup_section.dart';
 import 'sections/connect_section.dart';
 import 'sections/glass_section.dart';
+import 'sections/home_widgets_section.dart';
 import 'sections/language_section.dart';
 import 'sections/lyrics_section.dart';
 import 'sections/motion_section.dart';
@@ -54,6 +55,7 @@ const List<Widget> _singleColumn = [
   LyricsSection(),
   TaskbarLyricsSection(),
   ExternalLyricsSection(),
+  HomeWidgetsSection(),
   AppearanceSection(),
   AccentSection(),
   GlassSection(),
@@ -176,6 +178,7 @@ class _DesktopSettings extends StatelessWidget {
                           const LyricsSection(),
                           const TaskbarLyricsSection(),
                           const ExternalLyricsSection(),
+                          const HomeWidgetsSection(),
                           const LanguageSection(),
                           const NetworkSection(),
                           const RegionCheckSection(),

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 待播清单：默认 4×3，可缩到 4×2、拉到 4×5 -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="250dp"
+    android:minHeight="180dp"
+    android:targetCellWidth="4"
+    android:targetCellHeight="3"
+    android:minResizeWidth="250dp"
+    android:minResizeHeight="110dp"
+    android:resizeMode="horizontal|vertical"
+    android:updatePeriodMillis="0"
+    android:widgetCategory="home_screen"
+    android:description="@string/widget_desc_up_next"
+    android:previewImage="@drawable/widget_preview_up_next"
+    android:initialLayout="@layout/flutify_widget_cold_start" />

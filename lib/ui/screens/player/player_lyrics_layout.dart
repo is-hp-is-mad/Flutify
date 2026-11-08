@@ -293,14 +293,18 @@ class PlayerLyricsLayout extends MultiChildLayoutDelegate {
     );
     final toolbarInHeader =
         landscape && surfaceY < top.height + toolbar.height + 8;
+    // Above the card, the chip rides the visible top through the fold.
+    // In the header it only eases down a little; the card is beside it.
+    final toolbarY = toolbarInHeader
+        ? 6 + 16 * (1 - chrome)
+        : visibleSurface.top - 8 - toolbar.height;
     _position(
       PlayerSceneSlot.toolbar,
       Offset(
         mirrored
             ? cardLeft + cardWidth - toolbar.width
             : width - margin - toolbar.width - (toolbarInHeader ? 56 : 0),
-        (toolbarInHeader ? 6 : surfaceY - 8 - toolbar.height) +
-            16 * (1 - chrome),
+        toolbarY,
       ),
     );
 

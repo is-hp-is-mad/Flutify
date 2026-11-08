@@ -251,20 +251,36 @@ void main() {
         await tester.pump();
         var previousTop = expanded.top;
         var elapsed = Duration.zero;
+        final toolbarOpacity = find.ancestor(
+          of: find.byKey(const ValueKey('translation')),
+          matching: find.byType(Opacity),
+        );
         while (elapsed < PlayerLyricsMotion.foldDuration) {
           await tester.pump(step);
           elapsed += step;
           final card = tester.getRect(cardFinder);
+          final translation = tester.getRect(
+            find.byKey(const ValueKey('translation')),
+          );
           expect(card.top, greaterThanOrEqualTo(previousTop));
           expect(card.bottom, expanded.bottom);
           expect(tester.getRect(find.byKey(const ValueKey('footer'))), footer);
+          expect(translation.bottom, closeTo(card.top - 8, 0.01));
+          final chipOpacity = tester.widget<Opacity>(toolbarOpacity).opacity;
           if (elapsed >= const Duration(milliseconds: 70) &&
               elapsed <= const Duration(milliseconds: 90)) {
             expect(card.top, greaterThan((expanded.top + footer.top) / 2));
+            expect(
+              chipOpacity,
+              greaterThan(0.7),
+              reason:
+                  'the chip stays visible through the fast part of the fold',
+            );
           }
           previousTop = card.top;
         }
         expect(tester.getRect(cardFinder).top, footer.top);
+        expect(tester.widget<Opacity>(toolbarOpacity).opacity, 0);
         expect(find.text('Play').hitTestable(), findsNothing);
         expect(find.text('Footer').hitTestable(), findsOneWidget);
         await tester.tap(find.text('Footer'));
@@ -286,6 +302,17 @@ void main() {
     await tester.pump(const Duration(milliseconds: 160));
     final middleCover = tester.getRect(cover);
     final middleTitle = tester.getRect(title);
+    final formingFrame = tester.widget<Opacity>(
+      find.ancestor(
+        of: find.byKey(const ValueKey('lyrics-control-card')),
+        matching: find.byType(Opacity),
+      ),
+    );
+    expect(
+      formingFrame.opacity,
+      lessThan(0.25),
+      reason: 'the frame is still forming while the metadata takes off',
+    );
     expect(
       tester.getTopLeft(find.byKey(const ValueKey('lyrics'))).dy,
       greaterThan(56),
@@ -313,19 +340,30 @@ void main() {
       tester.getBottomRight(find.byKey(const ValueKey('translation'))).dy,
       closeTo(card.top - 8, 0.01),
     );
-    mode.value = false;
-    await tester.pump();
+    final cardOpacity = find.ancestor(
+      of: find.byKey(const ValueKey('lyrics-control-card')),
+      matching: find.byType(Opacity),
+    );
     final toolbarOpacity = find.ancestor(
       of: find.byKey(const ValueKey('translation')),
       matching: find.byType(Opacity),
     );
+    // The frame eases in across the flight instead of popping with the geometry.
+    expect(tester.widget<Opacity>(cardOpacity).opacity, 1);
     expect(tester.widget<Opacity>(toolbarOpacity).opacity, 1);
+    mode.value = false;
+    await tester.pump();
+    expect(tester.widget<Opacity>(toolbarOpacity).opacity, 1);
+    expect(tester.widget<Opacity>(cardOpacity).opacity, 1);
     await tester.pump(const Duration(milliseconds: 160));
-    expect(
-      tester.widget<Opacity>(toolbarOpacity).opacity,
-      inExclusiveRange(0, 0.5),
-    );
-    await tester.pump(const Duration(milliseconds: 481));
+    // Metadata has already taken off; the frame is still clearly there.
+    expect(tester.widget<Opacity>(toolbarOpacity).opacity, greaterThan(0.7));
+    expect(tester.widget<Opacity>(cardOpacity).opacity, greaterThan(0.7));
+    await tester.pump(const Duration(milliseconds: 160));
+    expect(tester.widget<Opacity>(cardOpacity).opacity, closeTo(0.5, 0.08));
+    expect(tester.widget<Opacity>(toolbarOpacity).opacity, closeTo(0.5, 0.08));
+    await tester.pump(const Duration(milliseconds: 321));
+    expect(tester.widget<Opacity>(cardOpacity).opacity, 0);
     expect(tester.getRect(cover), startCover);
     expect(tester.takeException(), isNull);
   });

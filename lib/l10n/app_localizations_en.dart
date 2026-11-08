@@ -1182,6 +1182,48 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsTaskbarLyricsFontSize => 'Font size';
 
   @override
+  String get settingsHomeWidgetsSection => 'Home screen widgets';
+
+  @override
+  String get settingsHomeWidgetsSubtitle =>
+      'On HyperOS, Flutify is in the Android widgets section at the bottom of the widget list. You can also tap Add here to place one directly, then long-press it to resize';
+
+  @override
+  String get homeWidgetNowPlaying => 'Now Playing bar';
+
+  @override
+  String get homeWidgetNowPlayingDesc =>
+      'Slim bar with artwork, title and previous / play / next; 4×1 by default';
+
+  @override
+  String get homeWidgetAlbumCard => 'Album card';
+
+  @override
+  String get homeWidgetAlbumCardDesc =>
+      'Large artwork with colors picked from the cover; 4×2 by default';
+
+  @override
+  String get homeWidgetCover => 'Cover';
+
+  @override
+  String get homeWidgetCoverDesc =>
+      'Full-bleed artwork with a play button; 2×2 by default';
+
+  @override
+  String get homeWidgetUpNext => 'Up next';
+
+  @override
+  String get homeWidgetUpNextDesc =>
+      'Current track and the queue; tap a row to play it; 4×3 by default';
+
+  @override
+  String get homeWidgetAdd => 'Add';
+
+  @override
+  String get homeWidgetPinUnsupported =>
+      'This launcher can\'t add widgets from apps. Long-press the home screen and add it from the widget list';
+
+  @override
   String get settingsCopyLog => 'Copy diagnostic log';
 
   @override
