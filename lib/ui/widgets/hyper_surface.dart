@@ -182,14 +182,14 @@ class HyperAppBarBackground extends StatelessWidget {
   static const List<double> _tintAlpha = [0.78, 0.66, 0.42, 0.18, 0];
   static const List<double> _tintStops = [0, 0.5, 0.72, 0.88, 1];
 
-  // 着色玻璃（Tint Glass）：更轻薄、更透明，透出下方滚动的曲目与背景
-  static const List<double> _translucentTintAlpha = [0.42, 0.28, 0.14, 0.04, 0];
+  // 着色玻璃（Tint Glass）：色彩更饱满浓郁，同时透出下方滚动的曲目与渐变模糊
+  static const List<double> _translucentTintAlpha = [0.62, 0.46, 0.28, 0.10, 0];
 
   @override
   Widget build(BuildContext context) {
     final window = Theme.of(context).colorScheme.surface;
     final effectiveColor = tintColor != null
-        ? Color.lerp(window, tintColor, 0.65)!
+        ? Color.lerp(window, tintColor, 0.88)!
         : window;
     final alphas = tintColor != null ? _translucentTintAlpha : _tintAlpha;
     final solid = ColoredBox(color: effectiveColor);

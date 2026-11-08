@@ -1,6 +1,10 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/flutify_tokens.dart';
 import '../../../l10n/l10n.dart';
+import '../hyper_surface.dart';
 import '../hover_builder.dart';
 import 'track_sort.dart';
 import 'track_table_columns.dart';
@@ -56,12 +60,7 @@ class _Delegate extends SliverPersistentHeaderDelegate {
       onTap: () => onSort(key),
     );
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: stuck ? scheme.surfaceContainer : null,
-        border: Border(bottom: BorderSide(color: scheme.onSurface.withAlpha(28))),
-      ),
-      child: Padding(
+    final content = Padding(
         padding: const EdgeInsets.symmetric(horizontal: TrackTableColumns.horizontalPadding),
         child: Row(
           children: [
@@ -97,7 +96,34 @@ class _Delegate extends SliverPersistentHeaderDelegate {
             const SizedBox(width: TrackTableColumns.actionWidth),
           ],
         ),
+      );
+
+    if (context.tokens.hyperMaterial) {
+      if (!stuck) return content;
+      return ClipRect(
+        child: BackdropFilter.grouped(
+          filter: ImageFilter.blur(
+            sigmaX: HyperBlendSurface.blurSigma(28),
+            sigmaY: HyperBlendSurface.blurSigma(28),
+            tileMode: TileMode.mirror,
+          ),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: scheme.surface.withValues(alpha: 0.65),
+              border: Border(bottom: BorderSide(color: scheme.onSurface.withAlpha(24))),
+            ),
+            child: content,
+          ),
+        ),
+      );
+    }
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: stuck ? scheme.surfaceContainer : null,
+        border: Border(bottom: BorderSide(color: scheme.onSurface.withAlpha(28))),
       ),
+      child: content,
     );
   }
 
