@@ -136,21 +136,37 @@ class TrackTableHeader extends StatelessWidget {
           // 未滑动到 64dp 前：随页面正常流动，100% 透明无底色，绝不显现突兀色块
           bar = content;
         } else if (hyper) {
-          // 滑动到 64dp 停住吸附时：呈现高饱和渐变着色层，底层垫页面底色彻底杜绝穿字，
-          // 上沿 0.85 与顶栏底沿 0.85 完美咬合，彻底消除缝隙与横线
+          // 滑动到 64dp 停住吸附时：接续顶栏 [60, 52, 44, 36]，呈现下半段 [28, 20, 12, 4] 渐变模糊，
+          // 上沿着色 0.65 与顶栏底沿 0.65 浑然一体，下沿平滑羽化至 0.18
           final effectiveColor = tone ?? scheme.surface;
           bar = Stack(
             fit: StackFit.expand,
             children: [
-              ColoredBox(color: scheme.surface),
+              Column(
+                children: [
+                  for (final radius in const [28.0, 20.0, 12.0, 4.0])
+                    Expanded(
+                      child: ClipRect(
+                        child: BackdropFilter.grouped(
+                          filter: ImageFilter.blur(
+                            sigmaX: HyperBlendSurface.blurSigma(radius),
+                            sigmaY: HyperBlendSurface.blurSigma(radius),
+                            tileMode: TileMode.mirror,
+                          ),
+                          child: const SizedBox.expand(),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
               DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      effectiveColor.withValues(alpha: 0.85),
-                      effectiveColor.withValues(alpha: 0.75),
+                      effectiveColor.withValues(alpha: 0.65),
+                      effectiveColor.withValues(alpha: 0.18),
                     ],
                   ),
                   border: Border(

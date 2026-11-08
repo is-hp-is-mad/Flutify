@@ -185,8 +185,8 @@ class HyperAppBarBackground extends StatelessWidget {
   /// 移动端：从上到下每一条的 LM 半径，平滑羽化归零。
   static const List<double> bandRadii = [60, 52, 44, 36, 28, 20, 12, 4];
 
-  /// 桌面端：从上到下每一条的 LM 半径，下沿保留柔光防护不归零。
-  static const List<double> desktopBandRadii = [60, 52, 44, 36, 28, 24];
+  /// 桌面端：从上到下每一条的 LM 半径，与表头下半段 [28, 20, 12, 4] 顺畅衔接。
+  static const List<double> desktopBandRadii = [60, 52, 44, 36];
 
   // 遮罩的位置取自 miuix 的 gradientBlur
   static const List<double> _tintAlpha = [0.82, 0.70, 0.48, 0.24, 0.0];
@@ -195,9 +195,9 @@ class HyperAppBarBackground extends StatelessWidget {
   // 移动端着色玻璃（Tint Glass）：色彩高饱和晶莹透亮，下沿平滑羽化归零
   static const List<double> _translucentTintAlpha = [0.90, 0.78, 0.55, 0.25, 0.0];
 
-  // 桌面端着色玻璃（Tint Glass）：保留通透渐变，下沿 0.68 保底，彻底消除文字穿透并无缝衔接表头
-  static const List<double> _desktopTintAlpha = [0.92, 0.86, 0.80, 0.74, 0.68];
-  static const List<double> _desktopTintStops = [0.0, 0.25, 0.50, 0.75, 1.0];
+  // 桌面端着色玻璃（Tint Glass）：保留通透渐变，下沿 0.65 保底与表头完美无缝咬合
+  static const List<double> _desktopTintAlpha = [0.92, 0.85, 0.76, 0.65];
+  static const List<double> _desktopTintStops = [0.0, 0.35, 0.70, 1.0];
 
   @override
   Widget build(BuildContext context) {
@@ -218,38 +218,6 @@ class HyperAppBarBackground extends StatelessWidget {
       valueListenable: DesktopWindow.fullscreenTransition,
       builder: (context, transitioning, _) {
         if (transitioning) return solid;
-        if (isDesktop) {
-          // 桌面横屏端：底层垫页面底色彻底杜绝文字穿透，上层铺高饱和渐变着色层（0.95 -> 0.85），
-          // 无缝衔接吸顶表头，完全消除交界切线
-          return Stack(
-            fit: StackFit.expand,
-            children: [
-              ColoredBox(color: window),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      effectiveColor.withValues(alpha: 0.95),
-                      effectiveColor.withValues(alpha: 0.85),
-                    ],
-                  ),
-                ),
-              ),
-              if (tintColor != null && showBottomLine)
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  height: 0.6,
-                  child: ColoredBox(
-                    color: Colors.white.withValues(alpha: 0.12),
-                  ),
-                ),
-            ],
-          );
-        }
         return Stack(
           fit: StackFit.expand,
           children: [
