@@ -269,6 +269,64 @@ class HyperCircleIcon extends StatelessWidget {
   }
 }
 
+
+/// HyperOS 规范的返回按钮：未发生滚动时为纯净纤细箭头（19dp），一旦向下滑动列表触发顶栏模糊，
+/// 背后平滑淡入并弹性缩放浮现出一个细节性的柔光玻璃圆形突出底座（HyperBlendSurface）。
+class HyperBackButton extends StatelessWidget {
+  final VoidCallback? onPressed;
+  final bool floating;
+  final Color? color;
+
+  const HyperBackButton({
+    super.key,
+    this.onPressed,
+    this.floating = false,
+    this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final fg = color ?? Theme.of(context).colorScheme.onSurface;
+    return Center(
+      child: SizedBox.square(
+        dimension: 40,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onPressed ?? () => Navigator.maybePop(context),
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(end: floating ? 1 : 0),
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOut,
+            builder: (context, v, child) => Stack(
+              fit: StackFit.expand,
+              children: [
+                if (v > 0.001)
+                  Transform.scale(
+                    scale: 0.8 + 0.2 * v,
+                    child: Opacity(
+                      opacity: v,
+                      child: HyperBlendSurface(
+                        material: HyperBlendSurface.bar(context),
+                        borderRadius: BorderRadius.circular(20),
+                        bloom: HyperBlendSurface.barBloom(context),
+                        shadow: true,
+                        child: const SizedBox.expand(),
+                      ),
+                    ),
+                  ),
+                child!,
+              ],
+            ),
+            child: Center(
+              child: Icon(Icons.arrow_back_ios_new, color: fg, size: 19),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// 把材质的混合层依次叠在模糊后的画面上（与 mi_blend_blur.frag 的合成顺序一致），
 /// 最后加上 Bloom 描边。
 class _BlendLayersPainter extends CustomPainter {

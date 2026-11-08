@@ -220,6 +220,15 @@ class _HyperBottomBarState extends State<HyperBottomBar> with TickerProviderStat
       final dark = HyperTheme.isDark(context);
       final bottom = MediaQuery.paddingOf(context).bottom;
       final m = _metrics(c.maxWidth);
+      if (widget.surface != null) {
+        return Center(
+          child: SizedBox(
+            width: m.barWidth,
+            height: 56,
+            child: _bar(dark, m.barWidth, m.itemWidth, m.step),
+          ),
+        );
+      }
       // BottomNavigator.applyOuterBackground: BOTTOM_TOP gradient from #f5f3f3f3 (light) / #f5000000 (dark) to 0
       final gradColor = dark ? const Color(0xf5000000) : const Color(0xf5f3f3f3);
       return Stack(

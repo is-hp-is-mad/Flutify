@@ -6,6 +6,7 @@ import 'package:hyper_glass/hyper_ui.dart'
 
 import '../../../core/theme/flutify_tokens.dart';
 import '../../../l10n/l10n.dart';
+import '../../widgets/hyper_surface.dart';
 import '../../widgets/mini_player.dart';
 import '../desktop/desktop_window.dart';
 
@@ -82,12 +83,19 @@ class _GlassNavigationPill extends StatelessWidget {
     final bottomSafe = MediaQuery.paddingOf(context).bottom;
 
     if (tokens.hyperMaterial) {
-      // 对齐 miuix 原生规范：FloatSurface 胶囊悬浮、动态计算指标、果冻弹性形变与自底向上渐变
-      return SizedBox(
-        height: 80 + bottomSafe,
+      return Padding(
+        padding: EdgeInsets.fromLTRB(20, 0, 20, bottomSafe + 12),
         child: HyperBottomBar(
           index: selectedIndex,
           onChanged: onSelected,
+          gradientBackground: false,
+          surface: (child) => HyperBlendSurface(
+            material: HyperBlendSurface.bar(context),
+            borderRadius: BorderRadius.circular(28),
+            bloom: HyperBlendSurface.barBloom(context),
+            shadow: true,
+            child: child,
+          ),
           items: [
             HyperBottomBarItem(
               l10n.navHome,
