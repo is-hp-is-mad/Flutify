@@ -44,8 +44,12 @@ class HyperRenderController extends ChangeNotifier {
   String deviceModel = '';
 
   void setMode(HyperRenderMode newMode) {
-    if (_mode == newMode) return;
-    _mode = newMode;
+    // 非 Android 平台一律锁定为 Flutter 移植管线
+    final effective = defaultTargetPlatform == TargetPlatform.android
+        ? newMode
+        : HyperRenderMode.flutterPort;
+    if (_mode == effective) return;
+    _mode = effective;
     notifyListeners();
   }
 

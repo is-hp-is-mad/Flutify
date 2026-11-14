@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:hyper_glass/hyper_glass.dart';
 
 import '../core/theme/accent_colors.dart';
 import '../core/theme/md3e_theme.dart';
@@ -31,6 +33,7 @@ class AppearanceProvider extends ChangeNotifier {
         // 存储内容损坏：沿用默认外观
       }
     }
+    _syncHyperRender();
   }
 
   AppearanceSettings get settings => _settings;
@@ -43,9 +46,18 @@ class AppearanceProvider extends ChangeNotifier {
   void update(AppearanceSettings settings) {
     if (settings == _settings) return;
     _settings = settings;
+    _syncHyperRender();
     notifyListeners();
     _saveTimer?.cancel();
     _saveTimer = Timer(const Duration(milliseconds: 300), _save);
+  }
+
+  void _syncHyperRender() {
+    hyperRenderController.setMode(_settings.effectiveHyperRenderMode);
+    if (defaultTargetPlatform == TargetPlatform.android &&
+        _settings.glassMaterial == GlassMaterial.hyper) {
+      unawaited(hyperRenderController.ensureCapabilitiesLoaded());
+    }
   }
 
   void reset() => update(AppearanceSettings.defaults);

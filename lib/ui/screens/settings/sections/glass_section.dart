@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:hyper_glass/hyper_glass.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../l10n/l10n.dart';
@@ -53,6 +55,48 @@ class _GlassSectionState extends State<GlassSection> {
             padding: EdgeInsets.all(12),
             child: HyperGlassPreview(),
           ),
+          if (defaultTargetPlatform == TargetPlatform.android) ...[
+            SettingsTile(
+              title: l10n.settingsHyperRenderMode,
+              below: SettingsSegmented<HyperRenderMode>(
+                values: HyperRenderMode.values,
+                selected: settings.hyperRenderMode,
+                labelOf: (m) => switch (m) {
+                  HyperRenderMode.xiaomiNative => l10n.settingsHyperRenderXiaomiNative,
+                  HyperRenderMode.xiaomiPort => l10n.settingsHyperRenderXiaomiPort,
+                  HyperRenderMode.flutterPort => l10n.settingsHyperRenderFlutterPort,
+                },
+                onChanged: (m) => provider.update(settings.copyWith(hyperRenderMode: m)),
+              ),
+            ),
+            ListenableBuilder(
+              listenable: hyperRenderController,
+              builder: (context, _) {
+                final model = hyperRenderController.deviceModel;
+                final osVer = hyperRenderController.hyperOsVersion;
+                final nativeOk = hyperRenderController.xiaomiNativeSupported;
+                final portBackend = hyperRenderController.portBackend;
+                final parts = <String>[
+                  if (model.isNotEmpty) model,
+                  if (osVer > 0) 'HyperOS $osVer',
+                  nativeOk
+                      ? '${l10n.settingsHyperRenderXiaomiNative}: OK'
+                      : '${l10n.settingsHyperRenderXiaomiNative}: N/A',
+                  if (portBackend.isNotEmpty) portBackend,
+                ];
+                if (parts.isEmpty) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: Text(
+                    parts.join(' · '),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                );
+              },
+            ),
+          ],
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: Text(

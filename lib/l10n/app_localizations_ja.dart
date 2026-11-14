@@ -905,6 +905,18 @@ class AppLocalizationsJa extends AppLocalizations {
       'ソフトライトガラス（ベータ）：メニュー、ダイアログ、ボトムシート、通知、ボトムバー、プレーヤーに HyperOS の質感を使います。シェーダーは起動後にバックグラウンドでコンパイルします。';
 
   @override
+  String get settingsHyperRenderMode => 'レンダーバックエンド';
+
+  @override
+  String get settingsHyperRenderXiaomiNative => 'Xiaomi ネイティブ';
+
+  @override
+  String get settingsHyperRenderXiaomiPort => 'Xiaomi 移植';
+
+  @override
+  String get settingsHyperRenderFlutterPort => 'Flutter 移植';
+
+  @override
   String get settingsTextShapeSection => '文字と形';
 
   @override

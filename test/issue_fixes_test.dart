@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutify_app/core/utils/pinyin_sort.dart';
+import 'package:flutify_app/models/appearance.dart';
 import 'package:flutify_app/models/artist.dart';
 import 'package:flutify_app/models/shortcut_settings.dart';
 import 'package:flutify_app/models/track.dart';
@@ -12,10 +13,12 @@ import 'package:flutify_app/services/library/web_api_library_source.dart';
 import 'package:flutify_app/services/pathfinder/desktop_data_source.dart';
 import 'package:flutify_app/services/protocol/track_audio_loader.dart';
 import 'package:flutify_app/ui/shell/desktop/desktop_integration.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:hyper_glass/hyper_glass.dart';
 
 void main() {
   group('全局快捷键的系统键码（issue #48）', () {
@@ -326,6 +329,56 @@ void main() {
       await source.setTrackLiked(track, true);
       await source.setTrackLiked(track, false);
       expect(ops, ['addToLibrary', 'removeFromLibrary']);
+    });
+  });
+
+  group('HyperGlass 渲染模式切换（仅 Android 可切，其余平台一律 Flutter 移植）', () {
+    tearDown(() {
+      debugDefaultTargetPlatformOverride = null;
+      hyperRenderController.setMode(HyperRenderMode.flutterPort);
+    });
+
+    test('AppearanceSettings 序列化与平台有效模式', () {
+      const settings = AppearanceSettings(
+        glassMaterial: GlassMaterial.hyper,
+        hyperRenderMode: HyperRenderMode.xiaomiNative,
+      );
+      final roundtrip = AppearanceSettings.fromJson(settings.toJson());
+      expect(roundtrip.hyperRenderMode, HyperRenderMode.xiaomiNative);
+
+      for (final platform in [
+        TargetPlatform.windows,
+        TargetPlatform.linux,
+        TargetPlatform.macOS,
+        TargetPlatform.iOS,
+      ]) {
+        debugDefaultTargetPlatformOverride = platform;
+        expect(roundtrip.effectiveHyperRenderMode, HyperRenderMode.flutterPort);
+      }
+
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      expect(roundtrip.effectiveHyperRenderMode, HyperRenderMode.xiaomiNative);
+    });
+
+    test('HyperRenderController 在非 Android 强制 flutterPort，Android 可切三种模式', () {
+      for (final platform in [
+        TargetPlatform.windows,
+        TargetPlatform.linux,
+        TargetPlatform.macOS,
+        TargetPlatform.iOS,
+      ]) {
+        debugDefaultTargetPlatformOverride = platform;
+        hyperRenderController.setMode(HyperRenderMode.xiaomiNative);
+        expect(hyperRenderController.mode, HyperRenderMode.flutterPort);
+        hyperRenderController.setMode(HyperRenderMode.xiaomiPort);
+        expect(hyperRenderController.mode, HyperRenderMode.flutterPort);
+      }
+
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      for (final mode in HyperRenderMode.values) {
+        hyperRenderController.setMode(mode);
+        expect(hyperRenderController.mode, mode);
+      }
     });
   });
 }

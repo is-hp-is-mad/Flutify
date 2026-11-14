@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:hyper_glass/hyper_glass.dart';
 
 /// 圆角风格：影响卡片、封面、面板、按钮等所有圆角。
 enum CornerStyle {
@@ -55,6 +57,15 @@ class AppearanceSettings {
 
   final GlassMaterial glassMaterial;
 
+  /// HyperGlass 渲染模式（仅 Android 生效；其他平台一律使用 Flutter 移植）。
+  final HyperRenderMode hyperRenderMode;
+
+  /// 当前平台实际生效的 HyperGlass 渲染模式。
+  HyperRenderMode get effectiveHyperRenderMode =>
+      defaultTargetPlatform == TargetPlatform.android
+          ? hyperRenderMode
+          : HyperRenderMode.flutterPort;
+
   /// 液态玻璃模糊强度 0~1。
   final double glassBlur;
 
@@ -90,6 +101,7 @@ class AppearanceSettings {
     this.accent = const Color(0xFF1ED760),
     this.dynamicAccent = false,
     this.glassMaterial = GlassMaterial.liquid,
+    this.hyperRenderMode = HyperRenderMode.flutterPort,
     this.glassBlur = 0.6,
     this.glassOpacity = 0.3,
     this.pureBlack = false,
@@ -107,6 +119,7 @@ class AppearanceSettings {
     Color? accent,
     bool? dynamicAccent,
     GlassMaterial? glassMaterial,
+    HyperRenderMode? hyperRenderMode,
     double? glassBlur,
     double? glassOpacity,
     bool? pureBlack,
@@ -121,6 +134,7 @@ class AppearanceSettings {
       accent: accent ?? this.accent,
       dynamicAccent: dynamicAccent ?? this.dynamicAccent,
       glassMaterial: glassMaterial ?? this.glassMaterial,
+      hyperRenderMode: hyperRenderMode ?? this.hyperRenderMode,
       glassBlur: glassBlur ?? this.glassBlur,
       glassOpacity: glassOpacity ?? this.glassOpacity,
       pureBlack: pureBlack ?? this.pureBlack,
@@ -137,6 +151,7 @@ class AppearanceSettings {
         'accent': accent.toARGB32(),
         'dynamicAccent': dynamicAccent,
         'glassMaterial': glassMaterial.name,
+        'hyperRenderMode': hyperRenderMode.name,
         'glassBlur': glassBlur,
         'glassOpacity': glassOpacity,
         'pureBlack': pureBlack,
@@ -159,6 +174,11 @@ class AppearanceSettings {
       accent: json['accent'] is int ? Color(json['accent'] as int) : d.accent,
       dynamicAccent: json['dynamicAccent'] is bool ? json['dynamicAccent'] as bool : d.dynamicAccent,
       glassMaterial: pick(GlassMaterial.values, json['glassMaterial'], d.glassMaterial),
+      hyperRenderMode: pick(
+        HyperRenderMode.values,
+        json['hyperRenderMode'],
+        d.hyperRenderMode,
+      ),
       glassBlur: unit(json['glassBlur'], d.glassBlur),
       glassOpacity: unit(json['glassOpacity'], d.glassOpacity),
       pureBlack: json['pureBlack'] is bool ? json['pureBlack'] as bool : d.pureBlack,
@@ -182,6 +202,7 @@ class AppearanceSettings {
       other.accent == accent &&
       other.dynamicAccent == dynamicAccent &&
       other.glassMaterial == glassMaterial &&
+      other.hyperRenderMode == hyperRenderMode &&
       other.glassBlur == glassBlur &&
       other.glassOpacity == glassOpacity &&
       other.pureBlack == pureBlack &&
@@ -197,6 +218,7 @@ class AppearanceSettings {
         accent,
         dynamicAccent,
         glassMaterial,
+        hyperRenderMode,
         glassBlur,
         glassOpacity,
         pureBlack,
