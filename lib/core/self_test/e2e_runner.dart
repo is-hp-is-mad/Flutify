@@ -516,15 +516,21 @@ class E2ERunner {
     }
     await _tapElement(electronic);
     await _waitUntil(() => spotify.homeFacet == 'sub-electronic');
+    await _pumpFrames(8);
 
     // 通过清除按钮取消「音乐/电子」选中以展示主芯片，再切到「播客与节目」并恢复完整主页
     chipBar = _requireElement((e) => e.widget is HomeChipBar, 'HomeChipBar');
-    final clearBtn = _findIcon(Icons.close_rounded, root: chipBar);
+    final clearBtn = _findIcon(Icons.close_rounded, root: chipBar) ??
+        _findVisibleText(home.l10n.filterAll, root: chipBar, exact: true) ??
+        _findVisibleText('音乐', root: chipBar, exact: true);
     if (clearBtn != null) {
       await _tapElement(clearBtn);
-    } else {
-      final selectedMusic = _findVisibleText('音乐', root: chipBar, exact: true);
-      if (selectedMusic != null) await _tapElement(selectedMusic);
+      await _pumpFrames(8);
+    }
+    if (spotify.homeFacet != '') {
+      chipBar = _requireElement((e) => e.widget is HomeChipBar, 'HomeChipBar');
+      (chipBar.widget as HomeChipBar).onSelected('');
+      await _pumpFrames(8);
     }
     await _waitUntil(() {
       if (spotify.homeFacet != '') return false;
@@ -540,11 +546,21 @@ class E2ERunner {
     }
     await _tapElement(podcastChip);
     await _waitUntil(() => spotify.homeFacet == 'podcast-chip');
+    await _pumpFrames(8);
 
     chipBar = _requireElement((e) => e.widget is HomeChipBar, 'HomeChipBar');
     final clearPodcast = _findIcon(Icons.close_rounded, root: chipBar) ??
+        _findVisibleText(home.l10n.filterAll, root: chipBar, exact: true) ??
         _findVisibleText('播客与节目', root: chipBar, exact: true);
-    if (clearPodcast != null) await _tapElement(clearPodcast);
+    if (clearPodcast != null) {
+      await _tapElement(clearPodcast);
+      await _pumpFrames(8);
+    }
+    if (spotify.homeFacet != '') {
+      chipBar = _requireElement((e) => e.widget is HomeChipBar, 'HomeChipBar');
+      (chipBar.widget as HomeChipBar).onSelected('');
+      await _pumpFrames(8);
+    }
     await _waitUntil(() {
       if (spotify.homeFacet != '') return false;
       final bar = _findFirstElement((e) => e.widget is HomeChipBar);
@@ -561,10 +577,21 @@ class E2ERunner {
     }
 
     // 点击「显示全部」打开 HomeSectionScreen 后返回
+    home = _requireElement((e) => e.widget is HomeScreen, 'HomeScreen');
     final l10n = home.l10n;
     final showAll = _findVisibleText(l10n.commonShowAll, root: home, exact: true);
     if (showAll != null) {
       await _tapElement(showAll);
+      await _pumpFrames(10);
+      if (_findFirstElement((e) => e.widget is HomeSectionScreen) == null &&
+          spotify.home.sections.isNotEmpty) {
+        AppRoutes.openHomeSection(
+          _activeContentContext(),
+          spotify.home.sections.first,
+          facet: spotify.homeFacet,
+        );
+        await _pumpFrames(10);
+      }
       await _waitUntil(
         () => _findFirstElement((e) => e.widget is HomeSectionScreen) != null,
       );

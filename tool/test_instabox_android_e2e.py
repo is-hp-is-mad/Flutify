@@ -211,6 +211,17 @@ class InstaBoxAndroidE2ETest(unittest.TestCase):
         self.assertIn("[[:space:]]device$", boot_cmd)
         self.assertNotIn("\\tdevice$", boot_cmd)
 
+    def test_apply_inapp_downloaded_apk_if_needed_installs_from_cache(self) -> None:
+        def handle(cmd):
+            return subprocess.CompletedProcess(cmd, 0, "Success\n", "")
+
+        runner = FakeRunner(handle)
+        ok = ib.apply_inapp_downloaded_apk_if_needed(runner, "my-android")
+        self.assertTrue(ok)
+        self.assertEqual(len(runner.calls), 1)
+        self.assertIn("cache/flutify-updates/download-*/*.apk", runner.calls[0][-1])
+        self.assertIn("pm install -r /data/local/tmp/flutify_inapp_update.apk", runner.calls[0][-1])
+
 
 if __name__ == "__main__":
     unittest.main()

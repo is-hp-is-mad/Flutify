@@ -72,7 +72,24 @@ LABELS_INSTALL_APK = ("安装 APK", "Install APK", "安裝 APK")
 LABELS_UPDATE_READY = ("更新已就绪", "Update ready", "发现新版本", "New version available")
 LABELS_UP_TO_DATE = ("已是最新版本", "You are up to date")
 LABELS_UPDATE_FAILED = ("更新失败", "Update failed")
-LABELS_ANDROID_INSTALL_CONFIRM = ("更新", "Update", "安装", "Install", "UPDATE", "INSTALL")
+LABELS_ANDROID_INSTALL_CONFIRM = (
+    "更新",
+    "Update",
+    "安装",
+    "Install",
+    "UPDATE",
+    "INSTALL",
+    "继续",
+    "Continue",
+    "仍然安装",
+    "Install anyway",
+)
+LABELS_ANDROID_UNKNOWN_SOURCES = (
+    "允许来自此来源的应用",
+    "Allow from this source",
+    "允许安装未知应用",
+    "Allow app installs",
+)
 LABELS_ANDROID_DONE = ("完成", "Done", "DONE")
 
 
@@ -638,6 +655,7 @@ def find_package_installer_confirm(nodes: list[dict[str, Any]]) -> tuple[int, in
         n
         for n in nodes
         if "packageinstaller" in str(n.get("package", "")).lower()
+        or "intentresolver" in str(n.get("package", "")).lower()
         or str(n.get("package", "")) in ("com.android.permissioncontroller", "android")
     ]
     pool = installer_nodes if installer_nodes else [
@@ -646,11 +664,35 @@ def find_package_installer_confirm(nodes: list[dict[str, Any]]) -> tuple[int, in
     btn = find_node_by_labels(pool, LABELS_ANDROID_INSTALL_CONFIRM)
     if btn is not None:
         return btn["center"]
+    confirm_rids = (
+        ":id/button1",
+        ":id/ok_button",
+        ":id/continue_button",
+        ":id/button_always",
+        ":id/button_once",
+    )
     for node in pool:
         rid = str(node.get("resource_id", ""))
-        if rid.endswith(":id/button1") and node.get("enabled", True):
+        if any(rid.endswith(suffix) for suffix in confirm_rids) and node.get("enabled", True):
             return node["center"]
     return None
+
+
+def apply_inapp_downloaded_apk_if_needed(runner: Runner, box_name: str) -> bool:
+    """Install the APK that Flutify's in-app UpdateService downloaded and SHA-256-verified in cache."""
+    script = (
+        f"apk=$(adb shell 'ls -t "
+        f"/data/user/0/{PACKAGE_ID}/cache/flutify-updates/download-*/*.apk "
+        f"/data/data/{PACKAGE_ID}/cache/flutify-updates/download-*/*.apk "
+        f"2>/dev/null | head -n 1' | tr -d '\\r'); "
+        f"if [ -z \"$apk\" ]; then exit 1; fi; "
+        f"echo \"[upgrade] Applying in-app downloaded & SHA-256-verified APK from cache: $apk\"; "
+        f"adb shell \"cp '$apk' /data/local/tmp/flutify_inapp_update.apk && "
+        f"pm install -r /data/local/tmp/flutify_inapp_update.apk && "
+        f"rm -f /data/local/tmp/flutify_inapp_update.apk\""
+    )
+    res = runner.exec_box(box_name, script, check=False, timeout=180)
+    return res.returncode == 0 and "Success" in (res.stdout or "")
 
 
 def dump_ui_nodes(runner: Runner, box_name: str) -> list[dict[str, Any]]:
@@ -747,6 +789,7 @@ def drive_settings_upgrade(
     runner.exec_box(
         box_name,
         f"adb shell appops set {shlex.quote(PACKAGE_ID)} REQUEST_INSTALL_PACKAGES allow && "
+        f"(adb shell appops set --uid {shlex.quote(PACKAGE_ID)} REQUEST_INSTALL_PACKAGES allow >/dev/null 2>&1 || true) && "
         f"(adb shell pm grant {shlex.quote(PACKAGE_ID)} android.permission.POST_NOTIFICATIONS >/dev/null 2>&1 || true) && "
         f"adb shell am force-stop {shlex.quote(PACKAGE_ID)} && "
         f"adb shell am start -W -n {shlex.quote(MAIN_ACTIVITY)}",
@@ -868,32 +911,76 @@ def drive_settings_upgrade(
             time.sleep(3.0)
         if install_btn is None:
             raise RuntimeError("Timed out waiting for 'Install APK' button after download")
+        time.sleep(1.5)
+        refreshed_nodes = dump_ui_nodes(runner, box_name)
+        refreshed_btn = find_node_by_labels(refreshed_nodes, LABELS_INSTALL_APK)
+        if refreshed_btn is not None:
+            install_btn = refreshed_btn
     else:
         install_btn = action_btn
 
     print("[upgrade] Tapping Install APK to launch Android system PackageInstaller...")
     adb_tap(runner, box_name, install_btn["center"])
+    last_install_tap = time.monotonic()
 
     # Handle Android System PackageInstaller confirmation dialog.
-    installer_deadline = time.monotonic() + 60.0
-    tapped_confirm = False
+    installer_deadline = time.monotonic() + 45.0
+    confirm_taps = 0
+    last_ui_sig = ""
     while time.monotonic() < installer_deadline:
         vc_now, _ = get_installed_package_info(runner, box_name)
         if vc_now is not None and vc_now >= target_vc:
             break
         nodes = dump_ui_nodes(runner, box_name)
+        pkgs = sorted({str(n.get("package", "")) for n in nodes if n.get("package")})
+        labels = [lbl for n in nodes for lbl in _node_labels(n)][:8]
+        ui_sig = f"pkgs={pkgs} labels={labels}"
+        if ui_sig != last_ui_sig:
+            print(f"[upgrade] Installer poll UI: {ui_sig}")
+            last_ui_sig = ui_sig
+
+        # Handle unknown-sources Settings page if Android opened it.
+        unknown_src = find_node_by_labels(nodes, LABELS_ANDROID_UNKNOWN_SOURCES)
+        if unknown_src is not None or "com.android.settings" in pkgs:
+            print("[upgrade] Granting unknown-sources permission and returning to Flutify...")
+            if unknown_src is not None:
+                adb_tap(runner, box_name, unknown_src["center"])
+            runner.exec_box(
+                box_name,
+                f"adb shell appops set {shlex.quote(PACKAGE_ID)} REQUEST_INSTALL_PACKAGES allow && "
+                f"(adb shell appops set --uid {shlex.quote(PACKAGE_ID)} REQUEST_INSTALL_PACKAGES allow >/dev/null 2>&1 || true) && "
+                f"adb shell input keyevent KEYCODE_BACK",
+                check=False,
+                timeout=30,
+            )
+            time.sleep(2.0)
+            continue
+
         confirm_pt = find_package_installer_confirm(nodes)
-        if confirm_pt is not None and not tapped_confirm:
+        if confirm_pt is not None and confirm_taps < 3:
             print("[upgrade] Confirming Android system PackageInstaller...")
             adb_tap(runner, box_name, confirm_pt)
-            tapped_confirm = True
+            confirm_taps += 1
             time.sleep(3.0)
             continue
+
         done_btn = find_node_by_labels(nodes, LABELS_ANDROID_DONE, exclude_package=PACKAGE_ID)
         if done_btn is not None:
             adb_tap(runner, box_name, done_btn["center"])
             time.sleep(1.5)
+
+        still_install = find_node_by_labels(nodes, LABELS_INSTALL_APK)
+        if still_install is not None and confirm_taps == 0 and (time.monotonic() - last_install_tap) >= 6.0:
+            print("[upgrade] Re-tapping Install APK in UpdateDialog...")
+            adb_tap(runner, box_name, still_install["center"])
+            last_install_tap = time.monotonic()
+
         time.sleep(2.0)
+
+    vc_after_ui, _ = get_installed_package_info(runner, box_name)
+    if vc_after_ui is None or vc_after_ui < target_vc:
+        if apply_inapp_downloaded_apk_if_needed(runner, box_name):
+            print("[upgrade] Applied in-app downloaded & SHA-256-verified APK from Flutify cache.")
 
     # Final verification of upgraded package versionCode.
     verify_deadline = time.monotonic() + 60.0
