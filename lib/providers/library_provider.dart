@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import '../models/album.dart';
 import '../models/artist.dart';
+import '../models/editable_playlist.dart';
 import '../models/image.dart';
 import '../models/playlist.dart';
 import '../models/track.dart';
@@ -244,6 +245,50 @@ class LibraryProvider extends ChangeNotifier {
     if (_syncError == null) return;
     _syncError = null;
     notifyListeners();
+  }
+
+  /// 账号里可以往里加 [track] 的歌单（「添加到歌单」菜单用）；未登录或读取失败时为空，
+  /// 菜单照常列出本机歌单。
+  Future<List<EditablePlaylist>> editablePlaylistsFor(SpotifyTrack track) async {
+    final source = _source;
+    if (source == null || !source.isSignedIn) return const [];
+    try {
+      return await source.fetchEditablePlaylists(track);
+    } catch (e) {
+      debugPrint('[library] 读取可添加的歌单失败：$e');
+      return const [];
+    }
+  }
+
+  /// 把 [track] 加到账号歌单 [playlist]；返回是否成功。
+  ///
+  /// 等服务端确认后才算数：这是往用户的 Spotify 账号里写，不做「先改本地再同步」的乐观更新。
+  Future<bool> addTrackToAccountPlaylist(
+    EditablePlaylist playlist,
+    SpotifyTrack track,
+  ) async {
+    final source = _source;
+    if (source == null || !source.isSignedIn) return false;
+    try {
+      await source.addTrackToPlaylist(playlist.uri, track);
+    } catch (e) {
+      debugPrint('[library] 添加到歌单失败：$e');
+      return false;
+    }
+    if (_disposed) return true;
+    // 媒体库里这张歌单的曲目数跟着加一（曲目列表在打开歌单时重新读取）
+    final index = _remotePlaylists.indexWhere((p) => p.id == playlist.id);
+    if (index >= 0) {
+      final current = _remotePlaylists[index];
+      _remotePlaylists = [
+        ..._remotePlaylists.sublist(0, index),
+        current.copyWith(totalTracks: current.totalTracks + 1),
+        ..._remotePlaylists.sublist(index + 1),
+      ];
+      _rebuildPlaylists();
+      notifyListeners();
+    }
+    return true;
   }
 
   /// 后台同步到账号：失败只记录 [syncError]（本地修改保留，下次 [refresh] 以账号为准）。

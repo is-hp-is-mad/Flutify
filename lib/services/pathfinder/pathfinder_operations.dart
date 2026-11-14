@@ -47,6 +47,19 @@ class PathfinderOperation {
     '383de00240775c39a6afe0b1055dc562b2a3930894201f9762f3fc32a74971c7',
   );
 
+  /// 「添加到歌单」可选的歌单：当前账号可编辑的歌单与文件夹，并标出给定曲目是否已在其中。
+  /// 这两项的哈希取自 open.spotify.com 的 web-player.632a438d.js（业务请求用的就是 Web 播放器身份）。
+  static const editablePlaylists = PathfinderOperation(
+    'editablePlaylists',
+    'd5c4b8096437dcc2ac9528c91dfcd299e35b747cda2f8f75d28f41f49c5092ba',
+  );
+
+  /// 往歌单里加曲目（mutation；与 removeFromPlaylist / moveItemsInPlaylist 同一份文档）。
+  static const addToPlaylist = PathfinderOperation(
+    'addToPlaylist',
+    'b907ad6b088d5bf7680fa81198996d58398c2d55dfcdf59fcc959e0be98a418a',
+  );
+
   /// 「查看制作人员」弹窗：按角色分组的参与者与版权来源。
   static const queryTrackCreditsGroupedModal = PathfinderOperation(
     'queryTrackCreditsGroupedModal',

@@ -1,33 +1,44 @@
-# 构建并发布 Android / Windows / macOS 安装包。
-# - 推送 v* 标签：三端构建完成后发布到 GitHub Releases（标签含 beta / alpha / rc 时标为预发布）；
-# - 手动运行默认只构建；勾选 publish_release 并填写 release_tag 后，全部构建成功才发布。
-# - 推送到 main：只构建，产物在本次运行的 Artifacts 里。
-# - macOS 测试包随 Release 发布，未做 Developer ID 签名和 Apple 公证。
+# 构建并发布 Android / Windows / macOS / Linux 安装包。每次编译都会打标签发布，区别只在通道：
+# - self-test：推送到 main 自动发布，开发者自测用（预发布）。
+# - beta：手动运行，选 channel=beta、填要提升的 self-test 标签，并勾选「已亲自验证」才会编译发布（预发布）。
+# - release：正式版。每周一 09:00（北京时间）定时运行：最新 beta 发布之后没有任何新开的 issue 才自动发布；
+#   也可手动运行，把某个 beta 标签提升为正式版。
+# 标签第三段是「实质版本号」（= 本工作流的运行号，每编译一次加一，三个通道共用）：
+#   v0.18.135-selftest / v0.18.140-beta / v0.18.151。规则见 tool/release_config.cjs。
+# macOS 包未做 Developer ID 签名和 Apple 公证。
 name: Build
 
 on:
   push:
     branches: [main]
-    tags: ['v*']
-    # 只改文档时不构建（标签推送不受影响）
+    # 只改文档时不构建
     paths-ignore: ['**.md', 'docs/**', 'LICENSE']
+  schedule:
+    # 周一 01:00 UTC = 北京时间周一 09:00
+    - cron: '0 1 * * 1'
   workflow_dispatch:
     inputs:
-      publish_release:
-        description: 'Publish after all platform builds pass'
-        type: boolean
-        default: false
-      release_tag:
-        description: 'Release tag (required when publishing, e.g. v0.04-beta)'
+      channel:
+        description: 'Channel to publish'
+        type: choice
+        options: [self-test, beta, release]
+        default: self-test
+      source_tag:
+        description: 'Tag to promote: a self-test tag for beta, a beta tag for release'
         type: string
         default: ''
+      confirmed_tested:
+        description: 'I have personally tested source_tag and confirm it works (required for beta / release)'
+        type: boolean
+        default: false
 
 concurrency:
-  group: build-${{ github.event_name }}-${{ github.ref }}-${{ inputs.release_tag || '' }}
+  group: build-${{ github.event_name }}-${{ github.ref }}-${{ inputs.channel || '' }}
   cancel-in-progress: false
 
 permissions:
   contents: write
+  issues: read
 
 env:
   FLUTTER_VERSION: '3.44.0'
@@ -40,9 +51,15 @@ jobs:
     name: Validate build and release target
     runs-on: ubuntu-latest
     outputs:
+      build: ${{ steps.config.outputs.build }}
       publish: ${{ steps.config.outputs.publish }}
+      channel: ${{ steps.config.outputs.channel }}
       tag: ${{ steps.config.outputs.tag }}
       label: ${{ steps.config.outputs.label }}
+      sha: ${{ steps.config.outputs.sha }}
+      source: ${{ steps.config.outputs.source }}
+      prerelease: ${{ steps.config.outputs.prerelease }}
+      latest: ${{ steps.config.outputs.latest }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -52,18 +69,23 @@ jobs:
       - run: node --test tool/test_eme_playback.cjs
       - id: config
         env:
-          PUBLISH_RELEASE: ${{ inputs.publish_release }}
-          RELEASE_TAG: ${{ inputs.release_tag }}
+          GH_TOKEN: ${{ github.token }}
+          CHANNEL: ${{ inputs.channel }}
+          SOURCE_TAG: ${{ inputs.source_tag }}
+          CONFIRMED: ${{ inputs.confirmed_tested }}
         run: node tool/release_config.cjs
 
   android:
     name: Android APK
     needs: prepare
+    if: needs.prepare.outputs.build == 'true'
     env:
       BUILD_LABEL: ${{ needs.prepare.outputs.label }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
 
       - uses: actions/setup-java@v4
         with:
@@ -139,6 +161,7 @@ jobs:
   windows:
     name: Windows ${{ matrix.arch }}
     needs: prepare
+    if: needs.prepare.outputs.build == 'true'
     env:
       BUILD_LABEL: ${{ needs.prepare.outputs.label }}
     strategy:
@@ -152,6 +175,8 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
 
       - uses: subosito/flutter-action@v2
         if: matrix.arch == 'x64'
@@ -223,11 +248,14 @@ jobs:
   macos:
     name: macOS
     needs: prepare
+    if: needs.prepare.outputs.build == 'true'
     env:
       BUILD_LABEL: ${{ needs.prepare.outputs.label }}
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
 
       - uses: subosito/flutter-action@v2
         with:
@@ -256,11 +284,14 @@ jobs:
   linux:
     name: Linux x64
     needs: prepare
+    if: needs.prepare.outputs.build == 'true'
     env:
       BUILD_LABEL: ${{ needs.prepare.outputs.label }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
 
       - uses: subosito/flutter-action@v2
         with:
@@ -298,6 +329,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
 
       - uses: actions/download-artifact@v4
         with:
@@ -319,21 +352,328 @@ jobs:
       - name: Prepare release notes
         env:
           RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+          CHANNEL: ${{ needs.prepare.outputs.channel }}
+          SOURCE_TAG: ${{ needs.prepare.outputs.source }}
         run: |
-          notes="docs/releases/${RELEASE_TAG}.md"
+          out="$RUNNER_TEMP/release-notes.md"
+          case "$CHANNEL" in
+            self-test) printf '%s\n\n' '> **self-test 自测版**：开发者自测用，未经验证，不得用于实际使用。' > "$out" ;;
+            beta) printf '%s\n\n' "> **beta 测试版**：由 ${SOURCE_TAG} 经人工确认后提升。" > "$out" ;;
+            *) printf '%s\n\n' "> **正式版**：由 ${SOURCE_TAG} 提升。" > "$out" ;;
+          esac
+          # 说明文件按基础版本号取：v0.18.151-beta → docs/releases/v0.18.md
+          notes="docs/releases/$(printf '%s' "$RELEASE_TAG" | sed -E 's/^(v[0-9]+\.[0-9]+).*/\1/').md"
           if [ -f "$notes" ]; then
-            cp "$notes" "$RUNNER_TEMP/release-notes.md"
+            cat "$notes" >> "$out"
           else
-            printf '%s\n' 'Windows x64 / ARM64 提供安装版和便携版；Android 提供三种 ABI 与通用 APK；macOS 提供未做 Developer ID 签名和 Apple 公证的测试 ZIP；Linux x64 提供实验性 .deb 与发行版中立的 tar.gz。全部平台构建及产物校验通过后发布，校验和见 SHA256SUMS.txt。' '构建通过不代表所有设备兼容性问题已完成实机验证，已知问题见 README。' > "$RUNNER_TEMP/release-notes.md"
+            printf '%s\n' 'Windows x64 / ARM64 提供安装版和便携版；Android 提供三种 ABI 与通用 APK；macOS 提供未做 Developer ID 签名和 Apple 公证的测试 ZIP；Linux x64 提供实验性 .deb 与发行版中立的 tar.gz。全部平台构建及产物校验通过后发布，校验和见 SHA256SUMS.txt。' '构建通过不代表所有设备兼容性问题已完成实机验证，已知问题见 README。' >> "$out"
           fi
 
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.prepare.outputs.tag }}
-          target_commitish: ${{ github.sha }}
+          target_commitish: ${{ needs.prepare.outputs.sha }}
           name: Flutify ${{ needs.prepare.outputs.tag }}
-          prerelease: ${{ contains(needs.prepare.outputs.tag, 'beta') || contains(needs.prepare.outputs.tag, 'alpha') || contains(needs.prepare.outputs.tag, 'rc') }}
+          prerelease: ${{ needs.prepare.outputs.prerelease }}
+          make_latest: ${{ needs.prepare.outputs.latest }}
           body_path: ${{ runner.temp }}/release-notes.md
           generate_release_notes: true
           fail_on_unmatched_files: true
           files: dist/*
+
+  e2e-windows:
+    name: E2E · Windows x64 Mock & Perf
+    needs: [prepare, release]
+    if: needs.prepare.outputs.build == 'true' && needs.prepare.outputs.channel == 'self-test'
+    runs-on: windows-latest
+    timeout-minutes: 25
+    env:
+      BUILD_LABEL: ${{ needs.prepare.outputs.label }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install matplotlib
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-x64
+          path: downloaded_win
+      - name: Unpack and run Windows Mock E2E & capture 0.3s screenshots
+        shell: pwsh
+        run: |
+          $zip = Join-Path $PWD "downloaded_win/Flutify-$($env:BUILD_LABEL)-windows-x64.zip"
+          if (!(Test-Path -LiteralPath $zip)) { throw "Missing artifact archive: $zip" }
+          $appDir = Join-Path $env:RUNNER_TEMP 'flutify-win-e2e'
+          if (Test-Path -LiteralPath $appDir) { Remove-Item -LiteralPath $appDir -Recurse -Force }
+          Expand-Archive -Path $zip -DestinationPath $appDir -Force
+          $exe = Join-Path $appDir 'Flutify.exe'
+          if (!(Test-Path -LiteralPath $exe)) { throw "Missing $exe" }
+          $outDir = Join-Path $PWD 'e2e_out/windows'
+          New-Item -ItemType Directory -Path $outDir -Force | Out-Null
+          $proc = Start-Process -FilePath $exe -ArgumentList @('--mock', "--self-test-e2e=$outDir") -PassThru
+          $null = $proc.Handle
+          if (-not $proc.WaitForExit(240000)) {
+            Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+            throw 'Windows E2E timed out after 240s'
+          }
+          $proc.Refresh()
+          Write-Host "Flutify.exe exited with code $($proc.ExitCode)"
+          if (!(Test-Path (Join-Path $outDir 'metrics.json'))) { throw 'Missing metrics.json after Windows E2E run' }
+      - name: Render performance curve and Markdown summary
+        if: always() && hashFiles('e2e_out/windows/metrics.json') != ''
+        run: python tool/render_e2e_report.py e2e_out/windows
+      - name: Package Windows E2E screenshots and report zip
+        if: always() && hashFiles('e2e_out/windows/metrics.json') != ''
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path dist -Force | Out-Null
+          Compress-Archive -Path 'e2e_out/windows/*' -DestinationPath 'dist/flutify-e2e-windows-x64.zip' -Force
+      - uses: actions/upload-artifact@v4
+        if: always() && hashFiles('e2e_out/windows/metrics.json') != ''
+        with:
+          name: e2e-windows-x64
+          path: |
+            dist/flutify-e2e-windows-x64.zip
+            e2e_out/windows/performance_curve.png
+            e2e_out/windows/summary.md
+            e2e_out/windows/report.json
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Enforce all Windows E2E checks passed
+        run: python tool/render_e2e_report.py e2e_out/windows --fail-on-error
+
+  e2e-linux:
+    name: E2E · Linux x64 Mock & Perf
+    needs: [prepare, release]
+    if: needs.prepare.outputs.build == 'true' && needs.prepare.outputs.channel == 'self-test'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      BUILD_LABEL: ${{ needs.prepare.outputs.label }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install matplotlib
+      - name: Install Linux runtime & Xvfb dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-0 libglib2.0-0 liblzma5 libblkid1 xvfb xauth libgl1-mesa-dri mesa-utils dbus-x11 zip
+          sudo apt-get install -y libmpv2 || sudo apt-get install -y libmpv1
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux
+          path: downloaded_linux
+      - name: Unpack and run Linux Mock E2E under Xvfb & capture 0.3s screenshots
+        run: |
+          tarball="downloaded_linux/Flutify-${BUILD_LABEL}-linux-x64.tar.gz"
+          test -s "$tarball"
+          app_root="$RUNNER_TEMP/flutify-linux-e2e"
+          rm -rf "$app_root"
+          mkdir -p "$app_root" e2e_out/linux
+          tar -xzf "$tarball" -C "$app_root"
+          bin="$(find "$app_root" -maxdepth 2 -type f -name flutify | head -n 1)"
+          test -x "$bin"
+          LIBGL_ALWAYS_SOFTWARE=1 dbus-run-session -- \
+            xvfb-run -a -s "-screen 0 1280x800x24" \
+            timeout 240s "$bin" --mock --self-test-e2e="$(pwd)/e2e_out/linux" || true
+          test -f e2e_out/linux/metrics.json
+      - name: Render performance curve and Markdown summary
+        if: always() && hashFiles('e2e_out/linux/metrics.json') != ''
+        run: python3 tool/render_e2e_report.py e2e_out/linux
+      - name: Package Linux E2E screenshots and report zip
+        if: always() && hashFiles('e2e_out/linux/metrics.json') != ''
+        run: |
+          mkdir -p dist
+          (cd e2e_out/linux && zip -r ../../dist/flutify-e2e-linux-x64.zip .)
+      - uses: actions/upload-artifact@v4
+        if: always() && hashFiles('e2e_out/linux/metrics.json') != ''
+        with:
+          name: e2e-linux-x64
+          path: |
+            dist/flutify-e2e-linux-x64.zip
+            e2e_out/linux/performance_curve.png
+            e2e_out/linux/summary.md
+            e2e_out/linux/report.json
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Enforce all Linux E2E checks passed
+        run: python3 tool/render_e2e_report.py e2e_out/linux --fail-on-error
+
+  e2e-macos:
+    name: E2E · macOS Mock & Perf
+    needs: [prepare, release]
+    if: needs.prepare.outputs.build == 'true' && needs.prepare.outputs.channel == 'self-test'
+    runs-on: macos-latest
+    timeout-minutes: 25
+    env:
+      BUILD_LABEL: ${{ needs.prepare.outputs.label }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip3 install matplotlib
+      - uses: actions/download-artifact@v4
+        with:
+          name: macos
+          path: downloaded_macos
+      - name: Unpack and run macOS Mock E2E & capture 0.3s screenshots
+        run: |
+          zip_path="downloaded_macos/Flutify-${BUILD_LABEL}-macos.zip"
+          test -s "$zip_path"
+          app_root="$RUNNER_TEMP/flutify-macos-e2e"
+          rm -rf "$app_root"
+          mkdir -p "$app_root" e2e_out/macos
+          ditto -x -k "$zip_path" "$app_root"
+          xattr -dr com.apple.quarantine "$app_root/Flutify.app" || true
+          set +e
+          "$app_root/Flutify.app/Contents/MacOS/Flutify" \
+            --mock --self-test-e2e="$(pwd)/e2e_out/macos" &
+          APP_PID=$!
+          WAITED=0
+          while kill -0 "$APP_PID" 2>/dev/null && [ "$WAITED" -lt 240 ]; do
+            sleep 2
+            WAITED=$((WAITED + 2))
+          done
+          if kill -0 "$APP_PID" 2>/dev/null; then
+            kill -TERM "$APP_PID" || true
+            echo "macOS E2E timed out after 240s"
+          fi
+          wait "$APP_PID" || true
+          set -e
+          test -f e2e_out/macos/metrics.json
+      - name: Render performance curve and Markdown summary
+        if: always() && hashFiles('e2e_out/macos/metrics.json') != ''
+        run: python3 tool/render_e2e_report.py e2e_out/macos
+      - name: Package macOS E2E screenshots and report zip
+        if: always() && hashFiles('e2e_out/macos/metrics.json') != ''
+        run: |
+          mkdir -p dist
+          (cd e2e_out/macos && zip -r ../../dist/flutify-e2e-macos.zip .)
+      - uses: actions/upload-artifact@v4
+        if: always() && hashFiles('e2e_out/macos/metrics.json') != ''
+        with:
+          name: e2e-macos
+          path: |
+            dist/flutify-e2e-macos.zip
+            e2e_out/macos/performance_curve.png
+            e2e_out/macos/summary.md
+            e2e_out/macos/report.json
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Enforce all macOS E2E checks passed
+        run: python3 tool/render_e2e_report.py e2e_out/macos --fail-on-error
+
+  e2e-android:
+    name: E2E · Android Settings Upgrade & Perf (InstaBox Reused Box)
+    needs: [prepare, release]
+    if: needs.prepare.outputs.build == 'true' && needs.prepare.outputs.channel == 'self-test'
+    concurrency:
+      group: instabox-android-e2e
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      INSTABOX_API_KEY: ${{ secrets.INSTABOX_API_KEY }}
+      INSTABOX_NAME: ${{ vars.INSTABOX_ANDROID_BOX || 'flutify-e2e-android' }}
+      TARGET_TAG: ${{ needs.prepare.outputs.tag }}
+      TARGET_LABEL: ${{ needs.prepare.outputs.label }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install matplotlib
+      - name: Verify INSTABOX_API_KEY secret
+        run: |
+          if [ -z "${INSTABOX_API_KEY:-}" ]; then
+            echo "::error::Missing INSTABOX_API_KEY secret required for persistent InstaBox Android container."
+            exit 1
+          fi
+      - name: Install InstaBox CLI and run unit checks
+        run: |
+          npm install -g instabox
+          python3 -m unittest discover -s tool -p 'test_instabox_*.py' -v
+      - uses: actions/download-artifact@v4
+        with:
+          name: android
+          path: downloaded_android
+      - name: Upgrade Flutify via Settings on reused InstaBox Android box & run Mock E2E
+        run: |
+          target_apk="downloaded_android/Flutify-${TARGET_LABEL}-android-x86_64.apk"
+          test -s "$target_apk"
+          python3 tool/instabox_android_e2e.py run \
+            --box "$INSTABOX_NAME" \
+            --target-apk "$target_apk" \
+            --target-tag "$TARGET_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --out-dir e2e_out/android
+      - name: Clean InstaBox temp environment & suspend box (keep Flutify installed)
+        if: always() && env.INSTABOX_API_KEY != ''
+        run: python3 tool/instabox_android_e2e.py cleanup --box "$INSTABOX_NAME" || true
+      - name: Render performance curve and Markdown summary
+        if: always() && hashFiles('e2e_out/android/metrics.json') != ''
+        run: python3 tool/render_e2e_report.py e2e_out/android
+      - name: Package Android E2E screenshots and report zip
+        if: always() && hashFiles('e2e_out/android/metrics.json') != ''
+        run: |
+          mkdir -p dist
+          (cd e2e_out/android && zip -r ../../dist/flutify-e2e-android.zip .)
+      - uses: actions/upload-artifact@v4
+        if: always() && hashFiles('e2e_out/android/metrics.json') != ''
+        with:
+          name: e2e-android
+          path: |
+            dist/flutify-e2e-android.zip
+            e2e_out/android/performance_curve.png
+            e2e_out/android/summary.md
+            e2e_out/android/report.json
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Enforce all Android E2E checks passed
+        run: python3 tool/render_e2e_report.py e2e_out/android --fail-on-error
+
+  e2e-summary:
+    name: E2E · Combined Self-Test Report
+    needs: [prepare, e2e-windows, e2e-linux, e2e-macos, e2e-android]
+    if: always() && needs.prepare.outputs.build == 'true' && needs.prepare.outputs.channel == 'self-test'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: e2e-*
+          path: downloaded_e2e
+      - name: Publish cross-platform E2E summary
+        run: |
+          {
+            echo "# Flutify Cross-Platform Self-Test E2E Summary (${{ needs.prepare.outputs.tag }})"
+            echo ""
+            for md in $(find downloaded_e2e -name summary.md | sort); do
+              cat "$md"
+              echo ""
+              echo "---"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"

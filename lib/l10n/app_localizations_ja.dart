@@ -822,6 +822,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String toastAddToPlaylistFailed(String name) {
+    return '$name に追加できませんでした。しばらくしてからもう一度お試しください。';
+  }
+
+  @override
   String toastAlreadyIn(String name) {
     return '$name に追加済みです';
   }
@@ -1463,6 +1468,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get shortcutNeedsModifier => 'Ctrl、Alt、Win のいずれかが必要です（F1～F24 を除く）。';
 
   @override
+  String get shortcutUnsupportedKey =>
+      'このキーはグローバルショートカットとして登録できません。別のキーをお試しください。';
+
+  @override
   String shortcutConflict(String action) {
     return '「$action」で使用中です。';
   }
@@ -1914,6 +1923,37 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get updatesTitle => 'ソフトウェア更新';
+
+  @override
+  String get updatesChannel => '更新チャンネル';
+
+  @override
+  String get updatesChannelHint =>
+      'ビルド番号が大きいバージョンにのみ更新されます。チャンネルを切り替えてもダウングレードされません。';
+
+  @override
+  String get updatesChannelRelease => '正式版（安定）';
+
+  @override
+  String get updatesChannelBeta => 'ベータ版';
+
+  @override
+  String get updatesChannelSelfTest => 'セルフテスト版（開発者向け）';
+
+  @override
+  String get updatesSelfTestWarningTitle => 'セルフテスト版に切り替えますか？';
+
+  @override
+  String get updatesSelfTestWarning =>
+      'セルフテスト版は開発者が自分の変更を確認するためのもので、コミットごとに自動生成され、検証は一切行われていません。起動しない、データが失われる、設定が壊れるといった可能性があります。実際の利用や日常使用には絶対に使わないでください。また、バージョンは上げることしかできません。セルフテスト版を入れた後は、より大きいビルド番号の正式版が出るまで正式版に戻れません。';
+
+  @override
+  String get updatesSelfTestConfirm => '開発者です。切り替える';
+
+  @override
+  String updatesBuild(int build) {
+    return 'ビルド $build';
+  }
 
   @override
   String get updatesMode => '更新方法';

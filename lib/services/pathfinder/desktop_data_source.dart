@@ -8,6 +8,7 @@ import '../../core/utils/json_bytes.dart';
 import '../../models/album.dart';
 import '../../models/artist.dart';
 import '../../models/category.dart';
+import '../../models/editable_playlist.dart';
 import '../../models/catalog_page.dart';
 import '../../models/home_feed.dart';
 import '../../models/image.dart';
@@ -452,6 +453,99 @@ class DesktopDataSource {
       id,
       jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>,
     )?.playlist;
+  }
+
+  // ---------------------------------------------------------------------------
+  // 歌单写入（与 open.spotify.com 同一组 GraphQL 操作）
+  // ---------------------------------------------------------------------------
+
+  static const int _editablePageSize = 50;
+
+  /// 最多查这么多次（分页 + 文件夹），歌单特别多时宁可列不全也不无限请求。
+  static const int _editableMaxQueries = 12;
+
+  /// 当前账号可以往里加 [itemUri] 的歌单，按媒体库顺序；文件夹里的歌单一并展开。
+  /// 「已点赞的歌曲」等伪歌单不算（它们有自己的入口）。
+  Future<List<EditablePlaylist>> editablePlaylists(String itemUri) async {
+    final result = <EditablePlaylist>[];
+    final seen = <String>{};
+    final folders = <String?>[null];
+    var queries = 0;
+    while (folders.isNotEmpty && queries < _editableMaxQueries) {
+      final folder = folders.removeAt(0);
+      for (var offset = 0; queries < _editableMaxQueries;) {
+        queries++;
+        final data = await _pathfinder.query(
+          PathfinderOperation.editablePlaylists,
+          {
+            'offset': offset,
+            'limit': _editablePageSize,
+            'textFilter': '',
+            'folderUri': folder,
+            'uris': [itemUri],
+          },
+        );
+        final me = data['me'];
+        final page = me is Map ? me['editablePlaylists'] : null;
+        final items = page is Map ? page['items'] : null;
+        if (items is! List || items.isEmpty) break;
+        for (final entry in items) {
+          if (entry is! Map) continue;
+          final item = entry['item'];
+          final inner = item is Map ? item['data'] : null;
+          if (item is! Map || inner is! Map) continue;
+          final uri = inner['uri'];
+          if (uri is! String || !seen.add(uri)) continue;
+          switch (item['__typename']) {
+            case 'LibraryFolderResponseWrapper':
+              folders.add(uri);
+            case 'PlaylistResponseWrapper':
+              if (!uri.startsWith('spotify:playlist:')) continue;
+              result.add(
+                EditablePlaylist(
+                  uri: uri,
+                  name: inner['name'] as String? ?? '',
+                  coverUrl: _firstImageUrl(inner['images']),
+                  containsTrack: entry['curates'] == true,
+                ),
+              );
+          }
+        }
+        offset += items.length;
+        final total = page is Map ? page['totalCount'] : null;
+        if (items.length < _editablePageSize ||
+            (total is int && offset >= total)) {
+          break;
+        }
+      }
+    }
+    return result;
+  }
+
+  static String _firstImageUrl(Object? images) {
+    final items = images is Map ? images['items'] : null;
+    final first = items is List && items.isNotEmpty ? items.first : null;
+    final sources = first is Map ? first['sources'] : null;
+    if (sources is! List) return '';
+    for (final source in sources) {
+      final url = source is Map ? source['url'] : null;
+      if (url is String && url.isNotEmpty) return url;
+    }
+    return '';
+  }
+
+  /// 把 [itemUris] 加到歌单 [playlistUri] 的末尾；服务端拒绝时抛 [PathfinderException]。
+  Future<void> addToPlaylist(String playlistUri, List<String> itemUris) async {
+    await _pathfinder.query(
+      PathfinderOperation.addToPlaylist,
+      {
+        'playlistUri': playlistUri,
+        'playlistItemUris': itemUris,
+        'newPosition': {'moveType': 'BOTTOM_OF_PLAYLIST', 'fromUid': null},
+        'interactionId': null,
+      },
+      failOnErrors: true,
+    );
   }
 
   // ---------------------------------------------------------------------------

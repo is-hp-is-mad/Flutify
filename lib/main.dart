@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'core/debug_toggles.dart';
 import 'core/perf_flags.dart';
@@ -104,6 +105,9 @@ import 'services/widget/widget_bridge.dart';
 import 'ui/widgets/update_prompt.dart';
 import 'core/theme/md3e_theme.dart';
 import 'ui/widgets/hyper_icons.dart';
+import 'core/self_test/e2e_runner.dart';
+import 'core/self_test/launch_args.dart';
+import 'core/self_test/mock_services.dart';
 
 bool _savedHyperMaterial(StorageService storage) {
   try {
@@ -115,7 +119,7 @@ bool _savedHyperMaterial(StorageService storage) {
   }
 }
 
-Future<void> main() async {
+Future<void> main(List<String> args) async {
   // 必须先于任何其他 binding 创建：帧率上限在帧调度入口生效
   FrameRateBinding.ensureInitialized();
   // 解码后位图缓存默认 1000 张 / 100 MiB。封面都按显示尺寸解码（见 CoverImage），
@@ -126,10 +130,78 @@ Future<void> main() async {
   installFileLog();
   installErrorPlaceholder();
   installMacOSMouseNavigation();
-  runApp(AppStartup(initialize: _initializeApp));
+  // 仅 self-test 版本会识别 --mock / --self-test-e2e；其他版本自动忽略，保持 LaunchArgs.none。
+  final launchArgs = LaunchArgs.parse(args);
+  runApp(
+    AppStartup(
+      initialize: (reportStage) => _initializeApp(reportStage, launchArgs),
+    ),
+  );
 }
 
-Future<Widget> _initializeApp(ValueChanged<String> reportStage) async {
+Future<Widget> _initializeMockApp(
+  ValueChanged<String> reportStage,
+  LaunchArgs launchArgs,
+) async {
+  reportStage('准备 Mock 自测环境');
+  await RustCore.initialize();
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  await OrientationPolicy.apply();
+
+  reportStage('初始化 Mock 数据与本地封面服务');
+  final mock = await MockBootstrap.create();
+
+  reportStage('准备窗口');
+  await DesktopWindow.init(mock.storageService);
+  DesktopWindow.addBeforeCloseHook(() => mock.coverServer.close());
+
+  final e2eRunner = launchArgs.e2eOutputDir == null
+      ? null
+      : E2ERunner(
+          requestedOutputDir: launchArgs.e2eOutputDir!,
+          bootstrap: mock,
+          onCompleteExit: (_) async {
+            if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+              await DesktopWindow.quit();
+              await Future<void>.delayed(const Duration(milliseconds: 600));
+              await ServicesBinding.instance.exitApplication(
+                ui.AppExitType.required,
+              );
+            } else {
+              await SystemNavigator.pop();
+            }
+          },
+        );
+
+  return FlutifyApp(
+    storageService: mock.storageService,
+    audioEngine: mock.audioEngine,
+    emePlayer: mock.emePlayer,
+    spotifyApiService: mock.spotifyApiService,
+    authService: mock.authService,
+    webTokenService: WebTokenService(
+      mock.storageService,
+      MockOfflineHttpClient(),
+    ),
+    trackAudioLoader: mock.trackAudioLoader,
+    playbackSessionStore: mock.playbackSessionStore,
+    networkProxy: NetworkProxy.instance,
+    audioCacheLocation: mock.audioCacheLocation,
+    playbackRegionGate: mock.playbackRegionGate,
+    updateService: mock.updateService,
+    audioOutputBackend: mock.audioOutputBackend,
+    enableConnectReceiver: false,
+    e2eRunner: e2eRunner,
+  );
+}
+
+Future<Widget> _initializeApp(
+  ValueChanged<String> reportStage,
+  LaunchArgs launchArgs,
+) async {
+  if (launchArgs.mockMode) {
+    return _initializeMockApp(reportStage, launchArgs);
+  }
   reportStage('准备运行环境');
   await WindowsTrustStore.initialize();
 
@@ -166,6 +238,10 @@ Future<Widget> _initializeApp(ValueChanged<String> reportStage) async {
   ProxyHttpOverrides.install(NetworkProxy.instance);
   // 证书被拒绝时记录对端证书（不改变校验结果），用于定位代理 / 安全软件的 HTTPS 拦截
   ProxyHttpOverrides.certificateRejectionLogger = debugPrint;
+  if (Platform.isWindows) {
+    ProxyHttpOverrides.certificateRejectionHandler = (certificate) =>
+        unawaited(WindowsTrustStore.learnRootFor(certificate));
+  }
   reportStage('配置网络');
   await loadLocalDeviceName();
   final initialPrefs = AppPreferences.decode(storageService.preferencesJson);
@@ -440,6 +516,9 @@ class FlutifyApp extends StatelessWidget {
   /// 检测结果按网络环境缓存，网络变动时由 AutomaticGatewayBinding 作废。
   final PlaybackRegionGate? playbackRegionGate;
   final UpdateService? updateService;
+  final AudioOutputBackend? audioOutputBackend;
+  final bool enableConnectReceiver;
+  final E2ERunner? e2eRunner;
 
   const FlutifyApp({
     super.key,
@@ -462,6 +541,9 @@ class FlutifyApp extends StatelessWidget {
     this.widgetBridge,
     this.playbackRegionGate,
     this.updateService,
+    this.audioOutputBackend,
+    this.enableConnectReceiver = true,
+    this.e2eRunner,
   });
 
   @override
@@ -631,7 +713,7 @@ class FlutifyApp extends StatelessWidget {
             if (!AudioOutputService.platformSupported) return null;
             final preferences = context.read<PreferencesProvider>();
             return AudioOutputService(
-              MediaKitAudioOutputBackend(),
+              audioOutputBackend ?? MediaKitAudioOutputBackend(),
               initial: preferences.prefs.audioOutputDevice,
               onSelected: (id) => preferences.update(
                 preferences.prefs.copyWith(audioOutputDevice: id),
@@ -724,7 +806,11 @@ class FlutifyApp extends StatelessWidget {
                 return false;
               }
             };
-            _startConnectReceiver(ctx, connect, playback);
+            if (enableConnectReceiver) {
+              _startConnectReceiver(ctx, connect, playback);
+            } else {
+              connect.receiverDeviceId = ctx.read<StorageService>().receiverDeviceId;
+            }
             return connect;
           },
         ),
@@ -749,7 +835,7 @@ class FlutifyApp extends StatelessWidget {
       child: PlaybackSessionKeeper(
         child: AutomaticGatewayBinding(
           regionGate: playbackRegionGate,
-          child: DynamicAccentSync(child: _ThemedApp()),
+          child: DynamicAccentSync(child: _ThemedApp(e2eRunner: e2eRunner)),
         ),
       ),
     );
@@ -927,7 +1013,9 @@ void _onMouseNavigation(PointerDownEvent event) {
 
 /// 按外观设置生成主题；字号缩放与减弱动效通过 MediaQuery 下发给整棵树。
 class _ThemedApp extends StatelessWidget {
-  const _ThemedApp();
+  final E2ERunner? e2eRunner;
+
+  const _ThemedApp({this.e2eRunner});
 
   @override
   Widget build(BuildContext context) {
@@ -940,68 +1028,79 @@ class _ThemedApp extends StatelessWidget {
       (p) => p.prefs.language,
     );
 
-    return MaterialApp(
-      title: 'Flutify',
-      debugShowCheckedModeBanner: false,
-      showPerformanceOverlay: PerfFlags.overlay,
-      scrollBehavior: settings.glassMaterial == GlassMaterial.hyper
-          ? const HyperScrollBehavior()
-          : const MaterialScrollBehavior(),
-      // 默认简体中文，可在设置里改为跟随系统 / English；系统组件文案由 Global*Localizations 提供
-      locale: AppLocale.localeFor(language),
-      supportedLocales: AppLocale.supportedLocales,
-      localizationsDelegates: AppLocale.delegates,
-      themeMode: settings.themeMode,
-      darkTheme: appearance.theme(Brightness.dark),
-      theme: appearance.theme(Brightness.light),
-      // 不做主题插值动画：默认 200ms 内每帧 lerp 整套 ThemeData 并重建全树，
-      // 在设置页切换选项时会明显卡顿；改为单帧切换
-      themeAnimationDuration: Duration.zero,
-      builder: (context, child) {
-        // 实际生效的界面语言决定请求 Spotify 时的 Accept-Language（主页文案等随之本地化）
-        AppLocale.resolved(Localizations.localeOf(context));
-        final media = MediaQuery.of(context);
-        // material_3_expressive 组件（M3EButton / M3ESwitch / M3EDialog…）读不到 Flutter 的主题，
-        // 这里按当前主题（含强调色 / 封面取色 / 深浅色）显式注入，否则会退回默认紫色与 Roboto
-        return M3ETheme(
-          data: m3eThemeFrom(Theme.of(context)),
-          child: DebugTogglesBinding(
-          builder: (context, motionOff) {
-            return MediaQuery(
-              data: media.copyWith(
-                // 用户字号与系统字号相乘
-                textScaler: AppTextScaler(media.textScaler, settings.fontScale),
-                disableAnimations:
-                    media.disableAnimations ||
-                    settings.reduceMotion ||
-                    motionOff,
-              ),
-              // 状态栏 / 导航栏图标随深浅色切换；全屏播放器等深色沉浸页面自行覆盖为浅色图标
-              child: AnnotatedRegion<SystemUiOverlayStyle>(
-                value: systemBarsStyle(Theme.of(context).brightness),
-                // 桌面：窗口按钮 / 窄窗口标题条覆盖在所有路由之上
-                // macOS 原生菜单栏常驻于此（卸载会清空系统菜单），主界面动作由 MainShell 注册
-                child: ExcludeSemantics(
-                  excluding: _excludeWindowsSemantics,
-                  child: Listener(
-                    behavior: HitTestBehavior.translucent,
-                    onPointerDown: _onMouseNavigation,
-                    child: MacMenuBar(
-                      child: TaskbarLyricsBinding(
-                        child: LyricBridgeBinding(
-                          child: WindowFrame(child: HyperGlassWarmup(child: child!)),
+    return E2ERootOverlay(
+      runner: e2eRunner,
+      child: MaterialApp(
+        title: 'Flutify',
+        debugShowCheckedModeBanner: false,
+        showPerformanceOverlay: PerfFlags.overlay,
+        scrollBehavior: settings.glassMaterial == GlassMaterial.hyper
+            ? const HyperScrollBehavior()
+            : const MaterialScrollBehavior(),
+        // 默认简体中文，可在设置里改为跟随系统 / English；系统组件文案由 Global*Localizations 提供
+        locale: AppLocale.localeFor(language),
+        supportedLocales: AppLocale.supportedLocales,
+        localizationsDelegates: AppLocale.delegates,
+        themeMode: settings.themeMode,
+        darkTheme: appearance.theme(Brightness.dark),
+        theme: appearance.theme(Brightness.light),
+        // 不做主题插值动画：默认 200ms 内每帧 lerp 整套 ThemeData 并重建全树，
+        // 在设置页切换选项时会明显卡顿；改为单帧切换
+        themeAnimationDuration: Duration.zero,
+        builder: (context, child) {
+          // 实际生效的界面语言决定请求 Spotify 时的 Accept-Language（主页文案等随之本地化）
+          AppLocale.resolved(Localizations.localeOf(context));
+          final media = MediaQuery.of(context);
+          // material_3_expressive 组件（M3EButton / M3ESwitch / M3EDialog…）读不到 Flutter 的主题，
+          // 这里按当前主题（含强调色 / 封面取色 / 深浅色）显式注入，否则会退回默认紫色与 Roboto
+          return M3ETheme(
+            data: m3eThemeFrom(Theme.of(context)),
+            child: DebugTogglesBinding(
+              builder: (context, motionOff) {
+                return MediaQuery(
+                  data: media.copyWith(
+                    // 用户字号与系统字号相乘
+                    textScaler: AppTextScaler(
+                      media.textScaler,
+                      settings.fontScale,
+                    ),
+                    disableAnimations:
+                        media.disableAnimations ||
+                        settings.reduceMotion ||
+                        motionOff,
+                  ),
+                  // 状态栏 / 导航栏图标随深浅色切换；全屏播放器等深色沉浸页面自行覆盖为浅色图标
+                  child: AnnotatedRegion<SystemUiOverlayStyle>(
+                    value: systemBarsStyle(Theme.of(context).brightness),
+                    // 桌面：窗口按钮 / 窄窗口标题条覆盖在所有路由之上
+                    // macOS 原生菜单栏常驻于此（卸载会清空系统菜单），主界面动作由 MainShell 注册
+                    child: ExcludeSemantics(
+                      excluding: _excludeWindowsSemantics,
+                      child: Listener(
+                        behavior: HitTestBehavior.translucent,
+                        onPointerDown: _onMouseNavigation,
+                        child: MacMenuBar(
+                          child: TaskbarLyricsBinding(
+                            child: LyricBridgeBinding(
+                              child: E2ERunner.wrapRepaintBoundary(
+                                runner: e2eRunner,
+                                child: WindowFrame(
+                                  child: HyperGlassWarmup(child: child!),
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ),
-            );
-          },
-        ),
-        );
-      },
-      home: const UpdatePromptBinding(child: MainShell()),
+                );
+              },
+            ),
+          );
+        },
+        home: const UpdatePromptBinding(child: MainShell()),
+      ),
     );
   }
 }

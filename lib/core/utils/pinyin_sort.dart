@@ -14,8 +14,21 @@ int compareByPinyin(String a, String b) {
 /// 排序键：汉字 → 无声调拼音；其余字符原样保留（末尾统一小写）。
 ///
 /// 逐字转换（不用词组表）：排序只需稳定、可预期，多音字按常用音即可。
+///
+/// 结果按原串缓存：一次排序要比较 O(n log n) 次，音乐库的排序又在 build 里，
+/// 不缓存的话每次重建都要把所有标题逐字重新转一遍拼音。
 String _sortKey(String s) {
   if (s.isEmpty) return s;
+  final cached = _sortKeys[s];
+  if (cached != null) return cached;
+  if (_sortKeys.length >= _sortKeyLimit) _sortKeys.clear();
+  return _sortKeys[s] = _buildSortKey(s);
+}
+
+final Map<String, String> _sortKeys = {};
+const int _sortKeyLimit = 8192;
+
+String _buildSortKey(String s) {
   final sb = StringBuffer();
   for (final rune in s.runes) {
     final char = String.fromCharCode(rune);

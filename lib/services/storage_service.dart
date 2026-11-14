@@ -76,9 +76,28 @@ class StorageService {
   static const String _keyLibraryAccount = 'lib_account'; // 媒体库缓存所属账号
   static const String _keyLibrarySchema = 'lib_schema'; // 缓存结构版本（旧版含示例数据）
 
-  final SharedPreferences _prefs;
+  final _KeyValuePrefs _prefs;
 
-  StorageService(this._prefs);
+  StorageService(SharedPreferences prefs) : _prefs = _SharedPrefsWrapper(prefs);
+
+  StorageService._(this._prefs);
+
+  /// 创建纯内存隔离存储，用于 Mock / 自测模式（不读写磁盘，也不污染真实登录态与设置）。
+  factory StorageService.ephemeral([Map<String, Object>? initial]) {
+    final storage = StorageService._(_MemoryPrefs(initial));
+    storage._ensureReceiverDeviceIdSync();
+    return storage;
+  }
+
+  void _ensureReceiverDeviceIdSync() {
+    if (RegExp(r'^[a-f0-9]{40}$').hasMatch(receiverDeviceId)) return;
+    final random = Random.secure();
+    final id = List.generate(
+      20,
+      (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0'),
+    ).join();
+    _prefs.setString('connect_receiver_device_id', id);
+  }
 
   int _sessionEpoch = 0;
   int get sessionEpoch => _sessionEpoch;
@@ -189,6 +208,9 @@ class StorageService {
 
   String get updateMode => _prefs.getString('update_mode') ?? 'manual';
   Future<bool> setUpdateMode(String value) => _prefs.setString('update_mode', value);
+  /// 接收更新的通道（release / beta / selfTest）；没选过时为空，跟随已安装版本所属的通道。
+  String get updateChannel => _prefs.getString('update_channel') ?? '';
+  Future<bool> setUpdateChannel(String value) => _prefs.setString('update_channel', value);
   String get skippedUpdate => _prefs.getString('update_skipped') ?? '';
   Future<bool> setSkippedUpdate(String value) => _prefs.setString('update_skipped', value);
   String get lastUpdateCheck => _prefs.getString('update_last_check') ?? '';
@@ -487,4 +509,132 @@ class StorageService {
   }
 
   Future<bool> clearRecentSearches() => _prefs.remove(_keyRecentSearches);
+}
+
+abstract interface class _KeyValuePrefs {
+  String? getString(String key);
+  Future<bool> setString(String key, String value);
+  bool? getBool(String key);
+  Future<bool> setBool(String key, bool value);
+  int? getInt(String key);
+  Future<bool> setInt(String key, int value);
+  double? getDouble(String key);
+  Future<bool> setDouble(String key, double value);
+  List<String>? getStringList(String key);
+  Future<bool> setStringList(String key, List<String> value);
+  bool containsKey(String key);
+  Future<bool> remove(String key);
+}
+
+class _SharedPrefsWrapper implements _KeyValuePrefs {
+  final SharedPreferences _inner;
+  _SharedPrefsWrapper(this._inner);
+
+  @override
+  String? getString(String key) => _inner.getString(key);
+  @override
+  Future<bool> setString(String key, String value) => _inner.setString(key, value);
+  @override
+  bool? getBool(String key) => _inner.getBool(key);
+  @override
+  Future<bool> setBool(String key, bool value) => _inner.setBool(key, value);
+  @override
+  int? getInt(String key) => _inner.getInt(key);
+  @override
+  Future<bool> setInt(String key, int value) => _inner.setInt(key, value);
+  @override
+  double? getDouble(String key) => _inner.getDouble(key);
+  @override
+  Future<bool> setDouble(String key, double value) => _inner.setDouble(key, value);
+  @override
+  List<String>? getStringList(String key) => _inner.getStringList(key);
+  @override
+  Future<bool> setStringList(String key, List<String> value) =>
+      _inner.setStringList(key, value);
+  @override
+  bool containsKey(String key) => _inner.containsKey(key);
+  @override
+  Future<bool> remove(String key) => _inner.remove(key);
+}
+
+class _MemoryPrefs implements _KeyValuePrefs {
+  final Map<String, Object> _store = {};
+
+  _MemoryPrefs([Map<String, Object>? initial]) {
+    if (initial != null) {
+      for (final entry in initial.entries) {
+        final v = entry.value;
+        _store[entry.key] = v is List<String> ? List<String>.from(v) : v;
+      }
+    }
+  }
+
+  @override
+  String? getString(String key) {
+    final v = _store[key];
+    return v is String ? v : null;
+  }
+
+  @override
+  Future<bool> setString(String key, String value) async {
+    _store[key] = value;
+    return true;
+  }
+
+  @override
+  bool? getBool(String key) {
+    final v = _store[key];
+    return v is bool ? v : null;
+  }
+
+  @override
+  Future<bool> setBool(String key, bool value) async {
+    _store[key] = value;
+    return true;
+  }
+
+  @override
+  int? getInt(String key) {
+    final v = _store[key];
+    return v is int ? v : null;
+  }
+
+  @override
+  Future<bool> setInt(String key, int value) async {
+    _store[key] = value;
+    return true;
+  }
+
+  @override
+  double? getDouble(String key) {
+    final v = _store[key];
+    return v is double ? v : (v is int ? v.toDouble() : null);
+  }
+
+  @override
+  Future<bool> setDouble(String key, double value) async {
+    _store[key] = value;
+    return true;
+  }
+
+  @override
+  List<String>? getStringList(String key) {
+    final v = _store[key];
+    return v is List<String> ? List<String>.from(v) : null;
+  }
+
+  @override
+  Future<bool> setStringList(String key, List<String> value) async {
+    _store[key] = List<String>.from(value);
+    return true;
+  }
+
+  @override
+  bool containsKey(String key) => _store.containsKey(key);
+
+  @override
+  Future<bool> remove(String key) async {
+    _store.remove(key);
+    return true;
+  }
 }

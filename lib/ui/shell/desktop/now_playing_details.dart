@@ -270,11 +270,10 @@ class _NextUpCard extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final l10n = context.l10n;
-    final next = context.select<PlaybackProvider, SpotifyTrack?>((p) {
-      if (p.userQueue.isNotEmpty) return p.userQueue.first.track;
-      if (p.upNext.isNotEmpty) return p.upNext.first.track;
-      return null;
-    });
+    // upcomingTracks 只取第一项：upNext 会为整张歌单分配列表，而这里每次通知都要算一遍
+    final next = context.select<PlaybackProvider, SpotifyTrack?>(
+      (p) => p.upcomingTracks(1).firstOrNull,
+    );
     if (next == null) return const SizedBox.shrink();
 
     return Container(

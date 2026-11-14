@@ -1,3 +1,5 @@
+import '../../services/updates/update_release.dart';
+
 /// 应用信息（设置页「关于」、开源许可页使用）。
 ///
 /// 版本号必须与 pubspec.yaml 的 `version` 一致，`test/core/app_info_test.dart` 会校验。
@@ -11,6 +13,13 @@ class AppInfo {
     'FLUTIFY_RELEASE_TAG', defaultValue: 'v0.18',
   );
   static const String releaseTag = _buildReleaseTag == '' ? 'v0.18' : _buildReleaseTag;
+
+  /// 当前构建是否为 self-test 通道（仅 `-selftest` 标签为 true）。
+  static bool get isSelfTest => isSelfTestTag(releaseTag);
+
+  /// 判断给定发布标签是否属于 self-test 通道。
+  static bool isSelfTestTag(String tag) =>
+      UpdateVersion.parse(tag)?.channel == UpdateChannel.selfTest;
 
   /// 「0.0.18 (18)」
   static String get displayVersion => '$version ($build)';

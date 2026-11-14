@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../l10n/l10n.dart';
 import '../../models/artist.dart';
+import '../../models/editable_playlist.dart';
 import '../../models/share_target.dart';
 import '../../models/track.dart';
 import '../../providers/library_provider.dart';
@@ -16,6 +17,7 @@ import 'sleep_timer/sleep_timer_menu.dart';
 import 'toast/app_toast.dart';
 import 'track_actions/song_radio.dart';
 import 'track_actions/track_credits_view.dart';
+import 'track_menu.dart';
 import 'app_modal.dart';
 
 /// 曲目「更多」操作面板（Spotify 长按 / ⋮ 菜单）。
@@ -179,6 +181,8 @@ class TrackOptionsSheet extends StatelessWidget {
   }
 
   void _showAddToPlaylist(BuildContext host) {
+    // 面板先出来，账号歌单读到后再补在本机歌单下面
+    final account = host.read<LibraryProvider>().editablePlaylistsFor(track);
     showAppBottomSheet(
       context: host,
       useRootNavigator: true,
@@ -243,6 +247,61 @@ class TrackOptionsSheet extends StatelessWidget {
                       );
                     },
                   ),
+                FutureBuilder<List<EditablePlaylist>>(
+                  future: account,
+                  builder: (_, snapshot) {
+                    final playlists = snapshot.data;
+                    if (playlists == null) {
+                      return snapshot.connectionState == ConnectionState.done
+                          ? const SizedBox.shrink()
+                          : const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 16),
+                              child: Center(
+                                child: SizedBox.square(
+                                  dimension: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                              ),
+                            );
+                    }
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        for (final playlist in playlists)
+                          ListTile(
+                            leading: CoverImage(
+                              url: playlist.coverUrl,
+                              size: 48,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            title: Text(
+                              playlist.name,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            trailing: playlist.containsTrack
+                                ? Icon(
+                                    Icons.check_circle_rounded,
+                                    color: Theme.of(ctx).colorScheme.primary,
+                                  )
+                                : null,
+                            onTap: () {
+                              Navigator.pop(ctx);
+                              TrackMenu.addToAccountPlaylist(
+                                hostContext,
+                                library,
+                                playlist,
+                                track,
+                              );
+                            },
+                          ),
+                      ],
+                    );
+                  },
+                ),
               ],
             ),
           ),

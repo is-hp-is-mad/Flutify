@@ -127,11 +127,15 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       leading: desktop
                           ? null
-                          : MouseRegion(
-                              cursor: SystemMouseCursors.click,
-                              child: GestureDetector(
-                                onTap: widget.onOpenSettings,
-                                child: const UserAvatar(size: 36),
+                          : Semantics(
+                              button: true,
+                              label: context.l10n.commonSettings,
+                              child: MouseRegion(
+                                cursor: SystemMouseCursors.click,
+                                child: GestureDetector(
+                                  onTap: widget.onOpenSettings,
+                                  child: const UserAvatar(size: 36),
+                                ),
                               ),
                             ),
                     ),

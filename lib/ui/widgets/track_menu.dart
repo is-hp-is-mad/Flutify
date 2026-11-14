@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../l10n/l10n.dart';
+import '../../models/editable_playlist.dart';
 import '../../models/share_target.dart';
 import '../../models/track.dart';
 import '../../providers/library_provider.dart';
@@ -380,7 +381,7 @@ class TrackMenu {
       AppRoutes.openArtist(context, track.artists[picked]);
   }
 
-  /// 二级菜单：「新建歌单」+ 自建歌单（已包含该曲目的打勾）。
+  /// 二级菜单：「新建歌单」+ 本机歌单 + 账号里可编辑的歌单（已包含该曲目的打勾）。
   static Future<void> _addToPlaylist(
     BuildContext context,
     SpotifyTrack track,
@@ -390,6 +391,12 @@ class TrackMenu {
     final library = context.read<LibraryProvider>();
     final primary = Theme.of(context).colorScheme.primary;
     const createId = '\u0000new';
+
+    // 账号歌单要先问服务端（哪些可编辑、是否已包含这首歌）；慢或失败时只列本机歌单，不让菜单一直不出来
+    final account = await library
+        .editablePlaylistsFor(track)
+        .timeout(const Duration(seconds: 4), onTimeout: () => const []);
+    if (!context.mounted) return;
 
     final mobile = _isMobile(context);
     final item = mobile ? MobileMenu.item<String> : DesktopMenu.item<String>;
@@ -408,8 +415,25 @@ class TrackMenu {
               ? primary
               : null,
         ),
+      if (account.isNotEmpty)
+        mobile ? MobileMenu.divider : DesktopMenu.divider,
+      for (final playlist in account)
+        item(
+          playlist.uri,
+          playlist.containsTrack
+              ? Icons.check_circle_rounded
+              : Icons.queue_music_rounded,
+          playlist.name,
+          iconColor: playlist.containsTrack ? primary : null,
+        ),
     ]);
     if (id == null || !context.mounted) return;
+
+    final remote = account.where((p) => p.uri == id).firstOrNull;
+    if (remote != null) {
+      await addToAccountPlaylist(context, library, remote, track);
+      return;
+    }
 
     if (id == createId) {
       final name = await CreatePlaylistDialog.show(context);
@@ -433,5 +457,38 @@ class TrackMenu {
           : l10n.toastAlreadyIn(playlist.name),
       added ? Icons.playlist_add_check_rounded : Icons.playlist_play_rounded,
     );
+  }
+
+  /// 往账号歌单里加歌并提示结果；已经在里面的不重复添加。
+  static Future<void> addToAccountPlaylist(
+    BuildContext context,
+    LibraryProvider library,
+    EditablePlaylist playlist,
+    SpotifyTrack track,
+  ) async {
+    final l10n = context.l10n;
+    if (playlist.containsTrack) {
+      _toast(
+        context,
+        l10n.toastAlreadyIn(playlist.name),
+        Icons.playlist_play_rounded,
+      );
+      return;
+    }
+    final ok = await library.addTrackToAccountPlaylist(playlist, track);
+    if (!context.mounted) return;
+    if (ok) {
+      _toast(
+        context,
+        l10n.toastAddedTo(playlist.name),
+        Icons.playlist_add_check_rounded,
+      );
+    } else {
+      AppToast.show(
+        context,
+        l10n.toastAddToPlaylistFailed(playlist.name),
+        tone: ToastTone.warning,
+      );
+    }
   }
 }

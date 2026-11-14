@@ -21,6 +21,9 @@ class UpdateService extends ChangeNotifier {
   final UpdateDownloader Function() downloaderFactory;
   final String currentTag;
   UpdateMode mode;
+
+  /// 接收哪个通道的更新；默认跟随已安装版本所属的通道。
+  UpdateChannel channel;
   UpdateStatus status = UpdateStatus.idle;
   UpdateRelease? release;
   UpdateTarget? target;
@@ -48,9 +51,47 @@ class UpdateService extends ChangeNotifier {
     this.currentTag = AppInfo.releaseTag,
   }) : client = client ?? http.Client(),
        downloaderFactory = downloaderFactory ?? UpdateDownloader.new,
-       mode = UpdateMode.values.firstWhere((m) => m.name == storage.updateMode, orElse: () => UpdateMode.manual) {
+       mode = UpdateMode.values.firstWhere((m) => m.name == storage.updateMode, orElse: () => UpdateMode.manual),
+       channel = UpdateChannel.values.firstWhere(
+         (c) => c.name == storage.updateChannel,
+         orElse: () => UpdateVersion.parse(currentTag)?.channel ?? UpdateChannel.release,
+       ) {
     _skipped = storage.skippedUpdate;
     _lastCheck = DateTime.tryParse(storage.lastUpdateCheck);
+  }
+
+  UpdateVersion get currentVersion => UpdateVersion.parse(currentTag)!;
+
+  /// [version] 是否是当前通道会收到、且比已安装版本新的版本。
+  bool _accepts(UpdateVersion version) =>
+      version.channel.index <= channel.index && version.isUpgradeFrom(currentVersion);
+
+  /// 切换通道。只影响以后收到哪些版本：已经装上的更高版本不会被换回去（只升不降），
+  /// 从自测版切回正式版后，要等正式版的实质版本号超过当前版本才会再收到更新。
+  Future<void> setChannel(UpdateChannel value) async {
+    if (value == channel) return;
+    channel = value;
+    await storage.setUpdateChannel(value.name);
+    if (_disposed) return;
+    final selected = release;
+    if (selected != null && !_accepts(selected.version) && status != UpdateStatus.installing) {
+      // 已找到 / 已下载的版本不属于新通道：丢掉，不让它被装上
+      _generation++;
+      _downloader?.cancel();
+      release = null;
+      package = null;
+      checksum = null;
+      status = UpdateStatus.idle;
+      try {
+        final root = await installer.downloadDirectory();
+        final state = File(p.join(root.path, 'pending.json'));
+        if (await state.exists()) await state.delete();
+      } catch (_) {}
+      if (_disposed) return;
+    }
+    _lastCheck = null;
+    _notify();
+    if (mode != UpdateMode.disabled) unawaited(check());
   }
 
   bool get busy => const [UpdateStatus.checking, UpdateStatus.downloading, UpdateStatus.installing].contains(status);
@@ -79,7 +120,7 @@ class UpdateService extends ChangeNotifier {
       final saved = UpdateRelease.fromJson(json['release'] as Map<String, dynamic>);
       final file = File(p.normalize(p.join(root.path, json['file'] as String)));
       final digest = json['checksum'] as String;
-      if (saved == null || saved.version.compareTo(UpdateVersion.parse(currentTag)!) <= 0 ||
+      if (saved == null || !_accepts(saved.version) ||
           saved.tag == _skipped || !p.isWithin(root.path, file.path) ||
           !RegExp(r'^[a-f0-9]{64}$').hasMatch(digest) || !await file.exists()) return;
       target ??= await installer.target();
@@ -163,7 +204,7 @@ class UpdateService extends ChangeNotifier {
     _notify();
     try {
       target ??= await installer.target();
-      // /latest excludes every current beta release. Sort parsed versions,
+      // /latest excludes every beta / self-test release. Sort parsed versions,
       // rather than relying on publication order (old tags can be republished).
       final response = await client.get(Uri.https('api.github.com',
           '/repos/is-hp-is-mad/Flutify/releases', {'per_page': '100'}), headers: {
@@ -174,15 +215,16 @@ class UpdateService extends ChangeNotifier {
       if (response.statusCode != 200) throw HttpException('GitHub HTTP ${response.statusCode}');
       final decoded = jsonDecode(response.body);
       if (decoded is! List) throw const FormatException('Invalid releases response');
-      final current = UpdateVersion.parse(currentTag)!;
       final candidates = <UpdateRelease>[
         for (final item in decoded)
           if (item is Map<String, dynamic>)
             if (UpdateRelease.fromJson(item) case final r?)
-              if (r.version.compareTo(current) > 0 &&
-                  // Stable builds stay on stable; beta builds also see stable.
-                  (current.stage != null || r.version.stage == null)) r,
-      ]..sort((a, b) => b.version.compareTo(a.version));
+              if (_accepts(r.version)) r,
+      ]..sort((a, b) {
+        // 实质版本号最高的优先；旧标签（没有实质版本号）之间按版本比较
+        final byBuild = b.version.build.compareTo(a.version.build);
+        return byBuild != 0 ? byBuild : b.version.compareTo(a.version);
+      });
       if (_disposed || generation != _generation) return;
       _lastCheck = DateTime.now();
       await storage.setLastUpdateCheck(_lastCheck!.toIso8601String());

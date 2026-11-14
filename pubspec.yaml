@@ -76,6 +76,8 @@ dependencies:
   hyper_glass:
     path: packages/hyper_glass
   hotkey_manager: ^0.2.3
+  # 全局快捷键注册前查系统键码（hotkey_manager 的传递依赖，这里直接用到）
+  uni_platform: ^0.1.3
   tray_manager: ^0.5.3
 
 

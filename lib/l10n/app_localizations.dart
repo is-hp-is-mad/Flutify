@@ -1589,6 +1589,12 @@ abstract class AppLocalizations {
   /// **'已添加到「{name}」'**
   String toastAddedTo(String name);
 
+  /// No description provided for @toastAddToPlaylistFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'添加到「{name}」失败，请稍后重试'**
+  String toastAddToPlaylistFailed(String name);
+
   /// No description provided for @toastAlreadyIn.
   ///
   /// In zh, this message translates to:
@@ -2777,6 +2783,12 @@ abstract class AppLocalizations {
   /// **'需要包含 Ctrl、Alt 或 Win，功能键（F1~F24）除外。'**
   String get shortcutNeedsModifier;
 
+  /// No description provided for @shortcutUnsupportedKey.
+  ///
+  /// In zh, this message translates to:
+  /// **'系统不支持把这个按键注册为全局快捷键，请换一个。'**
+  String get shortcutUnsupportedKey;
+
   /// No description provided for @shortcutConflict.
   ///
   /// In zh, this message translates to:
@@ -3592,6 +3604,60 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'软件更新'**
   String get updatesTitle;
+
+  /// No description provided for @updatesChannel.
+  ///
+  /// In zh, this message translates to:
+  /// **'更新通道'**
+  String get updatesChannel;
+
+  /// No description provided for @updatesChannelHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'只会更新到实质版本号更高的版本，切换通道不会降级。'**
+  String get updatesChannelHint;
+
+  /// No description provided for @updatesChannelRelease.
+  ///
+  /// In zh, this message translates to:
+  /// **'正式版（稳定）'**
+  String get updatesChannelRelease;
+
+  /// No description provided for @updatesChannelBeta.
+  ///
+  /// In zh, this message translates to:
+  /// **'测试版（Beta）'**
+  String get updatesChannelBeta;
+
+  /// No description provided for @updatesChannelSelfTest.
+  ///
+  /// In zh, this message translates to:
+  /// **'自测版（开发者自测）'**
+  String get updatesChannelSelfTest;
+
+  /// No description provided for @updatesSelfTestWarningTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'切换到自测版？'**
+  String get updatesSelfTestWarningTitle;
+
+  /// No description provided for @updatesSelfTestWarning.
+  ///
+  /// In zh, this message translates to:
+  /// **'自测版是开发者自测用的版本，每次提交代码都会自动生成，没有经过任何验证，可能无法启动、丢失数据或损坏设置。不得用于实际生产或日常使用！另外，版本只能升不能降：装上自测版后，要等正式版的实质版本号超过它才能回到正式版。'**
+  String get updatesSelfTestWarning;
+
+  /// No description provided for @updatesSelfTestConfirm.
+  ///
+  /// In zh, this message translates to:
+  /// **'我是开发者，仍然切换'**
+  String get updatesSelfTestConfirm;
+
+  /// No description provided for @updatesBuild.
+  ///
+  /// In zh, this message translates to:
+  /// **'实质版本号 {build}'**
+  String updatesBuild(int build);
 
   /// No description provided for @updatesMode.
   ///

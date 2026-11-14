@@ -1,5 +1,6 @@
 import '../../models/album.dart';
 import '../../models/artist.dart';
+import '../../models/editable_playlist.dart';
 import '../../models/playlist.dart';
 import '../../models/track.dart';
 import 'library_source.dart';
@@ -43,4 +44,12 @@ class SessionLibrarySource implements LibrarySource {
   @override
   Future<void> setArtistFollowed(SpotifyArtist artist, bool followed) =>
       _current.setArtistFollowed(artist, followed);
+
+  @override
+  Future<List<EditablePlaylist>> fetchEditablePlaylists(SpotifyTrack track) =>
+      _current.fetchEditablePlaylists(track);
+
+  @override
+  Future<void> addTrackToPlaylist(String playlistUri, SpotifyTrack track) =>
+      _current.addTrackToPlaylist(playlistUri, track);
 }

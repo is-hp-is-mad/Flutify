@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:tray_manager/tray_manager.dart';
+import 'package:uni_platform/uni_platform.dart';
 
 import '../../../models/shortcut_settings.dart';
 import 'desktop_window.dart';
@@ -17,6 +18,18 @@ class GlobalHotkeys {
   /// Linux 不支持：见 packages/hotkey_manager_linux/FLUTIFY_PATCH.md。
   static bool get supported =>
       !kIsWeb && (Platform.isWindows || Platform.isMacOS);
+
+  /// [combo] 交给系统注册时用的物理键；系统没有对应键码时为 null。
+  ///
+  /// 必须先过这一关：Windows 插件拿不到键码会抛未捕获的 C++ 异常，整个进程直接退出；
+  /// 而键位已经存进设置，之后每次启动都会在注册时再崩一次（issue #48）。
+  static PhysicalKeyboardKey? systemKeyOf(KeyCombo combo) {
+    final physical = combo.physicalId;
+    final key = physical != null
+        ? PhysicalKeyboardKey(physical)
+        : combo.key.physicalKey;
+    return key?.keyCode == null ? null : key;
+  }
 
   /// 按 [settings] 重新注册；没有变化时什么都不做。[handlers] 给出每个动作的回调。
   /// 返回注册失败（多半被其他软件占用）的动作。
@@ -39,12 +52,17 @@ class GlobalHotkeys {
       final handler = handlers[entry.key];
       if (handler == null) continue;
       final combo = entry.value;
-      final physical = combo.physicalId;
+      final key = systemKeyOf(combo);
+      if (key == null) {
+        debugPrint('[hotkey] ${entry.key.name} 的按键系统无法注册，已跳过');
+        failed.add(entry.key);
+        continue;
+      }
       try {
         await hotKeyManager.register(
           HotKey(
             identifier: entry.key.name,
-            key: physical != null ? PhysicalKeyboardKey(physical) : combo.key,
+            key: key,
             modifiers: [
               if (combo.control) HotKeyModifier.control,
               if (combo.alt) HotKeyModifier.alt,

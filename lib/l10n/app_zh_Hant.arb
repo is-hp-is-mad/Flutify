@@ -443,6 +443,7 @@
       }
     }
   },
+  "toastAddToPlaylistFailed": "新增到「{name}」失敗，請稍後再試",
   "toastAlreadyIn": "「{name}」中已有這首歌",
   "@toastAlreadyIn": {
     "placeholders": {
@@ -700,6 +701,7 @@
   "shortcutPressKeys": "請按下組合鍵…",
   "shortcutNone": "未設定",
   "shortcutNeedsModifier": "需要包含 Ctrl、Alt 或 Win，功能鍵（F1~F24）除外。",
+  "shortcutUnsupportedKey": "系統不支援將這個按鍵註冊為全域快速鍵，請換一個。",
   "shortcutConflict": "已被「{action}」占用。",
   "shortcutGlobalSection": "全域快速鍵",
   "shortcutGlobalHint": "視窗不在前景時也能控制播放。",
@@ -947,6 +949,15 @@
   "settingsProxyUsernameInvalid": "使用者名稱不能包含冒號（:），否則會被當作使用者名稱與密碼的分隔符，導致驗證失敗",
   "settingsProxyAuthIncomplete": "HTTPS 可只填寫其中一項；HTTP 代理驗證需要同時填寫兩項",
   "updatesTitle": "軟體更新",
+  "updatesChannel": "更新通道",
+  "updatesChannelHint": "只會更新到實質版本號更高的版本，切換通道不會降級。",
+  "updatesChannelRelease": "正式版（穩定）",
+  "updatesChannelBeta": "測試版（Beta）",
+  "updatesChannelSelfTest": "自測版（開發者自測）",
+  "updatesSelfTestWarningTitle": "切換到自測版？",
+  "updatesSelfTestWarning": "自測版是開發者自測用的版本，每次提交程式碼都會自動產生，沒有經過任何驗證，可能無法啟動、遺失資料或損壞設定。不得用於實際生產或日常使用！另外，版本只能升不能降：裝上自測版後，要等正式版的實質版本號超過它才能回到正式版。",
+  "updatesSelfTestConfirm": "我是開發者，仍然切換",
+  "updatesBuild": "實質版本號 {build}",
   "updatesMode": "更新方式",
   "updatesManual": "手動更新",
   "updatesAutomatic": "自動下載更新",

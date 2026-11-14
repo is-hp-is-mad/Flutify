@@ -442,6 +442,9 @@ class ProxyHttpOverrides extends HttpOverrides {
   /// 纯 Dart 文件不能引入 Flutter 的 debugPrint，由 main 注入。
   static void Function(String message)? certificateRejectionLogger;
 
+  /// 证书被拒绝后的善后（Windows 上向系统补查根证书）；不影响本次握手的结论。由 main 注入。
+  static void Function(X509Certificate certificate)? certificateRejectionHandler;
+
   /// 记录被拒绝的对端证书；始终返回 false（证书依旧被拒绝）。
   static bool _logRejectedCertificate(
     X509Certificate certificate,
@@ -458,6 +461,7 @@ class ProxyHttpOverrides extends HttpOverrides {
         'issuer="${certificate.issuer}" sha1=$sha1',
       );
     }
+    certificateRejectionHandler?.call(certificate);
     return false;
   }
 

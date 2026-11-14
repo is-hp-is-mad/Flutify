@@ -118,6 +118,9 @@ class _ShortcutsDialogState extends State<ShortcutsDialog> {
     if (!combo.usableFor(action, global: global)) {
       setState(() => _problem = l10n.shortcutNeedsModifier);
       return;
+    }    if (global && GlobalHotkeys.systemKeyOf(combo) == null) {
+      setState(() => _problem = l10n.shortcutUnsupportedKey);
+      return;
     }
     final owner = AppShortcuts.ownerOf(
       settings,

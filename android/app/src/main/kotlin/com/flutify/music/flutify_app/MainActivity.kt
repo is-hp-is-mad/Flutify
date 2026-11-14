@@ -1,12 +1,82 @@
 package com.flutify.music.flutify_app
 
+import android.content.Context
 import android.content.Intent
 import com.flutify.music.flutify_app.widget.WidgetBridgePlugin
 import com.ryanheise.audioservice.AudioServiceActivity
+import com.ryanheise.audioservice.AudioServicePlugin
 import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.embedding.engine.FlutterEngineCache
+import io.flutter.embedding.engine.dart.DartExecutor
 
 // audio_service 要求：Activity 与后台媒体服务共用同一个 Flutter 引擎（通知栏 / 锁屏控件）
 class MainActivity : AudioServiceActivity() {
+    override fun provideFlutterEngine(context: Context): FlutterEngine? {
+        val engineId = AudioServicePlugin.getFlutterEngineId()
+        FlutterEngineCache.getInstance().get(engineId)?.let { return it }
+
+        val launchArgs = extractLaunchArgs(intent)
+        if (launchArgs.isEmpty()) {
+            return super.provideFlutterEngine(context)
+        }
+
+        // AudioServicePlugin.getFlutterEngine() 不转发 Dart 入口参数，
+        // 在带启动参数时提前创建并缓存同一个引擎，使 main(List<String> args) 在全平台一致生效。
+        val engine = FlutterEngine(context.applicationContext)
+        var route = initialRoute
+        if (route == null && shouldHandleDeeplinking()) {
+            val data = intent?.data
+            if (data != null) {
+                route = data.path
+                val query = data.query
+                if (!query.isNullOrEmpty()) {
+                    route = "$route?$query"
+                }
+            }
+        }
+        engine.navigationChannel.setInitialRoute(route ?: "/")
+        engine.dartExecutor.executeDartEntrypoint(
+            DartExecutor.DartEntrypoint.createDefault(),
+            launchArgs,
+        )
+        FlutterEngineCache.getInstance().put(engineId, engine)
+        return engine
+    }
+
+    private fun extractLaunchArgs(intent: Intent?): List<String> {
+        if (intent == null) return emptyList()
+        val result = mutableListOf<String>()
+
+        intent.getStringArrayExtra("flutify_args")?.forEach { arg ->
+            val trimmed = arg.trim()
+            if (trimmed.isNotEmpty()) result.add(trimmed)
+        }
+        intent.getStringExtra("flutify_args")?.let { raw ->
+            raw.trim().split(Regex("\\s+"))
+                .filter { it.isNotEmpty() }
+                .forEach { result.add(it) }
+        }
+
+        @Suppress("DEPRECATION")
+        val mockExtra = intent.extras?.get("flutify_mock")
+        val wantsMock = when (mockExtra) {
+            is Boolean -> mockExtra
+            is Number -> mockExtra.toInt() != 0
+            is String -> mockExtra.equals("true", ignoreCase = true) || mockExtra == "1"
+            else -> false
+        }
+        if (wantsMock && "--mock" !in result) {
+            result.add("--mock")
+        }
+
+        intent.getStringExtra("flutify_e2e")?.trim()?.let { dir ->
+            if (dir.isNotEmpty()) {
+                result.add("--self-test-e2e=$dir")
+            }
+        }
+        return result
+    }
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         // Android 原生 DRM 播放引擎（该机型 WebView EME 不可用，走 ExoPlayer + MediaDrm）

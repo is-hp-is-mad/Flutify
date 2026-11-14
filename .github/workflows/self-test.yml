@@ -1,9 +1,10 @@
-# Independent, secret-free CI. Artifacts are not official releases.
+# Independent, secret-free PR / feature-branch CI.
+# Pushes to `main` build, publish self-test releases, and run full E2E in `.github/workflows/build.yml`.
 name: Self-test
 
 on:
   push:
-    branches: ['**']
+    branches-ignore: [main]
     paths-ignore: ['**.md', 'docs/**', 'LICENSE']
   pull_request:
     branches: [main]
@@ -107,8 +108,9 @@ jobs:
         run: bash tool/create_self_test_android_key.sh
       - name: Compile release-mode self-test APKs
         run: |
-          flutter build apk --release --no-pub --split-per-abi --build-number="$ANDROID_BUILD_NUMBER"
-          flutter build apk --release --no-pub --build-number="$ANDROID_BUILD_NUMBER"
+          TAG="v0.18.${{ github.run_number }}-selftest"
+          flutter build apk --release --no-pub --split-per-abi --build-number="$ANDROID_BUILD_NUMBER" --dart-define="FLUTIFY_RELEASE_TAG=$TAG"
+          flutter build apk --release --no-pub --build-number="$ANDROID_BUILD_NUMBER" --dart-define="FLUTIFY_RELEASE_TAG=$TAG"
       - name: Verify signatures, version codes and media icons
         run: python3 tool/verify_android_apks.py build/app/outputs/flutter-apk "$ANDROID_BUILD_NUMBER"
       - name: Remove temporary self-test key
@@ -143,7 +145,7 @@ jobs:
           cache: true
       - run: flutter pub get
       - run: flutter test --no-pub
-      - run: flutter build macos --release --no-pub
+      - run: flutter build macos --release --no-pub --dart-define="FLUTIFY_RELEASE_TAG=v0.18.${{ github.run_number }}-selftest"
       - name: Package self-test app
         run: |
           mkdir -p dist
@@ -200,7 +202,7 @@ jobs:
       - run: flutter pub get
       - name: Test Windows PowerShell 5.1 update handoff
         run: python tool/test_windows_update.py -v
-      - run: flutter build windows --release --no-pub
+      - run: flutter build windows --release --no-pub --dart-define="FLUTIFY_RELEASE_TAG=v0.18.${{ github.run_number }}-selftest"
       - name: Verify native binary architecture
         run: python tool/verify_windows_arch.py build/windows/${{ matrix.arch }}/runner/Release ${{ matrix.arch }}
       - name: Verify app-local VC runtime dependencies
@@ -245,7 +247,7 @@ jobs:
           sudo apt-get install -y ninja-build libgtk-3-dev liblzma-dev libblkid-dev
       - run: flutter pub get
       - run: flutter test --no-pub
-      - run: flutter build linux --release --no-pub
+      - run: flutter build linux --release --no-pub --dart-define="FLUTIFY_RELEASE_TAG=v0.18.${{ github.run_number }}-selftest"
       - name: Package self-test .deb and tarball
         run: |
           mkdir -p dist

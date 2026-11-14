@@ -1,0 +1,73 @@
+import 'dart:io';
+
+import 'package:flutify_app/core/utils/pinyin_sort.dart';
+import 'package:flutify_app/models/shortcut_settings.dart';
+import 'package:flutify_app/services/protocol/track_audio_loader.dart';
+import 'package:flutify_app/ui/shell/desktop/desktop_integration.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+void main() {
+  group('全局快捷键的系统键码（issue #48）', () {
+    test('默认键位都有系统键码', () {
+      for (final combo in const ShortcutSettings().effectiveGlobal.values) {
+        expect(GlobalHotkeys.systemKeyOf(combo), isNotNull);
+      }
+    });
+
+    test('系统没有键码的按键不交给插件注册', () {
+      // 物理键不在映射表里（Windows 插件拿到 null 键码会让进程直接退出）
+      final unknownPhysical = KeyCombo(
+        LogicalKeyboardKey.keyA.keyId,
+        physicalId: 0x000700ff,
+        control: true,
+      );
+      expect(GlobalHotkeys.systemKeyOf(unknownPhysical), isNull);
+      // 没记下物理键、逻辑键也反查不到
+      final unknownLogical = KeyCombo(0x00100000fff, control: true);
+      expect(GlobalHotkeys.systemKeyOf(unknownLogical), isNull);
+    }, skip: !(Platform.isWindows || Platform.isMacOS || Platform.isLinux));
+  });
+
+  test('拼音排序：缓存排序键后结果不变', () {
+    final titles = ['周杰伦', 'Adele', '陈奕迅', 'beyond', '阿信', '123'];
+    final first = sortByPinyin(titles, (t) => t);
+    expect(sortByPinyin(titles, (t) => t), first);
+    expect(first, ['123', 'Adele', '阿信', 'beyond', '陈奕迅', '周杰伦']);
+  });
+
+  test('音频缓存淘汰：超额时先删最久未用的，连同响度旁路文件', () async {
+    final root = await Directory.systemTemp.createTemp('flutify_trim_');
+    addTearDown(() => root.delete(recursive: true));
+    final audio = Directory('${root.path}${Platform.pathSeparator}audio')
+      ..createSync();
+    File make(String name, int bytes, int ageMinutes) {
+      final file = File('${audio.path}${Platform.pathSeparator}$name')
+        ..writeAsBytesSync(List.filled(bytes, 0));
+      file.setLastModifiedSync(
+        DateTime.now().subtract(Duration(minutes: ageMinutes)),
+      );
+      return file;
+    }
+
+    final oldest = make('a.ogg', 10, 30);
+    final sidecar = AudioNormalization.sidecarFor(oldest)
+      ..writeAsBytesSync([1, 2, 3]);
+    final middle = make('b.ogg', 10, 20);
+    final newest = make('c.ogg', 10, 10);
+    final partial = make('d.ogg.part', 100, 40);
+
+    final loader = TrackAudioLoader(
+      accessToken: () async => '',
+      cacheDirectory: root.path,
+    );
+    loader.maxCacheBytes = 20;
+    await loader.trimCache();
+
+    expect(oldest.existsSync(), isFalse);
+    expect(sidecar.existsSync(), isFalse);
+    expect(middle.existsSync(), isTrue);
+    expect(newest.existsSync(), isTrue);
+    expect(partial.existsSync(), isTrue, reason: '下载中的文件不参与淘汰');
+  });
+}

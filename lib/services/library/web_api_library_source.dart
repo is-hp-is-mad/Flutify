@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 
 import '../../models/album.dart';
 import '../../models/artist.dart';
+import '../../models/editable_playlist.dart';
 import '../../models/playlist.dart';
 import '../../models/track.dart';
 import 'library_source.dart';
@@ -122,6 +123,41 @@ class WebApiLibrarySource implements LibrarySource {
   @override
   Future<void> setArtistFollowed(SpotifyArtist artist, bool followed) =>
       _send(followed ? 'PUT' : 'DELETE', '/me/following?type=artist&ids=${artist.id}');
+
+  /// 公开 Web API 没有「可编辑」筛选：取自己建的和协作歌单。是否已包含曲目这里查不到（恒为 false）。
+  @override
+  Future<List<EditablePlaylist>> fetchEditablePlaylists(
+    SpotifyTrack track,
+  ) async {
+    final items = await _pages('/me/playlists?limit=$_pageSize', (json) => json['items']);
+    final me = accountId;
+    final result = <EditablePlaylist>[];
+    for (final item in items) {
+      if (item is! Map<String, dynamic>) continue;
+      final owner = item['owner'];
+      final own = owner is Map && me.isNotEmpty && owner['id'] == me;
+      if (!own && item['collaborative'] != true) continue;
+      final id = item['id'];
+      if (id is! String || id.isEmpty) continue;
+      result.add(
+        EditablePlaylist(
+          uri: 'spotify:playlist:$id',
+          name: item['name'] as String? ?? '',
+          coverUrl: SpotifyPlaylist.fromJson(item).coverUrl,
+        ),
+      );
+    }
+    return result;
+  }
+
+  @override
+  Future<void> addTrackToPlaylist(String playlistUri, SpotifyTrack track) => _send(
+    'POST',
+    '/playlists/${Uri.encodeComponent(playlistUri.split(':').last)}/tracks',
+    body: {
+      'uris': [track.uri.isNotEmpty ? track.uri : 'spotify:track:${track.id}'],
+    },
+  );
 
   Future<void> _send(String method, String path, {Map<String, Object?>? body}) async {
     if (!isSignedIn) throw const LibrarySourceException('未登录，无法同步到 Spotify 账号');

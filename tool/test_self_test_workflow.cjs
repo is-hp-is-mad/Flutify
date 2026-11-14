@@ -15,9 +15,9 @@ function job(name) {
   return next === -1 ? rest : rest.slice(0, next + 1);
 }
 
-test('self-test runs on branch pushes, main PRs and manual requests, never tag pushes', () => {
+test('self-test runs on non-main branch pushes, main PRs and manual requests, never tag pushes', () => {
   const source = workflow();
-  assert.match(source, /push:\n    branches: \['\*\*'\]/);
+  assert.match(source, /push:\n    branches-ignore: \[main\]/);
   assert.match(source, /pull_request:\n    branches: \[main\]/);
   assert.match(source, /  workflow_dispatch:/);
   assert.doesNotMatch(source, /tags:|pull_request_target:|workflow_run:/);

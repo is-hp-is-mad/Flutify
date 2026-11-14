@@ -853,6 +853,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String toastAddToPlaylistFailed(String name) {
+    return 'Couldn\'t add to $name. Try again later.';
+  }
+
+  @override
   String toastAlreadyIn(String name) {
     return 'Already in $name';
   }
@@ -1526,6 +1531,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Must include Ctrl, Alt or Win, unless it is a function key (F1–F24).';
 
   @override
+  String get shortcutUnsupportedKey =>
+      'This key cannot be registered as a global shortcut. Try another one.';
+
+  @override
   String shortcutConflict(String action) {
     return 'Already used by \"$action\".';
   }
@@ -2002,6 +2011,37 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get updatesTitle => 'Software updates';
+
+  @override
+  String get updatesChannel => 'Update channel';
+
+  @override
+  String get updatesChannelHint =>
+      'You only ever move to a higher build number. Switching channels never downgrades.';
+
+  @override
+  String get updatesChannelRelease => 'Release (stable)';
+
+  @override
+  String get updatesChannelBeta => 'Beta';
+
+  @override
+  String get updatesChannelSelfTest => 'Self-test (developers only)';
+
+  @override
+  String get updatesSelfTestWarningTitle => 'Switch to self-test builds?';
+
+  @override
+  String get updatesSelfTestWarning =>
+      'Self-test builds are for developers testing their own changes. One is produced automatically for every commit, with no verification at all, and it may fail to start, lose data or corrupt your settings. Do not use them for real work or daily listening. Versions also only move forward: after installing a self-test build you cannot return to a release until a release with a higher build number is published.';
+
+  @override
+  String get updatesSelfTestConfirm => 'I am a developer, switch anyway';
+
+  @override
+  String updatesBuild(int build) {
+    return 'build $build';
+  }
 
   @override
   String get updatesMode => 'Update preference';

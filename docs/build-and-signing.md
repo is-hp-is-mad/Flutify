@@ -1,12 +1,12 @@
 # 构建与固定签名
 
-工作流：`.github/workflows/build.yml`。推送 `main` 或手动运行生成 Actions 产物；推送 `v*` 标签在所有构建成功后发布 Release。包含 `alpha`、`beta` 或 `rc` 的标签标为预发布。
+工作流：`.github/workflows/build.yml`。推送 `main` 或手动运行默认触发 `self-test` 通道：在全平台编译并通过 [action-gh-release](https://github.com/softprops/action-gh-release) 发布带 `Pre-release` 标注的 `vX.Y.<run>-selftest` 后，自动基于同批产物执行 Windows / Linux / macOS / InstaBox Android 全端 Mock E2E（0.3s 截图与性能曲线），其中复用的 InstaBox Android box 不销毁也不卸载 Flutify，先通过设置原地升级到刚发布的最新 `self-test` 版本再测试。手动提升并确认后可发 `beta` 或 `release` 正式版。
 
 ## Fork 与功能分支自测
 
-`.github/workflows/self-test.yml` 是独立的 **Self-test** 工作流，不读取任何仓库签名 Secrets，不写标签或发布 Release。它不会修改或替代上面的正式发布流程；在 fork 中手动运行原 `Build`，仍然需要正式签名配置。
+`.github/workflows/self-test.yml` 是独立的 **Self-test** 工作流，不读取任何仓库签名 Secrets，不写标签或发布 Release。它仅服务于非 `main` 分支与 PR 门禁，避免推送 `main` 时与 `build.yml` 重复编译四端；在 fork 中手动运行原 `Build`，仍然需要正式签名配置。
 
-- 分支推送自动触发（纯文档变更除外），目标为 `main` 的 PR 也会触发；标签推送不触发。工作流进入默认分支后，可在 Actions 页面手动选择分支运行。
+- 非 `main` 分支推送自动触发（纯文档变更除外），目标为 `main` 的 PR 也会触发；标签推送与 `main` 推送不触发。工作流进入默认分支后，可在 Actions 页面手动选择分支运行。
 - 首先分析 `lib/`、`test/`，执行全部 Flutter、Node 和 Python 测试。既有 info 级 lint 会展示但不阻断，error 和 warning 仍阻断；`tool/` 下的独立 Dart 探针不属于应用静态分析范围。没有禁用测试或放行测试失败。
 - 质量检查通过后，并行构建 Android、macOS、Windows x64 / ARM64 与 Linux x64。SDK 与正式流程一致：Mac 3.44.9，其他平台 3.44.0；Mac 再执行一次该平台的 Flutter 测试。
 - 独立的 **macOS native titlebar hit testing** 只在涉及 `macos/`、原生 Swift 测试、CI 工作流/复用 action 或路径判断器时随 PR/功能分支运行。只修改 Android 或共享 Dart 代码不会触发这项独立 Swift 测试，但上面的完整 Flutter 测试和各平台构建仍运行。

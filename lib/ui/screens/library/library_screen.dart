@@ -160,11 +160,15 @@ class _LibraryScreenState extends State<LibraryScreen> {
               padding: const EdgeInsets.fromLTRB(16, 16, 8, 8),
               child: Row(
                 children: [
-                  MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: GestureDetector(
-                      onTap: widget.onOpenSettings,
-                      child: const UserAvatar(size: 36),
+                  Semantics(
+                    button: true,
+                    label: l10n.commonSettings,
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: GestureDetector(
+                        onTap: widget.onOpenSettings,
+                        child: const UserAvatar(size: 36),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 14),

@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import '../../core/constants/spotify_endpoints.dart';
 import '../../models/album.dart';
 import '../../models/artist.dart';
+import '../../models/editable_playlist.dart';
 import '../../models/playlist.dart';
 import '../../models/track.dart';
 import '../pathfinder/desktop_data_source.dart';
@@ -174,6 +175,32 @@ class DesktopLibrarySource implements LibrarySource {
   @override
   Future<void> setArtistFollowed(SpotifyArtist artist, bool followed) =>
       _write(CollectionCodec.setArtist, _uri(artist.uri, 'artist', artist.id), followed);
+
+  @override
+  Future<List<EditablePlaylist>> fetchEditablePlaylists(
+    SpotifyTrack track,
+  ) async {
+    if (!isSignedIn) return const [];
+    try {
+      return await _data.editablePlaylists(_uri(track.uri, 'track', track.id));
+    } on LibrarySourceException {
+      rethrow;
+    } catch (e) {
+      throw LibrarySourceException('读取可添加的歌单失败：$e');
+    }
+  }
+
+  @override
+  Future<void> addTrackToPlaylist(String playlistUri, SpotifyTrack track) async {
+    if (!isSignedIn) throw const LibrarySourceException('未登录，无法同步到 Spotify 账号');
+    try {
+      await _data.addToPlaylist(playlistUri, [
+        _uri(track.uri, 'track', track.id),
+      ]);
+    } catch (e) {
+      throw LibrarySourceException('添加到歌单失败：$e');
+    }
+  }
 
   Future<void> _write(String set, String uri, bool added) async {
     if (!isSignedIn) throw const LibrarySourceException('未登录，无法同步到 Spotify 账号');

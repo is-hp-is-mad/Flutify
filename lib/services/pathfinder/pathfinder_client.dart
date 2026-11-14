@@ -18,7 +18,14 @@ class PathfinderClient {
   PathfinderClient(this._client, {required this.headers});
 
   /// 执行查询并返回 `data`；HTTP 非 200 或响应含 errors 且无 data 时抛 [PathfinderException]。
-  Future<Map<String, dynamic>> query(PathfinderOperation op, Map<String, Object?> variables) async {
+  ///
+  /// [failOnErrors]：响应带 errors 就抛，哪怕同时有 data。写操作用它：
+  /// 查询可以容忍部分字段出错，写入不能把「没写成」当成功。
+  Future<Map<String, dynamic>> query(
+    PathfinderOperation op,
+    Map<String, Object?> variables, {
+    bool failOnErrors = false,
+  }) async {
     final res = await _client.post(
       Uri.parse(endpoint),
       headers: {...await headers(), 'content-type': 'application/json;charset=UTF-8'},
@@ -41,6 +48,10 @@ class PathfinderClient {
       final errors = json is Map<String, dynamic> ? json['errors'] : null;
       final hashStale = _isHashStale(errors);
       throw PathfinderException(op.name, res.statusCode, errors?.toString() ?? '', hashStale: hashStale);
+    }
+    final errors = (json as Map<String, dynamic>)['errors'];
+    if (failOnErrors && errors is List && errors.isNotEmpty) {
+      throw PathfinderException(op.name, res.statusCode, errors.toString(), hashStale: _isHashStale(errors));
     }
     return data;
   }

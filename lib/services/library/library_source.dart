@@ -1,5 +1,6 @@
 import '../../models/album.dart';
 import '../../models/artist.dart';
+import '../../models/editable_playlist.dart';
 import '../../models/playlist.dart';
 import '../../models/track.dart';
 
@@ -35,6 +36,12 @@ abstract class LibrarySource {
 
   /// 关注 / 取消关注艺人。
   Future<void> setArtistFollowed(SpotifyArtist artist, bool followed);
+
+  /// 账号里可以往里加 [track] 的歌单（自建 + 协作），并标出它是否已经在里面。
+  Future<List<EditablePlaylist>> fetchEditablePlaylists(SpotifyTrack track);
+
+  /// 把 [track] 加到账号歌单 [playlistUri] 的末尾（写入失败抛 [LibrarySourceException]）。
+  Future<void> addTrackToPlaylist(String playlistUri, SpotifyTrack track);
 }
 
 /// 媒体库读写失败（网络、鉴权或接口返回非 2xx）。

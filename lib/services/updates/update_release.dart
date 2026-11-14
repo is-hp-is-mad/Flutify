@@ -1,3 +1,7 @@
+/// 更新通道。排在后面的通道也会收到前面通道的版本：
+/// 正式版用户只收正式版，测试版用户收测试版和正式版，自测版用户全收。
+enum UpdateChannel { release, beta, selfTest }
+
 /// The old v0.01 … v0.06 tags represent app versions 0.0.1 … 0.0.6.
 /// Keep that convention for two-component 0.xx tags; new releases can use SemVer.
 class UpdateVersion implements Comparable<UpdateVersion> {
@@ -6,9 +10,29 @@ class UpdateVersion implements Comparable<UpdateVersion> {
   final int stageNumber;
   const UpdateVersion(this.numbers, this.stage, this.stageNumber);
 
+  /// 实质版本号：CI 每编译一次加一，三个通道共用一个序列，写在标签第三段
+  /// （v0.18.151 / v0.18.140-beta / v0.18.135-selftest）。旧的两段式标签为 0。
+  int get build => numbers[2];
+
+  UpdateChannel get channel => switch (stage) {
+    null => UpdateChannel.release,
+    'selftest' => UpdateChannel.selfTest,
+    _ => UpdateChannel.beta,
+  };
+
+  /// 能否从 [current] 更新到这个版本。只升不降：基础版本（前两段）不能更低，
+  /// 实质版本号必须更高；两边都没有实质版本号的旧标签沿用原来的比较。
+  bool isUpgradeFrom(UpdateVersion current) {
+    for (var i = 0; i < 2; i++) {
+      if (numbers[i] < current.numbers[i]) return false;
+    }
+    if (build != current.build) return build > current.build;
+    return compareTo(current) > 0;
+  }
+
   static UpdateVersion? parse(String tag) {
     final match = RegExp(
-      r'^v?(\d+)\.(\d+)(?:\.(\d+))?(?:-(alpha|beta|rc)(?:[.-]?(\d+))?)?(?:\+[\w.-]+)?$',
+      r'^v?(\d+)\.(\d+)(?:\.(\d+))?(?:-(alpha|beta|rc|selftest)(?:[.-]?(\d+))?)?(?:\+[\w.-]+)?$',
     ).firstMatch(tag);
     if (match == null) return null;
     // v0.15 = 0.15.0、v0.16.1 = 0.16.1：两段式与三段式按同一规则比较，
@@ -30,7 +54,7 @@ class UpdateVersion implements Comparable<UpdateVersion> {
       final order = numbers[i].compareTo(other.numbers[i]);
       if (order != 0) return order;
     }
-    const stages = {'alpha': 0, 'beta': 1, 'rc': 2, null: 3};
+    const stages = {'selftest': -1, 'alpha': 0, 'beta': 1, 'rc': 2, null: 3};
     final order = stages[stage]!.compareTo(stages[other.stage]!);
     return order != 0 ? order : stageNumber.compareTo(other.stageNumber);
   }

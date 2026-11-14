@@ -202,7 +202,7 @@ class TrackAudioLoader implements TrackAudioSource, AudioCacheStore {
   @override
   set maxCacheBytes(int value) {
     _maxCacheBytes = value;
-    _trimCache();
+    unawaited(trimCache());
   }
 
   /// 缓存里的音频文件（不含下载中的 .part 与响度旁路文件）。
@@ -547,7 +547,7 @@ class TrackAudioLoader implements TrackAudioSource, AudioCacheStore {
         );
       }
       final result = _loaded(destination, source, durationMs, id);
-      _trimCache();
+      unawaited(trimCache());
       return result;
     }();
     session.persisted!.ignore(); // 只预取 / 只边下边播时没人等它，失败不应成为未捕获异常
@@ -603,23 +603,65 @@ class TrackAudioLoader implements TrackAudioSource, AudioCacheStore {
     }
   }
 
+  Future<void>? _trimming;
+  bool _trimRequested = false;
+
   /// 缓存淘汰：音频总量超过 [maxCacheBytes] 时，按修改时间（最近一次使用）从旧到新删除，
   /// 最近加载的两首（正在播放 + 预取）保留。
-  void _trimCache() {
+  ///
+  /// 全程异步：每首歌落盘后都会触发，目录扫描和逐个 stat 不能占着 UI 线程
+  /// （缓存文件多或磁盘慢时会在切歌的那一刻卡帧）。进行中再次触发只补跑一轮。
+  Future<void> trimCache() {
+    _trimRequested = true;
+    return _trimming ??= () async {
+      try {
+        while (_trimRequested) {
+          _trimRequested = false;
+          await _trimOnce();
+        }
+      } finally {
+        _trimming = null;
+      }
+    }();
+  }
+
+  Future<void> _trimOnce() async {
     try {
-      final files = _audioFiles();
-      var total = files.fold<int>(0, (sum, f) => sum + f.lengthSync());
+      final dir = _audioDir;
+      if (!await dir.exists()) return;
+      final files = <({File file, int size, DateTime used})>[];
+      var total = 0;
+      await for (final entry in dir.list(followLinks: false)) {
+        if (entry is! File ||
+            entry.path.endsWith('.part') ||
+            entry.path.endsWith('.${AudioNormalization.sidecarExtension}')) {
+          continue;
+        }
+        try {
+          final stat = await entry.stat();
+          total += stat.size;
+          files.add((file: entry, size: stat.size, used: stat.modified));
+        } catch (_) {
+          // 扫描途中被删掉的文件不计入
+        }
+      }
       if (total <= _maxCacheBytes) return;
-      files.sort(
-        (a, b) => a.lastModifiedSync().compareTo(b.lastModifiedSync()),
-      );
-      for (final f in files) {
+      files.sort((a, b) => a.used.compareTo(b.used));
+      for (final item in files) {
         if (total <= _maxCacheBytes) break;
-        if (_isProtected(f)) continue;
-        total -= _deleteAudio(f);
+        // 保护名单在等待期间可能已经变了，删之前现查
+        if (_isProtected(item.file)) continue;
+        try {
+          await item.file.delete();
+          total -= item.size;
+          final sidecar = AudioNormalization.sidecarFor(item.file);
+          if (await sidecar.exists()) await sidecar.delete();
+        } catch (_) {
+          // 单个文件删不掉（被占用）不影响其余
+        }
       }
     } catch (_) {
-      // 淘汰失败（文件被占用等）不影响播放
+      // 淘汰失败（目录不可读等）不影响播放
     }
   }
 

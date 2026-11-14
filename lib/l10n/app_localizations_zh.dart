@@ -825,6 +825,11 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String toastAddToPlaylistFailed(String name) {
+    return '添加到「$name」失败，请稍后重试';
+  }
+
+  @override
   String toastAlreadyIn(String name) {
     return '「$name」中已有这首歌';
   }
@@ -1456,6 +1461,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get shortcutNeedsModifier => '需要包含 Ctrl、Alt 或 Win，功能键（F1~F24）除外。';
 
   @override
+  String get shortcutUnsupportedKey => '系统不支持把这个按键注册为全局快捷键，请换一个。';
+
+  @override
   String shortcutConflict(String action) {
     return '已被「$action」占用。';
   }
@@ -1897,6 +1905,36 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get updatesTitle => '软件更新';
+
+  @override
+  String get updatesChannel => '更新通道';
+
+  @override
+  String get updatesChannelHint => '只会更新到实质版本号更高的版本，切换通道不会降级。';
+
+  @override
+  String get updatesChannelRelease => '正式版（稳定）';
+
+  @override
+  String get updatesChannelBeta => '测试版（Beta）';
+
+  @override
+  String get updatesChannelSelfTest => '自测版（开发者自测）';
+
+  @override
+  String get updatesSelfTestWarningTitle => '切换到自测版？';
+
+  @override
+  String get updatesSelfTestWarning =>
+      '自测版是开发者自测用的版本，每次提交代码都会自动生成，没有经过任何验证，可能无法启动、丢失数据或损坏设置。不得用于实际生产或日常使用！另外，版本只能升不能降：装上自测版后，要等正式版的实质版本号超过它才能回到正式版。';
+
+  @override
+  String get updatesSelfTestConfirm => '我是开发者，仍然切换';
+
+  @override
+  String updatesBuild(int build) {
+    return '实质版本号 $build';
+  }
 
   @override
   String get updatesMode => '更新方式';
@@ -2962,6 +3000,11 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   }
 
   @override
+  String toastAddToPlaylistFailed(String name) {
+    return '新增到「$name」失敗，請稍後再試';
+  }
+
+  @override
   String toastAlreadyIn(String name) {
     return '「$name」中已有這首歌';
   }
@@ -3592,6 +3635,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get shortcutNeedsModifier => '需要包含 Ctrl、Alt 或 Win，功能鍵（F1~F24）除外。';
 
   @override
+  String get shortcutUnsupportedKey => '系統不支援將這個按鍵註冊為全域快速鍵，請換一個。';
+
+  @override
   String shortcutConflict(String action) {
     return '已被「$action」占用。';
   }
@@ -4033,6 +4079,36 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get updatesTitle => '軟體更新';
+
+  @override
+  String get updatesChannel => '更新通道';
+
+  @override
+  String get updatesChannelHint => '只會更新到實質版本號更高的版本，切換通道不會降級。';
+
+  @override
+  String get updatesChannelRelease => '正式版（穩定）';
+
+  @override
+  String get updatesChannelBeta => '測試版（Beta）';
+
+  @override
+  String get updatesChannelSelfTest => '自測版（開發者自測）';
+
+  @override
+  String get updatesSelfTestWarningTitle => '切換到自測版？';
+
+  @override
+  String get updatesSelfTestWarning =>
+      '自測版是開發者自測用的版本，每次提交程式碼都會自動產生，沒有經過任何驗證，可能無法啟動、遺失資料或損壞設定。不得用於實際生產或日常使用！另外，版本只能升不能降：裝上自測版後，要等正式版的實質版本號超過它才能回到正式版。';
+
+  @override
+  String get updatesSelfTestConfirm => '我是開發者，仍然切換';
+
+  @override
+  String updatesBuild(int build) {
+    return '實質版本號 $build';
+  }
 
   @override
   String get updatesMode => '更新方式';

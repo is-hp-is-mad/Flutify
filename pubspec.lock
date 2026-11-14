@@ -1116,7 +1116,7 @@ packages:
     source: hosted
     version: "1.4.0"
   uni_platform:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: uni_platform
       sha256: e02213a7ee5352212412ca026afd41d269eb00d982faa552f419ffc2debfad84

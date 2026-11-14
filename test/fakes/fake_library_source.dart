@@ -1,5 +1,6 @@
 import 'package:flutify_app/models/album.dart';
 import 'package:flutify_app/models/artist.dart';
+import 'package:flutify_app/models/editable_playlist.dart';
 import 'package:flutify_app/models/playlist.dart';
 import 'package:flutify_app/models/track.dart';
 import 'package:flutify_app/services/library/library_source.dart';
@@ -74,5 +75,23 @@ class FakeLibrarySource implements LibrarySource {
   Future<void> setArtistFollowed(SpotifyArtist artist, bool followed) async {
     if (writeError != null) throw writeError!;
     writes.add('${followed ? 'follow' : 'unfollow'}:${artist.id}');
+  }
+
+  /// 账号里可编辑的歌单；设置 [editableError] 后读取抛该异常。
+  List<EditablePlaylist> editable = const [];
+  Object? editableError;
+
+  @override
+  Future<List<EditablePlaylist>> fetchEditablePlaylists(
+    SpotifyTrack track,
+  ) async {
+    if (editableError != null) throw editableError!;
+    return editable;
+  }
+
+  @override
+  Future<void> addTrackToPlaylist(String playlistUri, SpotifyTrack track) async {
+    if (writeError != null) throw writeError!;
+    writes.add('add:$playlistUri:${track.id}');
   }
 }

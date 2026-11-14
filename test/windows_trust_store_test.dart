@@ -87,6 +87,43 @@ void main() {
         : false,
   );
 
+  test('rejected chain: learns the root only when Windows trusts it', () async {
+    final pem = await certFile.readAsString();
+    final der = base64Decode(
+      pem.replaceAll(RegExp(r'-----[^\n]+-----|\s'), ''),
+    );
+    final certificate = _FakeCertificate(der);
+    var calls = 0;
+    Uint8List? answer;
+    messenger.setMockMethodCallHandler(WindowsTrustStore.channel, (call) async {
+      expect(call.method, 'rootFor');
+      expect(call.arguments, der);
+      calls++;
+      return answer;
+    });
+    addTearDown(WindowsTrustStore.resetLearned);
+
+    // Windows 不信任：不补，也不重复询问
+    final context = SecurityContext();
+    expect(
+      await WindowsTrustStore.learnRootFor(certificate, context: context),
+      isFalse,
+    );
+    expect(
+      await WindowsTrustStore.learnRootFor(certificate, context: context),
+      isFalse,
+    );
+    expect(calls, 1);
+
+    WindowsTrustStore.resetLearned();
+    answer = der;
+    expect(
+      await WindowsTrustStore.learnRootFor(certificate, context: context),
+      isTrue,
+    );
+    expect(calls, 2);
+  });
+
   test('native store unavailable preserves existing trust context', () async {
     final context = SecurityContext();
     messenger.setMockMethodCallHandler(WindowsTrustStore.channel, (_) async {
@@ -96,4 +133,17 @@ void main() {
     messenger.setMockMethodCallHandler(WindowsTrustStore.channel, null);
     expect(await WindowsTrustStore.loadInto(context), 0);
   });
+}
+
+class _FakeCertificate implements X509Certificate {
+  _FakeCertificate(this.der);
+
+  @override
+  final Uint8List der;
+
+  @override
+  Uint8List get sha1 => Uint8List.fromList(List.filled(20, 7));
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

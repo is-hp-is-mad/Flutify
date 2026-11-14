@@ -477,6 +477,14 @@
       }
     }
   },
+  "toastAddToPlaylistFailed": "添加到「{name}」失败，请稍后重试",
+  "@toastAddToPlaylistFailed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "toastAlreadyIn": "「{name}」中已有这首歌",
   "@toastAlreadyIn": {
     "placeholders": {
@@ -764,6 +772,7 @@
   "shortcutPressKeys": "请按下组合键…",
   "shortcutNone": "未设置",
   "shortcutNeedsModifier": "需要包含 Ctrl、Alt 或 Win，功能键（F1~F24）除外。",
+  "shortcutUnsupportedKey": "系统不支持把这个按键注册为全局快捷键，请换一个。",
   "shortcutConflict": "已被「{action}」占用。",
   "shortcutGlobalSection": "全局快捷键",
   "shortcutGlobalHint": "窗口不在前台时也能控制播放。",
@@ -992,6 +1001,22 @@
     }
   },
   "updatesTitle": "软件更新",
+  "updatesChannel": "更新通道",
+  "updatesChannelHint": "只会更新到实质版本号更高的版本，切换通道不会降级。",
+  "updatesChannelRelease": "正式版（稳定）",
+  "updatesChannelBeta": "测试版（Beta）",
+  "updatesChannelSelfTest": "自测版（开发者自测）",
+  "updatesSelfTestWarningTitle": "切换到自测版？",
+  "updatesSelfTestWarning": "自测版是开发者自测用的版本，每次提交代码都会自动生成，没有经过任何验证，可能无法启动、丢失数据或损坏设置。不得用于实际生产或日常使用！另外，版本只能升不能降：装上自测版后，要等正式版的实质版本号超过它才能回到正式版。",
+  "updatesSelfTestConfirm": "我是开发者，仍然切换",
+  "updatesBuild": "实质版本号 {build}",
+  "@updatesBuild": {
+    "placeholders": {
+      "build": {
+        "type": "int"
+      }
+    }
+  },
   "updatesMode": "更新方式",
   "updatesManual": "手动更新",
   "updatesAutomatic": "自动下载更新",

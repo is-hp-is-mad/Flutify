@@ -5,7 +5,9 @@ class MainFlutterWindow: NSWindow {
   private var cacheDirectories: CacheDirectories?
   private var trafficLightAligner: TrafficLightAligner?
   override func awakeFromNib() {
-    let flutterViewController = FlutterViewController()
+    let project = FlutterDartProject()
+    project.dartEntrypointArguments = Array(CommandLine.arguments.dropFirst())
+    let flutterViewController = FlutterViewController(project: project)
     let windowFrame = self.frame
     self.contentViewController = flutterViewController
     self.setFrame(windowFrame, display: true)

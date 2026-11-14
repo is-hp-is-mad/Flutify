@@ -7,8 +7,10 @@
 import 'dart:convert';
 import 'dart:io';
 
-const _ua = 'Spotify/130100234 Win32_x86_64/0 (PC desktop)';
-const _appVersion = '1.3.1.234.g59d6bf59';
+// 业务请求统一用 Web 播放器身份（见 lib/services/auth/client_profile.dart）
+const _ua =
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36';
+const _appVersion = '1.3.8.509.g26b6eac7300d';
 
 // 探测用样本实体
 const _album = 'spotify:album:4yP0hdKOZPNshxUOjY0cZj'; // After Hours
@@ -137,6 +139,17 @@ final Map<String, _Op> _ops = {
     'b1cb5ba81403b81628bd4b73e4b15cabde1898a2ed63667b30bfd053f82a281f',
     {'uri': _episode},
   ),
+  // 「添加到歌单」可选的歌单（当前账号可编辑的）；哈希取自 open.spotify.com web-player.632a438d.js
+  'editablePlaylists': _Op(
+    'd5c4b8096437dcc2ac9528c91dfcd299e35b747cda2f8f75d28f41f49c5092ba',
+    {
+      'offset': 0,
+      'limit': 50,
+      'textFilter': '',
+      'folderUri': null,
+      'uris': [_track],
+    },
+  ),
   // 播客实体配图与提取色
   'fetchExtractedColorAndImageForPodcastEntity': _Op(
     'b2d6d99fb6237952dfa6638385f9c6085f1b1fb9d0468753ca6ad98ff45adc6f',
@@ -145,13 +158,14 @@ final Map<String, _Op> _ops = {
 };
 
 Future<void> main(List<String> args) async {
+  // 当前版本的设置在 %APPDATA%\Flutify\Flutify；旧版本在 com.flutify.music\flutify_app
+  final appData = Platform.environment['APPDATA'];
+  final prefsFile = [
+    File('$appData\\Flutify\\Flutify\\shared_preferences.json'),
+    File('$appData\\com.flutify.music\\flutify_app\\shared_preferences.json'),
+  ].firstWhere((f) => f.existsSync());
   final prefs =
-      jsonDecode(
-            File(
-              '${Platform.environment['APPDATA']}\\com.flutify.music\\flutify_app\\shared_preferences.json',
-            ).readAsStringSync(),
-          )
-          as Map<String, dynamic>;
+      jsonDecode(prefsFile.readAsStringSync()) as Map<String, dynamic>;
   final token = prefs['flutter.sp_access_token'] as String;
   final clientToken = prefs['flutter.sp_client_token'] as String? ?? '';
   final expiry = prefs['flutter.sp_access_token_expiry'] as int? ?? 0;
@@ -164,8 +178,10 @@ Future<void> main(List<String> args) async {
     'authorization': 'Bearer $token',
     'client-token': clientToken,
     'user-agent': _ua,
-    'app-platform': 'Win32_x86_64',
+    'app-platform': 'WebPlayer',
     'spotify-app-version': _appVersion,
+    'origin': 'https://open.spotify.com',
+    'referer': 'https://open.spotify.com/',
     'accept': 'application/json',
     'accept-language': Platform.environment['PROBE_LANG'] ?? 'zh-CN',
   };

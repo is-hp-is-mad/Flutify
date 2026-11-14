@@ -445,8 +445,11 @@ void TaskbarLyricsWindow::Reflow(bool force) {
   const bool measured = bounds.taskbar == tray_ && bounds.width == tray_width && bounds.height == tray_height;
   const int gap = static_cast<int>(12 * scale_);
 
+  // 经典任务栏（Win10，或 Win11 上被 StartAllBack / ExplorerPatcher 换回的）不认 TaskbarAl：
+  // 注册表里多半还留着 Win11 默认的「居中」，照它摆会把宽度算成 0，歌词永远不显示（issue #57）。
+  const bool xaml = IsXamlTaskbar();
   int x, width;
-  if (IconsCentered()) {
+  if (xaml && IconsCentered()) {
     // Win11 图标居中：摆在左侧 —— 天气小组件右缘起，到居中图标区（ReBarWindow32）左缘止。
     // 右界找不到时取任务栏宽度的 1/3。
     int right = tray_width / 3;
@@ -482,13 +485,20 @@ void TaskbarLyricsWindow::Reflow(bool force) {
           left = (std::max)(left, bounds.widget_right + gap);
         }
       }
-    } else if (IsXamlTaskbar()) {
+    } else if (xaml) {
       // UIA 尚未就绪或 Explorer 正在重启：不能用过小的 ReBar 边界覆盖应用按钮。
       left = right;
     }
-    width = (std::max)(static_cast<int>(200 * scale_), tray_width / 3);
-    width = (std::min)(width, (std::max)(right - left, 0));
-    x = left + (right - left - width) / 2;
+    if (xaml || measured) {
+      width = (std::max)(static_cast<int>(200 * scale_), tray_width / 3);
+      width = (std::min)(width, (std::max)(right - left, 0));
+      x = left + (right - left - width) / 2;
+    } else {
+      // 经典任务栏量不到应用按钮的位置：贴着系统托盘摆，窄一些，尽量不压到按钮。
+      width = (std::max)(static_cast<int>(200 * scale_), tray_width / 4);
+      width = (std::min)(width, (std::max)(right - left, 0));
+      x = right - width;
+    }
   }
   // 空间不足时隐藏，避免文字和悬停控制挤到系统按钮上。
   if (width < static_cast<int>(140 * scale_)) width = 0;
