@@ -15,10 +15,13 @@ import '../../models/playlist.dart';
 import '../../models/track.dart';
 import '../../providers/library_provider.dart';
 import '../../providers/preferences_provider.dart';
+import '../auth/account_profile_service.dart';
 import '../auth/client_profile.dart';
 import '../auth/web_token_service.dart';
 import '../library/collection_codec.dart';
 import '../library/rootlist_parser.dart';
+import '../pathfinder/pathfinder_client.dart';
+import '../pathfinder/pathfinder_operations.dart';
 import '../pathfinder/pathfinder_parsers.dart';
 import '../protocol/access_point.dart';
 import '../spotify_api_service.dart';
@@ -369,7 +372,23 @@ class SpDcBackupFetcher {
 
     var headers = buildHeaders(token);
 
-    // 1. 读取唯一识别符（邮箱 email + 唯一用户名 id）：优先 /v1/me，若被限流则走 APWelcome 取 canonicalUsername
+    // 1. 读取唯一识别符（邮箱 email + 唯一用户名 id）：优先 Pathfinder profileAttributes，其次 /v1/me，最后 APWelcome
+    if (token.isNotEmpty && (id.isEmpty || displayName.isEmpty || avatarUrl.isEmpty)) {
+      final webProfile = await AccountProfileService(_client).fetchProfileAttributes(
+        accessToken: token,
+        clientToken: clientToken,
+      );
+      if (webProfile != null) {
+        if (id.isEmpty && webProfile.id.isNotEmpty) id = webProfile.id;
+        if (displayName.isEmpty && webProfile.displayName.isNotEmpty) {
+          displayName = webProfile.displayName;
+        }
+        if (avatarUrl.isEmpty && webProfile.avatarUrl.isNotEmpty) {
+          avatarUrl = webProfile.avatarUrl;
+        }
+      }
+    }
+
     if (token.isNotEmpty && (id.isEmpty || email.isEmpty)) {
       try {
         final me = await _getJson('$_baseUrl/me', headers);
@@ -434,6 +453,9 @@ class SpDcBackupFetcher {
         } catch (_) {}
       }
       if (likedTracks.isEmpty) {
+        likedTracks = await _fetchPathfinderLikedTracks(headers);
+      }
+      if (likedTracks.isEmpty) {
         likedTracks = await _fetchWebApiLikedTracks(headers);
       }
     }
@@ -478,6 +500,27 @@ class SpDcBackupFetcher {
         ];
       }
     }
+    // 回退 1：用备份账号自身的 Pathfinder decorateContextTracks 补全
+    try {
+      final pathfinder = PathfinderClient(_client, headers: () async => headers);
+      final resolved = <SpotifyTrack>[];
+      for (var i = 0; i < uris.length; i += 50) {
+        final batch = uris.sublist(i, min(i + 50, uris.length));
+        final data = await pathfinder.query(
+          PathfinderOperation.decorateContextTracks,
+          {'uris': batch},
+        );
+        for (final t in PathfinderParsers.decoratedTracks(data)) {
+          resolved.add(
+            t.copyWith(
+              addedAt: addedAtByIdOrUri[t.id] ?? addedAtByIdOrUri[t.uri],
+            ),
+          );
+        }
+      }
+      if (resolved.isNotEmpty) return resolved;
+    } catch (_) {}
+
     final ids = [
       for (final u in uris)
         if (u.startsWith('spotify:track:'))
@@ -626,6 +669,35 @@ class SpDcBackupFetcher {
         result.add(full ?? p);
       }
       return result;
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  Future<List<SpotifyTrack>> _fetchPathfinderLikedTracks(
+    Map<String, String> headers,
+  ) async {
+    try {
+      final pathfinder = PathfinderClient(_client, headers: () async => headers);
+      final all = <SpotifyTrack>[];
+      var offset = 0;
+      const pageSize = 50;
+      for (var page = 0; page < 300; page++) {
+        final data = await pathfinder.query(
+          PathfinderOperation.fetchLibraryTracks,
+          {'offset': offset, 'limit': pageSize},
+        );
+        final parsed = PathfinderParsers.libraryTracksPage(data);
+        if (parsed.items.isEmpty) break;
+        all.addAll(parsed.items);
+        offset += parsed.items.length;
+        if (parsed.totalCount > 0) {
+          if (offset >= parsed.totalCount) break;
+        } else if (parsed.items.length < pageSize) {
+          break;
+        }
+      }
+      return all;
     } catch (_) {
       return const [];
     }

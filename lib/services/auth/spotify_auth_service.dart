@@ -267,10 +267,12 @@ class SpotifyAuthService {
       await _storage.writeSession(epoch, [
         if (webProfile.id.isNotEmpty && _storage.username.isEmpty)
           () => _storage.setUsername(webProfile.id),
-        () => _storage.setDisplayName(webProfile.displayName),
-        () => _storage.setAvatarUrl(webProfile.avatarUrl),
+        if (webProfile.displayName.isNotEmpty)
+          () => _storage.setDisplayName(webProfile.displayName),
+        if (webProfile.avatarUrl.isNotEmpty)
+          () => _storage.setAvatarUrl(webProfile.avatarUrl),
       ]);
-      return;
+      if (_storage.username.isNotEmpty) return;
     }
     if (_storage.username.isEmpty) {
       // 旧版本按 `profile/me` 取到的是另一个账号的资料，先清掉，取不到新资料时宁可显示用户名
