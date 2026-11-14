@@ -842,11 +842,13 @@ def drive_settings_upgrade(
         time.sleep(2)
 
     # Scroll inside Settings until UpdateSection is visible (unless already inside UpdateDialog).
-    for step in range(16):
+    # Note: Do not match LABELS_UPDATE_VIEW here because the 15s startup AppToast also has
+    # a "查看更新" / "View update" button while the screen is still at the top of Settings.
+    for step in range(18):
         nodes = dump_ui_nodes(runner, box_name)
         if (
             find_node_by_labels(nodes, LABELS_DOWNLOAD + LABELS_INSTALL_APK) is not None
-            or find_node_by_labels(nodes, LABELS_UPDATE_CHECK + LABELS_UPDATE_VIEW) is not None
+            or find_node_by_labels(nodes, LABELS_UPDATE_CHECK) is not None
             or find_node_by_labels(nodes, LABELS_UPDATE_CHECKING) is not None
         ):
             break
@@ -882,9 +884,20 @@ def drive_settings_upgrade(
             time.sleep(1.5)
 
         view_or_check = (
-            find_node_by_labels(nodes, LABELS_UPDATE_VIEW)
-            or find_node_by_labels(nodes, LABELS_UPDATE_CHECK)
+            find_node_by_labels(nodes, LABELS_UPDATE_CHECK)
+            or find_node_by_labels(nodes, LABELS_UPDATE_VIEW)
         )
+        if view_or_check is None:
+            for _ in range(6):
+                adb_swipe_down_settings(runner, box_name, width, height)
+                time.sleep(1.0)
+                nodes = dump_ui_nodes(runner, box_name)
+                view_or_check = (
+                    find_node_by_labels(nodes, LABELS_UPDATE_CHECK)
+                    or find_node_by_labels(nodes, LABELS_UPDATE_VIEW)
+                )
+                if view_or_check is not None:
+                    break
         if view_or_check is None:
             raise RuntimeError("Missing Check for updates / View update button in Settings")
         adb_tap(runner, box_name, view_or_check["center"])
@@ -918,7 +931,10 @@ def drive_settings_upgrade(
                     time.sleep(2.0)
                     for _ in range(8):
                         nodes = dump_ui_nodes(runner, box_name)
-                        check_btn = find_node_by_labels(nodes, LABELS_UPDATE_CHECK + LABELS_UPDATE_VIEW)
+                        check_btn = (
+                            find_node_by_labels(nodes, LABELS_UPDATE_CHECK)
+                            or find_node_by_labels(nodes, LABELS_UPDATE_VIEW)
+                        )
                         if check_btn is not None:
                             print(f"[upgrade] Triggering Check for updates for {target_tag}...")
                             adb_tap(runner, box_name, check_btn["center"])
