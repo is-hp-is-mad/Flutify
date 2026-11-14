@@ -171,4 +171,91 @@ void main() {
       expect(source.maxPages, greaterThanOrEqualTo(300));
     });
   });
+
+  group('无 username 或 collection/v2 为空时回退 fetchLibraryTracks（issue #58）', () {
+    Map<String, Object?> libraryPageResponse(int offset, int total) {
+      final count = (total - offset).clamp(0, 2);
+      return {
+        'data': {
+          'me': {
+            'library': {
+              'tracks': {
+                'totalCount': total,
+                'pagingInfo': {'offset': offset, 'limit': 50},
+                'items': [
+                  for (var i = 0; i < count; i++)
+                    {
+                      'addedAt': {'isoString': '2026-11-01T00:00:00Z'},
+                      'track': {
+                        '_uri': 'spotify:track:lib${offset + i}',
+                        '__typename': 'TrackResponseWrapper',
+                        'data': {
+                          '__typename': 'Track',
+                          'name': 'Liked ${offset + i}',
+                          'duration': {'totalMilliseconds': 200000},
+                          'artists': {
+                            'items': [
+                              {
+                                'uri': 'spotify:artist:a1',
+                                'profile': {'name': 'Artist'},
+                              },
+                            ],
+                          },
+                          'albumOfTrack': {'uri': 'spotify:album:al1', 'name': 'Album'},
+                        },
+                      },
+                    },
+                ],
+              },
+            },
+          },
+        },
+      };
+    }
+
+    test('username 为空时仍能通过 fetchLibraryTracks 读到全部已点赞歌曲', () async {
+      final client = MockClient((request) async {
+        expect(request.url.path, isNot('/collection/v2/paging'));
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        expect(body['operationName'], 'fetchLibraryTracks');
+        final offset = (body['variables'] as Map)['offset'] as int;
+        return http.Response(jsonEncode(libraryPageResponse(offset, 3)), 200);
+      });
+
+      final source = DesktopLibrarySource(
+        client: client,
+        headers: () async => const {},
+        data: DesktopDataSource(client, headers: () async => const {}),
+        username: () => '',
+        signedIn: () => true,
+      );
+
+      expect(source.isSignedIn, isTrue);
+      final tracks = await source.fetchLikedTracks();
+      expect(tracks.map((t) => t.id), ['lib0', 'lib1', 'lib2']);
+      expect(tracks.first.addedAt, DateTime.utc(2026, 11, 1));
+    });
+
+    test('collection/v2/paging 返回 500 报错时自动回退到 fetchLibraryTracks', () async {
+      final client = MockClient((request) async {
+        if (request.url.path == '/collection/v2/paging') {
+          return http.Response('error', 500);
+        }
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        final offset = (body['variables'] as Map)['offset'] as int;
+        return http.Response(jsonEncode(libraryPageResponse(offset, 2)), 200);
+      });
+
+      final source = DesktopLibrarySource(
+        client: client,
+        headers: () async => const {},
+        data: DesktopDataSource(client, headers: () async => const {}),
+        username: () => 'user1',
+        signedIn: () => true,
+      );
+
+      final tracks = await source.fetchLikedTracks();
+      expect(tracks.map((t) => t.id), ['lib0', 'lib1']);
+    });
+  });
 }

@@ -65,6 +65,12 @@ class PathfinderOperation {
     'queryTrackCreditsGroupedModal',
     'f135fb9be58a72d041ab5d214d817021a272405d883860468e2627afb01a3ca9',
   );
+
+  /// 「已点赞的歌曲」分页（与 open.spotify.com 同一查询，不依赖 username）。
+  static const fetchLibraryTracks = PathfinderOperation(
+    'fetchLibraryTracks',
+    '087278b20b743578a6262c2b0b4bcd20d879c503cc359a2285baf083ef944240',
+  );
 }
 
 /// 桌面版在 home / browse 类查询中声明的终端类型（xpui 中 IntegrationDesktop）。

@@ -358,6 +358,32 @@ class PathfinderParsers {
   static List<SpotifyTrack> decoratedTracks(Map<String, dynamic> data) =>
       _list(data['tracks']).map((t) => track(t)).whereType<SpotifyTrack>().toList();
 
+  /// fetchLibraryTracks：open.spotify.com「已点赞的歌曲」单页。
+  static ({List<SpotifyTrack> items, int totalCount}) libraryTracksPage(
+    Map<String, dynamic> data,
+  ) {
+    final page = _map(_map(_map(data['me'])?['library'])?['tracks']);
+    if (page == null) return (items: const <SpotifyTrack>[], totalCount: 0);
+    final total = _int(page['totalCount']) ?? 0;
+    final items = <SpotifyTrack>[];
+    for (final raw in _list(page['items'])) {
+      final item = _map(raw);
+      if (item == null) continue;
+      final trackWrapper = _map(item['track']);
+      if (trackWrapper == null) continue;
+      final inner = _map(trackWrapper['data']) ?? trackWrapper;
+      final uri = inner['uri'] as String? ?? trackWrapper['_uri'] as String?;
+      final normalized = uri != null && inner['uri'] == null
+          ? {...inner, 'uri': uri}
+          : inner;
+      final parsed = track(normalized);
+      if (parsed == null) continue;
+      final addedRaw = _map(item['addedAt'])?['isoString'] ?? item['addedAt'];
+      items.add(parsed.copyWith(addedAt: SpotifyTrack.parseAddedAt(addedRaw)));
+    }
+    return (items: items, totalCount: total);
+  }
+
   // ---------------------------------------------------------------------------
   // 工具
   // ---------------------------------------------------------------------------

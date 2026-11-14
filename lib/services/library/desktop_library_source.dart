@@ -53,7 +53,9 @@ class DesktopLibrarySource implements LibrarySource {
   });
 
   @override
-  bool get isSignedIn => _signedIn() && _username().isNotEmpty;
+  bool get isSignedIn => _signedIn();
+
+  bool get _hasUsername => _signedIn() && _username().isNotEmpty;
 
   @override
   String get accountId => _username();
@@ -65,23 +67,37 @@ class DesktopLibrarySource implements LibrarySource {
   @override
   Future<List<SpotifyTrack>> fetchLikedTracks() async {
     if (!isSignedIn) return const [];
-    final entries = await _collection(CollectionCodec.setCollection, 'track');
     final limit = trackLimit;
-    final kept = limit == null ? entries : entries.take(limit).toList();
-    // 必须完整：缺批次的列表会覆盖缓存，播放时到这一截末尾就回绕到歌单开头。
-    // 失败时抛出，媒体库保留上次的缓存并记下错误。
-    final tracks = await _data.tracksByUris([for (final e in kept) e.uri], complete: true);
-    // 收藏条目的 added_at 是秒；补全后的曲目按 id 对回去
-    final addedAt = {
-      for (final e in kept)
-        if (e.addedAt > 0) e.id: DateTime.fromMillisecondsSinceEpoch(e.addedAt * 1000),
-    };
-    return [for (final t in tracks) t.copyWith(addedAt: addedAt[t.id])];
+    if (_hasUsername) {
+      try {
+        final entries = await _collection(CollectionCodec.setCollection, 'track');
+        if (entries.isNotEmpty) {
+          final kept = limit == null ? entries : entries.take(limit).toList();
+          // 必须完整：缺批次的列表会覆盖缓存，播放时到这一截末尾就回绕到歌单开头。
+          // 失败时抛出，媒体库保留上次的缓存并记下错误。
+          final tracks = await _data.tracksByUris([for (final e in kept) e.uri], complete: true);
+          // 收藏条目的 added_at 是秒；补全后的曲目按 id 对回去
+          final addedAt = {
+            for (final e in kept)
+              if (e.addedAt > 0) e.id: DateTime.fromMillisecondsSinceEpoch(e.addedAt * 1000),
+          };
+          return [for (final t in tracks) t.copyWith(addedAt: addedAt[t.id])];
+        }
+      } catch (e) {
+        // collection/v2 不可用或返回空时回退到 Pathfinder fetchLibraryTracks（与 open.spotify.com 一致）
+        try {
+          return await _data.likedTracks(limit: limit);
+        } catch (_) {
+          rethrow;
+        }
+      }
+    }
+    return _data.likedTracks(limit: limit);
   }
 
   @override
   Future<List<SpotifyAlbum>> fetchAlbums() async {
-    if (!isSignedIn) return const [];
+    if (!_hasUsername) return const [];
     final entries = (await _collection(CollectionCodec.setCollection, 'album')).take(albumLimit).toList();
     final albums = await _pooled(entries, 4, (e) async => (await _data.albumPage(e.id))?.album);
     return albums.whereType<SpotifyAlbum>().toList();
@@ -89,7 +105,7 @@ class DesktopLibrarySource implements LibrarySource {
 
   @override
   Future<List<SpotifyArtist>> fetchArtists() async {
-    if (!isSignedIn) return const [];
+    if (!_hasUsername) return const [];
     final entries = (await _collection(CollectionCodec.setArtist, 'artist')).take(artistLimit).toList();
     final artists = await _pooled(entries, 3, (e) async => (await _data.artistPage(e.id))?.artist);
     return artists.whereType<SpotifyArtist>().toList();
@@ -97,7 +113,7 @@ class DesktopLibrarySource implements LibrarySource {
 
   @override
   Future<List<SpotifyPlaylist>> fetchPlaylists() async {
-    if (!isSignedIn) return const [];
+    if (!_hasUsername) return const [];
     final user = _username();
     final res = await _client.get(
       Uri.parse('$_spclient/playlist/v2/user/${Uri.encodeComponent(user)}/rootlist'
@@ -204,7 +220,7 @@ class DesktopLibrarySource implements LibrarySource {
   }
 
   Future<void> _write(String set, String uri, bool added) async {
-    if (!isSignedIn) throw const LibrarySourceException('未登录，无法同步到 Spotify 账号');
+    if (!_hasUsername) throw const LibrarySourceException('未登录或尚未获取到用户名，无法同步到 Spotify 账号');
     final res = await _client.post(
       Uri.parse('$_spclient/collection/v2/write'),
       headers: {

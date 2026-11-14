@@ -548,6 +548,35 @@ class DesktopDataSource {
     );
   }
 
+  /// 分页读取「已点赞的歌曲」（与 open.spotify.com 同一 GraphQL 查询，不依赖 username）。
+  Future<List<SpotifyTrack>> likedTracks({
+    int pageSize = 50,
+    int? limit,
+    int maxPages = 300,
+  }) async {
+    final all = <SpotifyTrack>[];
+    var offset = 0;
+    for (var page = 0; page < maxPages; page++) {
+      final remaining = limit == null ? pageSize : limit - all.length;
+      if (remaining <= 0) break;
+      final batchLimit = remaining < pageSize ? remaining : pageSize;
+      final data = await _pathfinder.query(
+        PathfinderOperation.fetchLibraryTracks,
+        {'offset': offset, 'limit': batchLimit},
+      );
+      final parsed = PathfinderParsers.libraryTracksPage(data);
+      if (parsed.items.isEmpty) break;
+      all.addAll(parsed.items);
+      offset += parsed.items.length;
+      if (parsed.totalCount > 0) {
+        if (offset >= parsed.totalCount) break;
+      } else if (parsed.items.length < batchLimit) {
+        break;
+      }
+    }
+    return all;
+  }
+
   // ---------------------------------------------------------------------------
   // 曲目：制作人员 / 歌曲电台
   // ---------------------------------------------------------------------------
