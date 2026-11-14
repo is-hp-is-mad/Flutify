@@ -29,7 +29,7 @@ class WebApiLibrarySource implements LibrarySource {
     required this._baseUrl,
     required this._username,
     required this._signedIn,
-    this.maxPages = 10,
+    this.maxPages = 300,
   });
 
   @override

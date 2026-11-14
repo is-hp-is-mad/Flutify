@@ -24,9 +24,9 @@ import 'rootlist_parser.dart';
 class DesktopLibrarySource implements LibrarySource {
   static const String _spclient = SpotifyEndpoints.defaultSpClientBase;
 
-  /// 分页单页条数与最大页数（300 × 10 = 3000 条封顶）。
+  /// 分页单页条数与最大页数（300 × 50 = 15000 条封顶）。
   static const int _pageSize = 300;
-  static const int _maxPages = 10;
+  static const int _maxPages = 50;
 
   final http.Client _client;
   final Future<Map<String, String>> Function() _headers;
@@ -34,8 +34,8 @@ class DesktopLibrarySource implements LibrarySource {
   final String Function() _username;
   final bool Function() _signedIn;
 
-  /// 补全详情的条数上限（取最新的 N 条）。
-  final int trackLimit;
+  /// 补全详情的条数上限（取最新的 N 条；为 null 时读取全部已分页条目）。
+  final int? trackLimit;
   final int albumLimit;
   final int artistLimit;
   final int playlistLimit;
@@ -46,7 +46,7 @@ class DesktopLibrarySource implements LibrarySource {
     required this._data,
     required this._username,
     required this._signedIn,
-    this.trackLimit = 500,
+    this.trackLimit,
     this.albumLimit = 100,
     this.artistLimit = 60,
     this.playlistLimit = 300,
@@ -66,7 +66,8 @@ class DesktopLibrarySource implements LibrarySource {
   Future<List<SpotifyTrack>> fetchLikedTracks() async {
     if (!isSignedIn) return const [];
     final entries = await _collection(CollectionCodec.setCollection, 'track');
-    final kept = entries.take(trackLimit).toList();
+    final limit = trackLimit;
+    final kept = limit == null ? entries : entries.take(limit).toList();
     // 必须完整：缺批次的列表会覆盖缓存，播放时到这一截末尾就回绕到歌单开头。
     // 失败时抛出，媒体库保留上次的缓存并记下错误。
     final tracks = await _data.tracksByUris([for (final e in kept) e.uri], complete: true);

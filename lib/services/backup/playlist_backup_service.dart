@@ -321,8 +321,7 @@ class BackupSyncResult {
 class SpDcBackupFetcher {
   static const String _spclient = SpotifyEndpoints.defaultSpClientBase;
   static const int _pageSize = 300;
-  static const int _maxPages = 10;
-  static const int _trackLimit = 500;
+  static const int _maxPages = 50;
   static const int _playlistLimit = 300;
   static const int _maxPlaylistsWithTracks = 30;
 
@@ -535,7 +534,7 @@ class SpDcBackupFetcher {
         pageToken = parsed.nextToken;
       }
       if (all.isEmpty) return const [];
-      final kept = all.take(_trackLimit).toList();
+      final kept = all;
       final uris = [for (final e in kept) e.uri];
       final addedAt = <String, DateTime?>{
         for (final e in kept)
