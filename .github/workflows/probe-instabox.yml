@@ -1,0 +1,37 @@
+name: Probe InstaBox Runner
+
+on:
+  push:
+    branches: [feat/self-test-e2e]
+    paths: [.github/workflows/probe-instabox.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: Probe instabox-medium environment
+    runs-on: instabox-medium
+    timeout-minutes: 5
+    steps:
+      - name: Check runner identity, env var names, and InstaBox CLI auth (no secret values printed)
+        run: |
+          echo "Host: $(hostname) | User: $(whoami)"
+          uname -a
+          python3 -c "import os; print('Matching env keys:', [k for k in sorted(os.environ) if any(w in k.upper() for w in ('INSTABOX', 'ANDROID', 'BOX'))])"
+          ls -ld ~/.instabox ~/.config ~/.config/instabox /usr/local/lib/instabox 2>/dev/null || true
+          echo "which instabox: $(command -v instabox || echo missing)"
+          if ! command -v instabox >/dev/null 2>&1; then
+            npm install -g instabox
+          fi
+          instabox --version || true
+          echo "--- instabox whoami ---"
+          instabox whoami || true
+          echo "--- instabox ls ---"
+          instabox ls --json || instabox ls || true
+          echo "--- docker / kvm / adb ---"
+          command -v docker adb || true
+          docker ps -a 2>/dev/null || true
+          ls -la /dev/kvm 2>/dev/null || true
+          echo "--- software list snippet ---"
+          /usr/local/lib/instabox/ci/software-list 2>/dev/null | head -n 40 || true
