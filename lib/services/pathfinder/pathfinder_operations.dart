@@ -71,6 +71,24 @@ class PathfinderOperation {
     'fetchLibraryTracks',
     '087278b20b743578a6262c2b0b4bcd20d879c503cc359a2285baf083ef944240',
   );
+
+  /// 当前账号资料与 username（与 open.spotify.com 同一查询，不依赖 AP 或 /v1/me）。
+  static const profileAttributes = PathfinderOperation(
+    'profileAttributes',
+    '08ffb4730af3746e04a8301396f20875dbbce10c75243803091a9274eacc8ac0',
+  );
+
+  /// 加入媒体库（点赞曲目 / 收藏专辑 / 关注艺人，与 open.spotify.com 同一 mutation）。
+  static const addToLibrary = PathfinderOperation(
+    'addToLibrary',
+    '896ebcb47815681340860d121cb5d494e157e2a78d3950385cd54e0393c67148',
+  );
+
+  /// 移出媒体库（取消点赞 / 取消收藏 / 取消关注，与 open.spotify.com 同一 mutation）。
+  static const removeFromLibrary = PathfinderOperation(
+    'removeFromLibrary',
+    '896ebcb47815681340860d121cb5d494e157e2a78d3950385cd54e0393c67148',
+  );
 }
 
 /// 桌面版在 home / browse 类查询中声明的终端类型（xpui 中 IntegrationDesktop）。

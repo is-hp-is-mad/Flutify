@@ -253,10 +253,25 @@ class SpotifyAuthService {
   // 账号资料
   // ---------------------------------------------------------------------------
 
-  /// 先确定用户名，再走内部资料接口，失败回退公开 /v1/me（后者常被限流）。
+  /// 先走 Web 播放器 Pathfinder `profileAttributes`（一次取回用户名、昵称与头像），
+  /// 失败再回退 AP + 内部资料接口 / 公开 `/v1/me`。
   Future<void> _loadProfile() async {
     final epoch = _storage.sessionEpoch;
     _storage.checkSession(epoch);
+    final webProfile = await _profiles.fetchProfileAttributes(
+      accessToken: _storage.accessToken,
+      clientToken: _storage.clientToken,
+    );
+    _storage.checkSession(epoch);
+    if (webProfile != null) {
+      await _storage.writeSession(epoch, [
+        if (webProfile.id.isNotEmpty && _storage.username.isEmpty)
+          () => _storage.setUsername(webProfile.id),
+        () => _storage.setDisplayName(webProfile.displayName),
+        () => _storage.setAvatarUrl(webProfile.avatarUrl),
+      ]);
+      return;
+    }
     if (_storage.username.isEmpty) {
       // 旧版本按 `profile/me` 取到的是另一个账号的资料，先清掉，取不到新资料时宁可显示用户名
       await _storage.writeSession(epoch, [

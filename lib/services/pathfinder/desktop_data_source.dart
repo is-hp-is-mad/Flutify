@@ -577,6 +577,24 @@ class DesktopDataSource {
     return all;
   }
 
+  /// 加入媒体库（点赞 / 收藏专辑 / 关注艺人，与 open.spotify.com 同一 mutation）。
+  Future<void> addToLibrary(List<String> uris) async {
+    await _pathfinder.query(
+      PathfinderOperation.addToLibrary,
+      {'libraryItemUris': uris, 'interactionId': null},
+      failOnErrors: true,
+    );
+  }
+
+  /// 移出媒体库（取消点赞 / 取消收藏 / 取消关注，与 open.spotify.com 同一 mutation）。
+  Future<void> removeFromLibrary(List<String> uris) async {
+    await _pathfinder.query(
+      PathfinderOperation.removeFromLibrary,
+      {'libraryItemUris': uris},
+      failOnErrors: true,
+    );
+  }
+
   // ---------------------------------------------------------------------------
   // 曲目：制作人员 / 歌曲电台
   // ---------------------------------------------------------------------------

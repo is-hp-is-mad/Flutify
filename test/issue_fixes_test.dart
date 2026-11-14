@@ -2,7 +2,10 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutify_app/core/utils/pinyin_sort.dart';
+import 'package:flutify_app/models/artist.dart';
 import 'package:flutify_app/models/shortcut_settings.dart';
+import 'package:flutify_app/models/track.dart';
+import 'package:flutify_app/services/auth/account_profile_service.dart';
 import 'package:flutify_app/services/auth/proto_codec.dart';
 import 'package:flutify_app/services/library/desktop_library_source.dart';
 import 'package:flutify_app/services/library/web_api_library_source.dart';
@@ -256,6 +259,73 @@ void main() {
 
       final tracks = await source.fetchLikedTracks();
       expect(tracks.map((t) => t.id), ['lib0', 'lib1']);
+    });
+  });
+
+  group('Web JS API 对齐（profileAttributes / addToLibrary / removeFromLibrary）', () {
+    test('AccountProfileService.fetchProfileAttributes 一次取回 username、昵称与头像', () async {
+      final client = MockClient((request) async {
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        expect(body['operationName'], 'profileAttributes');
+        return http.Response(
+          jsonEncode({
+            'data': {
+              'me': {
+                'profile': {
+                  'username': 'web_user_123',
+                  'name': 'Web Display',
+                  'avatar': {
+                    'sources': [
+                      {'url': 'https://img/small.jpg', 'width': 64},
+                      {'url': 'https://img/large.jpg', 'width': 300},
+                    ],
+                  },
+                },
+              },
+            },
+          }),
+          200,
+        );
+      });
+
+      final profiles = AccountProfileService(client);
+      final profile = await profiles.fetchProfileAttributes(
+        accessToken: 'tok',
+        clientToken: 'ct',
+      );
+      expect(profile, isNotNull);
+      expect(profile!.id, 'web_user_123');
+      expect(profile.displayName, 'Web Display');
+      expect(profile.avatarUrl, 'https://img/large.jpg');
+    });
+
+    test('setTrackLiked 无 username 时通过 addToLibrary / removeFromLibrary 写入', () async {
+      final ops = <String>[];
+      final client = MockClient((request) async {
+        expect(request.url.path, isNot('/collection/v2/write'));
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        ops.add(body['operationName'] as String);
+        expect((body['variables'] as Map)['libraryItemUris'], ['spotify:track:t1']);
+        return http.Response(jsonEncode({'data': {}}), 200);
+      });
+
+      final source = DesktopLibrarySource(
+        client: client,
+        headers: () async => const {},
+        data: DesktopDataSource(client, headers: () async => const {}),
+        username: () => '',
+        signedIn: () => true,
+      );
+
+      const track = SpotifyTrack(
+        id: 't1',
+        name: 'Track 1',
+        uri: 'spotify:track:t1',
+        artists: [SpotifyArtist(id: 'a1', name: 'Artist')],
+      );
+      await source.setTrackLiked(track, true);
+      await source.setTrackLiked(track, false);
+      expect(ops, ['addToLibrary', 'removeFromLibrary']);
     });
   });
 }

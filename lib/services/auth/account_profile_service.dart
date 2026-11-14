@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../../core/constants/spotify_endpoints.dart';
+import '../pathfinder/pathfinder_client.dart';
+import '../pathfinder/pathfinder_operations.dart';
 import 'client_profile.dart';
 
 /// 登录后拉取账号展示信息（昵称 + 头像）。
@@ -13,6 +15,70 @@ class AccountProfileService {
   final http.Client _client;
 
   AccountProfileService(this._client);
+
+  /// Web 播放器 Pathfinder `profileAttributes`：一次请求取回 username、昵称与头像。
+  /// 不依赖 TCP AP，也不受公开 `/v1/me` 429 限流影响。失败返回 null。
+  Future<AccountProfile?> fetchProfileAttributes({
+    required String accessToken,
+    required String clientToken,
+    SpotifyClientProfile profile = SpotifyClientProfile.web,
+  }) async {
+    try {
+      final res = await _client.post(
+        Uri.parse(PathfinderClient.endpoint),
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          if (clientToken.isNotEmpty) 'client-token': clientToken,
+          'Content-Type': 'application/json;charset=UTF-8',
+          'Accept': 'application/json',
+          'User-Agent': profile.userAgent,
+          ...profile.headers,
+        },
+        body: jsonEncode({
+          'variables': const <String, Object?>{},
+          'operationName': PathfinderOperation.profileAttributes.name,
+          'extensions': {
+            'persistedQuery': {
+              'version': 1,
+              'sha256Hash': PathfinderOperation.profileAttributes.sha256Hash,
+            },
+          },
+        }),
+      );
+      if (res.statusCode != 200) return null;
+      final json =
+          jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+      final data = json['data'];
+      final me = data is Map<String, dynamic> ? data['me'] : null;
+      final p = me is Map<String, dynamic> ? me['profile'] : null;
+      if (p is! Map<String, dynamic>) return null;
+      final username = (p['username'] as String? ?? '').trim();
+      final name = (p['name'] as String? ?? '').trim();
+      final avatar = p['avatar'];
+      final sources = avatar is Map<String, dynamic>
+          ? (avatar['sources'] as List?)
+                ?.whereType<Map<String, dynamic>>()
+                .toList()
+          : null;
+      if (sources != null && sources.length > 1) {
+        sources.sort(
+          (a, b) =>
+              ((b['width'] as num?) ?? 0).compareTo((a['width'] as num?) ?? 0),
+        );
+      }
+      final avatarUrl = sources == null || sources.isEmpty
+          ? ''
+          : sources.first['url'] as String? ?? '';
+      if (username.isEmpty && name.isEmpty) return null;
+      return AccountProfile(
+        id: username,
+        displayName: name.isNotEmpty ? name : username,
+        avatarUrl: avatarUrl,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
 
   /// 内部资料接口（桌面版会话使用）。
   ///

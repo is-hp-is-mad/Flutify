@@ -220,7 +220,17 @@ class DesktopLibrarySource implements LibrarySource {
   }
 
   Future<void> _write(String set, String uri, bool added) async {
-    if (!_hasUsername) throw const LibrarySourceException('未登录或尚未获取到用户名，无法同步到 Spotify 账号');
+    if (!isSignedIn) throw const LibrarySourceException('未登录，无法同步到 Spotify 账号');
+    try {
+      if (added) {
+        await _data.addToLibrary([uri]);
+      } else {
+        await _data.removeFromLibrary([uri]);
+      }
+      return;
+    } catch (_) {
+      if (!_hasUsername) rethrow;
+    }
     final res = await _client.post(
       Uri.parse('$_spclient/collection/v2/write'),
       headers: {
