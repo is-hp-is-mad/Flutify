@@ -165,6 +165,52 @@ class InstaBoxAndroidE2ETest(unittest.TestCase):
         self.assertEqual(vn, "0.0.22")
         self.assertEqual(ib.parse_dumpsys_package("Unable to find package: com.foo"), (None, None))
 
+    def test_redact_sensitive_masks_emails_keys_and_tokens(self) -> None:
+        raw = (
+            '{"org": "alice.example@gmail.com", "key": "ibk_secret12345", '
+            '"auth": "Bearer tok_abc_123", "gh": "ghp_secretToken999"}'
+        )
+        redacted = ib.redact_sensitive(raw)
+        self.assertNotIn("alice.example@gmail.com", redacted)
+        self.assertNotIn("ibk_secret12345", redacted)
+        self.assertNotIn("tok_abc_123", redacted)
+        self.assertNotIn("ghp_secretToken999", redacted)
+        self.assertIn("[REDACTED_EMAIL]", redacted)
+        self.assertIn("ibk_[REDACTED]", redacted)
+        self.assertIn("Bearer [REDACTED]", redacted)
+        self.assertIn("[REDACTED_TOKEN]", redacted)
+
+    def test_runner_run_redacts_failure_output(self) -> None:
+        runner = ib.Runner()
+        with self.assertRaises(RuntimeError) as ctx:
+            runner.run(
+                [
+                    sys.executable,
+                    "-c",
+                    "import sys; sys.stderr.write('owner=user@example.com ibk_livekey99\\n'); sys.exit(2)",
+                ]
+            )
+        msg = str(ctx.exception)
+        self.assertNotIn("user@example.com", msg)
+        self.assertNotIn("ibk_livekey99", msg)
+        self.assertIn("[REDACTED_EMAIL]", msg)
+        self.assertIn("ibk_[REDACTED]", msg)
+
+    def test_ensure_box_ready_boot_script_avoids_duplicate_adb_connection(self) -> None:
+        def handle(cmd):
+            if cmd[:2] == ["instabox", "ls"]:
+                return subprocess.CompletedProcess(cmd, 0, '[{"name": "my-android"}]', "")
+            return subprocess.CompletedProcess(cmd, 0, "", "")
+
+        runner = FakeRunner(handle)
+        ib.ensure_box_ready(runner, "my-android")
+        exec_calls = [c for c in runner.calls if c[:2] == ["instabox", "exec"]]
+        self.assertGreaterEqual(len(exec_calls), 1)
+        boot_cmd = exec_calls[-1][-1]
+        self.assertIn("adb disconnect 127.0.0.1:5555", boot_cmd)
+        self.assertIn("[[:space:]]device$", boot_cmd)
+        self.assertNotIn("\\tdevice$", boot_cmd)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -58,15 +58,20 @@ class _AutomaticGatewayBindingState extends State<AutomaticGatewayBinding>
       }
     });
 
-    _network = Connectivity().onConnectivityChanged.listen((_) {
-      _debounce?.cancel();
-      _debounce = Timer(const Duration(seconds: 1), () {
-        unawaited(_proxy?.refreshGatewayCountry(networkChanged: true));
-        // 换了网络出口就该重新看一次地区：下一次起播时再检测（这里不主动发起，
-        // 免得用户在设置里关掉检测之后还被无头 WebView 打扰）。
-        widget.regionGate?.markNetworkChanged();
-      });
-    }, onError: (Object _) {});
+    // connectivity_plus_linux starts its D-Bus connection in an unawaited async
+    // onListen handler; on systems without NetworkManager (e.g. headless CI) it
+    // rethrows outside the stream's onError callback into PlatformDispatcher.
+    runZonedGuarded(() {
+      _network = Connectivity().onConnectivityChanged.listen((_) {
+        _debounce?.cancel();
+        _debounce = Timer(const Duration(seconds: 1), () {
+          unawaited(_proxy?.refreshGatewayCountry(networkChanged: true));
+          // 换了网络出口就该重新看一次地区：下一次起播时再检测（这里不主动发起，
+          // 免得用户在设置里关掉检测之后还被无头 WebView 打扰）。
+          widget.regionGate?.markNetworkChanged();
+        });
+      }, onError: (Object _) {});
+    }, (Object _, StackTrace _) {});
   }
 
   void _refresh() => unawaited(_proxy?.refreshGatewayCountry());

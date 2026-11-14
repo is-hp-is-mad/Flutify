@@ -76,6 +76,27 @@ LABELS_ANDROID_INSTALL_CONFIRM = ("更新", "Update", "安装", "Install", "UPDA
 LABELS_ANDROID_DONE = ("完成", "Done", "DONE")
 
 
+_EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+_IBK_RE = re.compile(r"\bibk_[A-Za-z0-9_-]+")
+_GH_TOKEN_RE = re.compile(r"\b(?:gh[pousr]_[A-Za-z0-9_]+|github_pat_[A-Za-z0-9_]+)")
+_BEARER_RE = re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._-]+")
+
+
+def redact_sensitive(text: str) -> str:
+    """Mask emails, API keys, and tokens before logging or raising."""
+    if not text:
+        return text
+    out = _EMAIL_RE.sub("[REDACTED_EMAIL]", text)
+    out = _IBK_RE.sub("ibk_[REDACTED]", out)
+    out = _GH_TOKEN_RE.sub("[REDACTED_TOKEN]", out)
+    out = _BEARER_RE.sub("Bearer [REDACTED]", out)
+    for var in ("INSTABOX_API_KEY", "GH_TOKEN", "GITHUB_TOKEN"):
+        secret = os.environ.get(var, "").strip()
+        if secret:
+            out = out.replace(secret, f"[REDACTED_{var}]")
+    return out
+
+
 class Runner:
     """Thin command execution abstraction to enable deterministic unit tests."""
 
@@ -99,8 +120,10 @@ class Runner:
         )
         if check and proc.returncode != 0:
             raise RuntimeError(
-                f"Command failed ({proc.returncode}): {' '.join(cmd)}\n"
-                f"stdout: {proc.stdout}\nstderr: {proc.stderr}"
+                redact_sensitive(
+                    f"Command failed ({proc.returncode}): {' '.join(cmd)}\n"
+                    f"stdout: {proc.stdout}\nstderr: {proc.stderr}"
+                )
             )
         return proc
 
@@ -210,7 +233,9 @@ for i in $(seq 1 90); do
   sleep 2
 done
 [ "$(docker exec instabox-android getprop sys.boot_completed 2>/dev/null || true)" = "1" ]
-if ! adb devices | grep -qE '\\tdevice$'; then
+if adb devices | grep -qE '^emulator-[0-9]+[[:space:]]+device$'; then
+  adb disconnect 127.0.0.1:5555 >/dev/null 2>&1 || true
+elif ! adb devices | grep -qE '[[:space:]]device$'; then
   adb connect 127.0.0.1:5555 || true
   adb wait-for-device
 fi
@@ -1151,4 +1176,8 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except Exception as exc:
+        print(f"ERROR: {redact_sensitive(str(exc))}", file=sys.stderr)
+        sys.exit(1)

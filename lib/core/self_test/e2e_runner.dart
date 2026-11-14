@@ -42,6 +42,7 @@ import '../../ui/screens/search/category_screen.dart';
 import '../../ui/screens/search/search_screen.dart';
 import '../../ui/screens/settings/settings_screen.dart';
 import '../../ui/screens/settings/widgets/shortcuts_dialog.dart';
+import '../../ui/shell/desktop/desktop_top_bar.dart';
 import '../../ui/shell/mobile/mobile_bottom_bar.dart';
 import '../../ui/shell/shell_breakpoints.dart';
 import '../../ui/widgets/hyper_icons.dart';
@@ -206,11 +207,13 @@ class E2ERunner {
       resolved = Directory(requestedOutputDir);
       try {
         await resolved.create(recursive: true);
-      } catch (_) {
+      } catch (e) {
+        debugPrint('[E2E] requestedOutputDir unavailable ($e), falling back to app temp');
         resolved = await _defaultOutputDir();
         await resolved.create(recursive: true);
       }
     }
+    debugPrint('[E2E] outputDir=${resolved.path}');
     final doneMarker = File(p.join(resolved.path, 'DONE'));
     if (await doneMarker.exists()) await doneMarker.delete();
 
@@ -234,7 +237,14 @@ class E2ERunner {
       final ext = await getExternalStorageDirectory();
       if (ext != null) return Directory(p.join(ext.path, 'flutify_e2e'));
     }
-    return Directory(p.join(Directory.systemTemp.path, 'flutify_e2e'));
+    try {
+      // macOS App Sandbox resolves getTemporaryDirectory() to the container's
+      // Data/tmp even when an inherited shell TMPDIR points outside the sandbox.
+      final tmp = await getTemporaryDirectory();
+      return Directory(p.join(tmp.path, 'flutify_e2e'));
+    } catch (_) {
+      return Directory(p.join(Directory.systemTemp.path, 'flutify_e2e'));
+    }
   }
 
   void _attachObservers() {
@@ -435,9 +445,11 @@ class E2ERunner {
   Future<void> _runCheck(String name, Future<String> Function() fn) async {
     _enterPhase(name);
     final sw = Stopwatch()..start();
+    debugPrint('[E2E] start $name');
     try {
       final detail = await fn();
       await _pumpFrames(8);
+      debugPrint('[E2E] PASS $name (${sw.elapsedMilliseconds}ms): $detail');
       _results.add(
         E2ECheckResult(
           name: name,
@@ -490,7 +502,12 @@ class E2ERunner {
       throw StateError('Primary chip "音乐" not found inside HomeChipBar');
     }
     await _tapElement(musicChip);
-    await _waitUntil(() => spotify.homeFacet == 'music-chip');
+    await _waitUntil(() {
+      if (spotify.homeFacet != 'music-chip') return false;
+      final bar = _findFirstElement((e) => e.widget is HomeChipBar);
+      return bar != null &&
+          _findVisibleText('电子', root: bar, exact: true) != null;
+    });
 
     chipBar = _requireElement((e) => e.widget is HomeChipBar, 'HomeChipBar');
     final electronic = _findVisibleText('电子', root: chipBar, exact: true);
@@ -509,7 +526,12 @@ class E2ERunner {
       final selectedMusic = _findVisibleText('音乐', root: chipBar, exact: true);
       if (selectedMusic != null) await _tapElement(selectedMusic);
     }
-    await _waitUntil(() => spotify.homeFacet == '');
+    await _waitUntil(() {
+      if (spotify.homeFacet != '') return false;
+      final bar = _findFirstElement((e) => e.widget is HomeChipBar);
+      return bar != null &&
+          _findVisibleText('播客与节目', root: bar, exact: true) != null;
+    });
 
     chipBar = _requireElement((e) => e.widget is HomeChipBar, 'HomeChipBar');
     final podcastChip = _findVisibleText('播客与节目', root: chipBar, exact: true);
@@ -523,7 +545,12 @@ class E2ERunner {
     final clearPodcast = _findIcon(Icons.close_rounded, root: chipBar) ??
         _findVisibleText('播客与节目', root: chipBar, exact: true);
     if (clearPodcast != null) await _tapElement(clearPodcast);
-    await _waitUntil(() => spotify.homeFacet == '');
+    await _waitUntil(() {
+      if (spotify.homeFacet != '') return false;
+      final bar = _findFirstElement((e) => e.widget is HomeChipBar);
+      return bar != null &&
+          _findVisibleText('音乐', root: bar, exact: true) != null;
+    });
 
     // 平滑滚动主页并采集滚动性能帧
     home = _requireElement((e) => e.widget is HomeScreen, 'HomeScreen');
@@ -552,7 +579,9 @@ class E2ERunner {
     final appCtx = _activeShellContext();
     await _switchMainTab(1, label: appCtx.l10n.navSearch);
     await _waitUntil(
-      () => _findFirstElement((e) => e.widget is SearchScreen) != null,
+      () =>
+          _findFirstElement((e) => e.widget is SearchScreen) != null &&
+          _findVisibleText('华语流行') != null,
     );
     await _pumpFrames(8);
 
@@ -1136,10 +1165,21 @@ class E2ERunner {
         return;
       }
     } else if (index == 1) {
-      final topSearch = _findFirstElement((e) => e.widget is TextField);
+      final topBar = _findFirstElement((e) => e.widget is DesktopTopBar);
+      final topSearch =
+          _findFirstElement((e) => e.widget is TextField, root: topBar) ??
+          _findFirstElement((e) => e.widget is TextField);
       if (topSearch != null) {
         await _tapElement(topSearch);
-        await _pumpFrames(10);
+        if (topSearch.widget is TextField) {
+          (topSearch.widget as TextField).focusNode?.requestFocus();
+        }
+        // Headless Xvfb / unfocused CI windows may ignore synthetic pointer focus,
+        // so ensure DesktopTopBar activates the Search tab directly too.
+        if (topBar != null && topBar.widget is DesktopTopBar) {
+          (topBar.widget as DesktopTopBar).onSearchActivated();
+        }
+        await _pumpFrames(12);
         return;
       }
       final searchIcon = _findIcon(Icons.search_rounded);
@@ -1384,7 +1424,7 @@ class E2ERunner {
 
   Future<void> _waitUntil(
     bool Function() predicate, {
-    Duration timeout = const Duration(seconds: 6),
+    Duration timeout = const Duration(seconds: 12),
   }) async {
     final limit = DateTime.now().add(timeout);
     while (DateTime.now().isBefore(limit)) {

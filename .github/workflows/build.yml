@@ -538,9 +538,17 @@ jobs:
           mkdir -p "$app_root" e2e_out/macos
           ditto -x -k "$zip_path" "$app_root"
           xattr -dr com.apple.quarantine "$app_root/Flutify.app" || true
+
+          # App Sandbox redirects writes outside the container to Library/Containers;
+          # use a container-local temp path so E2E metrics/screenshots persist reliably.
+          sandbox_tmp="$HOME/Library/Containers/com.flutify.music.flutifyApp/Data/tmp"
+          sandbox_e2e="$sandbox_tmp/flutify_e2e_ci"
+          rm -rf "$sandbox_e2e" "$sandbox_tmp/flutify_e2e"
+          mkdir -p "$sandbox_e2e"
+
           set +e
-          "$app_root/Flutify.app/Contents/MacOS/Flutify" \
-            --mock --self-test-e2e="$(pwd)/e2e_out/macos" &
+          TMPDIR="$sandbox_tmp" "$app_root/Flutify.app/Contents/MacOS/Flutify" \
+            --mock --self-test-e2e="$sandbox_e2e" &
           APP_PID=$!
           WAITED=0
           while kill -0 "$APP_PID" 2>/dev/null && [ "$WAITED" -lt 240 ]; do
@@ -551,8 +559,27 @@ jobs:
             kill -TERM "$APP_PID" || true
             echo "macOS E2E timed out after 240s"
           fi
-          wait "$APP_PID" || true
+          wait "$APP_PID"
+          APP_EXIT=$?
+          echo "macOS Flutify exit=$APP_EXIT (elapsed~${WAITED}s)"
           set -e
+
+          if [ -f "$sandbox_e2e/metrics.json" ]; then
+            cp -R "$sandbox_e2e"/. e2e_out/macos/
+          elif [ -f "$sandbox_tmp/flutify_e2e/metrics.json" ]; then
+            cp -R "$sandbox_tmp/flutify_e2e"/. e2e_out/macos/
+          fi
+
+          if [ ! -f e2e_out/macos/metrics.json ]; then
+            echo "::warning::Missing e2e_out/macos/metrics.json; dumping container/crash diagnostics"
+            ls -la "$sandbox_tmp" "$sandbox_e2e" 2>/dev/null || true
+            tail -n 120 "$sandbox_tmp/flutify.log" 2>/dev/null || true
+            ls -la "$HOME/Library/Logs/DiagnosticReports" 2>/dev/null || true
+            latest_crash="$(ls -t "$HOME/Library/Logs/DiagnosticReports"/*Flutify* 2>/dev/null | head -n1 || true)"
+            if [ -n "$latest_crash" ]; then
+              head -n 120 "$latest_crash" || true
+            fi
+          fi
           test -f e2e_out/macos/metrics.json
       - name: Render performance curve and Markdown summary
         if: always() && hashFiles('e2e_out/macos/metrics.json') != ''
