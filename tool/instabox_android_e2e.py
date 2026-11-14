@@ -738,11 +738,11 @@ def adb_tap(runner: Runner, box_name: str, point: tuple[int, int]) -> None:
 
 def adb_swipe_down_settings(runner: Runner, box_name: str, width: int, height: int) -> None:
     x = max(100, int(width * 0.40))
-    y_start = int(height * 0.78)
-    y_end = int(height * 0.25)
+    y_start = int(height * 0.82)
+    y_end = int(height * 0.18)
     runner.exec_box(
         box_name,
-        f"adb shell input swipe {x} {y_start} {x} {y_end} 350",
+        f"adb shell input swipe {x} {y_start} {x} {y_end} 200",
         check=True,
         timeout=30,
     )
@@ -844,7 +844,7 @@ def drive_settings_upgrade(
     # Scroll inside Settings until UpdateSection is visible (unless already inside UpdateDialog).
     # Note: Do not match LABELS_UPDATE_VIEW here because the 15s startup AppToast also has
     # a "查看更新" / "View update" button while the screen is still at the top of Settings.
-    for step in range(18):
+    for step in range(35):
         nodes = dump_ui_nodes(runner, box_name)
         if (
             find_node_by_labels(nodes, LABELS_DOWNLOAD + LABELS_INSTALL_APK) is not None
@@ -853,9 +853,12 @@ def drive_settings_upgrade(
         ):
             break
         adb_swipe_down_settings(runner, box_name, width, height)
-        time.sleep(1.0)
+        time.sleep(0.8)
     else:
-        raise RuntimeError("Could not scroll to UpdateSection inside Settings")
+        visible = [lbl for n in nodes for lbl in _node_labels(n)][:12]
+        raise RuntimeError(
+            f"Could not scroll to UpdateSection inside Settings (visible={redact_sensitive(str(visible))})"
+        )
 
     # If dialog isn't already open, ensure self-test channel and trigger Check for updates.
     if find_node_by_labels(nodes, LABELS_DOWNLOAD + LABELS_INSTALL_APK) is None:
