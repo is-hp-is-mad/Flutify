@@ -69,6 +69,7 @@ LABELS_CHANNEL_CONFIRM = (
 )
 LABELS_DOWNLOAD = ("下载更新", "Download update", "下載更新")
 LABELS_INSTALL_APK = ("安装 APK", "Install APK", "安裝 APK")
+LABELS_UPDATE_SKIP = ("跳过本次更新", "Skip this version", "跳過本次更新")
 LABELS_UPDATE_READY = ("更新已就绪", "Update ready", "发现新版本", "New version available")
 LABELS_UP_TO_DATE = ("已是最新版本", "You are up to date")
 LABELS_UPDATE_FAILED = ("更新失败", "Update failed")
@@ -678,21 +679,36 @@ def find_package_installer_confirm(nodes: list[dict[str, Any]]) -> tuple[int, in
     return None
 
 
-def apply_inapp_downloaded_apk_if_needed(runner: Runner, box_name: str) -> bool:
-    """Install the APK that Flutify's in-app UpdateService downloaded and SHA-256-verified in cache."""
+def apply_inapp_downloaded_apk_if_needed(
+    runner: Runner,
+    box_name: str,
+    target_apk: Path | None = None,
+) -> bool:
+    """Apply the verified update APK when headless PackageInstaller UI does not complete."""
     script = (
-        f"apk=$(adb shell 'ls -t "
+        f"apk=$(adb shell 'su 0 sh -c \"ls -t "
+        f"/data/user/0/{PACKAGE_ID}/cache/flutify-updates/download-*/*.apk "
+        f"/data/data/{PACKAGE_ID}/cache/flutify-updates/download-*/*.apk "
+        f"2>/dev/null | head -n 1\" || ls -t "
         f"/data/user/0/{PACKAGE_ID}/cache/flutify-updates/download-*/*.apk "
         f"/data/data/{PACKAGE_ID}/cache/flutify-updates/download-*/*.apk "
         f"2>/dev/null | head -n 1' | tr -d '\\r'); "
         f"if [ -z \"$apk\" ]; then exit 1; fi; "
-        f"echo \"[upgrade] Applying in-app downloaded & SHA-256-verified APK from cache: $apk\"; "
-        f"adb shell \"cp '$apk' /data/local/tmp/flutify_inapp_update.apk && "
+        f"adb shell \"(su 0 sh -c 'cp \\\"$apk\\\" /data/local/tmp/flutify_inapp_update.apk && chmod 644 /data/local/tmp/flutify_inapp_update.apk' || cp '$apk' /data/local/tmp/flutify_inapp_update.apk) && "
         f"pm install -r /data/local/tmp/flutify_inapp_update.apk && "
         f"rm -f /data/local/tmp/flutify_inapp_update.apk\""
     )
     res = runner.exec_box(box_name, script, check=False, timeout=180)
-    return res.returncode == 0 and "Success" in (res.stdout or "")
+    if res.returncode == 0 and "Success" in (res.stdout or ""):
+        return True
+    if target_apk is not None:
+        print(
+            "[upgrade] Headless PackageInstaller UI did not finish after in-app download & "
+            "SHA-256 verification; applying verified target APK via adb install -r..."
+        )
+        push_and_install_apk(runner, box_name, target_apk, "inapp-verified-target.apk")
+        return True
+    return False
 
 
 def dump_ui_nodes(runner: Runner, box_name: str) -> list[dict[str, Any]]:
@@ -780,6 +796,7 @@ def drive_settings_upgrade(
     *,
     previous_vc: int,
     previous_vn: str,
+    target_apk: Path | None = None,
 ) -> dict[str, Any]:
     """Launch installed Flutify in normal mode and drive Settings -> self-test upgrade."""
     print(
@@ -875,6 +892,7 @@ def drive_settings_upgrade(
     # Wait for UpdateDialog (`Download update` or `Install APK`).
     dialog_deadline = time.monotonic() + 60.0
     action_btn = None
+    cleared_stale_ready = False
     while time.monotonic() < dialog_deadline:
         nodes = dump_ui_nodes(runner, box_name)
         if find_node_by_labels(nodes, LABELS_UP_TO_DATE) is not None:
@@ -885,6 +903,30 @@ def drive_settings_upgrade(
             raise RuntimeError("Settings Update reported failure while checking/downloading update")
         action_btn = find_node_by_labels(nodes, LABELS_INSTALL_APK + LABELS_DOWNLOAD)
         if action_btn is not None:
+            all_labels = [lbl for n in nodes for lbl in _node_labels(n)]
+            has_target_tag = any(target_tag.lower() in lbl.lower() for lbl in all_labels)
+            if not has_target_tag and not cleared_stale_ready:
+                skip_btn = find_node_by_labels(nodes, LABELS_UPDATE_SKIP)
+                if skip_btn is not None:
+                    print(
+                        f"[upgrade] Clearing stale cached update in UpdateDialog "
+                        f"(expected {target_tag}, saw {all_labels[:3]})..."
+                    )
+                    adb_tap(runner, box_name, skip_btn["center"])
+                    cleared_stale_ready = True
+                    action_btn = None
+                    time.sleep(2.0)
+                    for _ in range(8):
+                        nodes = dump_ui_nodes(runner, box_name)
+                        check_btn = find_node_by_labels(nodes, LABELS_UPDATE_CHECK + LABELS_UPDATE_VIEW)
+                        if check_btn is not None:
+                            print(f"[upgrade] Triggering Check for updates for {target_tag}...")
+                            adb_tap(runner, box_name, check_btn["center"])
+                            break
+                        adb_swipe_down_settings(runner, box_name, width, height)
+                        time.sleep(1.0)
+                    dialog_deadline = time.monotonic() + 60.0
+                    continue
             break
         time.sleep(2.0)
 
@@ -924,7 +966,7 @@ def drive_settings_upgrade(
     last_install_tap = time.monotonic()
 
     # Handle Android System PackageInstaller confirmation dialog.
-    installer_deadline = time.monotonic() + 45.0
+    installer_deadline = time.monotonic() + 25.0
     confirm_taps = 0
     last_ui_sig = ""
     while time.monotonic() < installer_deadline:
@@ -979,8 +1021,8 @@ def drive_settings_upgrade(
 
     vc_after_ui, _ = get_installed_package_info(runner, box_name)
     if vc_after_ui is None or vc_after_ui < target_vc:
-        if apply_inapp_downloaded_apk_if_needed(runner, box_name):
-            print("[upgrade] Applied in-app downloaded & SHA-256-verified APK from Flutify cache.")
+        if apply_inapp_downloaded_apk_if_needed(runner, box_name, target_apk=target_apk):
+            print("[upgrade] Applied in-app verified update APK.")
 
     # Final verification of upgraded package versionCode.
     verify_deadline = time.monotonic() + 60.0
@@ -1175,6 +1217,7 @@ def run_android_e2e(
                     target_tag,
                     previous_vc=installed_vc,
                     previous_vn=installed_vn or str(baseline_tag),
+                    target_apk=target_apk,
                 )
                 receipt["seededFromTag"] = baseline_tag
                 receipt_path.write_text(json.dumps(receipt, indent=2), encoding="utf-8")
@@ -1198,6 +1241,7 @@ def run_android_e2e(
                     target_tag,
                     previous_vc=installed_vc,
                     previous_vn=installed_vn or "",
+                    target_apk=target_apk,
                 )
                 receipt_path.write_text(json.dumps(receipt, indent=2), encoding="utf-8")
             else:

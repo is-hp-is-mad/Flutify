@@ -222,6 +222,22 @@ class InstaBoxAndroidE2ETest(unittest.TestCase):
         self.assertIn("cache/flutify-updates/download-*/*.apk", runner.calls[0][-1])
         self.assertIn("pm install -r /data/local/tmp/flutify_inapp_update.apk", runner.calls[0][-1])
 
+    def test_apply_inapp_downloaded_apk_if_needed_falls_back_to_target_apk(self) -> None:
+        def handle(cmd):
+            if "cache/flutify-updates" in cmd[-1]:
+                return subprocess.CompletedProcess(cmd, 1, "", "")
+            return subprocess.CompletedProcess(cmd, 0, "Success\n", "")
+
+        runner = FakeRunner(handle)
+        ok = ib.apply_inapp_downloaded_apk_if_needed(
+            runner,
+            "my-android",
+            target_apk=Path("/tmp/target.apk"),
+        )
+        self.assertTrue(ok)
+        self.assertTrue(any(c[:2] == ["instabox", "cp"] for c in runner.calls))
+        self.assertTrue(any("adb install -r" in c[-1] for c in runner.calls))
+
 
 if __name__ == "__main__":
     unittest.main()
