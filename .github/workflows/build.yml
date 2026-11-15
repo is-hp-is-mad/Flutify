@@ -10,6 +10,7 @@ name: Build
 
 on:
   push:
+    branches: [main]
     # 只改文档时不构建
     paths-ignore: ['**.md', 'docs/**', 'LICENSE']
   pull_request:
