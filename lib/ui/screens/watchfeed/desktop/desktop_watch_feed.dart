@@ -449,7 +449,7 @@ class _DesktopWatchFeedState extends State<DesktopWatchFeed> {
               behavior: HitTestBehavior.opaque,
               onTap: _close,
               child: ColoredBox(
-                color: const Color(0xE6000000),
+                color: const Color(0x7A000000),
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     // width = min(85%, 1680, 85vh × 16/10)，比例 16:10。
