@@ -292,14 +292,20 @@ class DesktopDataSource {
       );
       if (proxy != null) {
         rust.rustSessionSetProxy(proxy: proxy);
-        yield* rust
-            .rustFetchPlaylistStream(
-              spclientBase: SpotifyEndpoints.defaultSpClientBase,
-              playlistId: id,
-              decorateHash: PathfinderOperation.decorateContextTracks.sha256Hash,
-            )
-            .map(RustBackendBridge.playlistFromDto);
-        return;
+        try {
+          yield* rust
+              .rustFetchPlaylistStream(
+                spclientBase: SpotifyEndpoints.defaultSpClientBase,
+                playlistId: id,
+                decorateHash:
+                    PathfinderOperation.decorateContextTracks.sha256Hash,
+              )
+              .map(RustBackendBridge.playlistFromDto);
+          return;
+        } catch (e) {
+          debugPrint('[playlist] Rust 流式拉取失败：$e');
+          rethrow;
+        }
       }
     }
     final res = await _client.get(

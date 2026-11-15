@@ -360,8 +360,13 @@ async fn fetch_playlist_page(
     let url = format!(
         "{base}/playlist/v2/playlist/{playlist_id}?decorate=attributes,length,owner&from={offset}&length={PLAYLIST_PAGE_LIMIT}"
     );
-    let (st, body) =
-        spotify_session::authorized_request(reqwest::Method::GET, &url, &[], None).await?;
+    let (st, body) = spotify_session::authorized_request(
+        reqwest::Method::GET,
+        &url,
+        &[("Accept", "application/json")],
+        None,
+    )
+    .await?;
     if st != 200 {
         return Err(format!("http:{st}:playlist page {offset}"));
     }
@@ -380,8 +385,13 @@ pub async fn fetch_playlist_full(
     let first_url = format!(
         "{base}/playlist/v2/playlist/{playlist_id}?decorate=attributes,length,owner&from=0&length={PLAYLIST_PAGE_LIMIT}"
     );
-    let (status, bytes) =
-        spotify_session::authorized_request(reqwest::Method::GET, &first_url, &[], None).await?;
+    let (status, bytes) = spotify_session::authorized_request(
+        reqwest::Method::GET,
+        &first_url,
+        &[("Accept", "application/json")],
+        None,
+    )
+    .await?;
     if status == 404 {
         return Ok(None);
     }
@@ -766,8 +776,13 @@ where
     let first_url = format!(
         "{base}/playlist/v2/playlist/{playlist_id}?decorate=attributes,length,owner&from=0&length={PLAYLIST_PAGE_LIMIT}"
     );
-    let (status, bytes) =
-        spotify_session::authorized_request(reqwest::Method::GET, &first_url, &[], None).await?;
+    let (status, bytes) = spotify_session::authorized_request(
+        reqwest::Method::GET,
+        &first_url,
+        &[("Accept", "application/json")],
+        None,
+    )
+    .await?;
     if status == 404 {
         return Ok(None);
     }
@@ -965,8 +980,13 @@ pub async fn fetch_rootlist(
 ) -> Result<Vec<BackendPlaylistSummary>, String> {
     let base = spclient_base.trim_end_matches('/');
     let url = format!("{base}/playlist/v2/user/{username}/rootlist?decorate=attributes,length,owner");
-    let (status, bytes) =
-        spotify_session::authorized_request(reqwest::Method::GET, &url, &[], None).await?;
+    let (status, bytes) = spotify_session::authorized_request(
+        reqwest::Method::GET,
+        &url,
+        &[("Accept", "application/json")],
+        None,
+    )
+    .await?;
     if status != 200 {
         return Err(format!("http:{status}:rootlist"));
     }
