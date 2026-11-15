@@ -7,12 +7,11 @@ import '../../../../l10n/l10n.dart';
 import '../../../../models/watch_feed.dart';
 import '../../../../providers/spotify_provider.dart';
 import '../../../navigation/app_routes.dart';
-import '../../../shell/shell_breakpoints.dart';
 import '../../../widgets/cover_image.dart';
 
 /// 艺人 / 专辑 / 歌单页操作行里的发现流入口（对齐官方桌面网页版 desktop-watch-feed-entity-button）。
 ///
-/// 只在桌面布局显示，且该实体确实有视频流时才出现（首次构建时预取第一页，打开时直接复用）。
+/// 该实体确实有视频流时显示（首次构建时预取第一页，打开时直接复用；桌面端开模态层，窄屏推入全屏竖滑页）。
 /// 38×48 透明按钮：30×40 的竖版缩略图（第一条的 Canvas 首帧或封面，圆角 4），
 /// 出现时描一圈一次性的边框动画；悬停时盖一层深色并显示播放图标。
 class WatchFeedEntityButton extends StatefulWidget {
@@ -74,9 +73,6 @@ class _WatchFeedEntityButtonState extends State<WatchFeedEntityButton>
 
   @override
   Widget build(BuildContext context) {
-    if (!ShellBreakpoints.isDesktop(MediaQuery.sizeOf(context).width)) {
-      return const SizedBox.shrink();
-    }
     _request();
     final page = context.select<SpotifyProvider?, WatchFeedEntityPage?>(
       (p) => p?.entityFeedFor(widget.feedUri),

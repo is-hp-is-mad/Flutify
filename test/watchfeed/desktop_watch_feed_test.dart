@@ -356,10 +356,19 @@ void main() {
       );
     });
 
-    testWidgets('没有内容或窄屏：不显示', (tester) async {
+    testWidgets('窄屏且有内容：同样显示，提示带实体名', (tester) async {
+      await pumpButton(tester, width: 420, items: 3);
+      expect(find.byKey(const Key('watch-feed-entity-button')), findsOneWidget);
+      expect(
+        find.byTooltip('Explore Artist One in short videos'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('没有内容：不显示', (tester) async {
       await pumpButton(tester, width: 1440, items: 0);
       expect(find.byKey(const Key('watch-feed-entity-button')), findsNothing);
-      await pumpButton(tester, width: 420, items: 3);
+      await pumpButton(tester, width: 420, items: 0);
       expect(find.byKey(const Key('watch-feed-entity-button')), findsNothing);
     });
   });
