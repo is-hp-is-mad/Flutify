@@ -47,6 +47,26 @@ class MediaControlsSync {
   /// 桌面小组件「待播清单」最多显示几首。
   static const int widgetQueueLength = 6;
 
+  static Object? _watchFeedOwner;
+  static bool Function(MediaControlEvent event)? _watchFeedHandler;
+
+  /// 发现流处于前台时接管系统媒体按键（如 Windows SMTC / macOS 媒体键）。
+  /// 使用 [owner] 令牌防止旧页面 dispose 误清新页面的回调。
+  static void setWatchFeedHandler(
+    Object owner,
+    bool Function(MediaControlEvent event)? handler,
+  ) {
+    if (handler == null) {
+      if (identical(_watchFeedOwner, owner)) {
+        _watchFeedOwner = null;
+        _watchFeedHandler = null;
+      }
+      return;
+    }
+    _watchFeedOwner = owner;
+    _watchFeedHandler = handler;
+  }
+
   MediaSourceOverride? _override;
   StreamSubscription<MediaControlEvent>? _events;
   // 曲目键带来源前缀：本机与远程恰好是同一首时也会重新下发
@@ -211,6 +231,7 @@ class MediaControlsSync {
       );
 
   void _onEvent(MediaControlEvent event) {
+    if (_watchFeedHandler?.call(event) ?? false) return;
     if (_override?.handle(event) ?? false) return;
     switch (event) {
       case MediaButtonEvent(button: MediaButton.play):

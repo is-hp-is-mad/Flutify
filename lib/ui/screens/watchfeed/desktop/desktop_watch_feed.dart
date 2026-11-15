@@ -16,10 +16,13 @@ import '../../../../models/watch_feed.dart';
 import '../../../../providers/appearance_provider.dart';
 import '../../../../providers/library_provider.dart';
 import '../../../../providers/playback_provider.dart';
+import '../../../../services/media_controls/media_controls_sync.dart';
+import '../../../../services/media_controls/system_media_controls.dart';
 import '../../../../services/spotify_api_service.dart';
 import '../../../../services/taskbar_lyrics/taskbar_lyrics_controls.dart';
 import '../../../../services/watchfeed/preview_player.dart';
 import '../../../navigation/app_routes.dart';
+import '../watch_feed_shortcuts.dart';
 import '../../../widgets/cover_image.dart';
 import '../../../widgets/looping_video.dart';
 import '../../../widgets/skeleton.dart';
@@ -180,6 +183,7 @@ class _DesktopWatchFeedState extends State<DesktopWatchFeed> {
     _lifecycle = AppLifecycleListener(onStateChange: _onLifecycle);
     _taskbarLyrics = context.read<TaskbarLyricsControls?>();
     _player.addListener(_syncTaskbarLyrics);
+    MediaControlsSync.setWatchFeedHandler(this, _onMediaControlEvent);
     final playback = context.read<PlaybackProvider?>();
     _playback = playback;
     if (playback != null) {
@@ -193,6 +197,7 @@ class _DesktopWatchFeedState extends State<DesktopWatchFeed> {
 
   @override
   void dispose() {
+    MediaControlsSync.setWatchFeedHandler(this, null);
     _player.removeListener(_syncTaskbarLyrics);
     _taskbarLyrics?.clearWatchFeedOverride();
     _playback?.removeListener(_syncVolume);
@@ -348,10 +353,27 @@ class _DesktopWatchFeedState extends State<DesktopWatchFeed> {
     _loadMore();
   }
 
+  bool _onMediaControlEvent(MediaControlEvent event) =>
+      handleWatchFeedMediaButton(
+        event,
+        onPrevious: () => _move(-1),
+        onNext: () => _move(1),
+        isMuted: () => _player.muted,
+        setMuted: _player.setMuted,
+      );
+
   KeyEventResult _onKey(FocusNode _, KeyEvent event) {
     if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
       return KeyEventResult.ignored;
     }
+    final mediaResult = handleWatchFeedMediaKey(
+      context,
+      event,
+      onPrevious: () => _move(-1),
+      onNext: () => _move(1),
+      onToggleMute: () => _player.setMuted(!_player.muted),
+    );
+    if (mediaResult == KeyEventResult.handled) return mediaResult;
     final keyboard = HardwareKeyboard.instance;
     if (keyboard.isControlPressed || keyboard.isMetaPressed) {
       return KeyEventResult.ignored;
@@ -368,10 +390,8 @@ class _DesktopWatchFeedState extends State<DesktopWatchFeed> {
       _toggleSave(item);
     } else if (key == LogicalKeyboardKey.arrowRight && item != null) {
       _addToQueue(item);
-    } else if (key == LogicalKeyboardKey.keyM) {
+    } else if (key == LogicalKeyboardKey.keyM && event is KeyDownEvent) {
       _player.setMuted(!_player.muted);
-    } else if (key == LogicalKeyboardKey.space && event is KeyDownEvent) {
-      _player.toggle();
     } else {
       return KeyEventResult.ignored;
     }

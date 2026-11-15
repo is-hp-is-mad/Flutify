@@ -181,4 +181,35 @@ void main() {
     audio.durationController.add(actualDuration);
     expect(controls.tracks.length, count + 1);
   });
+
+  test('发现流激活时接管系统媒体按键，关闭后恢复给播放器', () async {
+    await playback.playTrack(a, contextQueue: [a, b]);
+    final owner = Object();
+    final handled = <MediaButton>[];
+    MediaControlsSync.setWatchFeedHandler(owner, (event) {
+      if (event is MediaButtonEvent) {
+        handled.add(event.button);
+        return true;
+      }
+      return false;
+    });
+
+    controls.controller.add(const MediaButtonEvent(MediaButton.next));
+    controls.controller.add(const MediaButtonEvent(MediaButton.toggle));
+    await Future<void>.delayed(Duration.zero);
+    expect(handled, [MediaButton.next, MediaButton.toggle]);
+    expect(playback.currentTrack?.id, a.id);
+
+    // 非当前 owner 清除不生效
+    MediaControlsSync.setWatchFeedHandler(Object(), null);
+    controls.controller.add(const MediaButtonEvent(MediaButton.previous));
+    await Future<void>.delayed(Duration.zero);
+    expect(handled, [MediaButton.next, MediaButton.toggle, MediaButton.previous]);
+
+    // 同一 owner 清除后恢复默认路由
+    MediaControlsSync.setWatchFeedHandler(owner, null);
+    controls.controller.add(const MediaButtonEvent(MediaButton.next));
+    await Future<void>.delayed(Duration.zero);
+    expect(playback.currentTrack?.id, b.id);
+  });
 }

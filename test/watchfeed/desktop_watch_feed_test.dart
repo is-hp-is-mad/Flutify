@@ -266,11 +266,42 @@ void main() {
     expect(chips[0].top, chips[1].top);
   });
 
-  testWidgets('M 静音、Esc 关闭', (tester) async {
+  testWidgets('M / 空格 / 媒体暂停键切换静音，上一首/下一首快捷键与媒体键切条', (tester) async {
     final env = await pump(tester);
+    expect(find.text('Song 1'), findsOneWidget);
+
     await tester.sendKeyEvent(LogicalKeyboardKey.keyM);
     await tester.pump();
     expect(env.player.muted, isTrue);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.space);
+    await tester.pump();
+    expect(env.player.muted, isFalse);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.mediaPlayPause);
+    await tester.pump();
+    expect(env.player.muted, isTrue);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.mediaTrackNext);
+    await settle(tester);
+    expect(find.text('Song 2'), findsOneWidget);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.mediaTrackPrevious);
+    await settle(tester);
+    expect(find.text('Song 1'), findsOneWidget);
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await settle(tester);
+    expect(find.text('Song 2'), findsOneWidget);
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await settle(tester);
+    expect(find.text('Song 1'), findsOneWidget);
+
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await settle(tester);
     expect(find.byType(DesktopWatchFeed), findsNothing);

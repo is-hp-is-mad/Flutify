@@ -15,12 +15,15 @@ import '../../../models/watch_feed.dart';
 import '../../../providers/appearance_provider.dart';
 import '../../../providers/playback_provider.dart';
 import '../../../providers/preferences_provider.dart';
+import '../../../services/media_controls/media_controls_sync.dart';
+import '../../../services/media_controls/system_media_controls.dart';
 import '../../../services/spotify_api_service.dart';
 import '../../../services/taskbar_lyrics/taskbar_lyrics_controls.dart';
 import '../../../services/watchfeed/preview_player.dart';
 import '../../shell/shell_chrome.dart';
 import '../../widgets/skeleton.dart';
 import '../detail/album_detail_screen.dart';
+import 'watch_feed_shortcuts.dart';
 import 'widgets/feed_animations.dart';
 import 'widgets/feed_item_card.dart';
 
@@ -617,11 +620,15 @@ class _FeedPagerState extends State<_FeedPager> {
     super.initState();
     _taskbarLyrics = context.read<TaskbarLyricsControls?>();
     widget.player.addListener(_syncTaskbarLyrics);
+    if (widget.active) {
+      MediaControlsSync.setWatchFeedHandler(this, _onMediaControlEvent);
+    }
     _loadMore();
   }
 
   @override
   void dispose() {
+    MediaControlsSync.setWatchFeedHandler(this, null);
     widget.player.removeListener(_syncTaskbarLyrics);
     _controller.dispose();
     super.dispose();
@@ -630,6 +637,11 @@ class _FeedPagerState extends State<_FeedPager> {
   @override
   void didUpdateWidget(covariant _FeedPager oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (widget.active && !oldWidget.active) {
+      MediaControlsSync.setWatchFeedHandler(this, _onMediaControlEvent);
+    } else if (!widget.active && oldWidget.active) {
+      MediaControlsSync.setWatchFeedHandler(this, null);
+    }
     // 变为当前横向页：首帧后再起播（didUpdateWidget 处于 build 阶段，播放器会同步通知）。
     if (widget.active && !oldWidget.active && widget.autoplay) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -732,10 +744,27 @@ class _FeedPagerState extends State<_FeedPager> {
     );
   }
 
+  bool _onMediaControlEvent(MediaControlEvent event) =>
+      handleWatchFeedMediaButton(
+        event,
+        onPrevious: () => _step(-1),
+        onNext: () => _step(1),
+        isMuted: () => widget.player.muted,
+        setMuted: widget.player.setMuted,
+      );
+
   KeyEventResult _onKey(KeyEvent event) {
     if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
       return KeyEventResult.ignored;
     }
+    final mediaResult = handleWatchFeedMediaKey(
+      context,
+      event,
+      onPrevious: () => _step(-1),
+      onNext: () => _step(1),
+      onToggleMute: () => widget.player.setMuted(!widget.player.muted),
+    );
+    if (mediaResult == KeyEventResult.handled) return mediaResult;
     final key = event.logicalKey;
     final delta =
         key == LogicalKeyboardKey.arrowDown ||
@@ -745,8 +774,8 @@ class _FeedPagerState extends State<_FeedPager> {
         ? -1
         : 0;
     if (delta == 0) {
-      if (key == LogicalKeyboardKey.space) {
-        _togglePlay(_index);
+      if (key == LogicalKeyboardKey.keyM && event is KeyDownEvent) {
+        widget.player.setMuted(!widget.player.muted);
         return KeyEventResult.handled;
       }
       return KeyEventResult.ignored;
