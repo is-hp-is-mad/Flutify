@@ -96,10 +96,10 @@ void main() {
     expect(find.byType(MobileMenuActionRow<Object>), findsNothing);
   });
 
-  testWidgets('桌面宽度仍使用桌面菜单', (tester) async {
+  testWidgets('桌面宽度同样使用柔光玻璃快捷菜单', (tester) async {
     await _pumpMenu(tester, width: 1280);
 
-    expect(find.byType(MobileMenuActionRow<Object>), findsNothing);
+    expect(find.byType(MobileMenuActionRow<Object>), findsOneWidget);
     expect(find.text('添加到歌单'), findsOneWidget);
   });
 }
