@@ -28,7 +28,13 @@ function parseTag(tag) {
 
 
 function skip(reason) {
-  return { build: 'false', publish: 'false', run_tests: 'false', reason };
+  return {
+    build: 'false',
+    publish: 'false',
+    run_tests: 'false',
+    use_release_signing: 'false',
+    reason,
+  };
 }
 
 function releaseConfig(env, deps) {
@@ -60,8 +66,7 @@ function releaseConfig(env, deps) {
     source = parsed.tag;
   };
 
-  if (env.GITHUB_EVENT_NAME === 'push') {
-    if (env.GITHUB_REF !== 'refs/heads/main') return skip('Only pushes to main are built.');
+  if (env.GITHUB_EVENT_NAME === 'push' || env.GITHUB_EVENT_NAME === 'pull_request') {
     channel = 'self-test';
   } else if (env.GITHUB_EVENT_NAME === 'workflow_dispatch') {
     channel = env.CHANNEL || 'self-test';
@@ -100,11 +105,14 @@ function releaseConfig(env, deps) {
   const tag = `v${base}.${build}${SUFFIX[channel]}`;
   const existing = deps.resolveTag(tag);
   if (existing && existing !== sha) throw new Error(`Tag ${tag} points to another commit.`);
-  const isAutoPush = env.GITHUB_EVENT_NAME === 'push';
+  const isAutoRun = env.GITHUB_EVENT_NAME === 'push' || env.GITHUB_EVENT_NAME === 'pull_request';
+  const useReleaseSigning = !isAutoRun
+    || (env.GITHUB_EVENT_NAME === 'push' && env.GITHUB_REF === 'refs/heads/main');
   return {
     build: 'true',
-    publish: String(!isAutoPush),
-    run_tests: String(!isAutoPush),
+    publish: String(!isAutoRun),
+    run_tests: String(!isAutoRun),
+    use_release_signing: String(useReleaseSigning),
     channel,
     tag,
     label: tag,

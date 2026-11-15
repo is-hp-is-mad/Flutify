@@ -27,20 +27,31 @@ test('tags carry the build number and the channel', () => {
   }
 });
 
-test('every push to main only builds (no publish, no tests); manual dispatch publishes self-test + runs tests', () => {
+test('auto-runs (push/PR) only build (no publish, no tests); manual dispatch publishes self-test + runs tests', () => {
   assert.deepEqual(releaseConfig(base, deps()), {
-    build: 'true', publish: 'false', run_tests: 'false', channel: 'self-test', tag: 'v0.18.150-selftest', label: 'v0.18.150-selftest',
+    build: 'true', publish: 'false', run_tests: 'false', use_release_signing: 'true',
+    channel: 'self-test', tag: 'v0.18.150-selftest', label: 'v0.18.150-selftest',
     sha: HEAD, source: '', prerelease: 'true', latest: 'false', reason: '',
   });
   assert.deepEqual(
     releaseConfig({ ...base, GITHUB_EVENT_NAME: 'workflow_dispatch', CHANNEL: 'self-test' }, deps()),
     {
-      build: 'true', publish: 'true', run_tests: 'true', channel: 'self-test', tag: 'v0.18.150-selftest', label: 'v0.18.150-selftest',
+      build: 'true', publish: 'true', run_tests: 'true', use_release_signing: 'true',
+      channel: 'self-test', tag: 'v0.18.150-selftest', label: 'v0.18.150-selftest',
       sha: HEAD, source: '', prerelease: 'true', latest: 'false', reason: '',
     },
   );
-  assert.equal(releaseConfig({ ...base, GITHUB_REF: 'refs/heads/feature' }, deps()).build, 'false');
-  assert.equal(releaseConfig({ ...base, GITHUB_EVENT_NAME: 'pull_request' }, deps()).build, 'false');
+  const feature = releaseConfig({ ...base, GITHUB_REF: 'refs/heads/feature' }, deps());
+  assert.equal(feature.build, 'true');
+  assert.equal(feature.publish, 'false');
+  assert.equal(feature.run_tests, 'false');
+  assert.equal(feature.use_release_signing, 'false');
+
+  const pr = releaseConfig({ ...base, GITHUB_EVENT_NAME: 'pull_request' }, deps());
+  assert.equal(pr.build, 'true');
+  assert.equal(pr.publish, 'false');
+  assert.equal(pr.run_tests, 'false');
+  assert.equal(pr.use_release_signing, 'false');
 });
 
 test('beta is only produced from a published self-test build after manual confirmation', () => {
