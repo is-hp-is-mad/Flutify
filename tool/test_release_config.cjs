@@ -86,17 +86,33 @@ test('the weekly run releases the newest beta only when no issue was opened afte
     release('v0.18.120'), release('v0.18.130-beta', '2026-11-01T08:00:00Z'),
     release('v0.18.145-beta'), release('v0.18.148-selftest', '2026-11-12T08:00:00Z'),
   ];
+  const tags = { 'v0.18.120': 'c'.repeat(40) };
   const asked = [];
-  const config = releaseConfig(env, deps({ releases, asked }));
+  const config = releaseConfig(env, deps({ releases, tags, asked }));
   assert.equal(config.tag, 'v0.18.150');
   assert.equal(config.source, 'v0.18.145-beta');
   assert.equal(config.sha, OLD);
   // 以最新 beta 的发布时间为界，不是更早的 beta 或更晚的 self-test
   assert.deepEqual(asked, [PUBLISHED]);
 
-  const blocked = releaseConfig(env, deps({ releases, created: 1 }));
+  const blocked = releaseConfig(env, deps({ releases, tags, created: 1 }));
   assert.equal(blocked.build, 'false');
   assert.match(blocked.reason, /1 issue\(s\) opened since v0\.18\.145-beta/);
+});
+
+test('the weekly run skips when there are no new commits since the last release', () => {
+  const env = { ...base, GITHUB_EVENT_NAME: 'schedule' };
+  const releases = [release('v0.18.120'), release('v0.18.145-beta')];
+  const sameCommit = releaseConfig(env, deps({ releases }));
+  assert.equal(sameCommit.build, 'false');
+  assert.match(sameCommit.reason, /No new commits since v0\.18\.120/);
+
+  const noAhead = releaseConfig(env, {
+    ...deps({ releases, tags: { 'v0.18.120': 'c'.repeat(40) } }),
+    commitsBetween: () => 0,
+  });
+  assert.equal(noAhead.build, 'false');
+  assert.match(noAhead.reason, /No new commits since v0\.18\.120/);
 });
 
 test('the weekly run does nothing without a new beta', () => {

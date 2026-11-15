@@ -84,6 +84,16 @@ function releaseConfig(env, deps) {
     if (!beta || (stable && stable.parsed.build > beta.parsed.build)) {
       return skip('No beta newer than the current release.');
     }
+    const commit = deps.resolveTag(beta.tag);
+    if (!commit) throw new Error(`Cannot resolve ${beta.tag}.`);
+    const stableCommit = stable ? deps.resolveTag(stable.tag) : null;
+    if (
+      stable &&
+      ((stableCommit && stableCommit === commit) ||
+        (deps.commitsBetween && deps.commitsBetween(stable.tag, beta.tag) === 0))
+    ) {
+      return skip(`No new commits since ${stable.tag}; not releasing.`);
+    }
     // 发布之后新开的 issue 都算，不管现在是否已关闭：有人报过问题就留给人来判断
     if (!/^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/.test(beta.publishedAt || '')) {
       return skip(`${beta.tag} has no publication time.`);
@@ -92,8 +102,6 @@ function releaseConfig(env, deps) {
     if (created > 0) {
       return skip(`${created} issue(s) opened since ${beta.tag} was published; not releasing.`);
     }
-    const commit = deps.resolveTag(beta.tag);
-    if (!commit) throw new Error(`Cannot resolve ${beta.tag}.`);
     base = beta.parsed.base;
     sha = commit;
     source = beta.tag;
@@ -137,6 +145,13 @@ if (require.main === module) {
           return execFileSync('git', ['rev-parse', '--verify', `refs/tags/${tag}^{commit}`], {
             encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'],
           }).trim();
+        } catch { return null; }
+      },
+      commitsBetween: (from, to) => {
+        try {
+          return Number(execFileSync('git', ['rev-list', '--count', `${from}..${to}`], {
+            encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'],
+          }).trim());
         } catch { return null; }
       },
       listReleases: () => releases ??= JSON.parse(gh(['api', `repos/${repo}/releases?per_page=100`]))
