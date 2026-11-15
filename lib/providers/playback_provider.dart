@@ -591,7 +591,8 @@ class PlaybackProvider extends ChangeNotifier {
       unawaited(syncable.syncPosition());
     }
     final pos = _audio.position;
-    if (pos != positionNotifier.value) {
+    // 底层尚未产出进度（仍为 0）时，不覆盖已有的非零进度
+    if (pos > Duration.zero && pos != positionNotifier.value) {
       _applyPosition(pos);
     }
   }
@@ -867,6 +868,7 @@ class PlaybackProvider extends ChangeNotifier {
           if (generation != _loadGeneration) return;
         }
         _loadedTrackId = track.id;
+        _lastPositionEventAt = DateTime.now();
         _audioPlaybackInfo = audio.playbackInfo;
         _resumeAudio(track, generation);
         if (generation != _loadGeneration) return;
