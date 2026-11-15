@@ -64,17 +64,9 @@ class TrackMenu {
     Offset? position,
     VoidCallback? onConnect,
   }) {
-    // 柔光玻璃主题下：全尺寸统一使用小米 ArcAnimation 悬浮果冻菜单，手机上换成移动端版式
+    // 柔光玻璃主题下：全尺寸统一使用悬浮果冻菜单（顶部快捷操作 + 分组大号菜单项）
     if (context.tokens.hyperMaterial) {
-      if (_isMobile(context)) {
-        return _showMobile(
-          context,
-          track,
-          position ?? DesktopMenu.anchorOf(context),
-          onConnect,
-        );
-      }
-      return _showDesktop(
+      return _showMobile(
         context,
         track,
         position ?? DesktopMenu.anchorOf(context),
@@ -92,11 +84,6 @@ class TrackMenu {
       onConnect,
     );
   }
-
-  /// 柔光玻璃菜单是否按移动端版式排（窗口宽度低于桌面断点）。
-  static bool _isMobile(BuildContext context) =>
-      context.tokens.hyperMaterial &&
-      !ShellBreakpoints.isDesktop(MediaQuery.sizeOf(context).width);
 
   static void _toast(BuildContext context, String message, IconData icon) {
     if (!context.mounted) return;
@@ -217,12 +204,43 @@ class TrackMenu {
     const connectId = '\u0000connect';
     bool has(TrackAction a) => isAvailable(context, track, a);
 
+    var openingSubmenu = false;
+    Future<void> openSubmenu(
+      BuildContext itemContext,
+      Future<void> Function(
+        BuildContext menuContext,
+        Offset anchor,
+        VoidCallback closeParent,
+      )
+      open,
+    ) async {
+      if (openingSubmenu) return;
+      openingSubmenu = true;
+      try {
+        await open(itemContext, DesktopMenu.anchorOf(itemContext), () {
+          if (itemContext.mounted) Navigator.of(itemContext).pop();
+        });
+      } finally {
+        openingSubmenu = false;
+      }
+    }
+
     final action = await DesktopMenu.show<Object>(context, position, [
       MobileMenuActionRow<Object>([
         MobileMenuAction(
           TrackAction.addToPlaylist,
           Icons.add_circle_outline_rounded,
           l10n.trackQuickAdd,
+          onTap: (c) => openSubmenu(
+            c,
+            (menuCtx, anchor, closeParent) => _addToPlaylist(
+              context,
+              track,
+              anchor,
+              menuContext: menuCtx,
+              onPicked: closeParent,
+            ),
+          ),
         ),
         MobileMenuAction(
           TrackAction.like,
@@ -243,6 +261,16 @@ class TrackMenu {
         Icons.playlist_add_rounded,
         l10n.trackAddToPlaylist,
         submenu: true,
+        onTap: (c) => openSubmenu(
+          c,
+          (menuCtx, anchor, closeParent) => _addToPlaylist(
+            context,
+            track,
+            anchor,
+            menuContext: menuCtx,
+            onPicked: closeParent,
+          ),
+        ),
       ),
       MobileMenu.divider,
       MobileMenu.item(
@@ -263,6 +291,10 @@ class TrackMenu {
           l10n.sleepTimer,
           iconColor: timerOn ? primary : null,
           submenu: true,
+          onTap: (c) => openSubmenu(c, (menuCtx, anchor, closeParent) async {
+            final picked = await SleepTimerMenu.show(menuCtx, position: anchor);
+            if (picked) closeParent();
+          }),
         ),
       MobileMenu.divider,
       if (has(TrackAction.album))
@@ -279,6 +311,18 @@ class TrackMenu {
           l10n.trackGoToArtist(track.artists.length),
           subtitle: track.artistNames,
           submenu: track.artists.length > 1,
+          onTap: track.artists.length > 1
+              ? (c) => openSubmenu(
+                  c,
+                  (menuCtx, anchor, closeParent) => _goToArtist(
+                    context,
+                    track,
+                    anchor,
+                    menuContext: menuCtx,
+                    onPicked: closeParent,
+                  ),
+                )
+              : null,
         ),
       MobileMenu.item(
         TrackAction.credits,
@@ -346,47 +390,56 @@ class TrackMenu {
   static Future<void> _goToArtist(
     BuildContext context,
     SpotifyTrack track,
-    Offset position,
-  ) async {
+    Offset position, {
+    BuildContext? menuContext,
+    VoidCallback? onPicked,
+  }) async {
     if (track.artists.length == 1) {
       AppRoutes.openArtist(context, track.artists.first);
       return;
     }
-    final picked = await DesktopMenu.show<int>(context, position, [
-      for (var i = 0; i < track.artists.length; i++)
-        PopupMenuItem<int>(
-          value: i,
-          height: 44,
-          child: Row(
-            children: [
-              CoverImage(
-                url: track.artists[i].avatarUrl,
-                size: 28,
-                circular: true,
-                placeholderIcon: Icons.person_rounded,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  track.artists[i].name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+    final picked = await DesktopMenu.show<int>(
+      menuContext ?? context,
+      position,
+      [
+        for (var i = 0; i < track.artists.length; i++)
+          PopupMenuItem<int>(
+            value: i,
+            height: 44,
+            child: Row(
+              children: [
+                CoverImage(
+                  url: track.artists[i].avatarUrl,
+                  size: 28,
+                  circular: true,
+                  placeholderIcon: Icons.person_rounded,
                 ),
-              ),
-            ],
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    track.artists[i].name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-    ]);
-    if (picked != null && context.mounted)
-      AppRoutes.openArtist(context, track.artists[picked]);
+      ],
+    );
+    if (picked == null) return;
+    onPicked?.call();
+    if (context.mounted) AppRoutes.openArtist(context, track.artists[picked]);
   }
 
   /// 二级菜单：「新建歌单」+ 本机歌单 + 账号里可编辑的歌单（已包含该曲目的打勾）。
   static Future<void> _addToPlaylist(
     BuildContext context,
     SpotifyTrack track,
-    Offset position,
-  ) async {
+    Offset position, {
+    BuildContext? menuContext,
+    VoidCallback? onPicked,
+  }) async {
     final l10n = context.l10n;
     final library = context.read<LibraryProvider>();
     final primary = Theme.of(context).colorScheme.primary;
@@ -396,11 +449,12 @@ class TrackMenu {
     final account = await library
         .editablePlaylistsFor(track)
         .timeout(const Duration(seconds: 4), onTimeout: () => const []);
-    if (!context.mounted) return;
+    final showContext = menuContext ?? context;
+    if (!context.mounted || !showContext.mounted) return;
 
-    final mobile = _isMobile(context);
+    final mobile = context.tokens.hyperMaterial;
     final item = mobile ? MobileMenu.item<String> : DesktopMenu.item<String>;
-    final id = await DesktopMenu.show<String>(context, position, [
+    final id = await DesktopMenu.show<String>(showContext, position, [
       item(createId, Icons.add_rounded, l10n.trackNewPlaylist),
       if (library.ownPlaylists.isNotEmpty)
         mobile ? MobileMenu.divider : DesktopMenu.divider,
@@ -427,7 +481,9 @@ class TrackMenu {
           iconColor: playlist.containsTrack ? primary : null,
         ),
     ]);
-    if (id == null || !context.mounted) return;
+    if (id == null) return;
+    onPicked?.call();
+    if (!context.mounted) return;
 
     final remote = account.where((p) => p.uri == id).firstOrNull;
     if (remote != null) {

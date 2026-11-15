@@ -60,10 +60,10 @@ class PathfinderOperation {
     'b907ad6b088d5bf7680fa81198996d58398c2d55dfcdf59fcc959e0be98a418a',
   );
 
-  /// 「查看制作人员」弹窗：按角色分组的参与者与版权来源。
+  /// 「查看制作人员」弹窗：按角色分组的参与者与版权来源（取自 open.spotify.com xpui-root-dialogs）。
   static const queryTrackCreditsGroupedModal = PathfinderOperation(
     'queryTrackCreditsGroupedModal',
-    'f135fb9be58a72d041ab5d214d817021a272405d883860468e2627afb01a3ca9',
+    '5c109593bca8ea4cb28104e178820ff035418fb4694d34d10c89cc755fe64694',
   );
 
   /// 「已点赞的歌曲」分页（与 open.spotify.com 同一查询，不依赖 username）。

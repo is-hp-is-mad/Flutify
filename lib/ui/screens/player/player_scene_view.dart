@@ -15,6 +15,7 @@ import '../../widgets/connect/remote_transport_controls.dart';
 import '../../widgets/cover_image.dart';
 import '../../widgets/liquid_glass.dart';
 import '../../widgets/marquee_text.dart';
+import '../../widgets/menu/desktop_menu.dart';
 import '../../widgets/playback_scrubber.dart';
 import '../../widgets/player_controls.dart';
 import '../../widgets/text_metrics.dart';
@@ -185,8 +186,9 @@ class _PlayerSceneViewState extends State<PlayerSceneView> {
     final track = widget.track;
     final remote = widget.remote;
     final expansion = widget.expansionAnimation;
-    return LyricsTranslationScope(
-      child: AndroidPlayerScene(
+    return GlassMenuScope(
+      child: LyricsTranslationScope(
+        child: AndroidPlayerScene(
         lyricsMode: _view == PlayerView.lyrics,
         queueMode: _view == PlayerView.queue,
         maxLandscapeWidth: widget.maxLandscapeWidth,
@@ -419,6 +421,7 @@ class _PlayerSceneViewState extends State<PlayerSceneView> {
                 ],
               ),
         queue: const QueueList(horizontalPadding: 16),
+      ),
       ),
     );
   }

@@ -31,9 +31,9 @@ class SleepTimerMenu {
     return l10n.sleepTimerRemaining(Formatters.formatDuration(remaining));
   }
 
-  static Future<void> show(BuildContext context, {Offset? position}) async {
+  static Future<bool> show(BuildContext context, {Offset? position}) async {
     final timer = context.read<SleepTimerProvider?>();
-    if (timer == null) return;
+    if (timer == null) return false;
     final l10n = context.l10n;
     final messenger = ScaffoldMessenger.maybeOf(context);
 
@@ -52,7 +52,7 @@ class SleepTimerMenu {
             builder: (ctx) => _SleepTimerSheet(timer: timer),
           );
 
-    if (picked == null) return;
+    if (picked == null) return false;
     if (identical(picked, _off)) {
       timer.cancel();
       AppToast.showOn(messenger, l10n.toastSleepTimerOff, icon: Icons.bedtime_off_rounded);
@@ -65,6 +65,7 @@ class SleepTimerMenu {
         tone: ToastTone.success,
       );
     }
+    return true;
   }
 }
 

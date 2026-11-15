@@ -178,6 +178,7 @@ class DesktopWindow {
   /// Update confirmation uses the same session-saving hooks as normal exit.
   static Future<void> closeForUpdate() async {
     if (!_enabled || !Platform.isWindows) return;
+    _quitting = true;
     await windowManager.close();
   }
 

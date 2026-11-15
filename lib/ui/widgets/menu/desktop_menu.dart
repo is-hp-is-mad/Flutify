@@ -95,9 +95,12 @@ class DesktopMenu {
   /// 柔光玻璃菜单的主题：播放页里按流动背景的实际亮度选深 / 浅，其余地方用应用主题。
   static ThemeData _menuTheme(BuildContext context) {
     final app = Theme.of(overlayContext(context));
+    if (!GlassMenuScope.of(context)) return app;
     final lum = LiquidArtworkBackground.luminance.value;
-    if (!GlassMenuScope.of(context) || lum == null) return app;
-    final brightness = lum < 0.4 ? Brightness.dark : Brightness.light;
+    // 播放页背景始终是深色压暗封面；采样尚未完成或平台走原生背景时默认深色。
+    final brightness = lum == null || lum < 0.4
+        ? Brightness.dark
+        : Brightness.light;
     if (brightness == app.brightness) return app;
     final scheme = ColorScheme.fromSeed(
       seedColor: app.colorScheme.primary,
@@ -112,6 +115,7 @@ class DesktopMenu {
         displayColor: scheme.onSurface,
       ),
       iconTheme: IconThemeData(color: scheme.onSurface),
+      dividerColor: scheme.outlineVariant.withValues(alpha: 0.4),
       popupMenuTheme: PopupMenuThemeData(
         labelTextStyle: WidgetStatePropertyAll(
           app.textTheme.labelLarge?.copyWith(color: scheme.onSurface),

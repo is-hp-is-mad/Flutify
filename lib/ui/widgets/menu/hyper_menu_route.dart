@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' show ImageFilter, lerpDouble;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -139,8 +140,12 @@ class _HyperMenuState<T> extends State<_HyperMenu<T>>
           math.min(route.width, screen.width - _inset * 2),
           math.min(height, screen.height - _inset * 2),
         );
+        final listenables = <Listenable>[
+          _motion.listenable,
+          if (route.secondaryAnimation != null) route.secondaryAnimation!,
+        ];
         return AnimatedBuilder(
-          animation: _motion.listenable,
+          animation: Listenable.merge(listenables),
           builder: (context, _) => _frame(context, anchor, menu),
         );
       },
@@ -161,56 +166,82 @@ class _HyperMenuState<T> extends State<_HyperMenu<T>>
       menu,
       endRadius: context.tokens.corner(24),
     );
+    final secRaw = widget.route.secondaryAnimation?.value ?? 0.0;
+    final sec = Curves.easeOutCubic.transform(secRaw.clamp(0.0, 1.0));
+    final bgScale = lerpDouble(1.0, 0.92, sec)!;
+    final bgOpacity = lerpDouble(1.0, 0.72, sec)!;
+    // 整数步进模糊半径，避免动画每帧触发新的 Skia 着色器编译
+    final bgBlur = (sec * 5).roundToDouble();
+
+    Widget surface = HyperBlendSurface(
+      material: HyperBlendSurface.menu(context),
+      borderRadius: BorderRadius.circular(frame.radius),
+      bloom: HyperBlendSurface.menuBloom(context),
+      shadow: true,
+      // 菜单项按最终尺寸排好，随宽度等比缩放
+      child: OverflowBox(
+        alignment: Alignment.topLeft,
+        minWidth: menu.width,
+        maxWidth: menu.width,
+        minHeight: menu.height,
+        maxHeight: menu.height,
+        child: Transform.scale(
+          alignment: Alignment.topLeft,
+          scale: frame.scale,
+          child: Material(
+            type: MaterialType.transparency,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: _vPad),
+              // 与 showMenu 相同的语义：PopupMenuItem 要求父节点是 menu
+              child: Semantics(
+                scopesRoute: true,
+                namesRoute: true,
+                explicitChildNodes: true,
+                role: SemanticsRole.menu,
+                label: MaterialLocalizations.of(context).popupMenuLabel,
+                child: SingleChildScrollView(
+                  child: _SizeReporter(
+                    onHeight: _onContentHeight,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: widget.route.items,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    if (bgBlur > 0) {
+      surface = ImageFiltered(
+        imageFilter: ImageFilter.blur(
+          sigmaX: bgBlur,
+          sigmaY: bgBlur,
+          tileMode: TileMode.decal,
+        ),
+        child: surface,
+      );
+    }
+    if (sec > 0) {
+      surface = IgnorePointer(
+        child: Transform.scale(
+          scale: bgScale,
+          alignment: Alignment.center,
+          child: surface,
+        ),
+      );
+    }
+
     return Stack(
       children: [
         Positioned.fromRect(
           rect: frame.rect,
           child: Opacity(
             // 不可见时也留在树里：要靠它量出菜单项的真实高度
-            opacity: frame.visible ? _motion.alpha.value : 0,
-            child: HyperBlendSurface(
-              material: HyperBlendSurface.menu(context),
-              borderRadius: BorderRadius.circular(frame.radius),
-              bloom: HyperBlendSurface.menuBloom(context),
-              shadow: true,
-              // 菜单项按最终尺寸排好，随宽度等比缩放
-              child: OverflowBox(
-                alignment: Alignment.topLeft,
-                minWidth: menu.width,
-                maxWidth: menu.width,
-                minHeight: menu.height,
-                maxHeight: menu.height,
-                child: Transform.scale(
-                  alignment: Alignment.topLeft,
-                  scale: frame.scale,
-                  child: Material(
-                    type: MaterialType.transparency,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: _vPad),
-                      // 与 showMenu 相同的语义：PopupMenuItem 要求父节点是 menu
-                      child: Semantics(
-                        scopesRoute: true,
-                        namesRoute: true,
-                        explicitChildNodes: true,
-                        role: SemanticsRole.menu,
-                        label: MaterialLocalizations.of(
-                          context,
-                        ).popupMenuLabel,
-                        child: SingleChildScrollView(
-                          child: _SizeReporter(
-                            onHeight: _onContentHeight,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: widget.route.items,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
+            opacity: frame.visible ? _motion.alpha.value * bgOpacity : 0,
+            child: surface,
           ),
         ),
       ],
