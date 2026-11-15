@@ -110,7 +110,7 @@ fn parse_images(sources: Option<&Value>) -> Vec<BackendImage> {
             height,
         });
     }
-    out.sort_by(|a, b| b.width.unwrap_or(0).cmp(&a.width.unwrap_or(0)));
+    out.sort_by_key(|a| std::cmp::Reverse(a.width.unwrap_or(0)));
     out
 }
 
@@ -460,8 +460,8 @@ pub async fn fetch_playlist_full(
                 offset += PLAYLIST_PAGE_LIMIT;
             }
 
-            let mut pages_by_offset: BTreeMap<usize, (Vec<String>, Vec<(String, i64)>)> =
-                BTreeMap::new();
+            type PageSlice = (Vec<String>, Vec<(String, i64)>);
+            let mut pages_by_offset: BTreeMap<usize, PageSlice> = BTreeMap::new();
             for res in join_all(page_tasks).await {
                 let (off, uris, ts) = res.map_err(|e| format!("join:{e}"))??;
                 pages_by_offset.insert(off, (uris, ts));
@@ -522,7 +522,7 @@ fn encode_proto_string(out: &mut Vec<u8>, field: u32, s: &str) {
 }
 
 fn encode_proto_int32(out: &mut Vec<u8>, field: u32, v: i32) {
-    encode_varint(out, ((field as u64) << 3) | 0);
+    encode_varint(out, (field as u64) << 3);
     encode_varint(out, v as u64);
 }
 
@@ -715,7 +715,7 @@ pub async fn fetch_collection_entries(
         token = next;
     }
 
-    all.sort_by(|a, b| b.added_at_sec.cmp(&a.added_at_sec));
+    all.sort_by_key(|a| std::cmp::Reverse(a.added_at_sec));
     Ok(all)
 }
 
