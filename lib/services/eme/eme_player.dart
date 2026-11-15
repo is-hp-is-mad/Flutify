@@ -840,6 +840,7 @@ class EmePlayer {
 
   Future<void> seek(Duration pos) =>
       _js('emeSeek(${(pos.inMilliseconds / 1000).toStringAsFixed(3)})');
+  Future<void> syncPosition() => _js('emeSyncPosition($_playGen)');
   Future<void> setVolume(double v) {
     _volume = v.clamp(0.0, 1.0);
     return _js('emeSetVolume($_volume)');
@@ -1495,6 +1496,11 @@ window.emeStop = (gen, revision) => {
   if (telemetryTimer) { clearInterval(telemetryTimer); telemetryTimer = null; }
 };
 window.emeSeek = (sec) => { if (audio) audio.currentTime = sec; };
+window.emeSyncPosition = (gen = curGen) => {
+  if (audio && curGen === (Number(gen) || 0)) {
+    send('position', {position: audio.currentTime, duration: audio.duration, gen: curGen});
+  }
+};
 window.emeSetSink = (label) => {
   pageSinkLabel = typeof label === 'string' ? label : '';
   if (audio) applySink(audio);

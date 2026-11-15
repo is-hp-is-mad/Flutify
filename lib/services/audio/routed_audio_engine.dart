@@ -9,7 +9,7 @@ import 'audio_engine.dart';
 ///
 /// 对 PlaybackProvider 暴露统一的流与方法；同一时刻只有一个引擎出声（切歌时先停另一个）。
 /// 进度/时长/状态流只转发当前活跃引擎的事件，避免串台。
-class RoutedAudioEngine implements AudioEngine {
+class RoutedAudioEngine implements AudioEngine, PositionSyncable {
   final AudioEngine _local;
   final AudioEngine _eme;
 
@@ -109,6 +109,13 @@ class RoutedAudioEngine implements AudioEngine {
 
   @override
   Future<void> stop() => _current.stop();
+
+  @override
+  Future<void> syncPosition() async {
+    if (_current case final PositionSyncable syncable) {
+      await syncable.syncPosition();
+    }
+  }
 
   @override
   void dispose() {

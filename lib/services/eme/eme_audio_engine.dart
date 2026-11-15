@@ -13,7 +13,7 @@ import 'fairplay.dart';
 ///
 /// 把 [EmePlayer] 适配成 [AudioEngine]（just_audio 语义），供 PlaybackProvider 统一调用。
 /// 密钥反代（licensePoster / certFetcher）由装配层注入（依赖 Web token）。
-class EmeAudioEngine implements AudioEngine {
+class EmeAudioEngine implements AudioEngine, PositionSyncable {
   final EmePlayer _player;
 
   /// license 反代：把 CDM 的 license 请求体 POST 到 Spotify，返回响应。
@@ -203,6 +203,9 @@ class EmeAudioEngine implements AudioEngine {
 
   @override
   Future<void> seek(Duration position) => _player.seek(position);
+
+  @override
+  Future<void> syncPosition() => _player.syncPosition();
 
   @override
   Future<void> setVolume(double volume) {

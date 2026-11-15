@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart' show AppLifecycleListener;
 
 import '../models/audio_playback_info.dart';
 import 'package:just_audio/just_audio.dart';
@@ -253,6 +254,10 @@ class PlaybackProvider extends ChangeNotifier {
   double _volume;
   double _volumeBeforeMute;
   ProcessingState? _lastProcessingState;
+  AppLifecycleListener? _lifecycle;
+  Timer? _positionWatchdog;
+  DateTime _lastPositionEventAt = DateTime.fromMillisecondsSinceEpoch(0);
+  bool _disposed = false;
 
   bool _normalize;
   int _fadeSeconds;
@@ -489,13 +494,20 @@ class PlaybackProvider extends ChangeNotifier {
   // Audio engine listeners
   // ---------------------------------------------------------------------------
   void _initAudioListeners() {
+    try {
+      _lifecycle = AppLifecycleListener(onResume: _onAppResumed);
+    } catch (_) {
+      // 纯 Dart 单元测试未初始化 WidgetsBinding 时跳过生命周期监听
+    }
+
     _posSub = _audio.positionStream.listen((pos) {
-      // 还原会话后音频尚未加载：播放器报的 0 不能覆盖还原的进度
-      if (_loadedTrackId == null && _resumeAt != null) return;
-      positionNotifier.value = pos;
-      if (_fadeSeconds > 0) _updateFade(pos);
-      if ((pos - _savedPosition).abs() >= _positionSaveInterval)
-        _scheduleSave();
+      // 切歌加载中或还原会话尚未加载时，忽略底层残留或归零事件，
+      // 避免新歌刚切过来时进度条和歌词先按上一首歌的进度跳一下。
+      if (_isLoadingTrack || (_loadedTrackId == null && _resumeAt != null)) {
+        return;
+      }
+      _lastPositionEventAt = DateTime.now();
+      _applyPosition(pos);
     });
 
     _durSub = _audio.durationStream.listen((dur) {
@@ -536,6 +548,7 @@ class PlaybackProvider extends ChangeNotifier {
         if (_isPlaying && !playing) _scheduleSave();
         _isPlaying = playing;
         _isBuffering = buffering;
+        _syncPositionWatchdog();
         notifyListeners();
       }
 
@@ -548,6 +561,66 @@ class PlaybackProvider extends ChangeNotifier {
     // EME 运行期错误（license / HLS fatal 等在加载成功后才暴露）：
     // 转成可见的播放错误，不再静默停在 0:00
     _emeErrSub = _audio.emeErrors.listen(_onEmeError);
+  }
+
+  void _applyPosition(Duration pos) {
+    final maxMs = _duration.inMilliseconds;
+    final clamped = maxMs > 0 && pos.inMilliseconds > maxMs
+        ? _duration
+        : (pos < Duration.zero ? Duration.zero : pos);
+    positionNotifier.value = clamped;
+    if (_fadeSeconds > 0) _updateFade(clamped);
+    if ((clamped - _savedPosition).abs() >= _positionSaveInterval) {
+      _scheduleSave();
+    }
+  }
+
+  void _onAppResumed() {
+    _syncPositionFromEngine();
+    _syncPositionWatchdog();
+  }
+
+  void _syncPositionFromEngine() {
+    if (_disposed ||
+        _loadedTrackId == null ||
+        _currentTrack == null ||
+        !_audio.hasSource) {
+      return;
+    }
+    if (_audio case final PositionSyncable syncable) {
+      unawaited(syncable.syncPosition());
+    }
+    final pos = _audio.position;
+    if (pos != positionNotifier.value) {
+      _applyPosition(pos);
+    }
+  }
+
+  void _syncPositionWatchdog() {
+    if (_disposed ||
+        !_isPlaying ||
+        _isBuffering ||
+        _loadedTrackId == null ||
+        !_audio.hasSource) {
+      _positionWatchdog?.cancel();
+      _positionWatchdog = null;
+      return;
+    }
+    _positionWatchdog ??= Timer.periodic(const Duration(seconds: 1), (_) {
+      if (_disposed ||
+          !_isPlaying ||
+          _isBuffering ||
+          _loadedTrackId == null ||
+          !_audio.hasSource) {
+        _positionWatchdog?.cancel();
+        _positionWatchdog = null;
+        return;
+      }
+      if (DateTime.now().difference(_lastPositionEventAt) >=
+          const Duration(milliseconds: 900)) {
+        _syncPositionFromEngine();
+      }
+    });
   }
 
   void _handleTrackEnded() {
@@ -661,6 +734,8 @@ class PlaybackProvider extends ChangeNotifier {
     }
     _releaseCurrentAudio();
     _nextCycleOrder = null;
+    _loadedTrackId = null;
+    _syncPositionWatchdog();
     _currentTrack = track;
     _duration = Duration(milliseconds: track.durationMs);
     positionNotifier.value = startAt ?? Duration.zero;
@@ -1813,6 +1888,11 @@ class PlaybackProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
+    _positionWatchdog?.cancel();
+    _positionWatchdog = null;
+    _lifecycle?.dispose();
+    _lifecycle = null;
     if (identical(regionGate?.onNetworkChanged, _onRegionNetworkChanged)) {
       regionGate?.onNetworkChanged = null;
     }

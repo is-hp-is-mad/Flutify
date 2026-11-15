@@ -121,3 +121,8 @@ abstract class AudioEngine {
 
   void dispose();
 }
+
+/// 可选能力：支持主动向底层引擎同步当前播放进度（如 WebView2 EME 在后台节流后）。
+abstract interface class PositionSyncable {
+  Future<void> syncPosition();
+}
