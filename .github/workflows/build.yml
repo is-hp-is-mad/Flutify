@@ -98,12 +98,25 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+          cache: gradle
 
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-android-pub-${{ hashFiles('pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-android-pub-
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: android-rust
+          workspaces: rust/flutify_core
 
       - run: flutter pub get
 
@@ -224,6 +237,18 @@ jobs:
           if ($dartVersion -notmatch 'windows_arm64') { throw "Expected ARM64 Dart: $dartVersion" }
           "$sdk/bin" >> $env:GITHUB_PATH
 
+      - uses: actions/cache@v4
+        with:
+          path: ~/AppData/Local/Pub/Cache
+          key: windows-${{ matrix.arch }}-pub-${{ hashFiles('pubspec.lock') }}
+          restore-keys: |
+            windows-${{ matrix.arch }}-pub-
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: windows-${{ matrix.arch }}-rust
+          workspaces: rust/flutify_core
+
       - run: flutter pub get
 
       - name: Test Windows PowerShell 5.1 update handoff
@@ -284,6 +309,27 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION_MACOS }}
           channel: stable
           cache: true
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: macos-pub-${{ hashFiles('pubspec.lock') }}
+          restore-keys: |
+            macos-pub-
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/CocoaPods
+            macos/Pods
+          key: macos-pods-${{ hashFiles('macos/Podfile.lock') }}
+          restore-keys: |
+            macos-pods-
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: macos-rust
+          workspaces: rust/flutify_core
 
       - run: flutter pub get
 
