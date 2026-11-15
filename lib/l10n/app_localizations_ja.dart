@@ -326,6 +326,28 @@ class AppLocalizationsJa extends AppLocalizations {
   String get searchBrowseAll => 'すべてのジャンル';
 
   @override
+  String get watchFeedDiscoverTitle => '新しい音楽を発見';
+
+  @override
+  String get watchFeedPaused => '一時停止中。タップで再開';
+
+  @override
+  String get watchFeedMute => 'ミュート';
+
+  @override
+  String get watchFeedUnmute => 'ミュート解除';
+
+  @override
+  String watchFeedMonthlyListeners(String count) {
+    return '月間リスナー $count 人';
+  }
+
+  @override
+  String watchFeedEntityTooltip(String name) {
+    return 'ショート動画で「$name」を探索';
+  }
+
+  @override
   String get searchCategoriesFailedTitle => 'カテゴリーを読み込めませんでした';
 
   @override

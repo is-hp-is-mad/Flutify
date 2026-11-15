@@ -29,6 +29,7 @@ import 'pathfinder/desktop_data_source.dart';
 import 'pathfinder/pathfinder_client.dart';
 import 'podcast/podcast_service.dart';
 import 'storage_service.dart';
+import 'watchfeed/watch_feed_service.dart';
 
 /// 取数据失败（未登录、网络错误、接口返回异常）。[message] 为简体中文说明，可直接展示。
 class SpotifyDataException implements Exception {
@@ -61,6 +62,12 @@ class SpotifyApiService {
   final StorageService _storage;
   final http.Client _client;
   late final CanvasService canvas = CanvasService(_client, headers: _headers);
+
+  /// 官方竖滑发现流（Watch Feed）：搜索页「Discover something new」与 feed 本体。
+  late final WatchFeedService watchFeed = WatchFeedService(
+    _client,
+    headers: _headers,
+  );
 
   /// 鉴权服务；接入后每次请求前自动续期 access_token。未接入时仅使用手动填写的 Token。
   SpotifyAuthService? _auth;

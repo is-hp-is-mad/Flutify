@@ -10,6 +10,7 @@ import '../../navigation/app_routes.dart';
 import '../../shell/shell_breakpoints.dart';
 import '../app_modal.dart';
 import '../app_button.dart';
+import '../cover_image.dart';
 import '../flutify_progress.dart';
 
 /// 「查看制作人员」：按角色分组列出参与者（表演者、作曲和作词、制作兼工程…）与版权来源。
@@ -53,10 +54,50 @@ class TrackCreditsView extends StatefulWidget {
 
 class _TrackCreditsViewState extends State<TrackCreditsView> {
   late Future<TrackCredits> _future = _load();
+  final Map<String, String> _avatars = {};
+  bool _avatarsRequested = false;
 
-  Future<TrackCredits> _load() => context.read<SpotifyApiService>().getTrackCredits(widget.track.id);
+  @override
+  void initState() {
+    super.initState();
+    for (final artist in widget.track.artists) {
+      if (artist.id.isNotEmpty && artist.avatarUrl.isNotEmpty) {
+        _avatars[artist.id] = artist.avatarUrl;
+      }
+    }
+  }
 
-  void _retry() => setState(() => _future = _load());
+  Future<TrackCredits> _load() async {
+    final credits = await context.read<SpotifyApiService>().getTrackCredits(widget.track.id);
+    _fetchMissingAvatars(credits);
+    return credits;
+  }
+
+  void _fetchMissingAvatars(TrackCredits credits) {
+    if (_avatarsRequested) return;
+    _avatarsRequested = true;
+    final ids = <String>{
+      for (final group in credits.groups)
+        for (final person in group.people)
+          if (person.hasArtistPage && !_avatars.containsKey(person.artistId))
+            person.artistId,
+    };
+    if (ids.isEmpty || !mounted) return;
+    final api = context.read<SpotifyApiService>();
+    Future.wait(ids.map((id) async {
+      try {
+        final artist = await api.getArtist(id);
+        if (artist.avatarUrl.isNotEmpty && mounted) {
+          setState(() => _avatars[id] = artist.avatarUrl);
+        }
+      } catch (_) {}
+    }));
+  }
+
+  void _retry() => setState(() {
+    _avatarsRequested = false;
+    _future = _load();
+  });
 
   void _openArtist(CreditPerson person) {
     Navigator.of(context).pop();
@@ -129,7 +170,11 @@ class _TrackCreditsViewState extends State<TrackCreditsView> {
                   for (final group in credits.groups) ...[
                     if (group.name.isNotEmpty) _SectionTitle(group.name),
                     for (final person in group.people)
-                      _PersonRow(person: person, onTap: person.hasArtistPage ? () => _openArtist(person) : null),
+                      _PersonRow(
+                        person: person,
+                        avatarUrl: person.hasArtistPage ? _avatars[person.artistId] : null,
+                        onTap: person.hasArtistPage ? () => _openArtist(person) : null,
+                      ),
                     const SizedBox(height: 8),
                   ],
                   if (credits.sources.isNotEmpty) ...[
@@ -174,15 +219,17 @@ class _SectionTitle extends StatelessWidget {
 /// 一位参与者：首字母圆章 + 姓名 + 角色；有艺人页时整行可点、右侧带箭头。
 class _PersonRow extends StatelessWidget {
   final CreditPerson person;
+  final String? avatarUrl;
   final VoidCallback? onTap;
 
-  const _PersonRow({required this.person, this.onTap});
+  const _PersonRow({required this.person, this.avatarUrl, this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final initial = person.name.characters.first.toUpperCase();
+    final url = avatarUrl;
 
     return Material(
       type: MaterialType.transparency,
@@ -196,12 +243,20 @@ class _PersonRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Row(
             children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: colorScheme.secondaryContainer,
-                foregroundColor: colorScheme.onSecondaryContainer,
-                child: Text(initial, style: const TextStyle(fontWeight: FontWeight.w600)),
-              ),
+              if (url != null && url.isNotEmpty)
+                CoverImage(
+                  url: url,
+                  size: 40,
+                  circular: true,
+                  placeholderIcon: Icons.person_rounded,
+                )
+              else
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: colorScheme.secondaryContainer,
+                  foregroundColor: colorScheme.onSecondaryContainer,
+                  child: Text(initial, style: const TextStyle(fontWeight: FontWeight.w600)),
+                ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(

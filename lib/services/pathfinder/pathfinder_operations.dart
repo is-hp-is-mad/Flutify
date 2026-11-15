@@ -89,6 +89,20 @@ class PathfinderOperation {
     'removeFromLibrary',
     '896ebcb47815681340860d121cb5d494e157e2a78d3950385cd54e0393c67148',
   );
+
+  /// 实体竖滑视频流（艺人 / 专辑 / 歌单页「观看」入口，桌面网页版 1.3.9 抓包）：
+  /// 变量 watchFeedUri = `spotify:watch-feed:{artist|album|playlist}:<id>`、offset、limit。
+  /// 只接受实体 feed，`discovery-feed`（#标签）会被服务端判为类型不符。
+  static const watchFeedEntity = PathfinderOperation(
+    'watchFeedEntity',
+    'd1a805f815ee0c20281330317d8c00c8fce9026686a86c38bc700ccaefb9ac5c',
+  );
+
+  /// 发现流（「Discover something new」#标签竖滑流，取自 open.spotify.com dwp-watch-feed-view-container）。
+  static const watchFeedView = PathfinderOperation(
+    'watchFeedView',
+    'ce10864fccc53ca77c422143ee027bacf220f9d714e27ec592905334079ad743',
+  );
 }
 
 /// 桌面版在 home / browse 类查询中声明的终端类型（xpui 中 IntegrationDesktop）。

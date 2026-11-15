@@ -42,10 +42,9 @@ class HyperMenuRoute<T> extends PopupRoute<T> {
   @override
   String? get barrierLabel => 'Dismiss';
 
-  // 动画由 ArcMotion 驱动；路由动画只用来知道何时开始收起，
-  // 收起弹簧（位置 0.35s 响应）与淡出（200 ms）在 320 ms 内基本落定。
+  // 动画由 ArcMotion 驱动；transitionDuration 控制二级菜单压入时底层菜单退后/虚化动画时长。
   @override
-  Duration get transitionDuration => const Duration(milliseconds: 1);
+  Duration get transitionDuration => const Duration(milliseconds: 320);
 
   @override
   Duration get reverseTransitionDuration => const Duration(milliseconds: 320);
@@ -167,11 +166,20 @@ class _HyperMenuState<T> extends State<_HyperMenu<T>>
       endRadius: context.tokens.corner(24),
     );
     final secRaw = widget.route.secondaryAnimation?.value ?? 0.0;
-    final sec = Curves.easeOutCubic.transform(secRaw.clamp(0.0, 1.0));
-    final bgScale = lerpDouble(1.0, 0.96, sec)!;
-    final contentOpacity = lerpDouble(1.0, 0.78, sec)!;
+    final clampedSec = secRaw.clamp(0.0, 1.0);
+    final sec = Curves.easeOutCubic.transform(clampedSec);
+    // 缩放使用带轻微过冲的弹性曲线，增强前后层次的弹跳感；模糊/透明度/压暗保持在 [0, 1] 内。
+    final secBounce = const Cubic(0.34, 1.45, 0.64, 1.0).transform(clampedSec);
+    final bgScale = lerpDouble(1.0, 0.95, secBounce)!;
+    final contentOpacity = lerpDouble(1.0, 0.72, sec)!;
     // 只模糊菜单内容本身（不包住 HyperBlendSurface），避免 saveLayer 破坏底层 BackdropFilter 导致背景字透出
-    final bgBlur = (sec * 4).roundToDouble() * 0.5;
+    final bgBlur = (sec * 5).roundToDouble() * 0.5;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final dimColor = Color.lerp(
+      Colors.transparent,
+      isDark ? const Color(0x2E000000) : const Color(0x14000000),
+      sec,
+    )!;
 
     Widget content = OverflowBox(
       alignment: Alignment.topLeft,
@@ -219,6 +227,17 @@ class _HyperMenuState<T> extends State<_HyperMenu<T>>
     }
     if (contentOpacity < 1.0) {
       content = Opacity(opacity: contentOpacity, child: content);
+    }
+    if (sec > 0) {
+      content = Stack(
+        fit: StackFit.passthrough,
+        children: [
+          content,
+          Positioned.fill(
+            child: IgnorePointer(child: ColoredBox(color: dimColor)),
+          ),
+        ],
+      );
     }
 
     Widget surface = HyperBlendSurface(

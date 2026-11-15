@@ -340,6 +340,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchBrowseAll => 'Browse all';
 
   @override
+  String get watchFeedDiscoverTitle => 'Discover something new';
+
+  @override
+  String get watchFeedPaused => 'Paused. Tap to resume';
+
+  @override
+  String get watchFeedMute => 'Mute';
+
+  @override
+  String get watchFeedUnmute => 'Unmute';
+
+  @override
+  String watchFeedMonthlyListeners(String count) {
+    return '$count monthly listeners';
+  }
+
+  @override
+  String watchFeedEntityTooltip(String name) {
+    return 'Explore $name in short videos';
+  }
+
+  @override
   String get searchCategoriesFailedTitle => 'Couldn\'t load categories';
 
   @override

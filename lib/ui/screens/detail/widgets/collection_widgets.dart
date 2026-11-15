@@ -93,12 +93,16 @@ class CollectionActionRow extends StatelessWidget {
   /// 靠右的工具（歌单页的搜索 / 排序）；可被压缩，空间不够时自身省略。
   final Widget? trailing;
 
+  /// 紧跟在大播放键后的按钮（桌面布局的发现流入口，对齐官方桌面版位置）；窄布局不显示。
+  final Widget? afterPlay;
+
   const CollectionActionRow({
     super.key,
     required this.leading,
     required this.tracks,
     required this.playbackContext,
     this.trailing,
+    this.afterPlay,
   });
 
   @override
@@ -114,6 +118,7 @@ class CollectionActionRow extends StatelessWidget {
           return Row(
             children: [
               play,
+              if (afterPlay != null) ...[const SizedBox(width: 14), afterPlay!],
               const SizedBox(width: 20),
               shuffle,
               const SizedBox(width: 4),

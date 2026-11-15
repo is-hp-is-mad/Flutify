@@ -6,6 +6,7 @@ import '../../models/category.dart';
 import '../../models/home_feed.dart';
 import '../../models/playlist.dart';
 import '../../models/track.dart';
+import '../../models/watch_feed.dart';
 import '../screens/detail/album_detail_screen.dart';
 import '../screens/detail/artist_detail_screen.dart';
 import '../screens/detail/artist_catalog_screen.dart';
@@ -13,7 +14,10 @@ import '../screens/detail/playlist_detail_screen.dart';
 import '../screens/detail/podcast_detail_screen.dart';
 import '../screens/home/home_section_screen.dart';
 import '../screens/search/category_screen.dart';
+import '../screens/watchfeed/desktop/desktop_watch_feed.dart';
+import '../screens/watchfeed/watch_feed_screen.dart';
 import '../shell/desktop/desktop_window.dart';
+import '../shell/shell_breakpoints.dart';
 
 /// 详情页导航入口。
 ///
@@ -37,8 +41,12 @@ class AppRoutes {
   static void openPlaylist(BuildContext context, SpotifyPlaylist playlist) =>
       _push(context, PlaylistDetailScreen(playlist: playlist));
 
-  static void openAlbum(BuildContext context, SpotifyAlbum album) =>
-      _push(context, AlbumDetailScreen(album: album));
+  /// 专辑页；[focusTrack] 不为空时进入后滚动到该曲目并短暂高亮。
+  static void openAlbum(
+    BuildContext context,
+    SpotifyAlbum album, {
+    SpotifyTrack? focusTrack,
+  }) => _push(context, AlbumDetailScreen(album: album, focusTrack: focusTrack));
 
   static void openArtist(BuildContext context, SpotifyArtist artist) =>
       _push(context, ArtistDetailScreen(artist: artist));
@@ -61,6 +69,28 @@ class AppRoutes {
       initialTracks: initialTracks,
     ),
   );
+
+  /// 官方竖滑发现流；[feedUri] 为 `spotify:watch-feed:…`，[title] 为入口卡片标题（加载前先显示）。
+  ///
+  /// 移动端与其他详情页一样推入 Tab 内容区，在它是当前页时由外壳隐藏底部导航与迷你播放栏
+  /// （见 ShellChrome）；桌面端改为盖住整个窗口的模态层（对齐官方桌面网页版，见 DesktopWatchFeed）。
+  static void openWatchFeed(
+    BuildContext context,
+    String feedUri, {
+    String title = '',
+    WatchFeedEntityPage? initialPage,
+  }) {
+    if (ShellBreakpoints.isDesktop(MediaQuery.sizeOf(context).width)) {
+      DesktopWatchFeed.open(
+        context,
+        feedUri: feedUri,
+        title: title,
+        initialPage: initialPage,
+      );
+      return;
+    }
+    _push(context, WatchFeedScreen(feedUri: feedUri, title: title));
+  }
 
   /// 播客节目页。[showUri] 为 `spotify:show:xxx`；[initialTitle] / [initialCover] 来自卡片，加载前先展示。
   static void openPodcast(
@@ -114,6 +144,10 @@ class AppRoutes {
       if (!root.mounted || !target.mounted || !immersive!.isCurrent) return;
       root.popUntil((route) => !_isPlayerOverlay(route));
     }
-    target.push(MaterialPageRoute(builder: (_) => page));
+    // 根 Navigator 上仍有全屏页面（移动端的发现流、设置）：在它上方继续压栈，
+    // 否则新页面会被推进 Tab 内容区、压在全屏页下面看不见；返回时也能回到全屏页。
+    (root.canPop() ? root : target).push(
+      MaterialPageRoute(builder: (_) => page),
+    );
   }
 }

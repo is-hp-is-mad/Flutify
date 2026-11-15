@@ -12,6 +12,7 @@ import '../models/lyrics_query.dart';
 import '../models/playlist.dart';
 import '../models/track.dart';
 import '../models/user_profile.dart';
+import '../models/watch_feed.dart';
 import '../services/lyrics/lyrics_resolver.dart';
 import '../services/lyrics/lyrics_translation.dart';
 import '../services/cache/cache_location.dart';
@@ -455,6 +456,102 @@ class SpotifyProvider extends ChangeNotifier {
           if (generation == _lyricsGeneration && epoch == _lyricsEpoch)
             _lyricsInFlight.remove(trackId);
         });
+  }
+
+  // ---------------------------------------------------------------------------
+  // 官方发现流入口（Watch Feed）
+  // ---------------------------------------------------------------------------
+
+  /// 搜索页「Discover something new」；null 表示未加载或服务端没有该区块。
+  WatchFeedShelf? _discoverShelf;
+  bool _discoverLoading = false;
+  bool _discoverLoaded = false;
+
+  /// 以艺人热门曲目为种子的入口（「Explore 某艺人」），按艺人 id 缓存（无内容也缓存 null）。
+  final Map<String, WatchFeedShelf?> _seedShelves = {};
+  final Set<String> _seedLoading = {};
+
+  WatchFeedShelf? get discoverShelf => _discoverShelf;
+  bool get isDiscoverShelfLoading => _discoverLoading;
+
+  WatchFeedShelf? seedShelfFor(String artistId) => _seedShelves[artistId];
+  bool isSeedShelfLoading(String artistId) => _seedLoading.contains(artistId);
+
+  /// 加载搜索页入口。幂等；失败按「没有该区块」处理（入口整体隐藏，不打扰用户）。
+  Future<void> loadDiscoverShelf({bool force = false}) async {
+    if (_disposed || _discoverLoading || (_discoverLoaded && !force)) return;
+    if (!_api.isConfigured) return;
+    _discoverLoading = true;
+    notifyListeners();
+    WatchFeedShelf? shelf;
+    try {
+      shelf = await _api.watchFeed.fetchBrowseShelf();
+      debugPrint('[watch-feed] 搜索页入口：${shelf?.entries.length ?? 0} 张卡片');
+    } catch (e) {
+      debugPrint('[watch-feed] 搜索页入口加载失败：$e');
+    }
+    if (_disposed) return;
+    _discoverShelf = shelf;
+    _discoverLoading = false;
+    _discoverLoaded = true;
+    notifyListeners();
+  }
+
+  /// 加载艺人页入口：取该艺人热门第一首作种子请求 discovery-from-seed。幂等，失败缓存为 null。
+  Future<void> loadArtistSeedShelf(String artistId) async {
+    if (_disposed ||
+        _seedShelves.containsKey(artistId) ||
+        _seedLoading.contains(artistId) ||
+        !_api.isConfigured) {
+      return;
+    }
+    _seedLoading.add(artistId);
+    notifyListeners();
+    WatchFeedShelf? shelf;
+    try {
+      final top = await _api.getArtistTopTracks(artistId);
+      final seed = top.where((t) => t.uri.startsWith('spotify:track:'));
+      if (seed.isNotEmpty) {
+        shelf = await _api.watchFeed.fetchSeedShelf(
+          trackUri: seed.first.uri,
+          creatorUri: 'spotify:artist:$artistId',
+        );
+      }
+    } catch (e) {
+      debugPrint('[watch-feed] 艺人页入口加载失败：$e');
+    }
+    if (_disposed) return;
+    _seedLoading.remove(artistId);
+    _seedShelves[artistId] = shelf;
+    notifyListeners();
+  }
+
+  /// 桌面版实体 feed 的第一页（艺人 / 专辑 / 歌单页操作行的入口按钮用来判断是否显示、取缩略图，
+  /// 打开时直接复用）。按 feed URI 缓存；失败或没有内容缓存为 null（不显示入口）。
+  final Map<String, WatchFeedEntityPage?> _entityFeeds = {};
+  final Set<String> _entityFeedLoading = {};
+
+  WatchFeedEntityPage? entityFeedFor(String feedUri) => _entityFeeds[feedUri];
+
+  Future<void> loadEntityFeed(String feedUri) async {
+    if (_disposed ||
+        _entityFeeds.containsKey(feedUri) ||
+        _entityFeedLoading.contains(feedUri) ||
+        !_api.isConfigured) {
+      return;
+    }
+    _entityFeedLoading.add(feedUri);
+    WatchFeedEntityPage? page;
+    try {
+      page = await _api.watchFeed.fetchEntityFeed(feedUri);
+      if (page.items.isEmpty) page = null;
+    } catch (e) {
+      debugPrint('[watch-feed] 实体入口加载失败：$e');
+    }
+    if (_disposed) return;
+    _entityFeedLoading.remove(feedUri);
+    _entityFeeds[feedUri] = page;
+    notifyListeners();
   }
 
   // ---------------------------------------------------------------------------
