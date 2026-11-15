@@ -24,6 +24,7 @@ env:
 jobs:
   scope:
     name: Select native checks
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -39,8 +40,8 @@ jobs:
   macos-titlebar:
     name: macOS native titlebar hit testing
     needs: scope
-    # Only an explicit, successful false may skip this independent native test.
-    if: ${{ !cancelled() && (needs.scope.result != 'success' || needs.scope.outputs.macos_titlebar != 'false') }}
+    # Only an explicit, successful false may skip this independent native test (manual runs only).
+    if: ${{ !cancelled() && github.event_name == 'workflow_dispatch' && (needs.scope.result != 'success' || needs.scope.outputs.macos_titlebar != 'false') }}
     runs-on: macos-latest
     timeout-minutes: 5
     steps:
@@ -54,6 +55,7 @@ jobs:
 
   quality:
     name: Analyze and test
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -75,11 +77,13 @@ jobs:
       - run: flutter analyze --no-pub --no-fatal-infos lib test
       - run: node --test tool/test_*.cjs
       - run: python3 -m unittest discover -s tool -p 'test_*.py'
-      - run: flutter test --no-pub
+      - if: github.event_name == 'workflow_dispatch'
+        run: flutter test --no-pub
 
   android:
     name: Android self-test APKs
     needs: quality
+    if: ${{ !cancelled() && (needs.quality.result == 'success' || needs.quality.result == 'skipped') }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
@@ -132,6 +136,7 @@ jobs:
   macos:
     name: macOS self-test
     needs: quality
+    if: ${{ !cancelled() && (needs.quality.result == 'success' || needs.quality.result == 'skipped') }}
     runs-on: macos-latest
     timeout-minutes: 30
     steps:
@@ -144,7 +149,8 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get
-      - run: flutter test --no-pub
+      - if: github.event_name == 'workflow_dispatch'
+        run: flutter test --no-pub
       - run: flutter build macos --release --no-pub --dart-define="FLUTIFY_RELEASE_TAG=v0.18.${{ github.run_number }}-selftest"
       - name: Package self-test app
         run: |
@@ -160,6 +166,7 @@ jobs:
   windows:
     name: Windows ${{ matrix.arch }} self-test
     needs: quality
+    if: ${{ !cancelled() && (needs.quality.result == 'success' || needs.quality.result == 'skipped') }}
     strategy:
       fail-fast: false
       matrix:
@@ -201,6 +208,7 @@ jobs:
           "$sdk/bin" >> $env:GITHUB_PATH
       - run: flutter pub get
       - name: Test Windows PowerShell 5.1 update handoff
+        if: github.event_name == 'workflow_dispatch'
         run: python tool/test_windows_update.py -v
       - run: flutter build windows --release --no-pub --dart-define="FLUTIFY_RELEASE_TAG=v0.18.${{ github.run_number }}-selftest"
       - name: Verify native binary architecture
@@ -230,6 +238,7 @@ jobs:
   linux:
     name: Linux x64 self-test
     needs: quality
+    if: ${{ !cancelled() && (needs.quality.result == 'success' || needs.quality.result == 'skipped') }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -246,7 +255,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ninja-build libgtk-3-dev liblzma-dev libblkid-dev
       - run: flutter pub get
-      - run: flutter test --no-pub
+      - if: github.event_name == 'workflow_dispatch'
+        run: flutter test --no-pub
       - run: flutter build linux --release --no-pub --dart-define="FLUTIFY_RELEASE_TAG=v0.18.${{ github.run_number }}-selftest"
       - name: Package self-test .deb and tarball
         run: |

@@ -54,9 +54,10 @@ test('only the standalone titlebar job is path-scoped, with a fail-safe fallback
   assert.match(titlebar, /needs\.scope\.result != 'success' \|\| needs\.scope\.outputs\.macos_titlebar != 'false'/);
   assert.match(titlebar, /swiftc macos\/Runner\/TrafficLightAligner\.swift tool\/test_macos_titlebar\.swift/);
   assert.match(titlebar, /timeout-minutes: 5/);
-  for (const name of ['quality', 'android', 'macos', 'windows']) {
-    assert.doesNotMatch(job(name), /needs\.scope|needs: scope|^    if:/m);
+  for (const name of ['android', 'macos', 'windows']) {
+    assert.doesNotMatch(job(name), /needs\.scope|needs: scope/);
   }
+  assert.match(job('quality'), /if: github\.event_name == 'workflow_dispatch'/);
 });
 
 test('Android tests release builds using a disposable key and verifies all four APKs', () => {

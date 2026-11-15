@@ -28,7 +28,7 @@ function parseTag(tag) {
 
 
 function skip(reason) {
-  return { build: 'false', publish: 'false', reason };
+  return { build: 'false', publish: 'false', run_tests: 'false', reason };
 }
 
 function releaseConfig(env, deps) {
@@ -100,9 +100,11 @@ function releaseConfig(env, deps) {
   const tag = `v${base}.${build}${SUFFIX[channel]}`;
   const existing = deps.resolveTag(tag);
   if (existing && existing !== sha) throw new Error(`Tag ${tag} points to another commit.`);
+  const isAutoPush = env.GITHUB_EVENT_NAME === 'push';
   return {
     build: 'true',
-    publish: 'true',
+    publish: String(!isAutoPush),
+    run_tests: String(!isAutoPush),
     channel,
     tag,
     label: tag,

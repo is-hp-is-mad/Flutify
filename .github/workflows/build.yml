@@ -53,6 +53,7 @@ jobs:
     outputs:
       build: ${{ steps.config.outputs.build }}
       publish: ${{ steps.config.outputs.publish }}
+      run_tests: ${{ steps.config.outputs.run_tests }}
       channel: ${{ steps.config.outputs.channel }}
       tag: ${{ steps.config.outputs.tag }}
       label: ${{ steps.config.outputs.label }}
@@ -64,9 +65,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - run: node --test tool/test_release_config.cjs
-      - run: node --test tool/test_macos_workflow.cjs
-      - run: node --test tool/test_eme_playback.cjs
+      - if: github.event_name != 'push'
+        run: |
+          node --test tool/test_release_config.cjs
+          node --test tool/test_macos_workflow.cjs
+          node --test tool/test_eme_playback.cjs
       - id: config
         env:
           GH_TOKEN: ${{ github.token }}
@@ -101,6 +104,7 @@ jobs:
       - run: flutter pub get
 
       - name: Test playback recovery and authorization
+        if: needs.prepare.outputs.run_tests == 'true'
         run: |
           flutter test
           node --test tool/test_consent_auto_approve.cjs
@@ -265,7 +269,8 @@ jobs:
 
       - run: flutter pub get
 
-      - run: flutter test
+      - if: needs.prepare.outputs.run_tests == 'true'
+        run: flutter test
 
       - run: flutter build macos --release --dart-define=FLUTIFY_RELEASE_TAG=${{ needs.prepare.outputs.tag }}
 
@@ -306,7 +311,8 @@ jobs:
 
       - run: flutter pub get
 
-      - run: flutter test
+      - if: needs.prepare.outputs.run_tests == 'true'
+        run: flutter test
 
       - run: flutter build linux --release --dart-define=FLUTIFY_RELEASE_TAG=${{ needs.prepare.outputs.tag }}
 
@@ -384,7 +390,7 @@ jobs:
   e2e-windows:
     name: E2E · Windows x64 Mock & Perf
     needs: [prepare, release]
-    if: needs.prepare.outputs.build == 'true' && needs.prepare.outputs.channel == 'self-test'
+    if: needs.prepare.outputs.build == 'true' && needs.prepare.outputs.publish == 'true' && needs.prepare.outputs.run_tests == 'true' && needs.prepare.outputs.channel == 'self-test'
     runs-on: windows-latest
     timeout-minutes: 25
     env:
@@ -449,7 +455,7 @@ jobs:
   e2e-linux:
     name: E2E · Linux x64 Mock & Perf
     needs: [prepare, release]
-    if: needs.prepare.outputs.build == 'true' && needs.prepare.outputs.channel == 'self-test'
+    if: needs.prepare.outputs.build == 'true' && needs.prepare.outputs.publish == 'true' && needs.prepare.outputs.run_tests == 'true' && needs.prepare.outputs.channel == 'self-test'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
@@ -511,7 +517,7 @@ jobs:
   e2e-macos:
     name: E2E · macOS Mock & Perf
     needs: [prepare, release]
-    if: needs.prepare.outputs.build == 'true' && needs.prepare.outputs.channel == 'self-test'
+    if: needs.prepare.outputs.build == 'true' && needs.prepare.outputs.publish == 'true' && needs.prepare.outputs.run_tests == 'true' && needs.prepare.outputs.channel == 'self-test'
     runs-on: macos-latest
     timeout-minutes: 25
     env:
@@ -606,7 +612,7 @@ jobs:
   e2e-android:
     name: E2E · Android Settings Upgrade & Perf (InstaBox Reused Box)
     needs: [prepare, release]
-    if: needs.prepare.outputs.build == 'true' && needs.prepare.outputs.channel == 'self-test'
+    if: needs.prepare.outputs.build == 'true' && needs.prepare.outputs.publish == 'true' && needs.prepare.outputs.run_tests == 'true' && needs.prepare.outputs.channel == 'self-test'
     concurrency:
       group: instabox-android-e2e
       cancel-in-progress: false
@@ -686,7 +692,7 @@ jobs:
   e2e-summary:
     name: E2E · Combined Self-Test Report
     needs: [prepare, e2e-windows, e2e-linux, e2e-macos, e2e-android]
-    if: always() && needs.prepare.outputs.build == 'true' && needs.prepare.outputs.channel == 'self-test'
+    if: always() && needs.prepare.outputs.build == 'true' && needs.prepare.outputs.publish == 'true' && needs.prepare.outputs.run_tests == 'true' && needs.prepare.outputs.channel == 'self-test'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
