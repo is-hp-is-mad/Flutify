@@ -95,7 +95,12 @@ abstract interface class TaskbarLyricsPlatform {
   /// 逐行同步歌词；null / 空表示没有，窗口显示控制条。
   Future<void> setLyrics(List<LyricLine>? lines);
 
-  Future<void> setPlayback({required bool playing, required Duration position});
+  Future<void> setPlayback({
+    required bool playing,
+    required Duration position,
+    bool muteButton = false,
+    bool muted = false,
+  });
 }
 
 /// Windows 原生实现：`windows/runner/taskbar_lyrics.cpp`，MethodChannel `flutify/taskbar_lyrics`。
@@ -153,9 +158,13 @@ class MethodChannelTaskbarLyrics implements TaskbarLyricsPlatform {
   Future<void> setPlayback({
     required bool playing,
     required Duration position,
+    bool muteButton = false,
+    bool muted = false,
   }) => _invoke('setPlayback', {
     'playing': playing,
     'positionMs': position.inMilliseconds,
+    'muteButton': muteButton,
+    'muted': muted,
   });
 
   Future<void> _invoke(String method, Object? args) async {

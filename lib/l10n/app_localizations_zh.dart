@@ -339,6 +339,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get watchFeedDiscoverTitle => '发现新内容';
 
   @override
+  String get watchFeedBadge => '发现流';
+
+  @override
   String get watchFeedPaused => '已暂停，轻点继续播放';
 
   @override
@@ -2546,6 +2549,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get watchFeedDiscoverTitle => '探索新內容';
+
+  @override
+  String get watchFeedBadge => '探索動態';
 
   @override
   String get watchFeedPaused => '已暫停，輕點繼續播放';

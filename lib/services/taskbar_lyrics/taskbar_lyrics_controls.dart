@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import '../../models/lyrics.dart';
 import '../../models/lyrics_query.dart';
+import '../../models/watch_feed.dart';
 import '../media_controls/system_media_controls.dart';
 import '../lyrics/lyrics_language.dart';
 import 'taskbar_lyrics_channel.dart';
@@ -63,6 +64,16 @@ class TaskbarLyricsControls implements SystemMediaControls {
   int _retries = 0;
   Timer? _retryTimer;
 
+  ({
+    String title,
+    String subtitle,
+    String artUrl,
+    bool muted,
+    void Function()? onPrevious,
+    void Function()? onToggleMute,
+    void Function()? onNext,
+  })? _watchFeedOverride;
+
   TaskbarLyricsControls(
     this._platform, {
     http.Client? client,
@@ -86,13 +97,16 @@ class TaskbarLyricsControls implements SystemMediaControls {
   }) {
     final languageChanged = _locale != locale;
     _locale = locale;
-    if (languageChanged && _enabled && _lastLines != null) {
+    if (languageChanged &&
+        _enabled &&
+        _watchFeedOverride == null &&
+        _lastLines != null) {
       unawaited(_platform.setLyrics(_linesForPlatform(_lastLines!)));
     }
     if (bilingual != _bilingual) {
       _bilingual = bilingual;
       final track = _track;
-      if (_enabled && track != null) {
+      if (_enabled && _watchFeedOverride == null && track != null) {
         if (bilingual) {
           // 打开：关闭期间取到的歌词没查过网易云译文。SpotifyProvider 在偏好变化时已同步作废内存里的歌词
           //（见 main.dart），这里重新取到的是带译文的结果；取到之前原生照常显示原文
@@ -134,6 +148,7 @@ class TaskbarLyricsControls implements SystemMediaControls {
   @override
   Future<void> setTrack(MediaTrackInfo? track) async {
     _track = track;
+    if (_watchFeedOverride != null) return;
     _generation++;
     _resetLyricsState();
     if (_enabled) await _pushTrack();
@@ -143,6 +158,7 @@ class TaskbarLyricsControls implements SystemMediaControls {
   Future<void> setPlayback(MediaPlaybackInfo info) async {
     _playback = info;
     _playbackAt = DateTime.now();
+    if (_watchFeedOverride != null) return;
     if (_enabled) {
       final activelyPlaying = info.playing && !info.buffering;
       await _platform.setPlayback(
@@ -150,6 +166,90 @@ class TaskbarLyricsControls implements SystemMediaControls {
         position: info.position,
       );
     }
+  }
+
+  /// 发现流试听期间覆盖任务栏歌词：显示当前发现流曲目并标注来源，
+  /// 清空歌词使窗口固定显示控制条，并把中间按钮替换为静音/取消静音。
+  void setWatchFeedOverride({
+    required String title,
+    required String subtitle,
+    required String artUrl,
+    required bool muted,
+    void Function()? onPrevious,
+    void Function()? onToggleMute,
+    void Function()? onNext,
+  }) {
+    final prev = _watchFeedOverride;
+    final trackChanged =
+        prev == null ||
+        prev.title != title ||
+        prev.subtitle != subtitle ||
+        prev.artUrl != artUrl;
+    _watchFeedOverride = (
+      title: title,
+      subtitle: subtitle,
+      artUrl: artUrl,
+      muted: muted,
+      onPrevious: onPrevious,
+      onToggleMute: onToggleMute,
+      onNext: onNext,
+    );
+    if (!_enabled) return;
+    if (trackChanged) {
+      _generation++;
+      _resetLyricsState();
+      unawaited(_pushWatchFeedOverride());
+    } else if (prev.muted != muted) {
+      unawaited(
+        _platform.setPlayback(
+          playing: true,
+          position: Duration.zero,
+          muteButton: true,
+          muted: muted,
+        ),
+      );
+    }
+  }
+
+  /// 从 [WatchFeedItem] 提取曲名、带来源标注的副标题与封面并覆盖任务栏歌词。
+  void setWatchFeedItem(
+    WatchFeedItem item, {
+    required String badge,
+    required bool muted,
+    String fallbackTitle = '',
+    void Function()? onPrevious,
+    void Function()? onToggleMute,
+    void Function()? onNext,
+  }) {
+    final track = item.playableTrack;
+    final title = item.entityRow?.title.isNotEmpty == true
+        ? item.entityRow!.title
+        : (track?.name.isNotEmpty == true ? track!.name : fallbackTitle);
+    final artist = track != null && track.artists.isNotEmpty
+        ? track.artists.map((a) => a.name).where((n) => n.isNotEmpty).join(', ')
+        : (item.creator?.name ?? '');
+    final subtitle = artist.isNotEmpty ? '$badge · $artist' : badge;
+    final artUrl = item.entityRow?.imageUrl.isNotEmpty == true
+        ? item.entityRow!.imageUrl
+        : item.visual.imageUrl;
+    setWatchFeedOverride(
+      title: title,
+      subtitle: subtitle,
+      artUrl: artUrl,
+      muted: muted,
+      onPrevious: onPrevious,
+      onToggleMute: onToggleMute,
+      onNext: onNext,
+    );
+  }
+
+  /// 退出发现流试听时恢复后台主播放的曲目、封面、歌词与播放状态。
+  void clearWatchFeedOverride() {
+    if (_watchFeedOverride == null) return;
+    _watchFeedOverride = null;
+    _generation++;
+    _resetLyricsState();
+    if (_enabled) unawaited(_pushAll());
   }
 
   @override
@@ -167,6 +267,10 @@ class TaskbarLyricsControls implements SystemMediaControls {
   Future<void> _pushAll() async {
     final style = _style;
     if (style != null) await _platform.setStyle(style);
+    if (_watchFeedOverride != null) {
+      await _pushWatchFeedOverride();
+      return;
+    }
     await _pushTrack();
     final playback = _playback;
     if (playback != null) {
@@ -182,6 +286,21 @@ class TaskbarLyricsControls implements SystemMediaControls {
     }
   }
 
+  Future<void> _pushWatchFeedOverride() async {
+    final override = _watchFeedOverride;
+    if (override == null) return;
+    final generation = _generation;
+    await _platform.setTrack((title: override.title, artist: override.subtitle));
+    await _platform.setLyrics(null);
+    await _platform.setPlayback(
+      playing: true,
+      position: Duration.zero,
+      muteButton: true,
+      muted: override.muted,
+    );
+    await _pushArtUrl(override.artUrl, generation);
+  }
+
   Future<void> _pushTrack() async {
     final track = _track;
     final generation = _generation;
@@ -194,13 +313,12 @@ class TaskbarLyricsControls implements SystemMediaControls {
     // 先清掉上一首的歌词，新歌词到之前显示控制条，不会错配
     await _platform.setLyrics(null);
     await Future.wait([
-      _pushArt(track, generation),
+      _pushArtUrl(track.artUrl, generation),
       _pushLyrics(track, generation),
     ]);
   }
 
-  Future<void> _pushArt(MediaTrackInfo track, int generation) async {
-    final url = track.artUrl;
+  Future<void> _pushArtUrl(String url, int generation) async {
     if (url != _artUrl) {
       _artUrl = url;
       _art = url.isEmpty ? null : await _download(url);
@@ -280,7 +398,12 @@ class TaskbarLyricsControls implements SystemMediaControls {
   /// App 内（歌词页、右栏）取到了某首歌的歌词：若正是任务栏上这首、且任务栏还没有歌词，立即补上。
   void lyricsCached(String trackId) {
     final track = _track;
-    if (!_enabled || _hasLyrics || track == null || track.id != trackId) return;
+    if (!_enabled ||
+        _watchFeedOverride != null ||
+        _hasLyrics ||
+        track == null ||
+        track.id != trackId)
+      return;
     unawaited(_pushLyrics(track, _generation));
   }
 
@@ -295,22 +418,38 @@ class TaskbarLyricsControls implements SystemMediaControls {
   /// 歌词加载器就绪（界面层首次绑定）后补推当前曲目的歌词。
   void lyricsSourceReady() {
     final track = _track;
-    if (_enabled && track != null) unawaited(_pushLyrics(track, _generation));
+    if (_enabled && _watchFeedOverride == null && track != null) {
+      unawaited(_pushLyrics(track, _generation));
+    }
   }
 
   void _onPlatformEvent(TaskbarLyricsEvent event) {
+    final override = _watchFeedOverride;
     switch (event) {
       case TaskbarLyricsEvent.previous:
-        _events.add(const MediaButtonEvent(MediaButton.previous));
+        if (override != null) {
+          override.onPrevious?.call();
+        } else {
+          _events.add(const MediaButtonEvent(MediaButton.previous));
+        }
       case TaskbarLyricsEvent.toggle:
-        _events.add(const MediaButtonEvent(MediaButton.toggle));
+        if (override != null) {
+          override.onToggleMute?.call();
+        } else {
+          _events.add(const MediaButtonEvent(MediaButton.toggle));
+        }
       case TaskbarLyricsEvent.next:
-        _events.add(const MediaButtonEvent(MediaButton.next));
+        if (override != null) {
+          override.onNext?.call();
+        } else {
+          _events.add(const MediaButtonEvent(MediaButton.next));
+        }
       case TaskbarLyricsEvent.open:
         onOpen?.call();
       case TaskbarLyricsEvent.disable:
         onDisable?.call();
       case TaskbarLyricsEvent.refetch:
+        if (override != null) return;
         final track = _track;
         if (track != null) {
           _resetLyricsState();

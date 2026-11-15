@@ -60,6 +60,8 @@ struct Shared {
 
   // 播放进度锚点：position = anchor_ms + (now - anchor_tick)（播放中）
   bool playing = false;
+  bool mute_button = false;  // true 时控制条中间按钮改为静音/取消静音（发现流试听）
+  bool muted = false;
   int64_t anchor_ms = 0;
   ULONGLONG anchor_tick = 0;
 

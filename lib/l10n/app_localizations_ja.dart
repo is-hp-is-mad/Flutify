@@ -329,6 +329,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get watchFeedDiscoverTitle => '新しい音楽を発見';
 
   @override
+  String get watchFeedBadge => 'ディスカバリー';
+
+  @override
   String get watchFeedPaused => '一時停止中。タップで再開';
 
   @override

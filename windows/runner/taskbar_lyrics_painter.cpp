@@ -291,7 +291,7 @@ TaskbarLyricsPainter::ControlLayout TaskbarLyricsPainter::PaintControl(const Can
                                                                        const std::wstring& title,
                                                                        const std::wstring& artist,
                                                                        Gdiplus::Bitmap* art, bool playing,
-                                                                       Button hovered) {
+                                                                       Button hovered, bool mute_button, bool muted) {
   TrimCaches();
   const double sc = canvas.scale;
   const int h = canvas.height;
@@ -364,14 +364,14 @@ TaskbarLyricsPainter::ControlLayout TaskbarLyricsPainter::PaintControl(const Can
   layout.play = Rect(bx + btn + btn_gap, by, btn, btn);
   layout.next = Rect(bx + (btn + btn_gap) * 2, by, btn, btn);
   DrawButton(canvas, Button::kPrevious, layout.previous, playing, hovered == Button::kPrevious);
-  DrawButton(canvas, Button::kPlay, layout.play, playing, hovered == Button::kPlay);
+  DrawButton(canvas, Button::kPlay, layout.play, playing, hovered == Button::kPlay, mute_button, muted);
   DrawButton(canvas, Button::kNext, layout.next, playing, hovered == Button::kNext);
   return layout;
 }
 
-// 矢量按钮图标（圆角三角 / 竖条），悬停时垫一个淡色圆。
+// 矢量按钮图标（圆角三角 / 竖条 / 喇叭静音），悬停时垫一个淡色圆。
 void TaskbarLyricsPainter::DrawButton(const Canvas& canvas, Button kind, const Rect& rect, bool playing,
-                                      bool hovered) {
+                                      bool hovered, bool mute_button, bool muted) {
   Graphics* g = canvas.graphics;
   const BYTE r = canvas.color.GetR(), gg = canvas.color.GetG(), b = canvas.color.GetB();
   // 按钮保留可用下限，整体很淡时也点得到
@@ -412,7 +412,31 @@ void TaskbarLyricsPainter::DrawButton(const Canvas& canvas, Button kind, const R
 
   switch (kind) {
     case Button::kPlay:
-      if (playing) {
+      if (mute_button) {
+        // 喇叭主体（左侧矩形 + 梯形锥体）
+        PointF speaker[6] = {
+            PointF(x0 + s * 0.04f, cy - s * 0.16f),
+            PointF(x0 + s * 0.24f, cy - s * 0.16f),
+            PointF(x0 + s * 0.50f, y0 + s * 0.10f),
+            PointF(x0 + s * 0.50f, y0 + s * 0.90f),
+            PointF(x0 + s * 0.24f, cy + s * 0.16f),
+            PointF(x0 + s * 0.04f, cy + s * 0.16f),
+        };
+        g->FillPolygon(&brush, speaker, 6);
+        g->DrawPolygon(&round, speaker, 6);
+        Gdiplus::Pen stroke(&brush, (std::max)(1.3f, rect.Width * 0.075f));
+        stroke.SetStartCap(Gdiplus::LineCapRound);
+        stroke.SetEndCap(Gdiplus::LineCapRound);
+        if (muted) {
+          // 静音叉号
+          g->DrawLine(&stroke, x0 + s * 0.66f, cy - s * 0.18f, x0 + s * 0.96f, cy + s * 0.18f);
+          g->DrawLine(&stroke, x0 + s * 0.96f, cy - s * 0.18f, x0 + s * 0.66f, cy + s * 0.18f);
+        } else {
+          // 声波弧线（两道）
+          g->DrawArc(&stroke, x0 + s * 0.44f, cy - s * 0.22f, s * 0.34f, s * 0.44f, -55.0f, 110.0f);
+          g->DrawArc(&stroke, x0 + s * 0.48f, cy - s * 0.36f, s * 0.50f, s * 0.72f, -55.0f, 110.0f);
+        }
+      } else if (playing) {
         bar(cx - s * 0.36f, s * 0.26f);
         bar(cx + s * 0.10f, s * 0.26f);
       } else {

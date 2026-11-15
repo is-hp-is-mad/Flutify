@@ -53,7 +53,8 @@ class TaskbarLyricsPainter {
                    const std::wstring& next, const std::wstring& current_translation, float progress);
 
   ControlLayout PaintControl(const Canvas& canvas, const std::wstring& title, const std::wstring& artist,
-                             Gdiplus::Bitmap* art, bool playing, Button hovered);
+                             Gdiplus::Bitmap* art, bool playing, Button hovered, bool mute_button = false,
+                             bool muted = false);
 
  private:
   // 缓存淘汰只在绘制入口（尚未持有任何 Font*）进行，FontFor 本身不淘汰
@@ -67,7 +68,8 @@ class TaskbarLyricsPainter {
                 int alpha);
   void DrawFilmLine(const Canvas& canvas, const std::wstring& text, float top, float slot, double big_pt,
                     double small_pt, double width_scale);
-  void DrawButton(const Canvas& canvas, Button kind, const Gdiplus::Rect& rect, bool playing, bool hovered);
+  void DrawButton(const Canvas& canvas, Button kind, const Gdiplus::Rect& rect, bool playing, bool hovered,
+                  bool mute_button = false, bool muted = false);
 
   // App 自带的 MiSans（Demibold 作粗体、Regular 作常规）；加载失败时为空，退回系统字体
   std::unique_ptr<Gdiplus::PrivateFontCollection> bold_collection_;

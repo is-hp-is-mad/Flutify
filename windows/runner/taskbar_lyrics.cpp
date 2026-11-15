@@ -181,6 +181,8 @@ void TaskbarLyrics::OnMethodCall(const flutter::MethodCall<EncodableValue>& call
     } else if (method == "setPlayback") {
       if (args) {
         shared_.playing = GetBool(*args, "playing");
+        shared_.mute_button = GetBool(*args, "muteButton");
+        shared_.muted = GetBool(*args, "muted");
         shared_.anchor_ms = GetInt(*args, "positionMs", 0);
         shared_.anchor_tick = GetTickCount64();
       }

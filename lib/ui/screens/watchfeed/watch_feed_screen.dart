@@ -16,6 +16,7 @@ import '../../../providers/appearance_provider.dart';
 import '../../../providers/playback_provider.dart';
 import '../../../providers/preferences_provider.dart';
 import '../../../services/spotify_api_service.dart';
+import '../../../services/taskbar_lyrics/taskbar_lyrics_controls.dart';
 import '../../../services/watchfeed/preview_player.dart';
 import '../../shell/shell_chrome.dart';
 import '../../widgets/skeleton.dart';
@@ -80,6 +81,7 @@ class _WatchFeedScreenState extends State<WatchFeedScreen> {
   String _associatedHint = '';
   bool _showAssociatedHint = false;
   Timer? _associatedHintTimer;
+  TaskbarLyricsControls? _taskbarLyrics;
 
   @override
   void initState() {
@@ -87,12 +89,14 @@ class _WatchFeedScreenState extends State<WatchFeedScreen> {
     _feedUris = [widget.feedUri];
     _titles = [if (widget.title.isNotEmpty) widget.title];
     _lifecycle = AppLifecycleListener(onStateChange: _onLifecycle);
+    _taskbarLyrics = context.read<TaskbarLyricsControls?>();
     // 本页即播放器：进入时暂停主播放（官方 feed 同样接管声音）。
     WidgetsBinding.instance.addPostFrameCallback((_) => _pauseMainPlayback());
   }
 
   @override
   void dispose() {
+    _taskbarLyrics?.clearWatchFeedOverride();
     // 撤回「隐藏底部导航」请求；放到微任务里，避免在卸载树的过程中通知外壳重建。
     final chrome = ShellChrome.instance;
     final owner = this;
@@ -189,6 +193,7 @@ class _WatchFeedScreenState extends State<WatchFeedScreen> {
   /// - 否则本页重新接管声音（feed 即播放器）。
   Future<void> _cover(Widget page) async {
     await _player.pause();
+    _taskbarLyrics?.clearWatchFeedOverride();
     if (!mounted) return;
     setState(() => _covered = true);
     await Navigator.of(
@@ -605,11 +610,21 @@ class _FeedPagerState extends State<_FeedPager> {
 
   /// 滚轮冷却（按事件时间戳）。
   Duration? _lastWheel;
+  TaskbarLyricsControls? _taskbarLyrics;
 
   @override
   void initState() {
     super.initState();
+    _taskbarLyrics = context.read<TaskbarLyricsControls?>();
+    widget.player.addListener(_syncTaskbarLyrics);
     _loadMore();
+  }
+
+  @override
+  void dispose() {
+    widget.player.removeListener(_syncTaskbarLyrics);
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
@@ -621,12 +636,6 @@ class _FeedPagerState extends State<_FeedPager> {
         if (mounted) _playCurrent();
       });
     }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
   }
 
   Future<void> _loadMore() async {
@@ -674,6 +683,21 @@ class _FeedPagerState extends State<_FeedPager> {
     } else {
       widget.player.play(audio);
     }
+    _syncTaskbarLyrics();
+  }
+
+  void _syncTaskbarLyrics() {
+    final taskbar = _taskbarLyrics;
+    if (taskbar == null || !mounted || !widget.active || _items.isEmpty) return;
+    final cur = _index.clamp(0, _items.length - 1);
+    taskbar.setWatchFeedItem(
+      _items[cur],
+      badge: context.l10n.watchFeedBadge,
+      muted: widget.player.muted,
+      onPrevious: cur > 0 ? () => _step(-1) : null,
+      onToggleMute: () => widget.player.setMuted(!widget.player.muted),
+      onNext: cur + 1 < _items.length ? () => _step(1) : null,
+    );
   }
 
   void _onPageChanged(int index) {

@@ -85,6 +85,8 @@ class TaskbarLyricsWindow {
   std::unique_ptr<Gdiplus::Bitmap> art_;
   std::vector<taskbar_lyrics::LyricLine> lines_;
   bool playing_ = false;
+  bool mute_button_ = false;
+  bool muted_ = false;
   int64_t anchor_ms_ = 0;
   ULONGLONG anchor_tick_ = 0;
   taskbar_lyrics::Style style_;

@@ -17,6 +17,7 @@ import '../../../../providers/appearance_provider.dart';
 import '../../../../providers/library_provider.dart';
 import '../../../../providers/playback_provider.dart';
 import '../../../../services/spotify_api_service.dart';
+import '../../../../services/taskbar_lyrics/taskbar_lyrics_controls.dart';
 import '../../../../services/watchfeed/preview_player.dart';
 import '../../../navigation/app_routes.dart';
 import '../../../widgets/cover_image.dart';
@@ -170,12 +171,15 @@ class _DesktopWatchFeedState extends State<DesktopWatchFeed> {
 
   Duration? _lastWheel;
   PlaybackProvider? _playback;
+  TaskbarLyricsControls? _taskbarLyrics;
 
   @override
   void initState() {
     super.initState();
     _source = _sourceFor(widget.feedUri, widget.initialPage);
     _lifecycle = AppLifecycleListener(onStateChange: _onLifecycle);
+    _taskbarLyrics = context.read<TaskbarLyricsControls?>();
+    _player.addListener(_syncTaskbarLyrics);
     final playback = context.read<PlaybackProvider?>();
     _playback = playback;
     if (playback != null) {
@@ -189,6 +193,8 @@ class _DesktopWatchFeedState extends State<DesktopWatchFeed> {
 
   @override
   void dispose() {
+    _player.removeListener(_syncTaskbarLyrics);
+    _taskbarLyrics?.clearWatchFeedOverride();
     _playback?.removeListener(_syncVolume);
     _lifecycle.dispose();
     _focus.dispose();
@@ -266,6 +272,21 @@ class _DesktopWatchFeedState extends State<DesktopWatchFeed> {
     } else {
       _player.play(audio);
     }
+    _syncTaskbarLyrics();
+  }
+
+  void _syncTaskbarLyrics() {
+    final taskbar = _taskbarLyrics;
+    if (taskbar == null || !mounted || _items.isEmpty) return;
+    taskbar.setWatchFeedItem(
+      _items[_index],
+      badge: context.l10n.watchFeedBadge,
+      muted: _player.muted,
+      fallbackTitle: widget.title,
+      onPrevious: _index > 0 ? () => _move(-1) : null,
+      onToggleMute: () => _player.setMuted(!_player.muted),
+      onNext: _index + 1 < _items.length ? () => _move(1) : null,
+    );
   }
 
   void _onPageChanged(int index) {

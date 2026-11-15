@@ -343,6 +343,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get watchFeedDiscoverTitle => 'Discover something new';
 
   @override
+  String get watchFeedBadge => 'Discovery';
+
+  @override
   String get watchFeedPaused => 'Paused. Tap to resume';
 
   @override

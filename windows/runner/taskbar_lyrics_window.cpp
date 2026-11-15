@@ -314,6 +314,8 @@ void TaskbarLyricsWindow::SyncState() {
       frame_signature_.clear();
     }
     playing_ = shared_->playing;
+    mute_button_ = shared_->mute_button;
+    muted_ = shared_->muted;
     anchor_ms_ = shared_->anchor_ms;
     anchor_tick_ = shared_->anchor_tick;
   }
@@ -639,7 +641,8 @@ void TaskbarLyricsWindow::Render() {
   float eased = 1;
   std::wstring signature;
   if (control) {
-    signature = L"C|" + title_ + L"|" + artist_ + L"|" + (playing_ ? L"1" : L"0") + L"|" + (art_ ? L"1" : L"0") +
+    signature = L"C|" + title_ + L"|" + artist_ + L"|" + (playing_ ? L"1" : L"0") + L"|" +
+                (mute_button_ ? L"M" : L"P") + (muted_ ? L"1" : L"0") + L"|" + (art_ ? L"1" : L"0") +
                 L"|" + std::to_wstring(static_cast<int>(hovered_button_)) + L"|" + style_sig;
   } else {
     // 最后一个开始时间 <= 当前进度（含提前量）的行；第一句之前为 -1
@@ -688,7 +691,7 @@ void TaskbarLyricsWindow::Render() {
                                                 style_.font_scale / 100.0};
   if (control) {
     layout_ = painter_->PaintControl(canvas, title_.empty() ? L"Flutify" : title_, artist_, art_.get(), playing_,
-                                     hovered_button_);
+                                     hovered_button_, mute_button_, muted_);
   } else {
     painter_->PaintLyrics(canvas, previous, current, next, current_trans, eased);
   }

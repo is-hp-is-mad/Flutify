@@ -15,6 +15,7 @@ import 'package:http/testing.dart';
 /// 记录所有调用的内存版原生端。
 class _FakePlatform implements TaskbarLyricsPlatform {
   final List<String> calls = [];
+  String? lastArtist;
   final StreamController<TaskbarLyricsEvent> controller =
       StreamController.broadcast();
   List<LyricLine>? lyrics;
@@ -30,8 +31,10 @@ class _FakePlatform implements TaskbarLyricsPlatform {
       calls.add('style:${style.mode.name}');
 
   @override
-  Future<void> setTrack(({String title, String artist})? track) async =>
-      calls.add('track:${track?.title}');
+  Future<void> setTrack(({String title, String artist})? track) async {
+    lastArtist = track?.artist;
+    calls.add('track:${track?.title}');
+  }
 
   @override
   Future<void> setArt(Uint8List? bytes) async =>
@@ -47,7 +50,11 @@ class _FakePlatform implements TaskbarLyricsPlatform {
   Future<void> setPlayback({
     required bool playing,
     required Duration position,
-  }) async => calls.add('playback:$playing');
+    bool muteButton = false,
+    bool muted = false,
+  }) async => calls.add(
+    muteButton ? 'playback:$playing:mute=$muted' : 'playback:$playing',
+  );
 }
 
 /// 只记录调用的系统媒体控制端（测 MultiMediaControls）。
@@ -391,6 +398,58 @@ void main() {
       await sub.cancel();
       multi.dispose();
       expect(a.disposed && b.disposed, isTrue);
+    });
+  });
+
+  group('发现流试听覆盖', () {
+    test('显示发现流曲目与来源标注，中间按键路由到静音，退出后恢复主播放', () async {
+      await controls.setTrack(track);
+      controls.configure(enabled: true, style: style);
+      await settle();
+      await settle();
+      platform.calls.clear();
+
+      var toggled = 0, nexted = 0, preved = 0;
+      controls.setWatchFeedOverride(
+        title: 'Seve',
+        subtitle: '发现流 · Tez Cadey',
+        artUrl: '',
+        muted: false,
+        onPrevious: () => preved++,
+        onToggleMute: () => toggled++,
+        onNext: () => nexted++,
+      );
+      await settle();
+
+      expect(
+        platform.calls,
+        containsAllInOrder([
+          'track:Seve',
+          'lyrics:null',
+          'playback:true:mute=false',
+        ]),
+      );
+      expect(platform.lastArtist, '发现流 · Tez Cadey');
+
+      final mainEvents = <MediaControlEvent>[];
+      final sub = controls.events.listen(mainEvents.add);
+      platform.controller.add(TaskbarLyricsEvent.toggle);
+      platform.controller.add(TaskbarLyricsEvent.next);
+      platform.controller.add(TaskbarLyricsEvent.previous);
+      await settle();
+      expect(toggled, 1);
+      expect(nexted, 1);
+      expect(preved, 1);
+      expect(mainEvents, isEmpty);
+
+      platform.calls.clear();
+      controls.clearWatchFeedOverride();
+      await settle();
+      await settle();
+      expect(platform.calls, contains('track:Song'));
+      expect(platform.lastArtist, 'Singer');
+      expect(platform.lyrics, hasLength(2));
+      await sub.cancel();
     });
   });
 }

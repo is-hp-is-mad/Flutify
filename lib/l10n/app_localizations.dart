@@ -695,6 +695,12 @@ abstract class AppLocalizations {
   /// **'发现新内容'**
   String get watchFeedDiscoverTitle;
 
+  /// 发现流试听期间在任务栏歌词控制条上标注的来源标签
+  ///
+  /// In zh, this message translates to:
+  /// **'发现流'**
+  String get watchFeedBadge;
+
   /// 发现流轻点暂停后中央播放图标的无障碍标签
   ///
   /// In zh, this message translates to:

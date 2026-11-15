@@ -202,6 +202,8 @@
   "searchBrowseAll": "浏览全部",
   "watchFeedDiscoverTitle": "发现新内容",
   "@watchFeedDiscoverTitle": {"description": "搜索页官方发现流入口的默认标题（服务端未给标题时使用）"},
+  "watchFeedBadge": "发现流",
+  "@watchFeedBadge": {"description": "发现流试听期间在任务栏歌词控制条上标注的来源标签"},
   "watchFeedPaused": "已暂停，轻点继续播放",
   "@watchFeedPaused": {"description": "发现流轻点暂停后中央播放图标的无障碍标签"},
   "watchFeedMute": "静音",

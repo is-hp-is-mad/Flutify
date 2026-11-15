@@ -136,6 +136,7 @@
   "searchClearAll": "Clear all",
   "searchBrowseAll": "Browse all",
   "watchFeedDiscoverTitle": "Discover something new",
+  "watchFeedBadge": "Discovery",
   "watchFeedPaused": "Paused. Tap to resume",
   "watchFeedMute": "Mute",
   "watchFeedUnmute": "Unmute",
