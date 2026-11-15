@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
@@ -44,6 +45,7 @@ class _CanvasArtworkState extends State<CanvasArtwork>
   int _revision = 0;
   int _viewRevision = 0;
   bool _videoMounted = false;
+  bool _envReady = !Platform.isWindows || EmePlayer.cachedEnvironment != null;
   String? _videoHtml;
   Timer? _timeout;
 
@@ -51,6 +53,11 @@ class _CanvasArtworkState extends State<CanvasArtwork>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    if (!_envReady) {
+      EmePlayer.ensureEnvironment().then((_) {
+        if (mounted) setState(() => _envReady = true);
+      });
+    }
   }
 
   @override
@@ -130,8 +137,8 @@ class _CanvasArtworkState extends State<CanvasArtwork>
       size: widget.size,
       borderRadius: widget.borderRadius,
     );
-    // Linux 桌面没有内嵌 WebView，Canvas 视频无法播放；退回静态封面。
-    final videoPlayable = !FlutifyPlatform.isLinuxDesktop;
+    // Linux 桌面没有内嵌 WebView，Canvas 视频无法播放；Windows 需等共享 WebView2 环境就绪再挂载。
+    final videoPlayable = _envReady && !FlutifyPlatform.isLinuxDesktop;
     if (!active ||
         media == null ||
         _failed ||

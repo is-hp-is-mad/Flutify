@@ -1072,7 +1072,14 @@ const playIfRequested = (el, gen) => {
   el.play().then(() => {
     if (audio === el && gen === intentGen && playRequested) el.muted = false;
     else el.pause();
-  }).catch(() => {});
+  }).catch((e) => {
+    const name = e && e.name ? e.name : '';
+    const msg = e && e.message ? e.message : String(e || 'unknown');
+    send('log', {msg: 'audio.play() 失败: ' + (name ? name + ': ' : '') + msg, gen});
+    if (name !== 'AbortError' && audio === el && gen === intentGen && playRequested) {
+      send('error', {msg: 'audio.play() 失败: ' + (name ? name + ': ' : '') + msg, gen});
+    }
+  });
 };
 // 当前曲目的 'emeStall' 监听（模块级保存，换歌时先摘掉上一首的，避免旧闭包对新曲目报错）
 let stallListener = null;

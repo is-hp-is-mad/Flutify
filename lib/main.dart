@@ -289,7 +289,9 @@ Future<Widget> _initializeApp(
       certFetcher: licenseClient.fetchCert,
     );
   } else {
-    // 首页不等待桌面 WebView2；首次播放 DRM 曲目时再初始化。
+    // 首页不等待桌面 WebView2 页面启动；但必须在任何 InAppWebView 挂载前建好共享环境，
+    // 否则发现流视频卡片 / Canvas 会先以默认环境初始化 WebView2，导致 EME 无法关闭自动播放限制。
+    await EmePlayer.ensureEnvironment();
     final webEngine = EmeAudioEngine(
       player: emePlayer,
       licensePoster: licenseClient.postLicense,

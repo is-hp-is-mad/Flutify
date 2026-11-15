@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
@@ -48,9 +49,20 @@ class _LoopingVideoState extends State<LoopingVideo> {
   Timer? _timeout;
   bool _ready = false;
   bool _failed = false;
+  bool _envReady = !Platform.isWindows || EmePlayer.cachedEnvironment != null;
 
   /// 地址变化或 WebView 重建时递增，作废旧 WebView 的回调。
   int _revision = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!_envReady) {
+      EmePlayer.ensureEnvironment().then((_) {
+        if (mounted) setState(() => _envReady = true);
+      });
+    }
+  }
 
   @override
   void didUpdateWidget(covariant LoopingVideo oldWidget) {
@@ -123,6 +135,7 @@ class _LoopingVideoState extends State<LoopingVideo> {
   Widget build(BuildContext context) {
     final poster = CoverImage(url: widget.posterUrl);
     final canPlay =
+        _envReady &&
         widget.active &&
         widget.videoUrl.startsWith('https://') &&
         !FlutifyPlatform.isLinuxDesktop &&

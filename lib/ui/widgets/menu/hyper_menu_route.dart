@@ -168,12 +168,11 @@ class _HyperMenuState<T> extends State<_HyperMenu<T>>
     final secRaw = widget.route.secondaryAnimation?.value ?? 0.0;
     final clampedSec = secRaw.clamp(0.0, 1.0);
     final sec = Curves.easeOutCubic.transform(clampedSec);
-    // 缩放使用带轻微过冲的弹性曲线，增强前后层次的弹跳感；模糊/透明度/压暗保持在 [0, 1] 内。
-    final secBounce = const Cubic(0.34, 1.45, 0.64, 1.0).transform(clampedSec);
-    final bgScale = lerpDouble(1.0, 0.95, secBounce)!;
+    // 底层菜单几乎不回退（仅极微弱缩放），主要通过内容虚化与轻微压暗突出前景菜单主体性。
+    final bgScale = lerpDouble(1.0, 0.99, sec)!;
     final contentOpacity = lerpDouble(1.0, 0.72, sec)!;
     // 只模糊菜单内容本身（不包住 HyperBlendSurface），避免 saveLayer 破坏底层 BackdropFilter 导致背景字透出
-    final bgBlur = (sec * 5).roundToDouble() * 0.5;
+    final bgBlur = (sec * 6).roundToDouble() * 0.5;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final dimColor = Color.lerp(
       Colors.transparent,
