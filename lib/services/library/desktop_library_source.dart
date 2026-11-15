@@ -120,20 +120,43 @@ class DesktopLibrarySource implements LibrarySource {
   Future<List<SpotifyPlaylist>> fetchPlaylists() async {
     if (!_hasUsername) return const [];
     final user = _username();
-    final res = await _client.get(
-      Uri.parse('$_spclient/playlist/v2/user/${Uri.encodeComponent(user)}/rootlist'
-          '?decorate=revision,attributes,length,owner&from=0&length=$playlistLimit'),
-      headers: await _headers(),
-    );
-    if (res.statusCode != 200) throw LibrarySourceException('读取歌单失败', res.statusCode);
-
-    final Map<String, dynamic> json;
-    try {
-      json = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
-    } catch (e) {
-      throw LibrarySourceException('歌单数据格式异常：$e');
+    List<SpotifyPlaylist>? playlists;
+    if (useRustBackend && RustCore.ready) {
+      final url =
+          '$_spclient/playlist/v2/user/${Uri.encodeComponent(user)}/rootlist'
+          '?decorate=revision,attributes,length,owner&from=0&length=$playlistLimit';
+      final proxy = await RustBackendBridge.proxyForUrl(url);
+      if (proxy != null) {
+        rust.rustSessionSetProxy(proxy: proxy);
+        final dtos = await rust.rustFetchRootlist(
+          spclientBase: _spclient,
+          username: Uri.encodeComponent(user),
+        );
+        playlists = [
+          for (final d in dtos) RustBackendBridge.playlistSummaryFromDto(d),
+        ];
+      }
     }
-    final playlists = RootlistParser.parse(json);
+    if (playlists == null) {
+      final res = await _client.get(
+        Uri.parse(
+          '$_spclient/playlist/v2/user/${Uri.encodeComponent(user)}/rootlist'
+          '?decorate=revision,attributes,length,owner&from=0&length=$playlistLimit',
+        ),
+        headers: await _headers(),
+      );
+      if (res.statusCode != 200) {
+        throw LibrarySourceException('读取歌单失败', res.statusCode);
+      }
+
+      final Map<String, dynamic> json;
+      try {
+        json = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+      } catch (e) {
+        throw LibrarySourceException('歌单数据格式异常：$e');
+      }
+      playlists = RootlistParser.parse(json);
+    }
 
     // rootlist 未带元数据（名称为空）的条目补查概要；仍无封面（未设置封面的自建歌单）
     // 用前几首曲目的专辑封面拼四宫格。任一步失败都保留原条目，UI 显示「未命名」/ 占位图标

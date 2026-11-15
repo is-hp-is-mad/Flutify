@@ -6,7 +6,7 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `from`, `from`, `from`, `from`, `from`, `from`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
 
 void rustSessionConfigure({required RustSessionConfig config}) =>
     RustLib.instance.api.crateApiBackendRustSessionConfigure(config: config);
@@ -70,6 +70,206 @@ Future<List<RustCollectionEntryDto>> rustFetchCollectionEntries({
   pageSize: pageSize,
 );
 
+/// 通用 Pathfinder 查询（自动鉴权、401 刷新、429 退避与代理路由），返回 `data` 字段 JSON 串。
+Future<String> rustPathfinderQuery({
+  required String operation,
+  required String hash,
+  required String variablesJson,
+}) => RustLib.instance.api.crateApiBackendRustPathfinderQuery(
+  operation: operation,
+  hash: hash,
+  variablesJson: variablesJson,
+);
+
+/// 流式/懒加载歌单：先返回首 100 首，后续分页在后台增量推送给 `sink`。
+Stream<RustPlaylistDto> rustFetchPlaylistStream({
+  required String spclientBase,
+  required String playlistId,
+  required String decorateHash,
+}) => RustLib.instance.api.crateApiBackendRustFetchPlaylistStream(
+  spclientBase: spclientBase,
+  playlistId: playlistId,
+  decorateHash: decorateHash,
+);
+
+Future<List<RustPlaylistSummaryDto>> rustFetchRootlist({
+  required String spclientBase,
+  required String username,
+}) => RustLib.instance.api.crateApiBackendRustFetchRootlist(
+  spclientBase: spclientBase,
+  username: username,
+);
+
+Future<RustTrackCreditsDto?> rustFetchTrackCredits({
+  required String hash,
+  required String trackUri,
+}) => RustLib.instance.api.crateApiBackendRustFetchTrackCredits(
+  hash: hash,
+  trackUri: trackUri,
+);
+
+Future<BigInt> rustAudioCacheSizeBytes({required String dirPath}) => RustLib
+    .instance
+    .api
+    .crateApiBackendRustAudioCacheSizeBytes(dirPath: dirPath);
+
+Future<BigInt> rustAudioCacheClear({
+  required String dirPath,
+  required List<String> protectedPaths,
+}) => RustLib.instance.api.crateApiBackendRustAudioCacheClear(
+  dirPath: dirPath,
+  protectedPaths: protectedPaths,
+);
+
+Future<BigInt> rustAudioCacheTrim({
+  required String dirPath,
+  required BigInt maxBytes,
+  required List<String> protectedPaths,
+}) => RustLib.instance.api.crateApiBackendRustAudioCacheTrim(
+  dirPath: dirPath,
+  maxBytes: maxBytes,
+  protectedPaths: protectedPaths,
+);
+
+Future<RustWatchFeedPageDto> rustFetchWatchFeedProto({
+  required String spclientBase,
+  required String feedId,
+  String? entityId,
+  required List<(String, String)> parameters,
+  Uint8List? pageToken,
+}) => RustLib.instance.api.crateApiBackendRustFetchWatchFeedProto(
+  spclientBase: spclientBase,
+  feedId: feedId,
+  entityId: entityId,
+  parameters: parameters,
+  pageToken: pageToken,
+);
+
+Future<RustWatchFeedShelfDto?> rustFetchWatchFeedBrowseShelf({
+  required String spclientBase,
+  String? timezone,
+}) => RustLib.instance.api.crateApiBackendRustFetchWatchFeedBrowseShelf(
+  spclientBase: spclientBase,
+  timezone: timezone,
+);
+
+Future<RustWatchFeedShelfDto?> rustFetchWatchFeedSeedShelf({
+  required String spclientBase,
+  required String trackUri,
+  required String creatorUri,
+  required String contextUri,
+}) => RustLib.instance.api.crateApiBackendRustFetchWatchFeedSeedShelf(
+  spclientBase: spclientBase,
+  trackUri: trackUri,
+  creatorUri: creatorUri,
+  contextUri: contextUri,
+);
+
+Future<RustStorageResolveDto> rustResolveAudioStorage({
+  required String spclientBase,
+  required String fileIdHex,
+}) => RustLib.instance.api.crateApiBackendRustResolveAudioStorage(
+  spclientBase: spclientBase,
+  fileIdHex: fileIdHex,
+);
+
+Future<List<RustExtendedMetadataEntryDto>> rustFetchExtendedMetadata({
+  required String spclientBase,
+  required List<String> entityUris,
+  required int kind,
+}) => RustLib.instance.api.crateApiBackendRustFetchExtendedMetadata(
+  spclientBase: spclientBase,
+  entityUris: entityUris,
+  kind: kind,
+);
+
+Future<RustApWelcomeDto> rustApConnectAndLogin({
+  String? host,
+  int? port,
+  required String proxy,
+  required String username,
+  required int authType,
+  required List<int> authData,
+  required String deviceId,
+}) => RustLib.instance.api.crateApiBackendRustApConnectAndLogin(
+  host: host,
+  port: port,
+  proxy: proxy,
+  username: username,
+  authType: authType,
+  authData: authData,
+  deviceId: deviceId,
+);
+
+Future<Uint8List> rustApRequestAudioKey({
+  required BigInt sessionId,
+  required List<int> fileId,
+  required List<int> trackGid,
+}) => RustLib.instance.api.crateApiBackendRustApRequestAudioKey(
+  sessionId: sessionId,
+  fileId: fileId,
+  trackGid: trackGid,
+);
+
+Future<Uint8List> rustApMercuryGet({
+  required BigInt sessionId,
+  required String uri,
+}) => RustLib.instance.api.crateApiBackendRustApMercuryGet(
+  sessionId: sessionId,
+  uri: uri,
+);
+
+Future<void> rustApClose({required BigInt sessionId}) =>
+    RustLib.instance.api.crateApiBackendRustApClose(sessionId: sessionId);
+
+Future<RustHttpRawDto> rustConnectStateRequest({
+  required String spclientHost,
+  required String method,
+  required String path,
+  required String connectionId,
+  String? bodyJson,
+}) => RustLib.instance.api.crateApiBackendRustConnectStateRequest(
+  spclientHost: spclientHost,
+  method: method,
+  path: path,
+  connectionId: connectionId,
+  bodyJson: bodyJson,
+);
+
+Future<RustLrclibResponseDto> rustLrclibGet({
+  required String track,
+  required String artist,
+  required String album,
+  required int durationSec,
+}) => RustLib.instance.api.crateApiBackendRustLrclibGet(
+  track: track,
+  artist: artist,
+  album: album,
+  durationSec: durationSec,
+);
+
+Future<RustLrclibResponseDto> rustLrclibSearch({
+  required String track,
+  required String artist,
+  required String q,
+}) => RustLib.instance.api.crateApiBackendRustLrclibSearch(
+  track: track,
+  artist: artist,
+  q: q,
+);
+
+Future<RustHttpRawDto> rustLyricsHttpRequest({
+  required String method,
+  required String url,
+  required List<(String, String)> headers,
+  Uint8List? body,
+}) => RustLib.instance.api.crateApiBackendRustLyricsHttpRequest(
+  method: method,
+  url: url,
+  headers: headers,
+  body: body,
+);
+
 class RustAlbumDto {
   final String id;
   final String name;
@@ -96,6 +296,37 @@ class RustAlbumDto {
           name == other.name &&
           uri == other.uri &&
           images == other.images;
+}
+
+class RustApWelcomeDto {
+  final BigInt sessionId;
+  final String canonicalUsername;
+  final int reusableAuthType;
+  final Uint8List reusableAuth;
+
+  const RustApWelcomeDto({
+    required this.sessionId,
+    required this.canonicalUsername,
+    required this.reusableAuthType,
+    required this.reusableAuth,
+  });
+
+  @override
+  int get hashCode =>
+      sessionId.hashCode ^
+      canonicalUsername.hashCode ^
+      reusableAuthType.hashCode ^
+      reusableAuth.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RustApWelcomeDto &&
+          runtimeType == other.runtimeType &&
+          sessionId == other.sessionId &&
+          canonicalUsername == other.canonicalUsername &&
+          reusableAuthType == other.reusableAuthType &&
+          reusableAuth == other.reusableAuth;
 }
 
 class RustArtistDto {
@@ -157,6 +388,84 @@ class RustCollectionEntryDto {
           addedAtSec == other.addedAtSec;
 }
 
+class RustCreditGroupDto {
+  final String name;
+  final List<RustCreditPersonDto> people;
+
+  const RustCreditGroupDto({required this.name, required this.people});
+
+  @override
+  int get hashCode => name.hashCode ^ people.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RustCreditGroupDto &&
+          runtimeType == other.runtimeType &&
+          name == other.name &&
+          people == other.people;
+}
+
+class RustCreditPersonDto {
+  final String name;
+  final List<String> roles;
+  final String artistId;
+
+  const RustCreditPersonDto({
+    required this.name,
+    required this.roles,
+    required this.artistId,
+  });
+
+  @override
+  int get hashCode => name.hashCode ^ roles.hashCode ^ artistId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RustCreditPersonDto &&
+          runtimeType == other.runtimeType &&
+          name == other.name &&
+          roles == other.roles &&
+          artistId == other.artistId;
+}
+
+class RustExtendedMetadataEntryDto {
+  final String uri;
+  final Uint8List data;
+
+  const RustExtendedMetadataEntryDto({required this.uri, required this.data});
+
+  @override
+  int get hashCode => uri.hashCode ^ data.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RustExtendedMetadataEntryDto &&
+          runtimeType == other.runtimeType &&
+          uri == other.uri &&
+          data == other.data;
+}
+
+class RustHttpRawDto {
+  final int status;
+  final Uint8List body;
+
+  const RustHttpRawDto({required this.status, required this.body});
+
+  @override
+  int get hashCode => status.hashCode ^ body.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RustHttpRawDto &&
+          runtimeType == other.runtimeType &&
+          status == other.status &&
+          body == other.body;
+}
+
 class RustImageDto {
   final String url;
   final int? width;
@@ -175,6 +484,74 @@ class RustImageDto {
           url == other.url &&
           width == other.width &&
           height == other.height;
+}
+
+class RustLrclibCandidateDto {
+  final PlatformInt64 id;
+  final String trackName;
+  final String artistName;
+  final String albumName;
+  final double durationSec;
+  final bool instrumental;
+  final String plainLyrics;
+  final String syncedLyrics;
+
+  const RustLrclibCandidateDto({
+    required this.id,
+    required this.trackName,
+    required this.artistName,
+    required this.albumName,
+    required this.durationSec,
+    required this.instrumental,
+    required this.plainLyrics,
+    required this.syncedLyrics,
+  });
+
+  @override
+  int get hashCode =>
+      id.hashCode ^
+      trackName.hashCode ^
+      artistName.hashCode ^
+      albumName.hashCode ^
+      durationSec.hashCode ^
+      instrumental.hashCode ^
+      plainLyrics.hashCode ^
+      syncedLyrics.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RustLrclibCandidateDto &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          trackName == other.trackName &&
+          artistName == other.artistName &&
+          albumName == other.albumName &&
+          durationSec == other.durationSec &&
+          instrumental == other.instrumental &&
+          plainLyrics == other.plainLyrics &&
+          syncedLyrics == other.syncedLyrics;
+}
+
+class RustLrclibResponseDto {
+  final List<RustLrclibCandidateDto> candidates;
+  final bool networkError;
+
+  const RustLrclibResponseDto({
+    required this.candidates,
+    required this.networkError,
+  });
+
+  @override
+  int get hashCode => candidates.hashCode ^ networkError.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RustLrclibResponseDto &&
+          runtimeType == other.runtimeType &&
+          candidates == other.candidates &&
+          networkError == other.networkError;
 }
 
 class RustPlaylistDto {
@@ -224,6 +601,49 @@ class RustPlaylistDto {
           tracks == other.tracks;
 }
 
+class RustPlaylistSummaryDto {
+  final String id;
+  final String name;
+  final String uri;
+  final String description;
+  final String ownerName;
+  final List<RustImageDto> images;
+  final int totalTracks;
+
+  const RustPlaylistSummaryDto({
+    required this.id,
+    required this.name,
+    required this.uri,
+    required this.description,
+    required this.ownerName,
+    required this.images,
+    required this.totalTracks,
+  });
+
+  @override
+  int get hashCode =>
+      id.hashCode ^
+      name.hashCode ^
+      uri.hashCode ^
+      description.hashCode ^
+      ownerName.hashCode ^
+      images.hashCode ^
+      totalTracks.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RustPlaylistSummaryDto &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          name == other.name &&
+          uri == other.uri &&
+          description == other.description &&
+          ownerName == other.ownerName &&
+          images == other.images &&
+          totalTracks == other.totalTracks;
+}
+
 class RustSessionConfig {
   final String spDc;
   final String accessToken;
@@ -271,6 +691,30 @@ class RustSessionConfig {
           epoch == other.epoch;
 }
 
+class RustStorageResolveDto {
+  final int result;
+  final List<String> cdnUrls;
+  final Uint8List fileId;
+
+  const RustStorageResolveDto({
+    required this.result,
+    required this.cdnUrls,
+    required this.fileId,
+  });
+
+  @override
+  int get hashCode => result.hashCode ^ cdnUrls.hashCode ^ fileId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RustStorageResolveDto &&
+          runtimeType == other.runtimeType &&
+          result == other.result &&
+          cdnUrls == other.cdnUrls &&
+          fileId == other.fileId;
+}
+
 class RustTokenResult {
   final String token;
   final PlatformInt64 expiryMs;
@@ -287,6 +731,30 @@ class RustTokenResult {
           runtimeType == other.runtimeType &&
           token == other.token &&
           expiryMs == other.expiryMs;
+}
+
+class RustTrackCreditsDto {
+  final String trackName;
+  final List<RustCreditGroupDto> groups;
+  final List<String> sources;
+
+  const RustTrackCreditsDto({
+    required this.trackName,
+    required this.groups,
+    required this.sources,
+  });
+
+  @override
+  int get hashCode => trackName.hashCode ^ groups.hashCode ^ sources.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RustTrackCreditsDto &&
+          runtimeType == other.runtimeType &&
+          trackName == other.trackName &&
+          groups == other.groups &&
+          sources == other.sources;
 }
 
 class RustTrackDto {
@@ -338,4 +806,347 @@ class RustTrackDto {
           explicit == other.explicit &&
           isPlayable == other.isPlayable &&
           addedAtMs == other.addedAtMs;
+}
+
+class RustWatchFeedAudioDto {
+  final String url;
+  final bool shouldLoop;
+  final bool fadeIn;
+
+  const RustWatchFeedAudioDto({
+    required this.url,
+    required this.shouldLoop,
+    required this.fadeIn,
+  });
+
+  @override
+  int get hashCode => url.hashCode ^ shouldLoop.hashCode ^ fadeIn.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RustWatchFeedAudioDto &&
+          runtimeType == other.runtimeType &&
+          url == other.url &&
+          shouldLoop == other.shouldLoop &&
+          fadeIn == other.fadeIn;
+}
+
+class RustWatchFeedCreatorDto {
+  final String uri;
+  final String name;
+  final String subtitle;
+  final String imageUrl;
+  final String followUri;
+  final String followText;
+  final String followingText;
+
+  const RustWatchFeedCreatorDto({
+    required this.uri,
+    required this.name,
+    required this.subtitle,
+    required this.imageUrl,
+    required this.followUri,
+    required this.followText,
+    required this.followingText,
+  });
+
+  @override
+  int get hashCode =>
+      uri.hashCode ^
+      name.hashCode ^
+      subtitle.hashCode ^
+      imageUrl.hashCode ^
+      followUri.hashCode ^
+      followText.hashCode ^
+      followingText.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RustWatchFeedCreatorDto &&
+          runtimeType == other.runtimeType &&
+          uri == other.uri &&
+          name == other.name &&
+          subtitle == other.subtitle &&
+          imageUrl == other.imageUrl &&
+          followUri == other.followUri &&
+          followText == other.followText &&
+          followingText == other.followingText;
+}
+
+class RustWatchFeedEntityRowDto {
+  final String title;
+  final String subtitle;
+  final String imageUrl;
+  final String playUri;
+  final String accessibilityText;
+
+  const RustWatchFeedEntityRowDto({
+    required this.title,
+    required this.subtitle,
+    required this.imageUrl,
+    required this.playUri,
+    required this.accessibilityText,
+  });
+
+  @override
+  int get hashCode =>
+      title.hashCode ^
+      subtitle.hashCode ^
+      imageUrl.hashCode ^
+      playUri.hashCode ^
+      accessibilityText.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RustWatchFeedEntityRowDto &&
+          runtimeType == other.runtimeType &&
+          title == other.title &&
+          subtitle == other.subtitle &&
+          imageUrl == other.imageUrl &&
+          playUri == other.playUri &&
+          accessibilityText == other.accessibilityText;
+}
+
+class RustWatchFeedEntryDto {
+  final String title;
+  final String subtitle;
+  final String overline;
+  final String feedUri;
+  final String firstItemUri;
+  final String thumbnailUrl;
+  final String videoUrl;
+  final String coverUrl;
+  final String accessibilityText;
+
+  const RustWatchFeedEntryDto({
+    required this.title,
+    required this.subtitle,
+    required this.overline,
+    required this.feedUri,
+    required this.firstItemUri,
+    required this.thumbnailUrl,
+    required this.videoUrl,
+    required this.coverUrl,
+    required this.accessibilityText,
+  });
+
+  @override
+  int get hashCode =>
+      title.hashCode ^
+      subtitle.hashCode ^
+      overline.hashCode ^
+      feedUri.hashCode ^
+      firstItemUri.hashCode ^
+      thumbnailUrl.hashCode ^
+      videoUrl.hashCode ^
+      coverUrl.hashCode ^
+      accessibilityText.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RustWatchFeedEntryDto &&
+          runtimeType == other.runtimeType &&
+          title == other.title &&
+          subtitle == other.subtitle &&
+          overline == other.overline &&
+          feedUri == other.feedUri &&
+          firstItemUri == other.firstItemUri &&
+          thumbnailUrl == other.thumbnailUrl &&
+          videoUrl == other.videoUrl &&
+          coverUrl == other.coverUrl &&
+          accessibilityText == other.accessibilityText;
+}
+
+class RustWatchFeedHashtagDto {
+  final String id;
+  final String title;
+  final String navigationUri;
+  final String seedItemUri;
+
+  const RustWatchFeedHashtagDto({
+    required this.id,
+    required this.title,
+    required this.navigationUri,
+    required this.seedItemUri,
+  });
+
+  @override
+  int get hashCode =>
+      id.hashCode ^
+      title.hashCode ^
+      navigationUri.hashCode ^
+      seedItemUri.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RustWatchFeedHashtagDto &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          title == other.title &&
+          navigationUri == other.navigationUri &&
+          seedItemUri == other.seedItemUri;
+}
+
+class RustWatchFeedItemDto {
+  final String id;
+  final String uri;
+  final RustWatchFeedVisualDto visual;
+  final RustWatchFeedAudioDto? audio;
+  final RustWatchFeedCreatorDto? creator;
+  final List<RustWatchFeedHashtagDto> hashtags;
+  final RustWatchFeedEntityRowDto? entityRow;
+  final List<String> texts;
+  final RustTrackDto? track;
+  final bool canShare;
+  final bool hasMenu;
+  final bool canSave;
+  final bool hasProgressBar;
+
+  const RustWatchFeedItemDto({
+    required this.id,
+    required this.uri,
+    required this.visual,
+    this.audio,
+    this.creator,
+    required this.hashtags,
+    this.entityRow,
+    required this.texts,
+    this.track,
+    required this.canShare,
+    required this.hasMenu,
+    required this.canSave,
+    required this.hasProgressBar,
+  });
+
+  @override
+  int get hashCode =>
+      id.hashCode ^
+      uri.hashCode ^
+      visual.hashCode ^
+      audio.hashCode ^
+      creator.hashCode ^
+      hashtags.hashCode ^
+      entityRow.hashCode ^
+      texts.hashCode ^
+      track.hashCode ^
+      canShare.hashCode ^
+      hasMenu.hashCode ^
+      canSave.hashCode ^
+      hasProgressBar.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RustWatchFeedItemDto &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          uri == other.uri &&
+          visual == other.visual &&
+          audio == other.audio &&
+          creator == other.creator &&
+          hashtags == other.hashtags &&
+          entityRow == other.entityRow &&
+          texts == other.texts &&
+          track == other.track &&
+          canShare == other.canShare &&
+          hasMenu == other.hasMenu &&
+          canSave == other.canSave &&
+          hasProgressBar == other.hasProgressBar;
+}
+
+class RustWatchFeedPageDto {
+  final List<String> headerTitles;
+  final List<RustWatchFeedItemDto> items;
+  final Uint8List? nextPageToken;
+  final List<String> associatedFeedUris;
+  final String verticalOnboardingText;
+  final String associatedOnboardingText;
+
+  const RustWatchFeedPageDto({
+    required this.headerTitles,
+    required this.items,
+    this.nextPageToken,
+    required this.associatedFeedUris,
+    required this.verticalOnboardingText,
+    required this.associatedOnboardingText,
+  });
+
+  @override
+  int get hashCode =>
+      headerTitles.hashCode ^
+      items.hashCode ^
+      nextPageToken.hashCode ^
+      associatedFeedUris.hashCode ^
+      verticalOnboardingText.hashCode ^
+      associatedOnboardingText.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RustWatchFeedPageDto &&
+          runtimeType == other.runtimeType &&
+          headerTitles == other.headerTitles &&
+          items == other.items &&
+          nextPageToken == other.nextPageToken &&
+          associatedFeedUris == other.associatedFeedUris &&
+          verticalOnboardingText == other.verticalOnboardingText &&
+          associatedOnboardingText == other.associatedOnboardingText;
+}
+
+class RustWatchFeedShelfDto {
+  final String title;
+  final List<RustWatchFeedEntryDto> entries;
+
+  const RustWatchFeedShelfDto({required this.title, required this.entries});
+
+  @override
+  int get hashCode => title.hashCode ^ entries.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RustWatchFeedShelfDto &&
+          runtimeType == other.runtimeType &&
+          title == other.title &&
+          entries == other.entries;
+}
+
+class RustWatchFeedVisualDto {
+  final int kind;
+  final String videoUrl;
+  final String imageUrl;
+  final String animationUrl;
+  final List<String> colors;
+
+  const RustWatchFeedVisualDto({
+    required this.kind,
+    required this.videoUrl,
+    required this.imageUrl,
+    required this.animationUrl,
+    required this.colors,
+  });
+
+  @override
+  int get hashCode =>
+      kind.hashCode ^
+      videoUrl.hashCode ^
+      imageUrl.hashCode ^
+      animationUrl.hashCode ^
+      colors.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RustWatchFeedVisualDto &&
+          runtimeType == other.runtimeType &&
+          kind == other.kind &&
+          videoUrl == other.videoUrl &&
+          imageUrl == other.imageUrl &&
+          animationUrl == other.animationUrl &&
+          colors == other.colors;
 }

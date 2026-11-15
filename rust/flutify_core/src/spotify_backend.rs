@@ -71,7 +71,7 @@ pub struct BackendCollectionEntry {
     pub added_at_sec: i64,
 }
 
-fn id_from_uri(uri: &str) -> String {
+pub(crate) fn id_from_uri(uri: &str) -> String {
     uri.rsplit(':').next().unwrap_or("").to_string()
 }
 
@@ -717,6 +717,382 @@ pub async fn fetch_collection_entries(
 
     all.sort_by_key(|a| std::cmp::Reverse(a.added_at_sec));
     Ok(all)
+}
+
+#[derive(Debug, Clone)]
+pub struct BackendPlaylistSummary {
+    pub id: String,
+    pub name: String,
+    pub uri: String,
+    pub description: String,
+    pub owner_name: String,
+    pub images: Vec<BackendImage>,
+    pub total_tracks: i32,
+}
+
+#[derive(Debug, Clone)]
+pub struct BackendCreditPerson {
+    pub name: String,
+    pub roles: Vec<String>,
+    pub artist_id: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct BackendCreditGroup {
+    pub name: String,
+    pub people: Vec<BackendCreditPerson>,
+}
+
+#[derive(Debug, Clone)]
+pub struct BackendTrackCredits {
+    pub track_name: String,
+    pub groups: Vec<BackendCreditGroup>,
+    pub sources: Vec<String>,
+}
+
+/// 流式/懒加载拉取歌单：
+/// 第一页（最多 100 首）装饰完立刻通过 `on_snapshot` 回调发给 UI 渲染，
+/// 后续分页并发拉取并分块装饰，每完成一批增量回调一次，直至全量完成。
+pub async fn fetch_playlist_stream<F>(
+    spclient_base: &str,
+    playlist_id: &str,
+    decorate_hash: &str,
+    mut on_snapshot: F,
+) -> Result<Option<BackendPlaylist>, String>
+where
+    F: FnMut(BackendPlaylist),
+{
+    let base = spclient_base.trim_end_matches('/');
+    let first_url = format!(
+        "{base}/playlist/v2/playlist/{playlist_id}?decorate=attributes,length,owner&from=0&length={PLAYLIST_PAGE_LIMIT}"
+    );
+    let (status, bytes) =
+        spotify_session::authorized_request(reqwest::Method::GET, &first_url, &[], None).await?;
+    if status == 404 {
+        return Ok(None);
+    }
+    if status != 200 {
+        return Err(format!("http:{status}:playlist/v2"));
+    }
+
+    let first_json: Value =
+        serde_json::from_slice(&bytes).map_err(|e| format!("decode:playlist/v2: {e}"))?;
+    let Some(attributes) = first_json.get("attributes").filter(|v| v.is_object()) else {
+        return Ok(None);
+    };
+    let name = attributes
+        .get("name")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    let description = strip_html(
+        attributes
+            .get("description")
+            .and_then(|v| v.as_str())
+            .unwrap_or(""),
+    );
+    let owner_raw = first_json
+        .get("ownerUsername")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    let owner_name = if owner_raw.is_empty() || owner_raw == "spotify" {
+        "Spotify".to_string()
+    } else {
+        owner_raw.to_string()
+    };
+    let images = playlist_images_from_attributes(attributes);
+
+    let (first_len, first_uris, first_ts) = extract_page_items(&first_json);
+    let total_tracks = first_json
+        .get("length")
+        .and_then(|v| v.as_i64())
+        .map(|v| v as usize)
+        .unwrap_or(first_uris.len());
+
+    let mut added_at: HashMap<String, i64> = HashMap::new();
+    for (u, ms) in first_ts {
+        added_at.entry(u).or_insert(ms);
+    }
+
+    // 1) 第一批（首 100 首）立刻装饰并先吐出，方便 UI 秒开展示。
+    let mut loaded_tracks = fetch_tracks_by_uris(first_uris, decorate_hash).await?;
+    for track in &mut loaded_tracks {
+        if let Some(&ms) = added_at.get(&track.uri) {
+            track.added_at_ms = Some(ms);
+        }
+    }
+
+    let mut snapshot = BackendPlaylist {
+        id: playlist_id.to_string(),
+        name,
+        uri: format!("spotify:playlist:{playlist_id}"),
+        description,
+        owner_name,
+        images,
+        total_tracks: total_tracks as i32,
+        tracks: loaded_tracks.clone(),
+    };
+    on_snapshot(snapshot.clone());
+
+    if first_len == 0 || first_len >= total_tracks {
+        return Ok(Some(snapshot));
+    }
+
+    // 2) 拉取剩余分页 URI 列表
+    let mut remaining_uris: Vec<String> = Vec::new();
+    if first_len < PLAYLIST_PAGE_LIMIT {
+        let mut offset = first_len;
+        while offset < total_tracks {
+            let (raw, uris, ts) = fetch_playlist_page(base, playlist_id, offset).await?;
+            if raw == 0 {
+                return Err("playlist returned an empty page before its end".into());
+            }
+            remaining_uris.extend(uris);
+            for (u, ms) in ts {
+                added_at.entry(u).or_insert(ms);
+            }
+            offset += raw;
+        }
+    } else {
+        let sem = Arc::new(Semaphore::new(MAX_CONCURRENCY));
+        let mut page_tasks = Vec::new();
+        let mut offset = first_len;
+        while offset < total_tracks {
+            let sem = sem.clone();
+            let base_owned = base.to_string();
+            let pid_owned = playlist_id.to_string();
+            page_tasks.push(tokio::spawn(async move {
+                let _permit = sem.acquire_owned().await.map_err(|e| e.to_string())?;
+                let (_raw, uris, ts) =
+                    fetch_playlist_page(&base_owned, &pid_owned, offset).await?;
+                Ok::<(usize, Vec<String>, Vec<(String, i64)>), String>((offset, uris, ts))
+            }));
+            offset += PLAYLIST_PAGE_LIMIT;
+        }
+        type PageSlice = (Vec<String>, Vec<(String, i64)>);
+        let mut pages_by_offset: BTreeMap<usize, PageSlice> = BTreeMap::new();
+        for res in join_all(page_tasks).await {
+            let (off, uris, ts) = res.map_err(|e| format!("join:{e}"))??;
+            pages_by_offset.insert(off, (uris, ts));
+        }
+        for (_off, (uris, ts)) in pages_by_offset {
+            remaining_uris.extend(uris);
+            for (u, ms) in ts {
+                added_at.entry(u).or_insert(ms);
+            }
+        }
+    }
+
+    // 3) 分块并发装饰剩余曲目（每块最多 200 首 = 4 批），每完成一块通知 UI 增量追加。
+    const STREAM_CHUNK_SIZE: usize = DECORATE_BATCH_SIZE * 4;
+    for chunk in remaining_uris.chunks(STREAM_CHUNK_SIZE) {
+        let mut batch_tracks = fetch_tracks_by_uris(chunk.to_vec(), decorate_hash).await?;
+        for track in &mut batch_tracks {
+            if let Some(&ms) = added_at.get(&track.uri) {
+                track.added_at_ms = Some(ms);
+            }
+        }
+        snapshot.tracks.extend(batch_tracks);
+        on_snapshot(snapshot.clone());
+    }
+
+    Ok(Some(snapshot))
+}
+
+/// 解析 spclient `playlist/v2/user/{username}/rootlist` JSON。
+pub fn parse_rootlist_value(json: &Value) -> Vec<BackendPlaylistSummary> {
+    let contents = json.get("contents");
+    let items = contents
+        .and_then(|c| c.get("items"))
+        .and_then(|v| v.as_array())
+        .map(Vec::as_slice)
+        .unwrap_or(&[]);
+    let metas = contents
+        .and_then(|c| c.get("metaItems"))
+        .and_then(|v| v.as_array())
+        .map(Vec::as_slice)
+        .unwrap_or(&[]);
+
+    let mut result = Vec::new();
+    for (i, item) in items.iter().enumerate() {
+        let Some(uri) = item.get("uri").and_then(|v| v.as_str()) else {
+            continue;
+        };
+        if !uri.starts_with("spotify:playlist:") {
+            continue;
+        }
+        let meta = metas.get(i);
+        let attributes = meta.and_then(|m| m.get("attributes"));
+        let owner = meta
+            .and_then(|m| m.get("ownerUsername"))
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        let name = attributes
+            .and_then(|a| a.get("name"))
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        let description = strip_html(
+            attributes
+                .and_then(|a| a.get("description"))
+                .and_then(|v| v.as_str())
+                .unwrap_or(""),
+        );
+        let images = attributes
+            .map(playlist_images_from_attributes)
+            .unwrap_or_default();
+        let total_tracks = meta
+            .and_then(|m| m.get("length"))
+            .and_then(|v| v.as_i64().or_else(|| v.as_str()?.parse().ok()))
+            .unwrap_or(0) as i32;
+        result.push(BackendPlaylistSummary {
+            id: id_from_uri(uri),
+            name,
+            uri: uri.to_string(),
+            description,
+            owner_name: owner,
+            images,
+            total_tracks,
+        });
+    }
+    result
+}
+
+pub async fn fetch_rootlist(
+    spclient_base: &str,
+    username: &str,
+) -> Result<Vec<BackendPlaylistSummary>, String> {
+    let base = spclient_base.trim_end_matches('/');
+    let url = format!("{base}/playlist/v2/user/{username}/rootlist?decorate=attributes,length,owner");
+    let (status, bytes) =
+        spotify_session::authorized_request(reqwest::Method::GET, &url, &[], None).await?;
+    if status != 200 {
+        return Err(format!("http:{status}:rootlist"));
+    }
+    let val: Value = serde_json::from_slice(&bytes).map_err(|e| format!("decode:rootlist: {e}"))?;
+    Ok(parse_rootlist_value(&val))
+}
+
+/// 解析 `queryTrackCreditsGroupedModal` JSON。
+pub fn parse_credits_value(data: &Value) -> Option<BackendTrackCredits> {
+    let track = data
+        .get("trackUnion")
+        .or_else(|| data.get("data").and_then(|d| d.get("trackUnion")))?;
+    if !track.is_object() {
+        return None;
+    }
+    let trait_obj = track.get("creditsTrait");
+    let items = trait_obj
+        .and_then(|t| t.get("contributors"))
+        .and_then(|c| c.get("items"))
+        .and_then(|v| v.as_array());
+
+    // 保持分组首次出现顺序与组内人员顺序
+    let mut group_order: Vec<String> = Vec::new();
+    let mut group_people: HashMap<String, Vec<BackendCreditPerson>> = HashMap::new();
+
+    if let Some(arr) = items {
+        for item in arr {
+            let Some(name) = item.get("name").and_then(|v| v.as_str()).map(str::trim) else {
+                continue;
+            };
+            if name.is_empty() {
+                continue;
+            }
+            let group = item
+                .get("roleGroup")
+                .and_then(|rg| rg.get("name"))
+                .and_then(|v| v.as_str())
+                .map(str::trim)
+                .unwrap_or("")
+                .to_string();
+            let role = item
+                .get("role")
+                .and_then(|v| v.as_str())
+                .map(str::trim)
+                .unwrap_or("")
+                .to_string();
+            let uri = item.get("uri").and_then(|v| v.as_str()).unwrap_or("");
+            let artist_id = uri
+                .strip_prefix("spotify:artist:")
+                .unwrap_or("")
+                .to_string();
+
+            if !group_people.contains_key(&group) {
+                group_order.push(group.clone());
+                group_people.insert(group.clone(), Vec::new());
+            }
+            let people = group_people.get_mut(&group).unwrap();
+            let key_matches = |p: &BackendCreditPerson| {
+                if !artist_id.is_empty() {
+                    p.artist_id == artist_id
+                } else {
+                    p.name == name
+                }
+            };
+            if let Some(existing) = people.iter_mut().find(|p| key_matches(p)) {
+                if !role.is_empty() && !existing.roles.contains(&role) {
+                    existing.roles.push(role);
+                }
+            } else {
+                let roles = if role.is_empty() { vec![] } else { vec![role] };
+                people.push(BackendCreditPerson {
+                    name: name.to_string(),
+                    roles,
+                    artist_id,
+                });
+            }
+        }
+    }
+
+    let groups = group_order
+        .into_iter()
+        .map(|g| {
+            let people = group_people.remove(&g).unwrap_or_default();
+            BackendCreditGroup { name: g, people }
+        })
+        .collect();
+
+    let sources = trait_obj
+        .and_then(|t| t.get("sources"))
+        .and_then(|s| s.get("items"))
+        .and_then(|v| v.as_array())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|s| s.get("name").and_then(|v| v.as_str()).map(str::trim))
+                .filter(|s| !s.is_empty())
+                .map(str::to_string)
+                .collect()
+        })
+        .unwrap_or_default();
+
+    Some(BackendTrackCredits {
+        track_name: track
+            .get("name")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string(),
+        groups,
+        sources,
+    })
+}
+
+pub async fn fetch_track_credits(
+    hash: &str,
+    track_uri: &str,
+) -> Result<Option<BackendTrackCredits>, String> {
+    let data = spotify_session::pathfinder_query(
+        "queryTrackCreditsGroupedModal",
+        hash,
+        json!({
+            "trackUri": track_uri,
+            "contributorsLimit": 100,
+            "contributorsOffset": 0
+        }),
+    )
+    .await?;
+    Ok(parse_credits_value(&data))
 }
 
 #[cfg(test)]

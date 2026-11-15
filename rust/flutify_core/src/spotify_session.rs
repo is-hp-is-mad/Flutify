@@ -108,6 +108,15 @@ pub fn snapshot() -> SessionState {
     runtime_state().state.read().unwrap().clone()
 }
 
+pub(crate) fn client_for_proxy(proxy: &str) -> Result<reqwest::Client, String> {
+    http_client::client_for(proxy)
+}
+
+pub(crate) fn client_for_url(_url: &str) -> Result<reqwest::Client, String> {
+    let proxy = snapshot().proxy;
+    http_client::client_for(&proxy)
+}
+
 /// 使用给定的 `sp_dc` 与 `proxy` 独立铸造 Web `access_token`（供登录与多账号备份复用）。
 pub async fn mint_web_token(sp_dc: &str, proxy: &str) -> Result<MintedToken, String> {
     if sp_dc.is_empty() {

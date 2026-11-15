@@ -68,6 +68,7 @@ class SpotifyApiService {
   late final WatchFeedService watchFeed = WatchFeedService(
     _client,
     headers: _headers,
+    useRustBackend: !_hasCustomClient,
   );
 
   /// 鉴权服务；接入后每次请求前自动续期 access_token。未接入时仅使用手动填写的 Token。
@@ -402,6 +403,31 @@ class SpotifyApiService {
     if (!isConfigured) throw SpotifyDataException.notSignedIn;
     if (_useDesktop) return _desktopLoad(() => _desktop.playlist(id));
     return SpotifyPlaylist.fromJson(await _getJson('/playlists/$id'));
+  }
+
+  /// 懒加载/流式拉取歌单：先返回首 100 首供页面立刻渲染，后续分页在后台增量补齐。
+  Stream<SpotifyPlaylist> watchPlaylist(String id) async* {
+    if (!isConfigured) throw SpotifyDataException.notSignedIn;
+    if (_useDesktop) {
+      var emitted = false;
+      try {
+        await for (final snap in _desktop.watchPlaylist(id)) {
+          emitted = true;
+          yield snap;
+        }
+      } on SpotifyDataException {
+        rethrow;
+      } on PathfinderException catch (e) {
+        throw SpotifyDataException(e.message);
+      } catch (e) {
+        throw SpotifyDataException('加载失败：$e');
+      }
+      if (!emitted) {
+        throw const SpotifyDataException('未找到歌单', 404);
+      }
+      return;
+    }
+    yield SpotifyPlaylist.fromJson(await _getJson('/playlists/$id'));
   }
 
   Future<SpotifyAlbum> getAlbum(String id) async {

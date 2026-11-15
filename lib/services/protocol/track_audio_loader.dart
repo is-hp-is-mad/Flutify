@@ -3,7 +3,9 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
+import '../../core/rust_core.dart';
 import '../../models/audio_playback_info.dart';
+import '../../src/rust/api/backend.dart' as rust;
 
 import 'access_point.dart';
 import 'audio_cache_store.dart';
@@ -238,6 +240,9 @@ class TrackAudioLoader implements TrackAudioSource, AudioCacheStore {
     try {
       final dir = _audioDir;
       if (!dir.existsSync()) return 0;
+      if (RustCore.ready) {
+        return (await rust.rustAudioCacheSizeBytes(dirPath: dir.path)).toInt();
+      }
       var total = 0;
       await for (final entity in dir.list()) {
         if (entity is File) total += await entity.length();
@@ -252,6 +257,12 @@ class TrackAudioLoader implements TrackAudioSource, AudioCacheStore {
   Future<int> clear() async {
     var freed = 0;
     try {
+      if (RustCore.ready) {
+        return (await rust.rustAudioCacheClear(
+          dirPath: _audioDir.path,
+          protectedPaths: List.of(_recentPaths),
+        )).toInt();
+      }
       for (final f in _audioFiles()) {
         if (_isProtected(f)) continue;
         freed += _deleteAudio(f);
@@ -629,6 +640,14 @@ class TrackAudioLoader implements TrackAudioSource, AudioCacheStore {
     try {
       final dir = _audioDir;
       if (!await dir.exists()) return;
+      if (RustCore.ready) {
+        await rust.rustAudioCacheTrim(
+          dirPath: dir.path,
+          maxBytes: BigInt.from(_maxCacheBytes < 0 ? 0 : _maxCacheBytes),
+          protectedPaths: List.of(_recentPaths),
+        );
+        return;
+      }
       final files = <({File file, int size, DateTime used})>[];
       var total = 0;
       await for (final entry in dir.list(followLinks: false)) {

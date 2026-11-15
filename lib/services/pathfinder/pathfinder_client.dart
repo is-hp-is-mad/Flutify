@@ -2,7 +2,10 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../../core/rust_core.dart';
 import '../../core/utils/json_bytes.dart';
+import '../../src/rust/api/backend.dart' as rust;
+import '../rust_backend_bridge.dart';
 import 'pathfinder_operations.dart';
 
 /// GraphQL Pathfinder 客户端（`api-partner.spotify.com/pathfinder/v2/query`）。
@@ -14,8 +17,13 @@ class PathfinderClient {
 
   final http.Client _client;
   final Future<Map<String, String>> Function() headers;
+  final bool useRustBackend;
 
-  PathfinderClient(this._client, {required this.headers});
+  PathfinderClient(
+    this._client, {
+    required this.headers,
+    this.useRustBackend = false,
+  });
 
   /// 执行查询并返回 `data`；HTTP 非 200 或响应含 errors 且无 data 时抛 [PathfinderException]。
   ///
@@ -26,6 +34,39 @@ class PathfinderClient {
     Map<String, Object?> variables, {
     bool failOnErrors = false,
   }) async {
+    if (useRustBackend && RustCore.ready && !failOnErrors) {
+      final proxy = await RustBackendBridge.proxyForUrl(endpoint);
+      if (proxy != null) {
+        try {
+          final jsonStr = await rust.rustPathfinderQuery(
+            operation: op.name,
+            hash: op.sha256Hash,
+            variablesJson: jsonEncode(variables),
+          );
+          final decoded = jsonDecode(jsonStr);
+          if (decoded is Map<String, dynamic>) return decoded;
+        } catch (e) {
+          final msg = e.toString();
+          final httpMatch = RegExp(r'http:(\d{3}):').firstMatch(msg);
+          if (httpMatch != null) {
+            final code = int.parse(httpMatch.group(1)!);
+            throw PathfinderException(op.name, code, msg);
+          }
+          // 非 HTTP 错误且可回退时（如 Rust 会话未同步）继续走 Dart 路径
+          if (!msg.contains('auth:missing')) {
+            final lower = msg.toLowerCase();
+            throw PathfinderException(
+              op.name,
+              0,
+              msg,
+              hashStale:
+                  lower.contains('persistedquery') ||
+                  lower.contains('persisted query'),
+            );
+          }
+        }
+      }
+    }
     final res = await _client.post(
       Uri.parse(endpoint),
       headers: {...await headers(), 'content-type': 'application/json;charset=UTF-8'},

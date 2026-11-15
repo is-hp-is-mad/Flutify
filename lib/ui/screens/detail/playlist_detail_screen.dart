@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -50,6 +52,8 @@ class PlaylistDetailScreen extends StatefulWidget {
 class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
   SpotifyPlaylist? _fetched;
   bool _loading = false;
+  bool _loadingMore = false;
+  StreamSubscription<SpotifyPlaylist>? _playlistSub;
   Object? _error;
   late bool _selecting = widget.initialSelecting;
   final Set<String> _selectedTrackIds = {};
@@ -91,22 +95,55 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       _fetch();
   }
 
-  /// 拉取完整歌单；失败时记录错误，由占位提供登录 / 重试。
+  /// 懒加载/流式拉取歌单：首批 100 首到达即刻渲染，后续曲目在后台增量补齐。
   Future<void> _fetch() async {
+    await _playlistSub?.cancel();
     setState(() {
       _loading = true;
+      _loadingMore = false;
       _error = null;
     });
-    try {
-      final full = await context.read<SpotifyApiService>().getPlaylist(
-        widget.playlist.id,
-      );
-      if (mounted) setState(() => _fetched = full);
-    } catch (e) {
-      if (mounted) setState(() => _error = e);
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
+    final completer = Completer<void>();
+    _playlistSub = context
+        .read<SpotifyApiService>()
+        .watchPlaylist(widget.playlist.id)
+        .listen(
+          (snap) {
+            if (!mounted) return;
+            setState(() {
+              _fetched = snap;
+              _loading = false;
+              _loadingMore =
+                  snap.totalTracks > 0 && snap.tracks.length < snap.totalTracks;
+            });
+          },
+          onError: (Object e) {
+            if (mounted) {
+              setState(() {
+                if (_fetched == null) _error = e;
+                _loading = false;
+                _loadingMore = false;
+              });
+            }
+            if (!completer.isCompleted) completer.complete();
+          },
+          onDone: () {
+            if (mounted) {
+              setState(() {
+                _loading = false;
+                _loadingMore = false;
+              });
+            }
+            if (!completer.isCompleted) completer.complete();
+          },
+        );
+    return completer.future;
+  }
+
+  @override
+  void dispose() {
+    _playlistSub?.cancel();
+    super.dispose();
   }
 
   @override
@@ -355,6 +392,18 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                   : Icons.queue_music_rounded,
             )
           else ...[
+            if (_loadingMore)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+                  child: LinearProgressIndicator(
+                    minHeight: 2,
+                    value: playlist.totalTracks > 0
+                        ? (tracks.length / playlist.totalTracks).clamp(0.0, 1.0)
+                        : null,
+                  ),
+                ),
+              ),
             if (columns != null)
               TrackTableHeader(
                 columns: columns,

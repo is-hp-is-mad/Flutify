@@ -4,10 +4,13 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 
 import '../../core/constants/spotify_endpoints.dart';
+import '../../core/rust_core.dart';
 import '../../models/watch_feed.dart';
+import '../../src/rust/api/backend.dart' as rust;
 import '../auth/proto_codec.dart';
 import '../pathfinder/pathfinder_client.dart';
 import '../pathfinder/pathfinder_operations.dart';
+import '../rust_backend_bridge.dart';
 import 'watch_feed_parser.dart';
 
 /// Watch Feed 接口失败（含未登录）。
@@ -29,13 +32,19 @@ class WatchFeedException implements Exception {
 class WatchFeedService {
   final http.Client _client;
   final Future<Map<String, String>> Function() _headers;
+  final bool useRustBackend;
 
-  WatchFeedService(this._client, {required this._headers});
+  WatchFeedService(
+    this._client, {
+    required this._headers,
+    this.useRustBackend = false,
+  });
 
   /// 桌面版实体 feed 走 Pathfinder（Web 播放器身份，用会话原本的头，不改平台）。
   late final PathfinderClient _pathfinder = PathfinderClient(
     _client,
     headers: _headers,
+    useRustBackend: useRustBackend,
   );
 
   /// 实体 feed（`spotify:watch-feed:{artist|album|playlist}:<id>`）的一页；官方网页版每页 25 条。
@@ -102,6 +111,19 @@ class WatchFeedService {
 
   /// 搜索页「Discover something new」：browse 页里的 WatchFeed 区块；没有返回 null。
   Future<WatchFeedShelf?> fetchBrowseShelf({String? timezone}) async {
+    if (useRustBackend && RustCore.ready) {
+      final proxy = await RustBackendBridge.proxyForUrl(
+        '${SpotifyEndpoints.defaultSpClientBase}/browsita/v1/browse',
+      );
+      if (proxy != null) {
+        rust.rustSessionSetProxy(proxy: proxy);
+        final dto = await rust.rustFetchWatchFeedBrowseShelf(
+          spclientBase: SpotifyEndpoints.defaultSpClientBase,
+          timezone: timezone,
+        );
+        return dto == null ? null : RustBackendBridge.watchFeedShelfFromDto(dto);
+      }
+    }
     final body = await _get('browsita/v1/browse', {'timezone': ?timezone});
     return body == null ? null : WatchFeedParser.parseBrowseShelf(body);
   }
@@ -112,6 +134,21 @@ class WatchFeedService {
     required String creatorUri,
     String contextUri = '',
   }) async {
+    if (useRustBackend && RustCore.ready) {
+      final proxy = await RustBackendBridge.proxyForUrl(
+        '${SpotifyEndpoints.defaultSpClientBase}/watch-feed-entrypoints/v1/discovery-from-seed',
+      );
+      if (proxy != null) {
+        rust.rustSessionSetProxy(proxy: proxy);
+        final dto = await rust.rustFetchWatchFeedSeedShelf(
+          spclientBase: SpotifyEndpoints.defaultSpClientBase,
+          trackUri: trackUri,
+          creatorUri: creatorUri,
+          contextUri: contextUri,
+        );
+        return dto == null ? null : RustBackendBridge.watchFeedShelfFromDto(dto);
+      }
+    }
     final body = await _get('watch-feed-entrypoints/v1/discovery-from-seed', {
       'entityUri': trackUri,
       'creatorUri': creatorUri,
@@ -196,6 +233,24 @@ class WatchFeedService {
     }
     final spec = WatchFeedRequestSpec.fromUri(feedUri);
     if (spec == null) throw WatchFeedException('无法识别的 feed：$feedUri');
+    if (useRustBackend && RustCore.ready) {
+      final proxy = await RustBackendBridge.proxyForUrl(
+        '${SpotifyEndpoints.defaultSpClientBase}/watch-feed-view/v1/feed',
+      );
+      if (proxy != null) {
+        rust.rustSessionSetProxy(proxy: proxy);
+        final dto = await rust.rustFetchWatchFeedProto(
+          spclientBase: SpotifyEndpoints.defaultSpClientBase,
+          feedId: spec.feedId,
+          entityId: spec.entityId,
+          parameters: [
+            for (final e in spec.parameters.entries) (e.key, e.value),
+          ],
+          pageToken: pageToken,
+        );
+        return RustBackendBridge.watchFeedPageFromDto(dto);
+      }
+    }
     final res = await _client.post(
       _uri('watch-feed-view/v1/feed'),
       headers: await _protoHeaders(),

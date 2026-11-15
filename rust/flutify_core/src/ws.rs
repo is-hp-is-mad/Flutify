@@ -67,7 +67,7 @@ pub fn tls_config() -> Arc<rustls::ClientConfig> {
 
 /// 到 [host]:[port] 的 TCP 连接：直连，或经 [proxy]（`http://[user:pass@]h:p` 发 CONNECT 建隧道；
 /// `socks5://` / `socks5h://` 走 SOCKS5，可带用户名密码）。失败以 `connect:` 开头。
-async fn open_tcp(proxy: &str, host: &str, port: u16) -> Result<TcpStream, String> {
+pub(crate) async fn open_tcp(proxy: &str, host: &str, port: u16) -> Result<TcpStream, String> {
     if proxy.is_empty() {
         return TcpStream::connect((host, port)).await.map_err(|e| format!("connect:{e}"));
     }

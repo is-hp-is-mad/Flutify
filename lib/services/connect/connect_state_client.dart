@@ -2,8 +2,11 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../../core/rust_core.dart';
 import '../../models/connect_cluster.dart';
+import '../../src/rust/api/backend.dart' as rust;
 import '../network/retry_after_cooldown.dart';
+import '../rust_backend_bridge.dart';
 
 /// Connect 请求失败。[statusCode] 为 null 表示没有拿到 HTTP 响应（网络错误 / 解析失败 / 未连接）。
 class ConnectException implements Exception {
@@ -44,6 +47,7 @@ class ConnectStateClient {
   final String Function() _spclientHost;
   final String? Function() _connectionId;
   final RetryAfterCooldown _cooldown;
+  final bool useRustBackend;
   int _cooldownStatus = 429;
 
   ConnectStateClient({
@@ -52,6 +56,7 @@ class ConnectStateClient {
     required this._spclientHost,
     required this._connectionId,
     DateTime Function()? now,
+    this.useRustBackend = false,
   }) : _cooldown = RetryAfterCooldown(now: now);
 
   /// 注册隐藏观察者（只收状态，不出现在别的设备的列表里）并返回全量 cluster。
@@ -136,6 +141,26 @@ class ConnectStateClient {
     Map<String, Object?>? body,
   }) async {
     _checkCooldown();
+    final connId = connectionId ?? _requireConnectionId();
+    if (useRustBackend && RustCore.ready) {
+      final proxy = await RustBackendBridge.proxyForUrl(
+        'https://${_spclientHost()}$path',
+      );
+      if (proxy != null) {
+        rust.rustSessionSetProxy(proxy: proxy);
+        final raw = await rust.rustConnectStateRequest(
+          spclientHost: _spclientHost(),
+          method: method,
+          path: path,
+          connectionId: connId,
+          bodyJson: body == null ? null : jsonEncode(body),
+        );
+        if (raw.status < 200 || raw.status >= 300) {
+          throw ConnectException.fromStatus(raw.status);
+        }
+        return http.Response.bytes(raw.body, raw.status);
+      }
+    }
     final request = http.Request(
       method,
       Uri.parse('https://${_spclientHost()}$path'),
@@ -145,7 +170,7 @@ class ConnectStateClient {
       request.headers.addAll({
         ...await _headers().timeout(const Duration(seconds: 10)),
         'Content-Type': 'application/json',
-        'X-Spotify-Connection-Id': connectionId ?? _requireConnectionId(),
+        'X-Spotify-Connection-Id': connId,
       });
       _checkCooldown(); // Another request may have been limited while awaiting credentials.
       if (body != null) request.body = jsonEncode(body);

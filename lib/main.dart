@@ -366,7 +366,7 @@ Future<Widget> _initializeApp(
 
   // 歌词补全：Spotify 没有逐行同步歌词时查 LRCLIB，选中的歌词缓存在应用数据目录
   final lyricsFallback = LrclibLyricsSource(
-    LrclibClient(http.Client()),
+    LrclibClient(http.Client(), useRustBackend: true),
     cache: LyricsDiskCache(
       audioCacheLocation.lyricsDirectory,
       directoryProvider: () => audioCacheLocation.lyricsDirectory,

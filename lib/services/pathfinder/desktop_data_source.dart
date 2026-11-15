@@ -62,7 +62,11 @@ class DesktopDataSource {
     this.retryDelay = const Duration(milliseconds: 600),
     this.useRustBackend = false,
   }) : _headers = headers,
-       _pathfinder = PathfinderClient(_client, headers: headers);
+       _pathfinder = PathfinderClient(
+         _client,
+         headers: headers,
+         useRustBackend: useRustBackend,
+       );
 
   /// 相同查询在有效期内合并为一次请求（含进行中的请求）。
   Future<Map<String, dynamic>> _query(
@@ -279,6 +283,110 @@ class DesktopDataSource {
   // ---------------------------------------------------------------------------
   // 歌单：spclient playlist/v2 取元数据与曲目 URI → decorateContextTracks 批量补全
   // ---------------------------------------------------------------------------
+
+  /// 懒加载/流式拉取歌单：先返回首 100 首供页面立刻渲染，再在后台增量补齐剩余曲目。
+  Stream<SpotifyPlaylist> watchPlaylist(String id) async* {
+    if (useRustBackend && RustCore.ready) {
+      final proxy = await RustBackendBridge.proxyForUrl(
+        '${SpotifyEndpoints.defaultSpClientBase}/playlist/v2/playlist/$id',
+      );
+      if (proxy != null) {
+        rust.rustSessionSetProxy(proxy: proxy);
+        yield* rust
+            .rustFetchPlaylistStream(
+              spclientBase: SpotifyEndpoints.defaultSpClientBase,
+              playlistId: id,
+              decorateHash: PathfinderOperation.decorateContextTracks.sha256Hash,
+            )
+            .map(RustBackendBridge.playlistFromDto);
+        return;
+      }
+    }
+    final res = await _client.get(
+      Uri.parse(
+        '${SpotifyEndpoints.defaultSpClientBase}/playlist/v2/playlist/$id'
+        '?decorate=attributes,length,owner&from=0&length=$_playlistLimit',
+      ),
+      headers: await _headers(),
+    );
+    if (res.statusCode == 404) return;
+    if (res.statusCode != 200) {
+      throw StateError('Playlist failed: ${res.statusCode}');
+    }
+    final data = await decodeJsonBytes(res.bodyBytes) as Map<String, dynamic>;
+    final parsed = PathfinderParsers.playlistV2(id, data);
+    if (parsed == null) return;
+
+    final firstTracks = await tracksByUris(parsed.trackUris);
+    final addedAt = {...parsed.addedAt};
+    final loaded = [
+      for (final t in firstTracks)
+        addedAt[t.uri] == null ? t : t.copyWith(addedAt: addedAt[t.uri]),
+    ];
+    List<SpotifyImage> buildImages(List<SpotifyTrack> current) =>
+        parsed.playlist.images.isNotEmpty
+        ? parsed.playlist.images
+        : PlaylistCover.fromAlbumCovers(
+            current.take(12).map((t) => t.album?.images ?? const []),
+          );
+    yield SpotifyPlaylist(
+      id: parsed.playlist.id,
+      name: parsed.playlist.name,
+      uri: parsed.playlist.uri,
+      description: parsed.playlist.description,
+      ownerName: parsed.playlist.ownerName,
+      images: buildImages(loaded),
+      totalTracks: parsed.playlist.totalTracks,
+      tracks: List.unmodifiable(loaded),
+    );
+
+    final firstOffset = ((data['contents'] as Map?)?['items'] as List?)?.length ?? 0;
+    if (firstOffset <= 0 || firstOffset >= parsed.playlist.totalTracks) return;
+
+    var offset = firstOffset;
+    while (offset < parsed.playlist.totalTracks) {
+      final pageResponse = await _client.get(
+        Uri.parse(
+          '${SpotifyEndpoints.defaultSpClientBase}/playlist/v2/playlist/$id'
+          '?decorate=attributes,length,owner&from=$offset&length=$_playlistLimit',
+        ),
+        headers: await _headers(),
+      );
+      if (pageResponse.statusCode != 200) {
+        throw StateError('Playlist page failed: ${pageResponse.statusCode}');
+      }
+      final page =
+          await decodeJsonBytes(pageResponse.bodyBytes) as Map<String, dynamic>;
+      final items = ((page['contents'] as Map?)?['items'] as List?) ?? const [];
+      if (items.isEmpty) {
+        throw StateError('Playlist returned an empty page before its end');
+      }
+      final next = PathfinderParsers.playlistV2(id, {
+        ...data,
+        ...page,
+        'attributes': data['attributes'],
+      });
+      if (next == null) throw StateError('Invalid playlist page');
+      for (final entry in next.addedAt.entries) {
+        addedAt.putIfAbsent(entry.key, () => entry.value);
+      }
+      final batch = await tracksByUris(next.trackUris);
+      loaded.addAll(
+        batch.map((t) => addedAt[t.uri] == null ? t : t.copyWith(addedAt: addedAt[t.uri])),
+      );
+      offset += items.length;
+      yield SpotifyPlaylist(
+        id: parsed.playlist.id,
+        name: parsed.playlist.name,
+        uri: parsed.playlist.uri,
+        description: parsed.playlist.description,
+        ownerName: parsed.playlist.ownerName,
+        images: buildImages(loaded),
+        totalTracks: parsed.playlist.totalTracks,
+        tracks: List.unmodifiable(loaded),
+      );
+    }
+  }
 
   Future<SpotifyPlaylist?> playlist(String id) async {
     if (useRustBackend && RustCore.ready) {
@@ -694,6 +802,16 @@ class DesktopDataSource {
 
   /// 「查看制作人员」（与官方桌面端同一查询）；曲目不存在时返回 null。
   Future<TrackCredits?> trackCredits(String trackId) async {
+    if (useRustBackend && RustCore.ready) {
+      final proxy = await RustBackendBridge.proxyForUrl(PathfinderClient.endpoint);
+      if (proxy != null) {
+        final dto = await rust.rustFetchTrackCredits(
+          hash: PathfinderOperation.queryTrackCreditsGroupedModal.sha256Hash,
+          trackUri: 'spotify:track:$trackId',
+        );
+        return dto == null ? null : RustBackendBridge.trackCreditsFromDto(dto);
+      }
+    }
     final data =
         await _query(PathfinderOperation.queryTrackCreditsGroupedModal, {
           'trackUri': 'spotify:track:$trackId',
