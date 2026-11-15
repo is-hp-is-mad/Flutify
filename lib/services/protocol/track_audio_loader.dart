@@ -156,6 +156,7 @@ class TrackAudioLoader implements TrackAudioSource, AudioCacheStore {
   String get cacheDirectory =>
       cacheDirectoryProvider?.call() ?? _cacheDirectory;
   final http.Client _client;
+  final bool _hasCustomClient;
   final List<AudioFileFormat> formatPreference;
   final String? deviceId;
 
@@ -188,6 +189,7 @@ class TrackAudioLoader implements TrackAudioSource, AudioCacheStore {
     this._maxCacheBytes = 512 * 1024 * 1024,
     http.Client? client,
   }) : _cacheDirectory = cacheDirectory,
+       _hasCustomClient = client != null,
        _client = client ?? http.Client();
 
   // ---------------------------------------------------------------------------
@@ -701,6 +703,7 @@ class TrackAudioLoader implements TrackAudioSource, AudioCacheStore {
       final payload = await ExtendedMetadataClient(
         _client,
         headers: _headers,
+        useRustBackend: !_hasCustomClient,
       ).fetch('spotify:track:${id.toBase62()}', ExtensionKind.trackV4);
       if (payload != null) {
         final meta = TrackMetadata.parse(payload);
@@ -792,7 +795,10 @@ class TrackAudioLoader implements TrackAudioSource, AudioCacheStore {
   /// 复用 AP 会话（登录失效时重建一次）。
   Future<SpotifyAccessPoint> _ensureAccessPoint() async {
     Future<SpotifyAccessPoint> create() async {
-      final ap = await SpotifyAccessPoint.connect(client: _client);
+      final ap = await SpotifyAccessPoint.connect(
+        client: _client,
+        useRustBackend: !_hasCustomClient,
+      );
       await ap.authenticate(
         ApCredentials.accessToken(await accessToken()),
         deviceId: deviceId,

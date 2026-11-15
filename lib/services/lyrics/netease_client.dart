@@ -1,8 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
+import '../../core/rust_core.dart';
+import '../../src/rust/api/backend.dart' as rust;
 import '../network/retry_after_cooldown.dart';
 
 /// 网易云音乐「搜索结果」里的一首曲目（只取歌词匹配需要的字段）。
@@ -110,6 +113,7 @@ class NeteaseClient {
   final Future<void> Function(Duration) _sleep;
   final DateTime Function() _now;
   final RetryAfterCooldown _rateLimit;
+  final bool useRustBackend;
 
   /// 风控冷却的截止时间；null 表示没有被风控过。
   DateTime? _cooldownUntil;
@@ -118,9 +122,33 @@ class NeteaseClient {
     this._client, {
     Future<void> Function(Duration)? sleep,
     DateTime Function()? now,
+    this.useRustBackend = false,
   }) : _sleep = sleep ?? Future.delayed,
        _now = now ?? DateTime.now,
        _rateLimit = RetryAfterCooldown(now: now);
+
+  Future<http.Response> _sendRequest({
+    required String method,
+    required Uri url,
+    required Map<String, String> headers,
+    List<int>? bodyBytes,
+  }) async {
+    if (useRustBackend && RustCore.ready) {
+      final raw = await rust.rustLyricsHttpRequest(
+        method: method,
+        url: url.toString(),
+        headers: [for (final e in headers.entries) (e.key, e.value)],
+        body: bodyBytes == null ? null : Uint8List.fromList(bodyBytes),
+      );
+      return http.Response.bytes(raw.body, raw.status);
+    }
+    if (method == 'POST') {
+      return _client
+          .post(url, headers: headers, body: bodyBytes)
+          .timeout(timeout);
+    }
+    return _client.get(url, headers: headers).timeout(timeout);
+  }
 
   /// 搜曲目；没有命中返回空列表。
   Future<NeteaseResponse<List<NeteaseSong>>> search(
@@ -128,16 +156,18 @@ class NeteaseClient {
     int limit = 6,
   }) async {
     return _retry(() async {
-      final res = await _client
-          .post(
-            Uri.parse('$_base/api/search/get'),
-            headers: {
-              ..._headers,
-              'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: {'s': keyword, 'type': '1', 'limit': '$limit'},
-          )
-          .timeout(timeout);
+      final form = Uri(
+        queryParameters: {'s': keyword, 'type': '1', 'limit': '$limit'},
+      ).query;
+      final res = await _sendRequest(
+        method: 'POST',
+        url: Uri.parse('$_base/api/search/get'),
+        headers: {
+          ..._headers,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        bodyBytes: utf8.encode(form),
+      );
       if (res.statusCode != 200) return _http(res);
       try {
         final json = jsonDecode(utf8.decode(res.bodyBytes));
@@ -158,12 +188,11 @@ class NeteaseClient {
   /// 取一首歌的原文 / 译文歌词；查不到返回空 bundle。
   Future<NeteaseResponse<NeteaseLyricBundle>> lyric(int songId) async {
     return _retry(() async {
-      final res = await _client
-          .get(
-            Uri.parse('$_base/api/song/lyric?id=$songId&lv=1&tv=1'),
-            headers: _headers,
-          )
-          .timeout(timeout);
+      final res = await _sendRequest(
+        method: 'GET',
+        url: Uri.parse('$_base/api/song/lyric?id=$songId&lv=1&tv=1'),
+        headers: _headers,
+      );
       if (res.statusCode != 200) return _http(res);
       try {
         final json = jsonDecode(utf8.decode(res.bodyBytes));

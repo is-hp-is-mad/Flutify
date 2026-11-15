@@ -1,8 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
+import '../../core/rust_core.dart';
+import '../../src/rust/api/backend.dart' as rust;
 import '../network/retry_after_cooldown.dart';
 
 class QqMusicSong {
@@ -94,12 +97,14 @@ class QqMusicClient {
   final Duration requestTimeout;
   final DateTime Function() _now;
   final RetryAfterCooldown _rateLimit;
+  final bool useRustBackend;
   DateTime? _blockedUntil;
 
   QqMusicClient(
     this._client, {
     this.requestTimeout = timeout,
     DateTime Function()? now,
+    this.useRustBackend = false,
   }) : _now = now ?? DateTime.now,
        _rateLimit = RetryAfterCooldown(now: now);
 
@@ -205,16 +210,40 @@ class QqMusicClient {
     final abort = Completer<void>();
     try {
       return await (() async {
+        final reqHeaders = <String, String>{
+          'User-Agent': 'Mozilla/5.0 Flutify (lyrics translation)',
+          'Referer': 'https://y.qq.com/',
+          'Accept': 'application/json',
+          if (body != null) 'Content-Type': 'application/json',
+        };
+        if (useRustBackend && RustCore.ready) {
+          final raw = await rust.rustLyricsHttpRequest(
+            method: method,
+            url: url.toString(),
+            headers: [for (final e in reqHeaders.entries) (e.key, e.value)],
+            body: body != null
+                ? Uint8List.fromList(utf8.encode(jsonEncode(body)))
+                : null,
+          );
+          final fakeRes = http.Response.bytes(raw.body, raw.status);
+          if (_rateLimit.observe(fakeRes)) return null;
+          if (raw.status == 403) {
+            _blockedUntil = _now().add(const Duration(minutes: 1));
+          }
+          if (raw.status != 200) return null;
+          if (raw.body.length > maxResponseBytes) return null;
+          final json = jsonDecode(utf8.decode(raw.body));
+          if (json is Map && json['code'] is num && json['code'] != 0) {
+            _blockedUntil = _now().add(const Duration(minutes: 1));
+          }
+          if (json is! Map || json['code'] != 0) return null;
+          return json;
+        }
         final request =
             http.AbortableRequest(method, url, abortTrigger: abort.future)
               ..followRedirects = false
-              ..headers.addAll({
-                'User-Agent': 'Mozilla/5.0 Flutify (lyrics translation)',
-                'Referer': 'https://y.qq.com/',
-                'Accept': 'application/json',
-              });
+              ..headers.addAll(reqHeaders);
         if (body != null) {
-          request.headers['Content-Type'] = 'application/json';
           request.body = jsonEncode(body);
         }
         final response = await _client.send(request);

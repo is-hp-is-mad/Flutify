@@ -192,12 +192,14 @@ impl SendState {
     }
 }
 
+type PendingMap<K> = Mutex<HashMap<K, oneshot::Sender<Result<Vec<u8>, String>>>>;
+
 pub struct ApSession {
     send: AsyncMutex<SendState>,
     key_seq: AtomicU32,
     mercury_seq: AtomicU64,
-    pending_keys: Mutex<HashMap<u32, oneshot::Sender<Result<Vec<u8>, String>>>>,
-    pending_mercury: Mutex<HashMap<u64, oneshot::Sender<Result<Vec<u8>, String>>>>,
+    pending_keys: PendingMap<u32>,
+    pending_mercury: PendingMap<u64>,
     closed: AtomicU32,
 }
 

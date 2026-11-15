@@ -5,9 +5,12 @@ import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
+import '../../core/rust_core.dart';
+import '../../src/rust/api/backend.dart' as rust;
 import '../auth/client_profile.dart';
 import '../auth/proto_codec.dart';
 import '../network/proxy_tunnel.dart';
+import '../rust_backend_bridge.dart';
 import 'ap_codec.dart';
 import 'ap_crypto.dart' as ap_crypto;
 import 'ap_login_request.dart';
@@ -139,7 +142,10 @@ class ApKeyException implements Exception {
 /// 其余（metadata / storage-resolve / CDN 下载）都是普通 HTTPS。对照 librespot
 /// `connection/handshake.rs`、`session.rs`、`audio_key.rs` 与官方 `docs/connection.md`。
 class SpotifyAccessPoint {
-  final TunnelSocket _socket;
+  final TunnelSocket? _socket;
+  final bool _rustMode;
+  final String? _rustProxy;
+  BigInt? _rustSessionId;
 
   /// 单订阅 socket 的常驻接收：握手期收明文帧，之后喂给 [ApCodec]。
   final BytesBuilder _preCodecBuffer = BytesBuilder();
@@ -168,7 +174,9 @@ class SpotifyAccessPoint {
   ({int type, Uint8List blob})? reusableCredentials;
 
   /// [input] 为经代理隧道建立的连接上的数据流（见 [ProxyTunnel]）；直连时就是 socket 本身。
-  SpotifyAccessPoint._(this._socket, Stream<Uint8List> input) {
+  SpotifyAccessPoint._(this._socket, Stream<Uint8List> input)
+    : _rustMode = false,
+      _rustProxy = null {
     input.listen(
       (data) => _onBytes(Uint8List.fromList(data)),
       onError: _abort,
@@ -176,6 +184,10 @@ class SpotifyAccessPoint {
       cancelOnError: true,
     );
   }
+
+  SpotifyAccessPoint._rust(this._rustProxy)
+    : _socket = null,
+      _rustMode = true;
 
   // -------------------------------------------------------------------------
   // 连接与握手
@@ -232,7 +244,14 @@ class SpotifyAccessPoint {
     int? port,
     http.Client? client,
     Duration timeout = const Duration(seconds: 10),
+    bool useRustBackend = false,
   }) async {
+    if (useRustBackend && host == null && port == null && RustCore.ready) {
+      final proxy = await RustBackendBridge.proxyForUrl(
+        'https://apresolve.spotify.com/?type=accesspoint',
+      );
+      return SpotifyAccessPoint._rust(proxy);
+    }
     if (host != null && port != null) {
       return _connectTo(host, port, timeout);
     }
@@ -430,6 +449,38 @@ class SpotifyAccessPoint {
     ApCredentials credentials, {
     String? deviceId,
   }) async {
+    if (_rustMode) {
+      try {
+        final w = await rust.rustApConnectAndLogin(
+          authType: credentials.authType,
+          authData: credentials.authData,
+          username: credentials.username ?? '',
+          deviceId: deviceId ?? '',
+          proxy: _rustProxy ?? '',
+        );
+        _rustSessionId = w.sessionId;
+        canonicalUsername = w.canonicalUsername;
+        reusableCredentials = (
+          type: w.reusableAuthType,
+          blob: w.reusableAuth,
+        );
+        return ApWelcome(
+          canonicalUsername: w.canonicalUsername,
+          reusableAuthType: w.reusableAuthType,
+          reusableAuth: w.reusableAuth,
+        );
+      } catch (e) {
+        final msg = e.toString();
+        final m = RegExp(r'ap_auth_failure:(-?\d+):?(.*)').firstMatch(msg);
+        if (m != null) {
+          throw ApLoginException(
+            int.parse(m.group(1)!),
+            m.group(2)?.trim().isEmpty == true ? null : m.group(2)?.trim(),
+          );
+        }
+        rethrow;
+      }
+    }
     final packet = encodeApLoginRequest(
       username: credentials.username,
       authType: credentials.authType,
@@ -469,6 +520,28 @@ class SpotifyAccessPoint {
     if (fileId.length != 20) throw ArgumentError('fileId must be 20 bytes');
     if (trackGid.length != 16) throw ArgumentError('gid must be 16 bytes');
 
+    if (_rustMode) {
+      final sid = _rustSessionId;
+      if (sid == null || _closed) throw StateError('AP 会话已关闭');
+      try {
+        return await rust.rustApRequestAudioKey(
+          sessionId: sid,
+          fileId: fileId,
+          trackGid: trackGid,
+        );
+      } catch (e) {
+        final msg = e.toString();
+        final m = RegExp(r'ap_audio_key_error:(-?\d+)').firstMatch(msg);
+        if (m != null) {
+          throw ApKeyException(int.parse(m.group(1)!));
+        }
+        if (msg.contains('ap:closed') || msg.contains('ap_session_not_found')) {
+          _closed = true;
+        }
+        rethrow;
+      }
+    }
+
     final seq = _keySeq++;
     final completer = Completer<Uint8List>();
     _pendingKeys[seq] = completer;
@@ -500,7 +573,24 @@ class SpotifyAccessPoint {
   Future<Uint8List> requestMercury(
     String uri, {
     Duration timeout = const Duration(seconds: 10),
-  }) {
+  }) async {
+    if (_rustMode) {
+      final sid = _rustSessionId;
+      if (sid == null || _closed) throw StateError('AP 会话已关闭');
+      try {
+        return await rust.rustApMercuryGet(sessionId: sid, uri: uri);
+      } catch (e) {
+        final msg = e.toString();
+        final m = RegExp(r'ap_mercury_http:(\d+)').firstMatch(msg);
+        if (m != null) {
+          throw ApMercuryException(int.parse(m.group(1)!));
+        }
+        if (msg.contains('ap:closed') || msg.contains('ap_session_not_found')) {
+          _closed = true;
+        }
+        rethrow;
+      }
+    }
     final seq = _mercurySeq++;
     final completer = Completer<Uint8List>();
     _pendingMercury[seq] = completer;
@@ -580,7 +670,7 @@ class SpotifyAccessPoint {
     if (_closed) throw StateError('AP 会话已关闭');
     final codec = _codec;
     if (codec == null) throw StateError('AP 握手尚未完成');
-    _socket.add(codec.encode(cmd, payload));
+    _socket?.add(codec.encode(cmd, payload));
   }
 
   void _onBytes(Uint8List data) {
@@ -715,7 +805,7 @@ class SpotifyAccessPoint {
     }
     _handshakeFrames.clear();
     try {
-      _socket.destroy();
+      _socket?.destroy();
     } catch (_) {}
   }
 
@@ -723,6 +813,11 @@ class SpotifyAccessPoint {
   void close() {
     if (_closed) return;
     _closed = true;
+    final sid = _rustSessionId;
+    _rustSessionId = null;
+    if (sid != null) {
+      unawaited(rust.rustApClose(sessionId: sid).catchError((_) {}));
+    }
     _pongTimer?.cancel();
     for (final waiter in _pendingKeys.values) {
       if (!waiter.isCompleted) waiter.completeError(StateError('AP 会话已关闭'));
@@ -741,7 +836,7 @@ class SpotifyAccessPoint {
     }
     _handshakeFrames.clear();
     try {
-      _socket.destroy();
+      _socket?.destroy();
     } catch (_) {}
   }
 

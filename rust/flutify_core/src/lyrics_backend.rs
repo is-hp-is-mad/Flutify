@@ -102,48 +102,45 @@ async fn lrclib_request(path: &str, params: &[(&str, &str)]) -> BackendLrclibRes
             .get(url.clone())
             .header("User-Agent", "Flutify (lyrics fallback)")
             .header("Accept", "application/json");
-        match tokio::time::timeout(Duration::from_secs(12), req.send()).await {
-            Ok(Ok(res)) => {
-                let code = res.status().as_u16();
-                if code == 404 {
-                    return BackendLrclibResponse {
-                        candidates: Vec::new(),
-                        network_error: false,
-                    };
-                }
-                if code == 200 {
-                    let Ok(bytes) = res.bytes().await else {
-                        return BackendLrclibResponse {
-                            candidates: Vec::new(),
-                            network_error: true,
-                        };
-                    };
-                    let Ok(val) = serde_json::from_slice::<Value>(&bytes) else {
-                        return BackendLrclibResponse {
-                            candidates: Vec::new(),
-                            network_error: false,
-                        };
-                    };
-                    let candidates = match val {
-                        Value::Array(arr) => {
-                            arr.iter().filter_map(parse_lrclib_candidate).collect()
-                        }
-                        Value::Object(_) => parse_lrclib_candidate(&val).into_iter().collect(),
-                        _ => Vec::new(),
-                    };
-                    return BackendLrclibResponse {
-                        candidates,
-                        network_error: false,
-                    };
-                }
-                if code == 429 || (code == 503 && attempt == 2) {
+        if let Ok(Ok(res)) = tokio::time::timeout(Duration::from_secs(12), req.send()).await {
+            let code = res.status().as_u16();
+            if code == 404 {
+                return BackendLrclibResponse {
+                    candidates: Vec::new(),
+                    network_error: false,
+                };
+            }
+            if code == 200 {
+                let Ok(bytes) = res.bytes().await else {
                     return BackendLrclibResponse {
                         candidates: Vec::new(),
                         network_error: true,
                     };
-                }
+                };
+                let Ok(val) = serde_json::from_slice::<Value>(&bytes) else {
+                    return BackendLrclibResponse {
+                        candidates: Vec::new(),
+                        network_error: false,
+                    };
+                };
+                let candidates = match val {
+                    Value::Array(arr) => {
+                        arr.iter().filter_map(parse_lrclib_candidate).collect()
+                    }
+                    Value::Object(_) => parse_lrclib_candidate(&val).into_iter().collect(),
+                    _ => Vec::new(),
+                };
+                return BackendLrclibResponse {
+                    candidates,
+                    network_error: false,
+                };
             }
-            _ => {}
+            if code == 429 || (code == 503 && attempt == 2) {
+                return BackendLrclibResponse {
+                    candidates: Vec::new(),
+                    network_error: true,
+                };
+            }
         }
         if attempt < 2 {
             tokio::time::sleep(Duration::from_millis(250 * (attempt as u64 + 1))).await;

@@ -376,7 +376,7 @@ Future<Widget> _initializeApp(
   // 中文译文：QQ 优先、网易云兜底；只取译文，原文仍以 Spotify / LRCLIB 为准。
   // 预加载由「社区歌词翻译」控制，翻译按钮 / 自动翻译仍可独立查询。
   final qqLyricsTranslation = QqTranslationSource(
-    QqMusicClient(http.Client()),
+    QqMusicClient(http.Client(), useRustBackend: true),
     cache: LyricsDiskCache(
       audioCacheLocation.lyricsDirectory,
       directoryProvider: () => audioCacheLocation.lyricsDirectory,
@@ -384,7 +384,7 @@ Future<Widget> _initializeApp(
     ),
   );
   final lyricsTranslation = NeteaseTranslationSource(
-    NeteaseClient(http.Client()),
+    NeteaseClient(http.Client(), useRustBackend: true),
     cache: LyricsDiskCache(
       audioCacheLocation.lyricsDirectory,
       directoryProvider: () => audioCacheLocation.lyricsDirectory,
