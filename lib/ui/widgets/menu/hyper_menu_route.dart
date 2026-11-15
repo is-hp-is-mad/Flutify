@@ -168,44 +168,37 @@ class _HyperMenuState<T> extends State<_HyperMenu<T>>
     );
     final secRaw = widget.route.secondaryAnimation?.value ?? 0.0;
     final sec = Curves.easeOutCubic.transform(secRaw.clamp(0.0, 1.0));
-    final bgScale = lerpDouble(1.0, 0.97, sec)!;
-    final bgOpacity = lerpDouble(1.0, 0.90, sec)!;
-    // 轻微退后与微弱模糊（最大 sigma=1.0），只体现前后层次感
-    final bgBlur = (sec * 2).roundToDouble() * 0.5;
+    final bgScale = lerpDouble(1.0, 0.96, sec)!;
+    final contentOpacity = lerpDouble(1.0, 0.78, sec)!;
+    // 只模糊菜单内容本身（不包住 HyperBlendSurface），避免 saveLayer 破坏底层 BackdropFilter 导致背景字透出
+    final bgBlur = (sec * 4).roundToDouble() * 0.5;
 
-    Widget surface = HyperBlendSurface(
-      material: HyperBlendSurface.menu(context),
-      borderRadius: BorderRadius.circular(frame.radius),
-      bloom: HyperBlendSurface.menuBloom(context),
-      shadow: true,
-      // 菜单项按最终尺寸排好，随宽度等比缩放
-      child: OverflowBox(
+    Widget content = OverflowBox(
+      alignment: Alignment.topLeft,
+      minWidth: menu.width,
+      maxWidth: menu.width,
+      minHeight: menu.height,
+      maxHeight: menu.height,
+      child: Transform.scale(
         alignment: Alignment.topLeft,
-        minWidth: menu.width,
-        maxWidth: menu.width,
-        minHeight: menu.height,
-        maxHeight: menu.height,
-        child: Transform.scale(
-          alignment: Alignment.topLeft,
-          scale: frame.scale,
-          child: Material(
-            type: MaterialType.transparency,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: _vPad),
-              // 与 showMenu 相同的语义：PopupMenuItem 要求父节点是 menu
-              child: Semantics(
-                scopesRoute: true,
-                namesRoute: true,
-                explicitChildNodes: true,
-                role: SemanticsRole.menu,
-                label: MaterialLocalizations.of(context).popupMenuLabel,
-                child: SingleChildScrollView(
-                  child: _SizeReporter(
-                    onHeight: _onContentHeight,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: widget.route.items,
-                    ),
+        scale: frame.scale,
+        child: Material(
+          type: MaterialType.transparency,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: _vPad),
+            // 与 showMenu 相同的语义：PopupMenuItem 要求父节点是 menu
+            child: Semantics(
+              scopesRoute: true,
+              namesRoute: true,
+              explicitChildNodes: true,
+              role: SemanticsRole.menu,
+              label: MaterialLocalizations.of(context).popupMenuLabel,
+              child: SingleChildScrollView(
+                child: _SizeReporter(
+                  onHeight: _onContentHeight,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: widget.route.items,
                   ),
                 ),
               ),
@@ -215,15 +208,27 @@ class _HyperMenuState<T> extends State<_HyperMenu<T>>
       ),
     );
     if (bgBlur > 0) {
-      surface = ImageFiltered(
+      content = ImageFiltered(
         imageFilter: ImageFilter.blur(
           sigmaX: bgBlur,
           sigmaY: bgBlur,
           tileMode: TileMode.decal,
         ),
-        child: surface,
+        child: content,
       );
     }
+    if (contentOpacity < 1.0) {
+      content = Opacity(opacity: contentOpacity, child: content);
+    }
+
+    Widget surface = HyperBlendSurface(
+      material: HyperBlendSurface.menu(context),
+      borderRadius: BorderRadius.circular(frame.radius),
+      bloom: HyperBlendSurface.menuBloom(context),
+      shadow: true,
+      // 菜单项按最终尺寸排好，随宽度等比缩放
+      child: content,
+    );
     if (sec > 0) {
       surface = IgnorePointer(
         child: Transform.scale(
@@ -240,7 +245,7 @@ class _HyperMenuState<T> extends State<_HyperMenu<T>>
           rect: frame.rect,
           child: Opacity(
             // 不可见时也留在树里：要靠它量出菜单项的真实高度
-            opacity: frame.visible ? _motion.alpha.value * bgOpacity : 0,
+            opacity: frame.visible ? _motion.alpha.value : 0,
             child: surface,
           ),
         ),
