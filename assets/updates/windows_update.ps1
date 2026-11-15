@@ -122,11 +122,10 @@ try {
     if (!$parent.WaitForExit(120000)) { throw 'Application did not close; update cancelled' }
     if (Test-Path -LiteralPath (Join-Path $operation 'cancelled')) { exit 0 }
     if ($plan.installer) {
-        # Silent install skips the MIT license/wizard prompts and updates in place,
-        # then relaunches Flutify (since flutify.iss [Run] uses skipifsilent).
+        # Silent install skips the MIT license/wizard prompts and updates in place;
+        # flutify.iss [Run] relaunches Flutify.exe on completion.
         $install = Start-Process -FilePath $plan.package -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', ('/DIR="' + $target + '"')) -PassThru -Wait
         if ($install.ExitCode -ne 0) { throw "Installer exited with code $($install.ExitCode)" }
-        Start-Flutify $target
     } else {
         $files = @(Get-ChildItem -LiteralPath $stage -Recurse -File)
         # Back up every affected file before modifying even one of them.

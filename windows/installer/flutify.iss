@@ -60,7 +60,7 @@ Name: "{group}\Flutify"; Filename: "{app}\Flutify.exe"; WorkingDir: "{app}"; App
 Name: "{autodesktop}\Flutify"; Filename: "{app}\Flutify.exe"; WorkingDir: "{app}"; AppUserModelID: "Flutify"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\Flutify.exe"; Description: "{cm:LaunchProgram,Flutify}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\Flutify.exe"; Description: "{cm:LaunchProgram,Flutify}"; Flags: nowait postinstall
 
 ; Only installed program files are removed. User profiles and FlutifyCache are
 ; intentionally absent from UninstallDelete, including portable cache folders.

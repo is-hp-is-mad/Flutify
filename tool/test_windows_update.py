@@ -97,7 +97,7 @@ class Installer {
         self.assertIn(b'ready', stdout)
         self.wait_for('success')
         arguments = (self.operation / 'installed.txt').read_text(encoding='utf-8-sig').splitlines()
-        self.assertEqual(arguments, ['/NORESTART', '/DIR=' + str(self.target)])
+        self.assertEqual(arguments, ['/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/DIR=' + str(self.target)])
         self.assertIn('Windows PowerShell 5.1', (self.operation / 'host.txt').read_text())
 
     def test_checksum_failure_does_not_commit_or_close_app(self):
