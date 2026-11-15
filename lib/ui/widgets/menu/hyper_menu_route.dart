@@ -168,10 +168,10 @@ class _HyperMenuState<T> extends State<_HyperMenu<T>>
     );
     final secRaw = widget.route.secondaryAnimation?.value ?? 0.0;
     final sec = Curves.easeOutCubic.transform(secRaw.clamp(0.0, 1.0));
-    final bgScale = lerpDouble(1.0, 0.92, sec)!;
-    final bgOpacity = lerpDouble(1.0, 0.72, sec)!;
-    // 整数步进模糊半径，避免动画每帧触发新的 Skia 着色器编译
-    final bgBlur = (sec * 5).roundToDouble();
+    final bgScale = lerpDouble(1.0, 0.97, sec)!;
+    final bgOpacity = lerpDouble(1.0, 0.90, sec)!;
+    // 轻微退后与微弱模糊（最大 sigma=1.0），只体现前后层次感
+    final bgBlur = (sec * 2).roundToDouble() * 0.5;
 
     Widget surface = HyperBlendSurface(
       material: HyperBlendSurface.menu(context),

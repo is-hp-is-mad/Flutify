@@ -90,6 +90,14 @@ void main() {
       expect(credits.sources, ['Synthetic Records']);
     });
 
+    test('兼容 PathfinderClient.query 已解包外层 data 的响应结构', () {
+      final unwrapped = creditsResponse()['data'] as Map<String, dynamic>;
+      final credits = CreditsParser.parse(unwrapped)!;
+      expect(credits.trackName, 'Synthetic Song');
+      expect(credits.groups.map((g) => g.name), ['艺人', '作曲和作词', '制作兼工程']);
+      expect(credits.sources, ['Synthetic Records']);
+    });
+
     test('结构不符时返回 null 或空', () {
       expect(CreditsParser.parse({'data': {}}), isNull);
       expect(

@@ -8,7 +8,8 @@ class CreditsParser {
   CreditsParser._();
 
   static TrackCredits? parse(Map<String, dynamic> data) {
-    final track = (data['data'] as Map?)?['trackUnion'];
+    // PathfinderClient.query 已解包外层 data，直接传入内层字段；兼容保留外层 data 的调用。
+    final track = data['trackUnion'] ?? (data['data'] as Map?)?['trackUnion'];
     if (track is! Map) return null;
     final trait = track['creditsTrait'];
     final items = _items(trait, 'contributors');
