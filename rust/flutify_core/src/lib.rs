@@ -18,8 +18,10 @@ pub mod lrc;
 pub mod lyric_script;
 pub mod lyrics_title;
 pub mod shannon;
+pub mod spotify_backend;
 pub mod spotify_id;
 pub mod spotify_link;
+pub mod spotify_session;
 #[cfg(test)]
 mod test_vectors;
 pub mod translation_markers;

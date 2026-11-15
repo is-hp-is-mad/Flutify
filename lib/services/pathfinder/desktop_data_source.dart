@@ -4,7 +4,10 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../../core/constants/spotify_endpoints.dart';
+import '../../core/rust_core.dart';
 import '../../core/utils/json_bytes.dart';
+import '../../src/rust/api/backend.dart' as rust;
+import '../rust_backend_bridge.dart';
 import '../../models/album.dart';
 import '../../models/artist.dart';
 import '../../models/category.dart';
@@ -49,11 +52,15 @@ class DesktopDataSource {
   /// 曲目补全批次失败后的重试间隔（第 n 次重试等 n 倍）。
   final Duration retryDelay;
 
+  /// 是否优先走 `flutify_core` Rust 并发后端（测试注入 MockClient 时关闭）。
+  final bool useRustBackend;
+
   DesktopDataSource(
     this._client, {
     required Future<Map<String, String>> Function() headers,
     this.language,
     this.retryDelay = const Duration(milliseconds: 600),
+    this.useRustBackend = false,
   }) : _headers = headers,
        _pathfinder = PathfinderClient(_client, headers: headers);
 
@@ -274,6 +281,24 @@ class DesktopDataSource {
   // ---------------------------------------------------------------------------
 
   Future<SpotifyPlaylist?> playlist(String id) async {
+    if (useRustBackend && RustCore.ready) {
+      try {
+        final proxy = await RustBackendBridge.proxyForUrl(
+          '${SpotifyEndpoints.defaultSpClientBase}/playlist/v2/playlist/$id',
+        );
+        if (proxy != null) {
+          rust.rustSessionSetProxy(proxy: proxy);
+          final dto = await rust.rustFetchPlaylistFull(
+            spclientBase: SpotifyEndpoints.defaultSpClientBase,
+            playlistId: id,
+            decorateHash: PathfinderOperation.decorateContextTracks.sha256Hash,
+          );
+          return dto == null ? null : RustBackendBridge.playlistFromDto(dto);
+        }
+      } catch (e) {
+        debugPrint('[playlist] Rust 并发拉取回退到 Dart：$e');
+      }
+    }
     final res = await _client.get(
       Uri.parse(
         '${SpotifyEndpoints.defaultSpClientBase}/playlist/v2/playlist/$id'
@@ -289,38 +314,89 @@ class DesktopDataSource {
 
     final allUris = [...parsed.trackUris];
     final addedAt = {...parsed.addedAt};
-    // 用原始条目数推进 offset：下架歌曲/播客可能被解析器过滤，不能用 trackUris.length。
-    var offset = ((data['contents'] as Map?)?['items'] as List?)?.length ?? 0;
-    while (offset < parsed.playlist.totalTracks) {
-      if (offset == 0)
-        throw StateError('Playlist returned an empty page before its end');
-      final pageResponse = await _client.get(
-        Uri.parse(
-          '${SpotifyEndpoints.defaultSpClientBase}/playlist/v2/playlist/$id'
-          '?decorate=attributes,length,owner&from=$offset&length=$_playlistLimit',
-        ),
-        headers: await _headers(),
-      );
-      if (pageResponse.statusCode != 200)
-        throw StateError('Playlist page failed: ${pageResponse.statusCode}');
-      final page =
-          await decodeJsonBytes(pageResponse.bodyBytes)
-              as Map<String, dynamic>;
-      final items = ((page['contents'] as Map?)?['items'] as List?) ?? const [];
-      if (items.isEmpty)
-        throw StateError('Playlist returned an empty page before its end');
-      // 后续页可能不重复元数据，仍沿用第一页的歌单属性。
-      final next = PathfinderParsers.playlistV2(id, {
-        ...data,
-        ...page,
-        'attributes': data['attributes'],
-      });
-      if (next == null) throw StateError('Invalid playlist page');
-      allUris.addAll(next.trackUris);
-      for (final entry in next.addedAt.entries) {
-        addedAt.putIfAbsent(entry.key, () => entry.value);
+    final firstOffset = ((data['contents'] as Map?)?['items'] as List?)?.length ?? 0;
+    if (firstOffset > 0 && firstOffset < parsed.playlist.totalTracks) {
+      Future<({int itemCount, List<String> uris, Map<String, DateTime> addedAt})>
+          fetchPage(int pageOffset) async {
+        final pageResponse = await _client.get(
+          Uri.parse(
+            '${SpotifyEndpoints.defaultSpClientBase}/playlist/v2/playlist/$id'
+            '?decorate=attributes,length,owner&from=$pageOffset&length=$_playlistLimit',
+          ),
+          headers: await _headers(),
+        );
+        if (pageResponse.statusCode != 200) {
+          throw StateError('Playlist page failed: ${pageResponse.statusCode}');
+        }
+        final page =
+            await decodeJsonBytes(pageResponse.bodyBytes)
+                as Map<String, dynamic>;
+        final items =
+            ((page['contents'] as Map?)?['items'] as List?) ?? const [];
+        if (items.isEmpty) {
+          throw StateError('Playlist returned an empty page before its end');
+        }
+        // 后续页可能不重复元数据，仍沿用第一页的歌单属性。
+        final next = PathfinderParsers.playlistV2(id, {
+          ...data,
+          ...page,
+          'attributes': data['attributes'],
+        });
+        if (next == null) throw StateError('Invalid playlist page');
+        return (
+          itemCount: items.length,
+          uris: next.trackUris,
+          addedAt: next.addedAt,
+        );
       }
-      offset += items.length;
+
+      if (firstOffset < _playlistLimit) {
+        // 服务端返回短页（每页不足 _playlistLimit）时按实际返回条数顺序步进，避免跳过偏移。
+        var offset = firstOffset;
+        while (offset < parsed.playlist.totalTracks) {
+          final page = await fetchPage(offset);
+          allUris.addAll(page.uris);
+          for (final entry in page.addedAt.entries) {
+            addedAt.putIfAbsent(entry.key, () => entry.value);
+          }
+          offset += page.itemCount;
+        }
+      } else {
+        final offsets = <int>[
+          for (
+            var o = firstOffset;
+            o < parsed.playlist.totalTracks;
+            o += _playlistLimit
+          )
+            o,
+        ];
+        final pageResults =
+            List<({List<String> uris, Map<String, DateTime> addedAt})?>.filled(
+              offsets.length,
+              null,
+            );
+        var cursor = 0;
+        Future<void> pageWorker() async {
+          while (cursor < offsets.length) {
+            final idx = cursor++;
+            final page = await fetchPage(offsets[idx]);
+            pageResults[idx] = (uris: page.uris, addedAt: page.addedAt);
+          }
+        }
+
+        const pageConcurrency = 6;
+        await Future.wait([
+          for (var i = 0; i < pageConcurrency && i < offsets.length; i++)
+            pageWorker(),
+        ]);
+        for (final r in pageResults) {
+          if (r == null) continue;
+          allUris.addAll(r.uris);
+          for (final entry in r.addedAt.entries) {
+            addedAt.putIfAbsent(entry.key, () => entry.value);
+          }
+        }
+      }
     }
 
     final batches = <Future<List<SpotifyTrack>>>[];
@@ -394,6 +470,23 @@ class DesktopDataSource {
     int retries = 2,
     bool complete = false,
   }) async {
+    if (useRustBackend && RustCore.ready && uris.isNotEmpty) {
+      try {
+        final proxy = await RustBackendBridge.proxyForUrl(
+          PathfinderClient.endpoint,
+        );
+        if (proxy != null) {
+          rust.rustSessionSetProxy(proxy: proxy);
+          final dtos = await rust.rustFetchTracksByUris(
+            uris: uris,
+            decorateHash: PathfinderOperation.decorateContextTracks.sha256Hash,
+          );
+          return [for (final dto in dtos) RustBackendBridge.trackFromDto(dto)];
+        }
+      } catch (e) {
+        debugPrint('[tracks] Rust 批量补全回退到 Dart：$e');
+      }
+    }
     final batches = <List<String>>[
       for (var i = 0; i < uris.length; i += _decorateBatch)
         uris.sublist(i, (i + _decorateBatch).clamp(0, uris.length)),

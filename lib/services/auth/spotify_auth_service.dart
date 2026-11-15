@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import '../../core/constants/spotify_endpoints.dart';
 import '../protocol/access_point.dart';
+import '../rust_backend_bridge.dart';
 import '../storage_service.dart';
 import 'account_profile_service.dart';
 import 'auth_constants.dart';
@@ -143,6 +144,7 @@ class SpotifyAuthService {
           _storage.setClientTokenExpiry(granted.expiryEpochMs(DateTime.now())),
       () => _storage.setClientTokenProfile(_profile.name),
     ]);
+    RustBackendBridge.syncSession(_storage);
     return granted.token;
   }
 
@@ -171,6 +173,7 @@ class SpotifyAuthService {
       () => _storage.setAccessTokenExpiry(expiryMs),
     ]);
     sessionExpired.value = false;
+    RustBackendBridge.syncSession(_storage);
     try {
       await ensureClientToken();
     } catch (_) {}
@@ -239,6 +242,7 @@ class SpotifyAuthService {
         () => _storage.setAccessTokenExpiry(minted.expiryMs),
       ]);
       sessionExpired.value = false;
+      RustBackendBridge.syncSession(_storage);
       return _storage.accessToken;
     } on WebTokenHttpException catch (e) {
       if (epoch == _storage.sessionEpoch && e.statusCode == 401) {
@@ -375,5 +379,6 @@ class SpotifyAuthService {
       } catch (_) {}
     }
     await _storage.invalidateSession(epoch);
+    RustBackendBridge.clearSession();
   }
 }

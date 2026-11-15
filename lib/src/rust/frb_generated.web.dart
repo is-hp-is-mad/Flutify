@@ -6,6 +6,7 @@
 // Static analysis wrongly picks the IO variant, thus ignore this
 // ignore_for_file: argument_type_not_assignable
 
+import 'api/backend.dart';
 import 'api/lyrics.dart';
 import 'api/network.dart';
 import 'api/protocol.dart';
@@ -50,7 +51,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool dco_decode_bool(dynamic raw);
 
   @protected
+  int dco_decode_box_autoadd_i_32(dynamic raw);
+
+  @protected
+  PlatformInt64 dco_decode_box_autoadd_i_64(dynamic raw);
+
+  @protected
   NormalizationInfo dco_decode_box_autoadd_normalization_info(dynamic raw);
+
+  @protected
+  RustAlbumDto dco_decode_box_autoadd_rust_album_dto(dynamic raw);
+
+  @protected
+  RustPlaylistDto dco_decode_box_autoadd_rust_playlist_dto(dynamic raw);
+
+  @protected
+  RustSessionConfig dco_decode_box_autoadd_rust_session_config(dynamic raw);
 
   @protected
   SpotifyLinkTarget dco_decode_box_autoadd_spotify_link_target(dynamic raw);
@@ -89,13 +105,39 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
 
   @protected
+  List<RustArtistDto> dco_decode_list_rust_artist_dto(dynamic raw);
+
+  @protected
+  List<RustCollectionEntryDto> dco_decode_list_rust_collection_entry_dto(
+    dynamic raw,
+  );
+
+  @protected
+  List<RustImageDto> dco_decode_list_rust_image_dto(dynamic raw);
+
+  @protected
+  List<RustTrackDto> dco_decode_list_rust_track_dto(dynamic raw);
+
+  @protected
   LrcLine dco_decode_lrc_line(dynamic raw);
 
   @protected
   NormalizationInfo dco_decode_normalization_info(dynamic raw);
 
   @protected
+  int? dco_decode_opt_box_autoadd_i_32(dynamic raw);
+
+  @protected
+  PlatformInt64? dco_decode_opt_box_autoadd_i_64(dynamic raw);
+
+  @protected
   NormalizationInfo? dco_decode_opt_box_autoadd_normalization_info(dynamic raw);
+
+  @protected
+  RustAlbumDto? dco_decode_opt_box_autoadd_rust_album_dto(dynamic raw);
+
+  @protected
+  RustPlaylistDto? dco_decode_opt_box_autoadd_rust_playlist_dto(dynamic raw);
 
   @protected
   SpotifyLinkTarget? dco_decode_opt_box_autoadd_spotify_link_target(
@@ -104,6 +146,30 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<BilingualLine>? dco_decode_opt_list_bilingual_line(dynamic raw);
+
+  @protected
+  RustAlbumDto dco_decode_rust_album_dto(dynamic raw);
+
+  @protected
+  RustArtistDto dco_decode_rust_artist_dto(dynamic raw);
+
+  @protected
+  RustCollectionEntryDto dco_decode_rust_collection_entry_dto(dynamic raw);
+
+  @protected
+  RustImageDto dco_decode_rust_image_dto(dynamic raw);
+
+  @protected
+  RustPlaylistDto dco_decode_rust_playlist_dto(dynamic raw);
+
+  @protected
+  RustSessionConfig dco_decode_rust_session_config(dynamic raw);
+
+  @protected
+  RustTokenResult dco_decode_rust_token_result(dynamic raw);
+
+  @protected
+  RustTrackDto dco_decode_rust_track_dto(dynamic raw);
 
   @protected
   SpotifyLinkTarget dco_decode_spotify_link_target(dynamic raw);
@@ -156,7 +222,28 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool sse_decode_bool(SseDeserializer deserializer);
 
   @protected
+  int sse_decode_box_autoadd_i_32(SseDeserializer deserializer);
+
+  @protected
+  PlatformInt64 sse_decode_box_autoadd_i_64(SseDeserializer deserializer);
+
+  @protected
   NormalizationInfo sse_decode_box_autoadd_normalization_info(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustAlbumDto sse_decode_box_autoadd_rust_album_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustPlaylistDto sse_decode_box_autoadd_rust_playlist_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustSessionConfig sse_decode_box_autoadd_rust_session_config(
     SseDeserializer deserializer,
   );
 
@@ -203,13 +290,49 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
 
   @protected
+  List<RustArtistDto> sse_decode_list_rust_artist_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<RustCollectionEntryDto> sse_decode_list_rust_collection_entry_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<RustImageDto> sse_decode_list_rust_image_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<RustTrackDto> sse_decode_list_rust_track_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   LrcLine sse_decode_lrc_line(SseDeserializer deserializer);
 
   @protected
   NormalizationInfo sse_decode_normalization_info(SseDeserializer deserializer);
 
   @protected
+  int? sse_decode_opt_box_autoadd_i_32(SseDeserializer deserializer);
+
+  @protected
+  PlatformInt64? sse_decode_opt_box_autoadd_i_64(SseDeserializer deserializer);
+
+  @protected
   NormalizationInfo? sse_decode_opt_box_autoadd_normalization_info(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustAlbumDto? sse_decode_opt_box_autoadd_rust_album_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustPlaylistDto? sse_decode_opt_box_autoadd_rust_playlist_dto(
     SseDeserializer deserializer,
   );
 
@@ -222,6 +345,34 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<BilingualLine>? sse_decode_opt_list_bilingual_line(
     SseDeserializer deserializer,
   );
+
+  @protected
+  RustAlbumDto sse_decode_rust_album_dto(SseDeserializer deserializer);
+
+  @protected
+  RustArtistDto sse_decode_rust_artist_dto(SseDeserializer deserializer);
+
+  @protected
+  RustCollectionEntryDto sse_decode_rust_collection_entry_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustImageDto sse_decode_rust_image_dto(SseDeserializer deserializer);
+
+  @protected
+  RustPlaylistDto sse_decode_rust_playlist_dto(SseDeserializer deserializer);
+
+  @protected
+  RustSessionConfig sse_decode_rust_session_config(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustTokenResult sse_decode_rust_token_result(SseDeserializer deserializer);
+
+  @protected
+  RustTrackDto sse_decode_rust_track_dto(SseDeserializer deserializer);
 
   @protected
   SpotifyLinkTarget sse_decode_spotify_link_target(
@@ -286,8 +437,35 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_bool(bool self, SseSerializer serializer);
 
   @protected
+  void sse_encode_box_autoadd_i_32(int self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_i_64(
+    PlatformInt64 self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_normalization_info(
     NormalizationInfo self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_rust_album_dto(
+    RustAlbumDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_rust_playlist_dto(
+    RustPlaylistDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_rust_session_config(
+    RustSessionConfig self,
     SseSerializer serializer,
   );
 
@@ -346,6 +524,30 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_rust_artist_dto(
+    List<RustArtistDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_rust_collection_entry_dto(
+    List<RustCollectionEntryDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_rust_image_dto(
+    List<RustImageDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_rust_track_dto(
+    List<RustTrackDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_lrc_line(LrcLine self, SseSerializer serializer);
 
   @protected
@@ -355,8 +557,29 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_i_32(int? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_box_autoadd_i_64(
+    PlatformInt64? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_normalization_info(
     NormalizationInfo? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_rust_album_dto(
+    RustAlbumDto? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_rust_playlist_dto(
+    RustPlaylistDto? self,
     SseSerializer serializer,
   );
 
@@ -371,6 +594,42 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     List<BilingualLine>? self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_rust_album_dto(RustAlbumDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_rust_artist_dto(RustArtistDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_rust_collection_entry_dto(
+    RustCollectionEntryDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_image_dto(RustImageDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_rust_playlist_dto(
+    RustPlaylistDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_session_config(
+    RustSessionConfig self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_token_result(
+    RustTokenResult self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_track_dto(RustTrackDto self, SseSerializer serializer);
 
   @protected
   void sse_encode_spotify_link_target(

@@ -23,6 +23,7 @@ import 'library/desktop_library_source.dart';
 import 'library/library_source.dart';
 import 'library/session_library_source.dart';
 import 'library/web_api_library_source.dart';
+import 'rust_backend_bridge.dart';
 import 'lyrics_service.dart';
 import 'canvas/canvas_service.dart';
 import 'pathfinder/desktop_data_source.dart';
@@ -71,11 +72,13 @@ class SpotifyApiService {
 
   /// 鉴权服务；接入后每次请求前自动续期 access_token。未接入时仅使用手动填写的 Token。
   SpotifyAuthService? _auth;
+  final bool _hasCustomClient;
 
   late final DesktopDataSource _desktop = DesktopDataSource(
     _client,
     headers: _headers,
     language: () => AppLocale.spotifyLanguage,
+    useRustBackend: !_hasCustomClient,
   );
 
   /// 歌词服务（color-lyrics）。
@@ -101,6 +104,7 @@ class SpotifyApiService {
       data: _desktop,
       username: () => _storage.username,
       signedIn: () => isConfigured,
+      useRustBackend: !_hasCustomClient,
     ),
     web: WebApiLibrarySource(
       client: _client,
@@ -112,9 +116,13 @@ class SpotifyApiService {
   );
 
   SpotifyApiService(this._storage, [http.Client? client])
-    : _client = SessionHttpClient(_storage, client ?? http.Client());
+    : _hasCustomClient = client != null,
+      _client = SessionHttpClient(_storage, client ?? http.Client());
 
-  void attachAuth(SpotifyAuthService auth) => _auth = auth;
+  void attachAuth(SpotifyAuthService auth) {
+    _auth = auth;
+    RustBackendBridge.syncSession(_storage);
+  }
 
   /// 当前是否走桌面端内部接口。
   bool get _useDesktop => isConfigured && _auth?.isLoggedIn == true;

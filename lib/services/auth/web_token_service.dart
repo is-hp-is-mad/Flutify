@@ -5,8 +5,10 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../../core/rust_core.dart';
+import '../../src/rust/api/backend.dart' as rust_backend;
 import '../../src/rust/api/protocol.dart' as rust;
 import '../network/http2_client.dart';
+import '../rust_backend_bridge.dart';
 import '../storage_service.dart';
 import 'web_token_exception.dart';
 import 'session_http_client.dart';
@@ -128,6 +130,27 @@ class WebTokenService {
   }) async {
     if (spDc.isEmpty) {
       throw WebSignInRequiredException();
+    }
+    if (client == null && RustCore.ready) {
+      try {
+        final proxy = await RustBackendBridge.proxyForUrl(_tokenEndpoint);
+        if (proxy != null) {
+          final minted = await rust_backend.rustMintWebToken(
+            spDc: spDc,
+            proxy: proxy,
+          );
+          return (token: minted.token, expiryMs: minted.expiryMs.toInt());
+        }
+      } catch (e) {
+        final msg = e.toString();
+        final httpMatch = RegExp(r'http:(\d+):').firstMatch(msg);
+        if (httpMatch != null) {
+          final status = int.parse(httpMatch.group(1)!);
+          debugPrint('[web-token] /api/token HTTP $status (rust)');
+          throw WebTokenHttpException(status);
+        }
+        // connect:/timeout: 等传输错误回退到 Dart HTTP 客户端
+      }
     }
     final httpClient = client ?? http.Client();
     final uri = await _tokenUri(httpClient);

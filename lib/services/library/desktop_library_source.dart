@@ -4,6 +4,9 @@ import 'dart:math';
 import 'package:http/http.dart' as http;
 
 import '../../core/constants/spotify_endpoints.dart';
+import '../../core/rust_core.dart';
+import '../../src/rust/api/backend.dart' as rust;
+import '../rust_backend_bridge.dart';
 import '../../models/album.dart';
 import '../../models/artist.dart';
 import '../../models/editable_playlist.dart';
@@ -39,6 +42,7 @@ class DesktopLibrarySource implements LibrarySource {
   final int albumLimit;
   final int artistLimit;
   final int playlistLimit;
+  final bool useRustBackend;
 
   DesktopLibrarySource({
     required this._client,
@@ -50,6 +54,7 @@ class DesktopLibrarySource implements LibrarySource {
     this.albumLimit = 100,
     this.artistLimit = 60,
     this.playlistLimit = 300,
+    this.useRustBackend = false,
   });
 
   @override
@@ -150,6 +155,30 @@ class DesktopLibrarySource implements LibrarySource {
   /// 分页读取集合 [set]，只保留 [kind] 类型条目，按加入时间从新到旧排序。
   Future<List<CollectionEntry>> _collection(String set, String kind) async {
     final user = _username();
+    if (useRustBackend && RustCore.ready) {
+      try {
+        final proxy = await RustBackendBridge.proxyForUrl(
+          '$_spclient/collection/v2/paging',
+        );
+        if (proxy != null) {
+          rust.rustSessionSetProxy(proxy: proxy);
+          final dtos = await rust.rustFetchCollectionEntries(
+            spclientBase: _spclient,
+            username: user,
+            setName: set,
+            kind: kind,
+            maxPages: _maxPages,
+            pageSize: _pageSize,
+          );
+          return [
+            for (final dto in dtos)
+              RustBackendBridge.collectionEntryFromDto(dto),
+          ];
+        }
+      } catch (_) {
+        // 回退到 Dart 实现（例如需要 Dart 网关/会话钩子的环境）
+      }
+    }
     final all = <CollectionEntry>[];
     var token = '';
     for (var page = 0; page < _maxPages; page++) {
