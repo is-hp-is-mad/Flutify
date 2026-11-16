@@ -26,7 +26,10 @@ class AppDelegate: FlutterAppDelegate {
   }
 
   override func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-    return true
+    // 关掉最后一个窗口不退出：⌘W / 红色关闭按钮只是隐藏主窗口（音乐继续播放），
+    // 应用与 Dock 图标保留，点 Dock 图标由 applicationShouldHandleReopen 恢复窗口。
+    // 真正退出走 ⌘Q / 菜单「退出 Flutify」。
+    return false
   }
 
   override func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool)
