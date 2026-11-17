@@ -27,10 +27,21 @@ void installFileLog() {
   debugPrint = (String? message, {int? wrapWidth}) {
     original(message, wrapWidth: wrapWidth);
     if (message == null || written > maxBytes || failed) return;
+    
     final now = DateTime.now();
-    final line = '${now.toIso8601String().substring(11, 23)} $message\n';
+    // 增加毫秒精度，使用完整的 ISO 格式
+    final line = '${now.toIso8601String()} [LOG] $message\n';
     written += line.length;
     sink.write(line);
+    
+    // 如果消息包含常见错误关键词，记录堆栈信息以提高排查效率
+    if (message.contains('失败') || message.contains('错误') || message.contains('异常') || 
+        message.toLowerCase().contains('error') || message.toLowerCase().contains('fail')) {
+      final stack = StackTrace.current.toString();
+      final stackLine = '${now.toIso8601String()} [STACK] $stack\n';
+      written += stackLine.length;
+      sink.write(stackLine);
+    }
   };
 }
 
