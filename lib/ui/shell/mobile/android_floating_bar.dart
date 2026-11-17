@@ -13,6 +13,7 @@ import '../../widgets/connect/connect_actions.dart';
 import '../../widgets/hyper_surface.dart';
 import '../../widgets/mini_player.dart';
 import '../../widgets/mini_player_frame.dart';
+import '../desktop/desktop_window.dart';
 
 /// 页面纵向滚动驱动的收起状态：往下读收起底栏，回到顶部才展开，往回滚保持收起。
 class FloatingBarFold extends ValueNotifier<bool> {
@@ -37,7 +38,8 @@ class FloatingBarFold extends ValueNotifier<bool> {
     final metrics = notification.metrics;
     if (metrics.axis != Axis.vertical) return false;
     if (notification is ScrollStartNotification) {
-      _travel = 0;
+      // 鼠标滚轮每格都会发一次不带 dragDetails 的 ScrollStart，清零会导致小步滚轮永远攒不够折叠阈值
+      if (notification.dragDetails != null) _travel = 0;
       _held = false;
       return false;
     }
@@ -59,7 +61,7 @@ class FloatingBarFold extends ValueNotifier<bool> {
   }
 }
 
-/// Android 柔光玻璃的底部悬浮栏：迷你播放器胶囊 + 三项导航药丸（iOS 26 Apple Music 的布局与动效）。
+/// Android 与桌面窄窗口在柔光玻璃下的底部悬浮栏：迷你播放器胶囊 + 三项导航药丸（iOS 26 Apple Music 的布局与动效）。
 ///
 /// - 展开：左右各留 16，播放器（高 56）在导航（高 64）上方，间隔 8；
 /// - 往下滚动收起：导航药丸向左缩成当前 Tab 的圆形按钮，右端分裂出搜索圆钮，其余项淡出；
@@ -85,7 +87,13 @@ class AndroidFloatingBar extends StatefulWidget {
   static const int searchIndex = 1;
 
   static bool get platformSupported =>
-      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+      !kIsWeb &&
+      const {
+        TargetPlatform.android,
+        TargetPlatform.windows,
+        TargetPlatform.macOS,
+        TargetPlatform.linux,
+      }.contains(defaultTargetPlatform);
 
   static bool enabled(BuildContext context) =>
       platformSupported && context.tokens.hyperMaterial;
@@ -386,10 +394,13 @@ class _AndroidFloatingBarState extends State<AndroidFloatingBar>
               button: true,
               selected: i == index,
               label: label,
-              child: GestureDetector(
-                key: ValueKey('floating-bar-tab-$i'),
-                behavior: HitTestBehavior.opaque,
-                onTap: () => widget.onSelected(i),
+              child: MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  key: ValueKey('floating-bar-tab-$i'),
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => widget.onSelected(i),
+                ),
               ),
             ),
           )
@@ -398,10 +409,13 @@ class _AndroidFloatingBarState extends State<AndroidFloatingBar>
           child: Semantics(
             button: true,
             label: items[_anchor].$1,
-            child: GestureDetector(
-              key: const ValueKey('floating-bar-expand'),
-              behavior: HitTestBehavior.opaque,
-              onTap: _expand,
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                key: const ValueKey('floating-bar-expand'),
+                behavior: HitTestBehavior.opaque,
+                onTap: _expand,
+              ),
             ),
           ),
         ),
@@ -462,38 +476,41 @@ class _AndroidFloatingBarState extends State<AndroidFloatingBar>
                   button: true,
                   selected: index == AndroidFloatingBar.searchIndex,
                   label: items[AndroidFloatingBar.searchIndex].$1,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () {
-                      widget.onSelected(AndroidFloatingBar.searchIndex);
-                      _expand();
-                    },
-                    child: HyperBlendSurface(
-                      material: HyperBlendSurface.bar(context),
-                      borderRadius: BorderRadius.circular(search.height / 2),
-                      bloom: HyperBlendSurface.barBloom(context),
-                      shadow: true,
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          if (index == AndroidFloatingBar.searchIndex)
-                            Padding(
-                              padding: const EdgeInsets.all(_inset),
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(
-                                  color: capsuleColor,
-                                  shape: BoxShape.circle,
+                  child: MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {
+                        widget.onSelected(AndroidFloatingBar.searchIndex);
+                        _expand();
+                      },
+                      child: HyperBlendSurface(
+                        material: HyperBlendSurface.bar(context),
+                        borderRadius: BorderRadius.circular(search.height / 2),
+                        bloom: HyperBlendSurface.barBloom(context),
+                        shadow: true,
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            if (index == AndroidFloatingBar.searchIndex)
+                              Padding(
+                                padding: const EdgeInsets.all(_inset),
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    color: capsuleColor,
+                                    shape: BoxShape.circle,
+                                  ),
                                 ),
                               ),
+                            ExcludeSemantics(
+                              child: Icon(
+                                Icons.search_rounded,
+                                size: _iconSize,
+                                color: ink,
+                              ),
                             ),
-                          ExcludeSemantics(
-                            child: Icon(
-                              Icons.search_rounded,
-                              size: _iconSize,
-                              color: ink,
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -505,13 +522,17 @@ class _AndroidFloatingBarState extends State<AndroidFloatingBar>
           Positioned.fromRect(
             key: const ValueKey('floating-bar-lens'),
             rect: capsuleOpen.inflate(4 * lift),
-            child: _SliderLens(
-              size: capsuleOpen.inflate(4 * lift).size,
-              lift: lift.clamp(0.0, 1.0),
-              refract:
-                  !tokens.powerSaving &&
-                  !PerfFlags.noBackdrop &&
-                  !context.reduceMotion,
+            child: ValueListenableBuilder<bool>(
+              valueListenable: DesktopWindow.fullscreenTransition,
+              builder: (context, transitioning, _) => _SliderLens(
+                size: capsuleOpen.inflate(4 * lift).size,
+                lift: lift.clamp(0.0, 1.0),
+                refract:
+                    !transitioning &&
+                    !tokens.powerSaving &&
+                    !PerfFlags.noBackdrop &&
+                    !context.reduceMotion,
+              ),
             ),
           ),
         if (player != null)
