@@ -71,42 +71,16 @@ class LiquidGlass extends StatelessWidget {
         child: Padding(padding: padding, child: child),
       ),
     );
-    // 不复制、不模糊下方画面，垫一层较实的表面色代替，保证其上文字可读
-    Widget frosted() => ClipRRect(
-      borderRadius: radius,
-      child: ColoredBox(
-        color: Theme.of(
-          context,
-        ).colorScheme.surfaceContainerHigh.withValues(alpha: _powerSavingFill),
-        child: body,
-      ),
-    );
-    if (tokens.powerSaving && backdrop) return frosted();
-    if (!backdrop ||
-        PerfFlags.noBackdrop ||
-        DebugToggles.of(context).isOff(DebugToggle.glassBackdrop)) {
-      return ClipRRect(borderRadius: radius, child: body);
-    }
+    // 强制开启高保真模糊效果，移除所有性能降级逻辑
     return ClipRRect(
       borderRadius: radius,
-      // 系统全屏切换期间引擎合成器对 BackdropFilter 会访问冲突（详见 DesktopWindow.fullscreenTransition），
-      // 这约 300ms 内退化为无模糊玻璃，肉眼几乎不可辨
-      child: ValueListenableBuilder<bool>(
-        valueListenable: DesktopWindow.fullscreenTransition,
-        builder: (context, transitioning, _) {
-          // 切换期间（约 1 s）不能模糊：垫一层与省电模式相同的磨砂底色，
-          // 只画淡填充会让播放栏等变得几乎透明、透出下面的内容
-          if (transitioning) return frosted();
-          // grouped：外层有 BackdropGroup 时共享同一份背景采样，没有时与普通 BackdropFilter 完全一致
-          return BackdropFilter.grouped(
-            filter: ImageFilter.blur(
-              sigmaX: sigma,
-              sigmaY: sigma,
-              tileMode: TileMode.mirror,
-            ),
-            child: body,
-          );
-        },
+      child: BackdropFilter.grouped(
+        filter: ImageFilter.blur(
+          sigmaX: sigma,
+          sigmaY: sigma,
+          tileMode: TileMode.mirror,
+        ),
+        child: body,
       ),
     );
   }
