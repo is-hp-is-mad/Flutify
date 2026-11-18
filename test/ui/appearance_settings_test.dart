@@ -86,15 +86,17 @@ void main() {
     expect(fields.single.decoration?.hintText, 'Web Player');
 
     // 主题模式 → 深色；纯黑背景
+    final themeDropdown = find.byKey(const ValueKey('theme-mode'));
     await tester.scrollUntilVisible(
-      find.text('深色'),
+      themeDropdown,
       -500,
       scrollable: scrollable,
     );
-    // 反向滚动按步长停下时目标可能只是「已构建」而仍在视口外，再对齐一次
-    await tester.ensureVisible(find.text('深色'));
+    await tester.ensureVisible(themeDropdown);
     await settle(tester);
-    await tester.tap(find.text('深色'));
+    await tester.tap(themeDropdown);
+    await settle(tester);
+    await tester.tap(find.text('深色').last);
     await settle(tester);
     expect(Theme.of(settingsContext(tester)).brightness, Brightness.dark);
     await tester.tap(find.text('纯黑背景'));
@@ -102,15 +104,17 @@ void main() {
     expect(Theme.of(settingsContext(tester)).colorScheme.surface, Colors.black);
 
     // 圆角 → 方正
+    final cornerDropdown = find.byKey(const ValueKey('corner-style'));
     await tester.scrollUntilVisible(
-      find.text('方正'),
+      cornerDropdown,
       300,
       scrollable: scrollable,
     );
-    // 「材质」分区多了一行，按步长滚动可能停在目标只露出一半的位置
-    await tester.ensureVisible(find.text('方正'));
+    await tester.ensureVisible(cornerDropdown);
     await settle(tester);
-    await tester.tap(find.text('方正'));
+    await tester.tap(cornerDropdown);
+    await settle(tester);
+    await tester.tap(find.text('方正').last);
     await settle(tester);
     expect(settingsContext(tester).tokens.squareCorners, isTrue);
 

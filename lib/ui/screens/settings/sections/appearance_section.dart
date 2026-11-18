@@ -23,6 +23,7 @@ class AppearanceSection extends StatelessWidget {
         SettingsTile(
           title: l10n.settingsThemeMode,
           below: SettingsMenuField<ThemeMode>(
+            buttonKey: const ValueKey('theme-mode'),
             semanticLabel: l10n.settingsThemeMode,
             icon: Icons.brightness_6_rounded,
             value: settings.themeMode,

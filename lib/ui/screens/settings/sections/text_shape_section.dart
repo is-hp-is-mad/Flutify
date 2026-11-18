@@ -64,6 +64,7 @@ class _TextShapeSectionState extends State<TextShapeSection> {
         SettingsTile(
           title: l10n.settingsCornerStyle,
           below: SettingsMenuField<CornerStyle>(
+            buttonKey: const ValueKey('corner-style'),
             semanticLabel: l10n.settingsCornerStyle,
             icon: Icons.rounded_corner_rounded,
             value: settings.cornerStyle,

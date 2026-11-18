@@ -34,17 +34,19 @@ void main() {
     expect(find.byType(HyperGlass), findsOneWidget);
     expect(find.text('浅色'), findsNothing);
 
-    await tester.tap(find.text('模糊'));
+    await tester.tap(find.text('跟随系统'));
     for (var i = 0; i < 20; i++) {
       await tester.pump(const Duration(milliseconds: 50));
     }
     expect(find.text('浅色'), findsOneWidget);
+    expect(find.text('深色'), findsOneWidget);
 
     await tester.tap(find.text('浅色'));
     for (var i = 0; i < 30; i++) {
       await tester.pump(const Duration(milliseconds: 50));
     }
-    expect(find.text('浅色'), findsNothing);
+    expect(find.text('深色'), findsNothing);
+    expect(find.text('浅色'), findsOneWidget);
   });
 
   testWidgets('power saving keeps the preview still', (tester) async {
