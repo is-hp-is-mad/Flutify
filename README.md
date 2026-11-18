@@ -6,7 +6,11 @@
 
 **Flutter + Rust (`flutify_core`)** 驱动的跨平台 Spotify 第三方客户端 · Windows (x64 / ARM64) · Android · macOS · Linux
 
-[下载](https://github.com/is-hp-is-mad/Flutify/releases) · 当前版本 [![最新版本（含 Beta）](https://img.shields.io/github/v/release/is-hp-is-mad/Flutify?include_prereleases&sort=date&label=release&cacheSeconds=300)](https://github.com/is-hp-is-mad/Flutify/releases)
+[下载安装](https://github.com/is-hp-is-mad/Flutify/releases)
+
+[![正式版](https://img.shields.io/github/v/release/is-hp-is-mad/Flutify?label=%E6%AD%A3%E5%BC%8F%E7%89%88&color=2ea44f&cacheSeconds=300)](https://github.com/is-hp-is-mad/Flutify/releases/latest)
+[![Beta 版](https://img.shields.io/github/v/release/is-hp-is-mad/Flutify?include_prereleases&sort=date&filter=*-beta&label=Beta&color=1f6feb&cacheSeconds=300)](https://github.com/is-hp-is-mad/Flutify/releases)
+[![Self-Test 版](https://img.shields.io/github/v/release/is-hp-is-mad/Flutify?include_prereleases&sort=date&filter=*-selftest&label=Self-Test&color=d97706&cacheSeconds=300)](https://github.com/is-hp-is-mad/Flutify/releases)
 
 </div>
 
