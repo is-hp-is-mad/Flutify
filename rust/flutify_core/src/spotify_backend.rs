@@ -1852,7 +1852,7 @@ pub fn parse_home_feed(data: &Value) -> BackendHomeFeed {
     }
 }
 
-fn find_first_sections_container<'a>(data: &'a Value, depth: usize) -> Option<&'a Value> {
+fn find_first_sections_container(data: &Value, depth: usize) -> Option<&Value> {
     let map = data.as_object()?;
     for val in map.values() {
         let Some(m) = val.as_object() else {
@@ -1977,12 +1977,14 @@ pub fn parse_categories(data: &Value) -> Vec<BackendCategory> {
     result
 }
 
+type PagedItems<T> = (Vec<T>, Option<i32>, Option<i32>);
+
 fn parse_paging<T>(
     value: Option<&Value>,
     offset: i32,
     limit: i32,
     mut parse_item: impl FnMut(&Value) -> Option<T>,
-) -> Result<(Vec<T>, Option<i32>, Option<i32>), String> {
+) -> Result<PagedItems<T>, String> {
     let page = value
         .and_then(|v| v.as_object())
         .ok_or_else(|| "Missing catalog items".to_string())?;

@@ -23,6 +23,7 @@ pub async fn connect_state_request(
 }
 
 /// 通过 Rust HTTP/2 客户端发送 `track-playback/v1/devices` 请求（保留调用方按 `deviceId` 绑定的凭据与版本头）。
+#[allow(clippy::too_many_arguments)]
 pub async fn track_playback_request(
     spclient_host: &str,
     method: &str,

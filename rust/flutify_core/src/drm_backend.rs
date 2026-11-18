@@ -488,14 +488,14 @@ pub fn parse_episode_metadata_proto(data: &[u8]) -> BackendProtoEpisodeMetadata 
 /// 构造 PlayPlay 密钥请求体。
 pub fn encode_playplay_key_request(now_sec: i64) -> Vec<u8> {
     let mut w = Vec::with_capacity(64);
-    proto_lite::write_varint(&mut w, (1 << 3) | 0);
+    proto_lite::write_varint(&mut w, 1 << 3);
     proto_lite::write_varint(&mut w, 5);
     proto_lite::write_bytes(&mut w, 2, &PLAYPLAY_REQK);
-    proto_lite::write_varint(&mut w, (4 << 3) | 0);
+    proto_lite::write_varint(&mut w, 4 << 3);
     proto_lite::write_varint(&mut w, 1);
-    proto_lite::write_varint(&mut w, (5 << 3) | 0);
+    proto_lite::write_varint(&mut w, 5 << 3);
     proto_lite::write_varint(&mut w, 1);
-    proto_lite::write_varint(&mut w, (6 << 3) | 0);
+    proto_lite::write_varint(&mut w, 6 << 3);
     proto_lite::write_varint(&mut w, now_sec as u64);
     w
 }
@@ -572,13 +572,13 @@ mod tests {
         let mut w = Vec::new();
         proto_lite::write_bytes(&mut w, 1, &[1u8; 16]);
         proto_lite::write_string(&mut w, 2, "Track Title");
-        proto_lite::write_varint(&mut w, (7 << 3) | 0);
+        proto_lite::write_varint(&mut w, 7 << 3);
         proto_lite::write_varint(&mut w, 360_000); // zigzag(360_000) = 180_000
         proto_lite::write_bool(&mut w, 9, true);
 
         let mut file_w = Vec::new();
         proto_lite::write_bytes(&mut file_w, 1, &[0xab; 20]);
-        proto_lite::write_varint(&mut file_w, (2 << 3) | 0);
+        proto_lite::write_varint(&mut file_w, 2 << 3);
         proto_lite::write_varint(&mut file_w, 1); // oggVorbis160
         proto_lite::write_bytes(&mut w, 12, &file_w);
 

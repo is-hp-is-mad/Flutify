@@ -1249,6 +1249,7 @@ pub fn rust_localize_hls_manifest(
     )
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn rust_relay_drm_request(
     hosts: Vec<String>,
     method: String,
@@ -1372,6 +1373,7 @@ pub async fn rust_fetch_canvas(
         .map_err(|e| format!("join:{e}"))?
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn rust_track_playback_request(
     spclient_host: String,
     method: String,
