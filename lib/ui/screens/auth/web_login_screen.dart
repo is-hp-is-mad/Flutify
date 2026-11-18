@@ -12,6 +12,7 @@ import '../../../services/auth/login_region_check.dart';
 import '../../../services/auth/web_login_flow.dart';
 import '../../../services/auth/web_token_exception.dart';
 import '../../../services/auth/web_token_service.dart';
+import '../../../services/auth/webview_error_logger.dart';
 import '../../../services/eme/eme_player.dart';
 import '../../shell/desktop/desktop_window.dart';
 import 'linux_web_login_screen.dart';
@@ -458,6 +459,23 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                           'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36',
                     ),
                     onWebViewCreated: (controller) => _controller = controller,
+                    onReceivedError: (_, request, error) =>
+                        WebViewErrorLogger.logResourceError(
+                          scope: 'WebLogin',
+                          request: request,
+                          error: error,
+                        ),
+                    onReceivedHttpError: (_, request, errorResponse) =>
+                        WebViewErrorLogger.logHttpError(
+                          scope: 'WebLogin',
+                          request: request,
+                          errorResponse: errorResponse,
+                        ),
+                    onConsoleMessage: (_, message) =>
+                        WebViewErrorLogger.logConsoleError(
+                          scope: 'WebLogin',
+                          message: message,
+                        ),
                     onUpdateVisitedHistory: (_, url, _) =>
                         _onNav(url?.toString()),
                     onLoadStop: (_, url) => _onNav(url?.toString()),

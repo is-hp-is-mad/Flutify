@@ -84,10 +84,8 @@ Flutify 采用 **Flutter 表现层 + 高内聚领域服务端口 + Rust 核心�
 
 ## 🧪 已知注意事项
 
-- **Android 系统差异**：已接入 Media3 与系统 Widevine 原生播放，但不同厂商 ROM 的媒体卡片与 DRM 兼容性仍可能存在差异；与旧版签名不同的安装包首次更新需卸载重装。
 - **macOS**：未做 Developer ID 签名与公证，首次打开需在系统「隐私与安全性」中放行。
 - **Linux**：不内置 WebView，全曲播放依赖本机已安装的 Google Chrome / Chromium（含 Widevine）及 `libmpv`，部分桌面系统托盘/任务栏扩展能力受限，详见 [Linux 说明](docs/LINUX.md)。
-- **限流与账号权益**：偶发 HTTP 429 限流时稍等片刻即可恢复；免费账号可用能力以 Spotify 服务端策略为准。
 
 遇到问题欢迎提交 [Issue](https://github.com/is-hp-is-mad/Flutify/issues)。
 
