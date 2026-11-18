@@ -52,7 +52,8 @@ class PlaylistBackupService extends ChangeNotifier {
   bool _enabled = false;
   bool _autoCurrentAccount = true;
   int _intervalMinutes = defaultIntervalMinutes;
-  bool _isBackingUp = false;
+  int _activeBackupCount = 0;
+  bool _runningAllBackups = false;
   String? _lastError;
   Timer? _timer;
   bool _disposed = false;
@@ -108,7 +109,7 @@ class PlaylistBackupService extends ChangeNotifier {
   int get intervalMinutes => _intervalMinutes;
   Duration get effectiveInterval =>
       Duration(minutes: max(minIntervalMinutes, _intervalMinutes));
-  bool get isBackingUp => _isBackingUp;
+  bool get isBackingUp => _activeBackupCount > 0;
   String? get lastError => _lastError;
 
   /// 所有备份账号合并后的「已点赞的歌曲」（按曲目 ID 去重）。
@@ -313,15 +314,32 @@ class PlaylistBackupService extends ChangeNotifier {
       if (!isLiveCurrentAccount(a)) a,
   ];
 
+  /// 将拉取到的外部账号快照按身份合并回最新的 [_accounts]，避免并发增删账号或切换开关被覆盖。
+  bool _mergeExternalAccount(BackupAccount updated) {
+    final index = _accounts.indexWhere(
+      (a) =>
+          !a.isCurrentAccount &&
+          a.matchesIdentity(otherId: updated.id, otherEmail: updated.email),
+    );
+    if (index < 0) return false;
+    final current = _accounts[index];
+    final next = updated.copyWith(
+      syncToLocal: current.syncToLocal,
+      profileDir: updated.profileDir.isNotEmpty
+          ? updated.profileDir
+          : current.profileDir,
+    );
+    final list = [..._accounts]..[index] = next;
+    _accounts = List.unmodifiable(list);
+    return true;
+  }
+
   /// 若磁盘上已有外部账号的已点赞歌曲或歌单曲目为空（如旧版本留下的 0 首记录），自动拉取补齐落盘。
   Future<void> _hydrateIncompleteAccounts() async {
     var changed = false;
-    final nextAccounts = <BackupAccount>[];
-    for (final account in _accounts) {
-      if (account.isCurrentAccount) {
-        nextAccounts.add(account);
-        continue;
-      }
+    final candidates = List<BackupAccount>.from(_accounts);
+    for (final account in candidates) {
+      if (account.isCurrentAccount) continue;
       final needsHydrate =
           account.likedTracks.isEmpty ||
           account.playlists.any((p) => p.tracks.isEmpty);
@@ -340,28 +358,26 @@ class PlaylistBackupService extends ChangeNotifier {
               profileDir: account.profileDir,
             ),
           );
+          if (_disposed) return;
           if (snap.likedTracks.isNotEmpty ||
               snap.playlists.any((p) => p.tracks.isNotEmpty)) {
-            nextAccounts.add(
-              account.copyWith(
-                likedTracks: snap.likedTracks.isNotEmpty
-                    ? List.unmodifiable(snap.likedTracks)
-                    : account.likedTracks,
-                playlists: snap.playlists.isNotEmpty
-                    ? List.unmodifiable(snap.playlists)
-                    : account.playlists,
-                lastBackupAt: _now(),
-              ),
+            final hydrated = account.copyWith(
+              likedTracks: snap.likedTracks.isNotEmpty
+                  ? List.unmodifiable(snap.likedTracks)
+                  : account.likedTracks,
+              playlists: snap.playlists.isNotEmpty
+                  ? List.unmodifiable(snap.playlists)
+                  : account.playlists,
+              lastBackupAt: _now(),
             );
-            changed = true;
-            continue;
+            if (_mergeExternalAccount(hydrated)) changed = true;
           }
-        } catch (_) {}
+        } catch (e) {
+          debugPrint('[Backup] 补齐账号 ${account.title} 快照失败: $e');
+        }
       }
-      nextAccounts.add(account);
     }
     if (changed && !_disposed) {
-      _accounts = List.unmodifiable(nextAccounts);
       _persistToDisk();
       _notify();
     }
@@ -385,7 +401,7 @@ class PlaylistBackupService extends ChangeNotifier {
     if (cleanSpDc.isEmpty && credentials.accessToken.trim().isEmpty) {
       throw ArgumentError('WebView 会话凭据不能为空');
     }
-    _isBackingUp = true;
+    _activeBackupCount++;
     _lastError = null;
     _notify();
     try {
@@ -431,7 +447,7 @@ class PlaylistBackupService extends ChangeNotifier {
       _lastError = '备份账号失败：$e';
       rethrow;
     } finally {
-      _isBackingUp = false;
+      if (_activeBackupCount > 0) _activeBackupCount--;
       _notify();
     }
   }
@@ -461,24 +477,20 @@ class PlaylistBackupService extends ChangeNotifier {
 
   /// 立即执行一次全量备份（本机账号 + 所有已添加的外部账号）并落盘。
   Future<void> backupAllAccounts() async {
-    if (_isBackingUp) return;
-    _isBackingUp = true;
+    if (_runningAllBackups) return;
+    _runningAllBackups = true;
+    _activeBackupCount++;
     _lastError = null;
     _notify();
     try {
       if (_autoCurrentAccount) {
         _backupCurrentAccountImmediate();
       }
-      final updated = <BackupAccount>[];
-      for (final account in _accounts) {
-        if (account.isCurrentAccount) {
-          updated.add(account);
-          continue;
-        }
-        if (account.spDc.isEmpty && account.accessToken.isEmpty) {
-          updated.add(account);
-          continue;
-        }
+      var changed = false;
+      final candidates = List<BackupAccount>.from(_accounts);
+      for (final account in candidates) {
+        if (account.isCurrentAccount) continue;
+        if (account.spDc.isEmpty && account.accessToken.isEmpty) continue;
         try {
           final snapshot = await _fetchSnapshot(
             BackupSessionCredentials(
@@ -492,26 +504,30 @@ class PlaylistBackupService extends ChangeNotifier {
               profileDir: account.profileDir,
             ),
           );
-          updated.add(
-            account.copyWith(
-              id: snapshot.id.isNotEmpty ? snapshot.id : account.id,
-              email: snapshot.email.isNotEmpty ? snapshot.email : account.email,
-              displayName: snapshot.displayName,
-              avatarUrl: snapshot.avatarUrl,
-              lastBackupAt: _now(),
-              likedTracks: List.unmodifiable(snapshot.likedTracks),
-              playlists: List.unmodifiable(snapshot.playlists),
-            ),
+          if (_disposed) return;
+          final updated = account.copyWith(
+            id: snapshot.id.isNotEmpty ? snapshot.id : account.id,
+            email: snapshot.email.trim().isNotEmpty
+                ? snapshot.email.trim()
+                : account.email,
+            displayName: snapshot.displayName,
+            avatarUrl: snapshot.avatarUrl,
+            lastBackupAt: _now(),
+            likedTracks: List.unmodifiable(snapshot.likedTracks),
+            playlists: List.unmodifiable(snapshot.playlists),
           );
+          if (_mergeExternalAccount(updated)) changed = true;
         } catch (e) {
           _lastError ??= '账号 ${account.title} 备份失败：$e';
-          updated.add(account);
+          debugPrint('[Backup] 备份账号 ${account.title} 失败: $e');
         }
       }
-      _accounts = List.unmodifiable(updated);
-      _persistToDisk();
+      if (changed && !_disposed) {
+        _persistToDisk();
+      }
     } finally {
-      _isBackingUp = false;
+      _runningAllBackups = false;
+      if (_activeBackupCount > 0) _activeBackupCount--;
       _notify();
     }
   }

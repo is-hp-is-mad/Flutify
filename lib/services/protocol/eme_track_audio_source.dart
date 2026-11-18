@@ -86,6 +86,9 @@ class EmeTrackAudioSource implements TrackAudioSource, AudioCacheStore {
   /// 进行中的加载（按曲目合并）。
   final Map<String, Future<LoadedAudio>> _inFlight = {};
 
+  /// 进行中的流式下载（按目标缓存文件路径合并，避免不同 trackId 共享同一 file_id 时并发写同一文件）。
+  final Map<String, _StreamingDownloadHandle> _inFlightByPath = {};
+
   EmeTrackAudioSource({
     required this.accessToken,
     this.clientToken,
@@ -338,9 +341,13 @@ class EmeTrackAudioSource implements TrackAudioSource, AudioCacheStore {
         debugPrint('[eme-src] init 段就绪，流式起播（后台继续下载）');
       } else {
         debugPrint('[eme-src] 缓存命中 ${dest.path}');
-        // 修改时间记录最近播放，而不是最初下载，供 LRU 淘汰使用。
+        // 修改时间记录最近播放，而不是最初下载，供 LRU 淘汰使用（.done 同步更新，避免先于 .m4a 被淘汰）。
+        final now = DateTime.now();
         try {
-          await dest.setLastModified(DateTime.now());
+          await dest.setLastModified(now);
+        } catch (_) {}
+        try {
+          await doneMarker.setLastModified(now);
         } catch (_) {}
       }
       progress?.call(1.0);
@@ -384,7 +391,10 @@ class EmeTrackAudioSource implements TrackAudioSource, AudioCacheStore {
     File doneMarker,
     void Function(double)? progress,
   ) {
+    final existing = _inFlightByPath[dest.path];
+    if (existing != null) return existing;
     final handle = _StreamingDownloadHandle();
+    _inFlightByPath[dest.path] = handle;
     final registration = StreamingDownloads.begin(dest.path);
     () async {
       try {
@@ -432,6 +442,9 @@ class EmeTrackAudioSource implements TrackAudioSource, AudioCacheStore {
           );
         }
       } finally {
+        if (identical(_inFlightByPath[dest.path], handle)) {
+          _inFlightByPath.remove(dest.path);
+        }
         StreamingDownloads.end(dest.path);
         unawaited(trimCache());
       }

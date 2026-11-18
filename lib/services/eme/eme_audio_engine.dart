@@ -35,16 +35,23 @@ class EmeAudioEngine implements AudioEngine, PositionSyncable {
        _licensePoster = licensePoster,
        _certFetcher = certFetcher,
        _initialize = initialize {
-    _player.positionStream.listen((p) {
-      _position = p;
-      _positionController.add(p);
-    });
-    _player.durationStream.listen((d) {
-      _duration = d;
-      _durationController.add(d);
-    });
-    _player.stateStream.listen(_onState);
+    _subs.addAll([
+      _player.positionStream.listen((p) {
+        if (_disposed) return;
+        _position = p;
+        _positionController.add(p);
+      }),
+      _player.durationStream.listen((d) {
+        if (_disposed) return;
+        _duration = d;
+        _durationController.add(d);
+      }),
+      _player.stateStream.listen(_onState),
+    ]);
   }
+
+  final List<StreamSubscription<dynamic>> _subs = [];
+  Future<void> _loading = Future.value();
 
   // ---- 状态 ----
   final _positionController = StreamController<Duration>.broadcast();
@@ -127,43 +134,52 @@ class EmeAudioEngine implements AudioEngine, PositionSyncable {
     EmeTrackContent content, {
     Duration? initialPosition,
     bool autoplay = true,
-  }) async {
+  }) {
     final generation = ++_loadGeneration;
     _intentRevision++;
     _wantsPlay = autoplay;
     _hasSource = false;
     _processing = ProcessingState.loading;
     _emit();
-    try {
-      await (_initializing ??= _initialize?.call() ?? Future.value());
-    } catch (_) {
-      _initializing = null;
-      if (_disposed || generation != _loadGeneration) return;
-      _processing = ProcessingState.idle;
-      _emit();
-      rethrow;
-    }
-    if (_disposed || generation != _loadGeneration) return;
-    await _player.setVolume(_volume);
-    if (_disposed || generation != _loadGeneration) return;
-    // macOS / iOS：WKWebView 无 Widevine，只能走 FairPlay（见 EmePlayer.play / fairplay.dart）。
-    // licensePoster/certFetcher 的 fairplay 端点选择由 license 客户端同步按平台默认，
-    // 两端（本地页 keySystem 切换与反代端点切换）必须保持同一判定，否则端点与 CDM 错配。
-    final fairPlay = useFairPlay;
-    if (fairPlay)
-      debugPrint('[eme] WKWebView：启用 FairPlay 全曲播放链路（com.apple.fps）');
-    await _player.play(
-      m4a: File(content.m4aPath),
-      m3u8: content.m3u8,
-      licensePoster: _licensePoster,
-      certFetcher: _certFetcher,
-      fairPlay: fairPlay,
-      fairPlayFileId: content.fileIdHex,
-      autoplay: _wantsPlay,
-      initialPosition: initialPosition,
-    );
-    if (_disposed || generation != _loadGeneration) return;
-    _hasSource = true;
+    bool current() => !_disposed && generation == _loadGeneration;
+    final initFuture = (_initializing ??= _initialize?.call() ?? Future.value());
+    // 回环服务只有一套活动清单与音频槽位，串行化切歌避免旧请求覆盖新曲目状态。
+    final loading = _loading.then((_) async {
+      if (!current()) return;
+      try {
+        await initFuture;
+      } catch (_) {
+        if (identical(_initializing, initFuture)) _initializing = null;
+        if (!current()) return;
+        _processing = ProcessingState.idle;
+        _emit();
+        rethrow;
+      }
+      if (!current()) return;
+      await _player.setVolume(_volume);
+      if (!current()) return;
+      // macOS / iOS：WKWebView 无 Widevine，只能走 FairPlay（见 EmePlayer.play / fairplay.dart）。
+      // licensePoster/certFetcher 的 fairplay 端点选择由 license 客户端同步按平台默认，
+      // 两端（本地页 keySystem 切换与反代端点切换）必须保持同一判定，否则端点与 CDM 错配。
+      final fairPlay = useFairPlay;
+      if (fairPlay) {
+        debugPrint('[eme] WKWebView：启用 FairPlay 全曲播放链路（com.apple.fps）');
+      }
+      await _player.play(
+        m4a: File(content.m4aPath),
+        m3u8: content.m3u8,
+        licensePoster: _licensePoster,
+        certFetcher: _certFetcher,
+        fairPlay: fairPlay,
+        fairPlayFileId: content.fileIdHex,
+        autoplay: _wantsPlay,
+        initialPosition: initialPosition,
+      );
+      if (!current()) return;
+      _hasSource = true;
+    });
+    _loading = loading.catchError((Object _) {});
+    return loading;
   }
 
   // just_audio 路径在 EME 引擎上不可用（路由层保证不调用）
@@ -231,6 +247,14 @@ class EmeAudioEngine implements AudioEngine, PositionSyncable {
     _disposed = true;
     _loadGeneration++;
     _intentRevision++;
+    for (final sub in _subs) {
+      unawaited(sub.cancel());
+    }
+    _subs.clear();
     _player.dispose();
+    unawaited(_positionController.close());
+    unawaited(_durationController.close());
+    unawaited(_stateController.close());
+    unawaited(_errorController.close());
   }
 }
