@@ -4,7 +4,7 @@
 
 # Flutify
 
-一个让你呼吸通畅的 Spotify 第三方客户端 · Windows / Android / macOS（测试版）· Linux（实验）
+**Flutter + Rust (`flutify_core`)** 驱动的跨平台 Spotify 第三方客户端 · Windows (x64 / ARM64) · Android · macOS · Linux
 
 [下载](https://github.com/is-hp-is-mad/Flutify/releases) · 当前版本 [![最新版本（含 Beta）](https://img.shields.io/github/v/release/is-hp-is-mad/Flutify?include_prereleases&sort=date&label=release&cacheSeconds=300)](https://github.com/is-hp-is-mad/Flutify/releases)
 
@@ -12,88 +12,94 @@
 
 ---
 
-## ✨ 功能
+## ✨ 核心功能
 
-**听歌**
-- 在应用内的 Spotify 官方登录页登录一次即可，其余授权自动完成，浏览主页、搜索、歌单、专辑、艺人
-- 完整曲目播放，边下边播，听过的歌自动缓存
-- 双层播放队列（手动添加 + 来自歌单），随机 / 列表循环 / 单曲循环
-- 音量均衡、歌曲间淡入淡出，重启后从上次的进度继续
+### 🎧 听歌与媒体库
+- **无缝授权与浏览**：应用内 Spotify 官方登录页一次登录即可自动维护会话与令牌，支持主页、探索（WatchFeed）、搜索、歌单、专辑、艺人、播客节目与单集、Canvas 动态封面
+- **全曲播放与边下边播**：支持 Widevine（Windows WebView2 / Android Media3 / Linux Chrome）、FairPlay（macOS / iOS）与协议流式解密，支持按文件响度数据自动音量均衡（ReplayGain）、歌曲间淡入淡出及重启断点续播
+- **双层播放队列**：支持「下一首播放（手动队列）」与「来自歌单/专辑（上下文队列）」、随机、列表循环与单曲循环
+- **多账号歌单备份**：支持绑定多个 Spotify 账号独立备份已点赞歌曲与收藏歌单，原子落盘并支持勾选部分条目合并导入当前账号
 
-**歌词**
-- 逐行同步歌词，Apple Music 风格的流动背景与液态玻璃
-- 官方没有同步歌词时，自动从 [LRCLIB](https://lrclib.net) 补全
-- 可选双语歌词：保留 LRCLIB 对照译文，或查询网易云社区译文并按时间轴对齐
-- 桌面沉浸式歌词（F11），支持直接收藏歌曲
-- Windows 任务栏歌词：嵌在任务栏里，不需要额外软件
+### 📝 歌词体验
+- **多源歌词与译文对齐**：优先获取官方同步歌词，缺失时自动从 [LRCLIB](https://lrclib.net) 补全；支持可选启用 QQ 音乐 / 网易云社区译文按时间轴精准对齐，以及词组级简繁转换
+- **沉浸与桌面集成**：Apple 风格流动背景与逐行焦点动效、桌面沉浸式歌词（`F11`）及 Windows 嵌入式任务栏歌词
 
-**Spotify Connect**
-- 遥控同账号的其他设备（手机、电脑、音箱），也能把播放转到本机
-- 本机会出现在其他设备的设备列表里，可以被遥控，播放状态双向同步
-- 设备名称可自定义
+### 📡 Spotify Connect
+- **双向控制与接收端**：基于 Dealer WebSocket 与 `connect-state/v1` 协议，既可遥控同账号其他设备，也可将本机注册为可被其他设备发现和遥控的播放端，播放状态与进度双向同步
+- **自定义设备名**：可在设置中自定义当前设备的 Connect 显示名称
 
-**外观与体验**
-- Material 3 Expressive 设计，深 / 浅色，纯黑背景，强调色可跟随封面
-- 桌面三栏布局，窗口变窄自动切换为手机布局
-- 系统媒体控制（任务栏 / 锁屏 / 通知栏）、键盘媒体键与快捷键
-- 简体中文 / 繁體中文 / English / 日本語，内置 MiSans 字体
-- 支持 HTTP 代理（跟随系统或手动设置）
-- 可配置 Spotify HTTPS 反代，支持 API、媒体和 Connect 连接，并按网络出口国家/地区自动开关
-- 桌面端的音频、封面、歌词缓存分别选择 AppData、程序目录或自定义目录，支持系统文件夹选择器，修改位置时迁移旧缓存
-- 音频缓存按上限自动清理，也可手动清理全部缓存；网络连接失败时最多重试 10 次并显示进度
+### 🎨 外观、交互与网络
+- **Material 3 Expressive 与玻璃材质**：支持柔光玻璃（Hyper Glass）、液态玻璃（Liquid Glass）、深/浅色及纯黑背景，强调色可自动跟随专辑封面
+- **响应式与快捷键**：桌面三栏布局，窗口变窄自动切换为移动端悬浮底栏交互；支持系统媒体控制（SMTC / MPRIS / MediaSession / 锁屏）、应用内快捷键与自定义全局快捷键
+- **网络路由与缓存管理**：支持系统代理 / 手动 HTTP 代理、按任务隔离的 Rust HTTP/2 连接池，以及可选 `FlutifyPS` HTTPS 反代与按网络出口国家/地区自动切换；桌面端支持音频、封面、歌词缓存分目录迁移与按上限自动清理
+- **应用内更新**：支持检查并安装 `self-test` / `beta` / `release` 通道更新
+
+---
+
+## 🏗️ 技术架构
+
+Flutify 采用 **Flutter 表现层 + 高内聚领域服务端口 + Rust 核心后端** 的分层架构：
+
+| 层级 | 目录 | 职责说明 |
+|---|---|---|
+| **UI 与状态层** | `lib/ui/`、`lib/providers/`、`lib/bootstrap/` | 响应式界面、主题/玻璃渲染、播放/媒体库/Connect 状态编排与启动装配 |
+| **服务与端口层** | `lib/services/` | 按存储（`storage/`）、播放控制（`playback/`）、备份（`backup/`）、EME 回环宿主页（`eme/`）、Connect 与歌词等独立模块解耦 |
+| **Rust 核心层** | `rust/flutify_core/` | 通过 `flutter_rust_bridge` 提供统一 HTTP/2 客户端与按请求代理隔离、会话/TOTP 令牌单飞刷新、AP 协议（DH/Shannon/Mercury/AudioKey）、分段并发下载与 AES-CTR 解密、Protobuf/Pathfinder/WatchFeed/LRC/OpenCC 编解码及缓存/备份原子文件操作 |
+
+---
 
 ## 📦 安装
 
-从 [Releases](../../releases) 下载：
+从 [Releases](https://github.com/is-hp-is-mad/Flutify/releases) 下载对应平台安装包：
 
-| 平台 | 文件 | 说明 |
+| 平台 | 安装包 / 归档 | 说明 |
 |---|---|---|
-| Windows 10 / 11，Intel / AMD | `*-windows-x64-setup.exe` 或 `*-windows-x64.zip` | 安装版或解压即用的便携版 |
-| Windows ARM64 | `*-windows-arm64-setup.exe` 或 `*-windows-arm64.zip` | 原生 ARM64 安装版或便携版 |
-| Android | `*-android-arm64-v8a.apk` | 绝大多数手机选这个；不确定就选 `*-android-universal.apk` |
-| macOS | Releases 中的 `*-macos.zip` | 测试版，未做 Developer ID 签名和 Apple 公证；见 [macOS 开发说明](docs/MACOS.md) |
-| Linux（实验） | `*-linux-x64.deb` 或 `*-linux-x64.tar.gz` | Debian/Ubuntu 用 `.deb`（`sudo apt install ./Flutify-*-linux-x64.deb`）；其他发行版解压 tar.gz 运行，Arch 见 [Linux 说明](docs/LINUX.md) |
+| **Windows x64** | `*-windows-x64-setup.exe` 或 `*-windows-x64.zip` | 安装版或解压即用便携版；附带 MSVC 运行库，播放依赖 WebView2 运行时（Windows 11 默认自带） |
+| **Windows ARM64** | `*-windows-arm64-setup.exe` 或 `*-windows-arm64.zip` | 原生 ARM64 安装版或便携版 |
+| **Android** | `*-android-arm64-v8a.apk` | 绝大多数手机选此版本；不确定架构可选 `*-android-universal.apk` |
+| **macOS** | `*-macos.zip` | 含 FairPlay EME 播放支持；未做 Developer ID 签名与 Apple 公证，详见 [macOS 说明](docs/MACOS.md) |
+| **Linux** | `*-linux-x64.deb` 或 `*-linux-x64.tar.gz` | Debian/Ubuntu 用 `.deb`（`sudo apt install ./Flutify-*-linux-x64.deb`），运行需 `libmpv`，全曲播放调用系统 Chrome/Chromium（含 Widevine），详见 [Linux 说明](docs/LINUX.md) |
 
-Windows 便携版解压后运行 `Flutify.exe`。两种发行方式均附带 MSVC 运行库；播放仍需 WebView2 运行时（Windows 11 通常已安装）。安装版默认安装到当前用户目录，也可更改位置。
+### 快速上手
+1. 首次打开进入「设置 → 账号 → 登录」，在弹出的 Spotify 官方登录页完成登录。
+2. 若当前网络无法直连 Spotify，可在「设置 → 网络」配置系统/手动 HTTP 代理，或开启「Spotify 反代」并配合自动地区检测（通过 `https://cloudflare.com/cdn-cgi/trace` 判断出口国家/地区）。
+3. 桌面端可在「设置 → 存储」分别为音频、封面与歌词调整缓存目录（修改时支持自动迁移旧缓存）。
 
-桌面端缓存位置在「设置 → 存储」中分别调整；便携版默认仍使用 AppData，需要时可切换到程序目录。移动端保留清除缓存和设置大小上限，不显示目录选择。
-
-反代入口与凭据在「设置 → 网络 → Spotify 反代」中配置。开启自动切换后，通过 `https://cloudflare.com/cdn-cgi/trace` 的 `loc` 查询出口国家/地区：允许直连的国家/地区代码留空时，CN 开启反代，其余直连；填写 `US, JP, HK` 等两位代码时，仅列表内的国家/地区直连，其余全部开启反代。查询使用当前选择的系统/手动 HTTP 代理，失败时保持现有线路。启动、网络变化、回到前台和每两分钟都会检查，也可在设置中手动刷新。
-
-首次使用：设置 → 账号 →「登录」，在弹出的 Spotify 官方登录页里登录即可。
+---
 
 ## 🌐 可选自建服务
 
-[FlutifyPS](https://github.com/is-hp-is-mad/FlutifyPS) 是 Flutify 的可选反代服务，支持 Spotify API、媒体下载和 Connect 连接。如果当前网络已经可以正常使用 Flutify，无需部署它。
+[FlutifyPS](https://github.com/is-hp-is-mad/FlutifyPS) 是 Flutify 的可选自建 HTTPS 反代服务，覆盖 Spotify API、媒体下载与 Connect 连接。若当前网络环境可直接访问 Spotify，则无需部署。
 
-需要自建入口时，按 [FlutifyPS 部署与接入说明](https://github.com/is-hp-is-mad/FlutifyPS#部署) 在服务器上部署，然后在「设置 → 网络 → Spotify 反代」中填写包含路径的 HTTPS 地址、用户名和密码。FlutifyPS 支持 Docker 与 Node.js / systemd，服务器也可配置独立出口代理。
+部署方式见 [FlutifyPS 部署与接入说明](https://github.com/is-hp-is-mad/FlutifyPS#部署)，部署后在「设置 → 网络 → Spotify 反代」填入 HTTPS 地址与凭据即可。
 
-## 🧪 已知问题
+---
 
-- **0.14beta：Windows 原生 Widevine 仍为实验性。** x64 开启实验性原生 Widevine，加载失败回退 WebView2，ARM64 继续使用 WebView2。原生实验的许可证请求仍返回 HTTP 403，尚未验证原生出声。本版改动见 [0.14-beta 更新日志](docs/releases/v0.14-beta.md)。
+## 🧪 已知注意事项
 
-- Android 已接入 Media3 / 系统 Widevine 原生播放；设备 DRM 支持和厂商系统媒体卡片仍有兼容性差异
-- vivo 媒体卡片、手机与 PC 间控制权转移、手机歌词退出遮罩及 Windows 左对齐任务栏歌词仍需实机反馈
-- 偶尔遇到播放限流（HTTP 429），稍等片刻再试即可
-- 免费账号功能以 Spotify 实际允许的为准；与旧版签名不同的 Android Beta 安装可能需要首次重装
-- macOS 仍需不同机型、系统版本与账号的实机验证；构建通过不代表全曲播放、系统媒体键等均已验证
-- **Linux（实验）：** 没有内嵌 WebView，全曲播放改用一个后台运行的系统 Google Chrome / Chromium（含 Widevine）来完成（本机需装 Chrome）；账号登录走系统浏览器，全曲播放需一次性「Web 登录」抓取 sp_dc。Canvas 视频封面、分享嵌入、系统媒体控制与任务栏歌词不可用，应用内更新走 Releases 页面。运行需要 `libmpv`（`.deb` 与 AUR 包已声明依赖，其他发行版包名见 Linux 说明）。详见 [Linux 说明](docs/LINUX.md)
+- **Android 系统差异**：已接入 Media3 与系统 Widevine 原生播放，但不同厂商 ROM 的媒体卡片与 DRM 兼容性仍可能存在差异；与旧版签名不同的安装包首次更新需卸载重装。
+- **macOS**：未做 Developer ID 签名与公证，首次打开需在系统「隐私与安全性」中放行。
+- **Linux**：不内置 WebView，全曲播放依赖本机已安装的 Google Chrome / Chromium（含 Widevine）及 `libmpv`，部分桌面系统托盘/任务栏扩展能力受限，详见 [Linux 说明](docs/LINUX.md)。
+- **限流与账号权益**：偶发 HTTP 429 限流时稍等片刻即可恢复；免费账号可用能力以 Spotify 服务端策略为准。
 
-有问题欢迎提 [Issue](../../issues)。
+遇到问题欢迎提交 [Issue](https://github.com/is-hp-is-mad/Flutify/issues)。
+
+---
 
 ## ⚠️ 免责声明
 
-- 本项目是非官方第三方客户端，**与 Spotify AB 没有任何关联**，Spotify 是 Spotify AB 的注册商标。
-- 本项目仅供学习与研究交流使用。使用第三方客户端可能违反 Spotify 服务条款，**存在账号被限制的风险，建议使用小号**，后果由使用者自行承担。
-- 本项目不提供、不存储任何音乐内容，所有内容均来自用户自己的 Spotify 账号。
+- 本项目为非官方第三方客户端，**与 Spotify AB 没有任何关联**，`Spotify` 是 Spotify AB 的注册商标。
+- 本项目仅供学习与研究交流使用。使用第三方客户端可能违反 Spotify 服务条款，**存在账号受限风险，建议使用小号**，相关后果由使用者自行承担。
+- 本项目不提供、不存储任何音频或版权内容，所有数据均来自用户自己的 Spotify 账号及公开歌词源。
 - 请支持正版，订阅 Spotify Premium。
 
-## 📄 许可证
+---
 
-[MIT License](LICENSE)。随附的第三方组件遵循各自的许可证，见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+## 📄 许可证与开发
 
-开发相关文档见 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)。
+- 许可证：[MIT License](LICENSE)，随附第三方组件声明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+- 开发与构建指南：见 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)。
 
 ## 🙏 致谢
 
-感谢 <a href="https://linux.do">LINUX DO</a> 社区。
+感谢 <a href="https://linux.do">LINUX DO</a> 社区的反馈与支持。
