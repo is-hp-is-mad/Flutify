@@ -148,13 +148,14 @@ class LibraryProvider extends ChangeNotifier implements BackupLibraryPort {
     if (_storage.libraryAccount != source.accountId) {
       _clearRemote();
       await _storage.setLibraryAccount(source.accountId);
+      if (_disposed) return;
     }
 
     _isLoading = true;
     _loadError = null;
     notifyListeners();
 
-    bool current() => generation == _refreshGeneration;
+    bool current() => !_disposed && generation == _refreshGeneration;
     void fail(Object e) => _loadError ??= e is LibrarySourceException ? e.toString() : '读取媒体库失败：$e';
 
     await Future.wait([
@@ -199,6 +200,7 @@ class LibraryProvider extends ChangeNotifier implements BackupLibraryPort {
       if (!current()) return;
       fail(e);
     }
+    if (!current()) return;
     notifyListeners();
   }
 
@@ -300,6 +302,7 @@ class LibraryProvider extends ChangeNotifier implements BackupLibraryPort {
     final source = _source;
     if (source == null || !source.isSignedIn) return;
     op(source).catchError((Object e) {
+      if (_disposed) return;
       _syncError = e is LibrarySourceException ? e.toString() : '同步失败：$e';
       notifyListeners();
     });

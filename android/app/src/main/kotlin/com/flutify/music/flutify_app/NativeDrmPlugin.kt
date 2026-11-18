@@ -58,9 +58,12 @@ class NativeDrmPlugin(
         private const val METHOD_CHANNEL = "flutify/native_drm"
         private const val EVENT_CHANNEL = "flutify/native_drm/events"
         private const val POSITION_INTERVAL_MS = 500L
+        private val registeredEngines = java.util.WeakHashMap<FlutterEngine, NativeDrmPlugin>()
 
         fun register(flutterEngine: FlutterEngine, context: Context): NativeDrmPlugin =
-            NativeDrmPlugin(context, flutterEngine.dartExecutor.binaryMessenger)
+            registeredEngines.getOrPut(flutterEngine) {
+                NativeDrmPlugin(context, flutterEngine.dartExecutor.binaryMessenger)
+            }
     }
 
     // ---- MethodChannel ----

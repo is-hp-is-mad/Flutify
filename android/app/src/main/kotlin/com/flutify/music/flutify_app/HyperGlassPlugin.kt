@@ -549,10 +549,12 @@ private class XiaomiNativeSurfaceView(context: Context) : View(context) {
         }
 
         (params["bloomParams"] as? FloatArray)?.let { raw ->
-            val scaled = raw.copyOf()
-            scaled[0] = (raw[0] * density + 0.5f).toInt().toFloat()
-            scaled[6] = (raw[6] * density + 0.5f).toInt().toFloat()
-            runCatching { XiaomiRomReflector.setMiBloomStroke?.invoke(this, scaled) }
+            if (raw.size >= 7) {
+                val scaled = raw.copyOf()
+                scaled[0] = (raw[0] * density + 0.5f).toInt().toFloat()
+                scaled[6] = (raw[6] * density + 0.5f).toInt().toFloat()
+                runCatching { XiaomiRomReflector.setMiBloomStroke?.invoke(this, scaled) }
+            }
         }
 
         (params["shadowColor"] as? Number)?.toInt()?.let { color ->

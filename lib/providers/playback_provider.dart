@@ -1158,12 +1158,13 @@ class PlaybackProvider extends ChangeNotifier
 
   Future<void> _recheckActivePlaybackRegion(SpotifyTrack track) async {
     final gate = regionGate;
-    if (gate == null) return;
+    if (gate == null || _disposed) return;
     final block = await gate.ensureAllowed();
-    if (block == null) return;
+    if (block == null || _disposed) return;
     if (_currentTrack?.id == track.id) {
       final savedPos = position;
       await pause();
+      if (_disposed) return;
       _loadedTrackId = null;
       _resumeAt = savedPos;
       await _blockOnRegion(track);
@@ -1183,6 +1184,7 @@ class PlaybackProvider extends ChangeNotifier
       // 检测本身出问题按「未知」处理，不因为探测失败就不让听歌
       return false;
     }
+    if (_disposed) return true;
     if (block == null) return false;
     if (generation != null && generation != _loadGeneration) return true;
     _playbackError = PlaybackError(
@@ -1425,8 +1427,9 @@ class PlaybackProvider extends ChangeNotifier
     }
 
     // 上下文播放完毕：开着自动播放就接着放相似歌曲，否则停在当前曲目开头
-    if (await _startAutoplay()) return;
+    if (await _startAutoplay() || _disposed) return;
     await pause();
+    if (_disposed) return;
     await seekTo(Duration.zero);
   }
 
@@ -1503,7 +1506,7 @@ class PlaybackProvider extends ChangeNotifier
     final sync = syncOptionsBeforeApply;
     if (sync != null) {
       final ok = await sync(shuffle: next);
-      if (!ok) return;
+      if (!ok || _disposed) return;
     }
     _shuffle = next;
     if (_order.isNotEmpty) _rebuildOrder(_order[_orderPos]);
@@ -1542,7 +1545,7 @@ class PlaybackProvider extends ChangeNotifier
     final sync = syncOptionsBeforeApply;
     if (sync != null) {
       final ok = await sync(repeat: next);
-      if (!ok) return;
+      if (!ok || _disposed) return;
     }
     setRepeatMode(next);
   }
@@ -1655,6 +1658,7 @@ class PlaybackProvider extends ChangeNotifier
       await _audio.stop();
     } catch (_) {}
     await sessionStore?.clear();
+    if (_disposed) return;
     notifyListeners();
   }
 
@@ -1776,6 +1780,7 @@ class PlaybackProvider extends ChangeNotifier
       regionGate?.onNetworkChanged = null;
     }
     ++_loadGeneration;
+    ++_playIntent;
     _releaseCurrentAudio();
     _cancelRetry();
     unawaited(flushSession()); // 快照同步生成，写文件在后台完成

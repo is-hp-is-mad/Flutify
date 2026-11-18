@@ -30,8 +30,11 @@ import io.flutter.plugin.common.MethodChannel
  * - 蓝牙音频设备：监听 A2DP 连接变化，上报已连接设备（名称 / 地址 / 是否车载），
  *   供 Dart 侧决定是否把媒体信息换成歌词（车机屏幕显示歌词）。
  */
-class LyricBridgePlugin private constructor(private val activity: MainActivity) :
+class LyricBridgePlugin private constructor(activity: MainActivity) :
     EventChannel.StreamHandler {
+
+    private val appContext = activity.applicationContext
+    private var activityRef = java.lang.ref.WeakReference(activity)
 
     companion object {
         /** audio_service 播放通知的固定 id（AudioService.NOTIFICATION_ID）。 */
@@ -44,9 +47,16 @@ class LyricBridgePlugin private constructor(private val activity: MainActivity) 
         private const val FLAG_ONLY_UPDATE_TICKER = 0x02000000
 
         private const val REQUEST_BLUETOOTH = 0x4C42
+        private val registeredEngines = java.util.WeakHashMap<FlutterEngine, LyricBridgePlugin>()
 
         fun register(engine: FlutterEngine, activity: MainActivity) {
+            val existing = registeredEngines[engine]
+            if (existing != null) {
+                existing.activityRef = java.lang.ref.WeakReference(activity)
+                return
+            }
             val plugin = LyricBridgePlugin(activity)
+            registeredEngines[engine] = plugin
             val messenger = engine.dartExecutor.binaryMessenger
             MethodChannel(messenger, "flutify/lyric_bridge").setMethodCallHandler { call, result ->
                 try {
@@ -88,10 +98,10 @@ class LyricBridgePlugin private constructor(private val activity: MainActivity) 
 
     private fun setTicker(text: String?) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
-        val manager = activity.getSystemService(NotificationManager::class.java) ?: return
+        val manager = appContext.getSystemService(NotificationManager::class.java) ?: return
         // 只改当前还在显示的播放通知；通知已移除（停止播放）时不能把它重新发出来
         val active = manager.activeNotifications.firstOrNull {
-            it.id == AUDIO_SERVICE_NOTIFICATION_ID && it.packageName == activity.packageName
+            it.id == AUDIO_SERVICE_NOTIFICATION_ID && it.packageName == appContext.packageName
         } ?: return
         val notification: Notification = active.notification
         val lyric = text?.takeIf { it.isNotBlank() }
@@ -110,17 +120,17 @@ class LyricBridgePlugin private constructor(private val activity: MainActivity) 
 
     private fun hasBluetoothPermission(): Boolean =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
-            ContextCompat.checkSelfPermission(activity, Manifest.permission.BLUETOOTH_CONNECT) ==
+            ContextCompat.checkSelfPermission(appContext, Manifest.permission.BLUETOOTH_CONNECT) ==
             PackageManager.PERMISSION_GRANTED
 
     private fun requestBluetoothPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !hasBluetoothPermission()) {
-            activity.requestPermissions(arrayOf(Manifest.permission.BLUETOOTH_CONNECT), REQUEST_BLUETOOTH)
+            activityRef.get()?.requestPermissions(arrayOf(Manifest.permission.BLUETOOTH_CONNECT), REQUEST_BLUETOOTH)
         }
     }
 
     private fun adapter(): BluetoothAdapter? =
-        activity.getSystemService(BluetoothManager::class.java)?.adapter
+        appContext.getSystemService(BluetoothManager::class.java)?.adapter
 
     /** 当前已连接的 A2DP 设备；没有权限 / 没有蓝牙时为空列表。 */
     private fun queryConnected(done: (List<Map<String, Any>>) -> Unit) {
@@ -129,7 +139,7 @@ class LyricBridgePlugin private constructor(private val activity: MainActivity) 
             done(emptyList())
             return
         }
-        val ok = adapter.getProfileProxy(activity, object : BluetoothProfile.ServiceListener {
+        val ok = adapter.getProfileProxy(appContext, object : BluetoothProfile.ServiceListener {
             override fun onServiceConnected(profile: Int, proxy: BluetoothProfile) {
                 val devices = try {
                     proxy.connectedDevices.map(::describe)
@@ -158,8 +168,9 @@ class LyricBridgePlugin private constructor(private val activity: MainActivity) 
         val isCar = major == BluetoothClass.Device.AUDIO_VIDEO_CAR_AUDIO ||
             major == BluetoothClass.Device.AUDIO_VIDEO_HANDSFREE
         val name = try { device.name } catch (_: SecurityException) { null }
+        val address = try { device.address } catch (_: SecurityException) { null }
         return mapOf(
-            "address" to (device.address ?: ""),
+            "address" to (address ?: ""),
             "name" to (name ?: ""),
             "isCar" to isCar,
         )
@@ -178,12 +189,12 @@ class LyricBridgePlugin private constructor(private val activity: MainActivity) 
             addAction(BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED)
             addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
         }
-        ContextCompat.registerReceiver(activity, r, filter, ContextCompat.RECEIVER_NOT_EXPORTED) // 系统广播不受 NOT_EXPORTED 限制
+        ContextCompat.registerReceiver(appContext, r, filter, ContextCompat.RECEIVER_NOT_EXPORTED) // 系统广播不受 NOT_EXPORTED 限制
         queryConnected { sink?.success(it) }
     }
 
     override fun onCancel(arguments: Any?) {
-        receiver?.let { runCatching { activity.unregisterReceiver(it) } }
+        receiver?.let { runCatching { appContext.unregisterReceiver(it) } }
         receiver = null
         sink = null
     }

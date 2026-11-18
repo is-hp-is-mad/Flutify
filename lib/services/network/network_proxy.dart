@@ -538,7 +538,8 @@ class ProxyHttpOverrides extends HttpOverrides {
     }
     final host = uri.host;
     final port = uri.hasPort ? uri.port : 443;
-    Socket? tunnelSocket;
+    TunnelSocket? tunnelSocket;
+    Socket? bridgeClient;
     var cancelled = false;
     final socket = () async {
       final tunnel = await ProxyTunnel.connect(
@@ -549,19 +550,45 @@ class ProxyHttpOverrides extends HttpOverrides {
         endpoint: endpoint,
         useGateway: false,
       );
-      final tcpSocket = tunnel.socket.tcpSocket;
-      if (tcpSocket == null) {
-        tunnel.socket.destroy();
-        throw const ProxyTunnelException('Expected a TCP proxy tunnel');
-      }
-      tunnelSocket = tcpSocket;
+      tunnelSocket = tunnel.socket;
       if (cancelled) {
         tunnel.socket.destroy();
         throw const SocketException('连接已取消');
       }
-      // 隧道建立后目标服务器在 ClientHello 之前不会发数据，ProxyTunnel 没有缓冲任何属于 TLS 的字节
+      // ProxyTunnel 已对底层 Socket 调用 listen() 完成握手，不能再直接交给 SecureSocket.secure；
+      // 通过本地回环对端转发一层，让 SecureSocket 获得未监听过的原生 Socket。
+      final bridge = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+      final acceptedFuture = bridge.first.whenComplete(bridge.close);
+      final clientSocket = await Socket.connect(
+        InternetAddress.loopbackIPv4,
+        bridge.port,
+      );
+      bridgeClient = clientSocket;
+      final accepted = await acceptedFuture;
+      if (cancelled) {
+        clientSocket.destroy();
+        accepted.destroy();
+        tunnel.socket.destroy();
+        throw const SocketException('连接已取消');
+      }
+      tunnel.input.listen(
+        accepted.add,
+        onError: (_) => accepted.destroy(),
+        onDone: () => unawaited(accepted.close().catchError((_) {})),
+        cancelOnError: true,
+      );
+      accepted.listen(
+        tunnel.socket.add,
+        onError: (_) => tunnel.socket.destroy(),
+        onDone: () => unawaited(
+          (tunnel.socket.tcpSocket?.close() ??
+                  Future<void>.sync(tunnel.socket.destroy))
+              .catchError((_) {}),
+        ),
+        cancelOnError: true,
+      );
       return SecureSocket.secure(
-        tcpSocket,
+        clientSocket,
         host: host,
         context: context,
         onBadCertificate: (cert) => _logRejectedCertificate(cert, host, port),
@@ -569,6 +596,7 @@ class ProxyHttpOverrides extends HttpOverrides {
     }();
     return ConnectionTask.fromSocket(socket, () {
       cancelled = true;
+      bridgeClient?.destroy();
       tunnelSocket?.destroy();
     });
   }

@@ -233,7 +233,7 @@ class CollectionErrorPlaceholder extends StatelessWidget {
         icon: Icons.lock_outline_rounded,
         actionLabel: l10n.shellSignIn,
         onAction: () async {
-          if (await LoginScreen.open(context)) onRetry();
+          if (await LoginScreen.open(context) && context.mounted) onRetry();
         },
       );
     }
