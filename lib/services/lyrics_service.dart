@@ -1,9 +1,13 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
 import '../core/constants/spotify_endpoints.dart';
+import '../core/rust_core.dart';
 import '../models/lyrics.dart';
+import '../src/rust/api/backend.dart' as rust;
+import 'rust_backend_bridge.dart';
 
 /// 取歌词失败（网络 / 鉴权 / 服务端错误）。无歌词不是失败，见 [LyricsService.fetch]。
 class LyricsException implements Exception {
@@ -36,6 +40,28 @@ class LyricsService {
   Future<SpotifyLyrics> fetch(String trackId) async {
     if (trackId.isEmpty) return const SpotifyLyrics(lines: []);
 
+    if (RustCore.ready) {
+      final proxy = await RustBackendBridge.proxyForUrl(
+        '${SpotifyEndpoints.defaultSpClientBase}/color-lyrics/v2/track/$trackId',
+      );
+      if (proxy != null) {
+        try {
+          final dto = await rust.rustFetchColorLyrics(
+            spclientBase: SpotifyEndpoints.defaultSpClientBase,
+            trackId: trackId,
+            proxy: proxy,
+          );
+          if (dto == null) return const SpotifyLyrics(lines: []);
+          return _lyricsFromDto(dto);
+        } catch (e) {
+          if (e.toString().contains(':404:')) {
+            return const SpotifyLyrics(lines: []);
+          }
+          throw LyricsException('获取歌词失败：$e');
+        }
+      }
+    }
+
     final path = SpotifyEndpoints.spclientColorLyrics.replaceAll(
       '{track_id}',
       trackId,
@@ -67,6 +93,12 @@ class LyricsService {
   /// 解析 color-lyrics 响应（`{lyrics: {syncType, lines[{startTimeMs, words}]}, colors, ...}`）；
   /// 结构异常时返回空歌词，不抛错。
   static SpotifyLyrics parse(List<int> body) {
+    if (RustCore.ready) {
+      try {
+        final dto = rust.rustParseColorLyricsJson(body: Uint8List.fromList(body));
+        if (dto != null) return _lyricsFromDto(dto);
+      } catch (_) {}
+    }
     try {
       final json = jsonDecode(utf8.decode(body));
       if (json is! Map<String, dynamic>) return const SpotifyLyrics(lines: []);
@@ -80,3 +112,21 @@ class LyricsService {
     }
   }
 }
+
+SpotifyLyrics _lyricsFromDto(rust.RustSpotifyLyricsDto dto) => SpotifyLyrics(
+  syncType: dto.syncType,
+  language: dto.language,
+  lines: [
+    for (final l in dto.lines)
+      LyricLine(
+        startTimeMs: l.startTimeMs,
+        words: l.words,
+        translation: l.translation,
+        syllables: l.syllables,
+      ),
+  ],
+  alternatives: [
+    for (final a in dto.alternatives)
+      LyricsAlternative(language: a.language, lines: a.lines),
+  ],
+);

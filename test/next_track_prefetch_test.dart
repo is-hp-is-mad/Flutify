@@ -73,8 +73,7 @@ void main() {
     audio = FakeAudioPlayerService();
     loader = _ControlledSource();
     playback = PlaybackProvider(
-      audio,
-      await StorageService.init(),
+      audio, (await StorageService.init()).playback,
       random: Random(42),
       audioLoader: loader,
     );

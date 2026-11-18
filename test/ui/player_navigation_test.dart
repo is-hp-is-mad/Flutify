@@ -68,7 +68,7 @@ Future<PlaybackProvider> _pumpPlaying(
       storageService: storage,
       audioEngine: audio,
       emePlayer: EmePlayer(),
-      spotifyApiService: FakeSpotifyApiService(storage),
+      spotifyApiService: FakeSpotifyApiService(storage.auth),
       trackAudioLoader: FakeTrackAudioSource(),
     ),
   );

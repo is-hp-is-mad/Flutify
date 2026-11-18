@@ -136,8 +136,7 @@ void main() {
     SharedPreferences.setMockInitialValues({'sp_access_token': 'token'});
     final storage = await StorageService.init();
     final requests = <String>[];
-    final api = SpotifyApiService(
-      storage,
+    final api = SpotifyApiService(storage.auth,
       MockClient((request) async {
         requests.add(request.url.toString());
         if (request.url.host == 'api-partner.spotify.com') {
@@ -158,8 +157,8 @@ void main() {
       }),
     );
     final audio = FakeAudioPlayerService();
-    final playback = PlaybackProvider(audio, storage);
-    final library = LibraryProvider(storage);
+    final playback = PlaybackProvider(audio, storage.playback);
+    final library = LibraryProvider(storage.library);
     final player = FakePreviewPlayer();
     addTearDown(() {
       playback.dispose();
@@ -346,8 +345,7 @@ void main() {
       addTearDown(tester.view.reset);
       SharedPreferences.setMockInitialValues({'sp_access_token': 'token'});
       final storage = await StorageService.init();
-      final api = SpotifyApiService(
-        storage,
+      final api = SpotifyApiService(storage.auth,
         MockClient((request) async {
           if (request.url.host == 'api-partner.spotify.com') {
             return http.Response(jsonEncode(entityResponse(items)), 200);
@@ -355,7 +353,7 @@ void main() {
           return http.Response('{}', 404);
         }),
       );
-      final spotify = SpotifyProvider(api, storage);
+      final spotify = SpotifyProvider(api, storage.library);
       addTearDown(spotify.dispose);
       await tester.pumpWidget(
         ChangeNotifierProvider.value(

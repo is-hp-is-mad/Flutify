@@ -14,11 +14,14 @@ import '../models/playback_session.dart';
 import '../models/playback_state.dart';
 import '../models/track.dart';
 import '../services/audio/audio_engine.dart';
+import '../services/playback/playback_port.dart';
 import '../services/playback/playback_region_gate.dart';
+import '../services/playback/playback_retry_controller.dart';
+import '../services/playback/playback_volume_controller.dart';
 import '../services/playback_session_store.dart';
 import '../services/network/network_failure.dart';
 import '../services/protocol/track_audio_loader.dart';
-import '../services/storage_service.dart';
+import '../services/storage/playback_prefs_store.dart';
 
 export '../models/playback_error.dart';
 
@@ -50,9 +53,10 @@ typedef RemotePlayHandler =
 /// 队列语义与 Spotify 一致：
 /// - [userQueue]：用户手动 "Add to queue" 的曲目，优先播放（Next in queue）。
 /// - [upNext]：当前上下文（歌单/专辑等）中剩余的曲目（Next from: ...）。
-class PlaybackProvider extends ChangeNotifier {
+class PlaybackProvider extends ChangeNotifier
+    implements LocalPlaybackMediaPort, ReceiverPlaybackPort {
   final AudioEngine _audio;
-  final StorageService _storage;
+  final PlaybackPrefsStore _storage;
 
   /// 协议链路完整曲目加载器（AP 密钥 + CDN 解密）；为空（未接入）时任何曲目都无法播放，
   /// 会报 [TrackPlaybackFailure.notSignedIn] 错误。
@@ -103,61 +107,16 @@ class PlaybackProvider extends ChangeNotifier {
   int _loadGeneration = 0;
   int _playIntent = 0;
 
-  /// 重试的预算按「一次播放尝试」算，不是按曲目算：
-  /// 一次 [playTrack] 或一次自动跳过给 [PlaybackRetry.limit] 次重试
-  /// （[_handleLoadFailure] 里接着重放也算在同一次尝试里），
-  /// 用光后 [_playAudio] 立刻交出失败，不会在每个后台重试上都干等一轮退避。
-  bool _retryingTrack = false;
-  int _retriesUsed = 0;
+  final PlaybackRetryController _retry = PlaybackRetryController();
+  ValueNotifier<PlaybackRetry?> get retryNotifier => _retry.notifier;
 
-  /// 本首歌的网络类失败已经重放过一次（[_retryTrack]）。
-  ///
-  /// 重放会把预算还回去，好让它和第一次一样有完整的退避机会；这一位就是防止
-  /// 「还回去」变成「用不完」：重放再失败时不再接着重放，交给用户决定
-  /// （错误提示条上的「重试」）。
-  bool _transientRetried = false;
+  void _cancelRetry() => _retry.cancel();
 
-  /// [PlaybackRetry.limit] 次重试用完；剩下的失败不再等退避，直接交给调用方处理。
-  bool get _budgetExhausted => _retriesUsed >= PlaybackRetry.limit;
-
-  /// 记一次重试。调用方必须已经用 [_budgetExhausted] 确认还有预算。
-  int _takeRetry() => ++_retriesUsed;
-
-  /// 退避等待的握手：切歌 / 登出 / 用户取消时由 [_cancelRetry] 完成，
-  /// 等待方据此提前收手，不再空等到点。
-  Completer<void>? _retryWait;
-  final ValueNotifier<PlaybackRetry?> retryNotifier = ValueNotifier(null);
-
-  void _cancelRetry() {
-    final wait = _retryWait;
-    _retryWait = null;
-    if (wait != null && !wait.isCompleted) wait.complete();
-    retryNotifier.value = null;
-  }
-
-  Future<bool> _waitForRetry(Object error, int generation) async {
-    if (!isConnectionFailure(error) || _budgetExhausted) {
-      return false;
-    }
-    final attempt = _takeRetry();
-    final delay = Duration(seconds: attempt);
-    final wait = Completer<void>();
-    _retryWait = wait;
-    retryNotifier.value = PlaybackRetry(attempt, delay);
-    final timer = Timer(delay, () {
-      if (!wait.isCompleted) wait.complete();
-    });
-    await wait.future;
-    timer.cancel();
-    // 注意顺序：先认 [_retryWait] 再认代次。用户取消 / 切歌 / 登出时
-    // [_cancelRetry] 已经把 [_retryWait] 清空，这里立刻收手，不再空等到点。
-    if (!identical(_retryWait, wait)) return false;
-    _retryWait = null;
-    // 代次对不上说明期间切了歌：这次加载的结果已经作废，不重试。
-    if (generation != _loadGeneration) return false;
-    retryNotifier.value = PlaybackRetry(attempt, delay, waiting: false);
-    return true;
-  }
+  Future<bool> _waitForRetry(Object error, int generation) =>
+      _retry.waitForRetry(
+        error,
+        isCurrentGeneration: () => generation == _loadGeneration,
+      );
 
   /// 已经把音频交给播放器的曲目 id；与当前曲目不一致时，点播放需要（重新）加载。
   String? _loadedTrackId;
@@ -251,25 +210,12 @@ class PlaybackProvider extends ChangeNotifier {
   Duration _duration = Duration.zero;
   bool _shuffle = false;
   SpotifyRepeatMode _repeatMode = SpotifyRepeatMode.off;
-  double _volume;
-  double _volumeBeforeMute;
+  late final PlaybackVolumeController _volumeCtrl;
   ProcessingState? _lastProcessingState;
   AppLifecycleListener? _lifecycle;
   Timer? _positionWatchdog;
   DateTime _lastPositionEventAt = DateTime.fromMillisecondsSinceEpoch(0);
   bool _disposed = false;
-
-  bool _normalize;
-  int _fadeSeconds;
-
-  /// 当前曲目文件的响度数据（音量均衡用）；未知时为 null（倍率按 1）。
-  AudioNormalization? _normalization;
-
-  /// 淡入淡出倍率（0–1），由进度驱动。
-  double _fadeFactor = 1;
-
-  /// 上次真正下发给播放器的音量；初始 -1 保证第一次一定下发。
-  double _appliedVolume = -1;
 
   StreamSubscription<Duration>? _posSub;
   StreamSubscription<Duration?>? _durSub;
@@ -287,13 +233,10 @@ class PlaybackProvider extends ChangeNotifier {
   }) : _audio = audio,
        _random = random ?? Random(),
        _pauseAfterFailures = _storage.pauseAfterFailures,
-       _autoplay = _storage.autoplay,
-       _volume = _storage.volume,
-       _volumeBeforeMute = _storage.volume > 0 ? _storage.volume : 0.8,
-       _normalize = _storage.normalizeVolume,
-       _fadeSeconds = _storage.fadeSeconds.clamp(0, maxFadeSeconds) {
+       _autoplay = _storage.autoplay {
+    _volumeCtrl = PlaybackVolumeController(_audio, _storage);
     _initAudioListeners();
-    _applyVolume();
+    _volumeCtrl.apply();
     _defaultRepeatMode = defaultRepeatMode;
     if (defaultRepeatMode != null) _repeatMode = defaultRepeatMode;
     regionGate?.onNetworkChanged = _onRegionNetworkChanged;
@@ -381,7 +324,7 @@ class PlaybackProvider extends ChangeNotifier {
     return target.uri != _context.uri;
   }
 
-  double get volume => _volume;
+  double get volume => _volumeCtrl.volume;
 
   /// 连续 [failureLimit] 首无法播放时自动暂停，而不是继续跳过（设置页「播放」分组，持久化）。
   bool get pauseAfterFailures => _pauseAfterFailures;
@@ -569,7 +512,7 @@ class PlaybackProvider extends ChangeNotifier {
         ? _duration
         : (pos < Duration.zero ? Duration.zero : pos);
     positionNotifier.value = clamped;
-    if (_fadeSeconds > 0) _updateFade(clamped);
+    if (_volumeCtrl.fadeSeconds > 0) _volumeCtrl.updateFade(clamped, _duration);
     if ((clamped - _savedPosition).abs() >= _positionSaveInterval) {
       _scheduleSave();
     }
@@ -723,16 +666,7 @@ class PlaybackProvider extends ChangeNotifier {
     final intent = ++_playIntent;
     _isStartingPlayback = !deferLoad;
     if (deferLoad) _isPlaying = false;
-    if (!isRetry) {
-      // 新的手动播放尝试（含自动跳过的下一首）：重试预算重新计
-      _retryingTrack = false;
-      _retriesUsed = 0;
-      _transientRetried = false;
-    } else if (!_retryingTrack) {
-      // 自动跳过的下一首是「换一首接着放」，不是同曲重试：预算重新计
-      _retriesUsed = 0;
-      _transientRetried = false;
-    }
+    _retry.onStartTrack(isRetry: isRetry);
     _releaseCurrentAudio();
     _nextCycleOrder = null;
     _loadedTrackId = null;
@@ -835,9 +769,9 @@ class PlaybackProvider extends ChangeNotifier {
         if (generation != _loadGeneration) return; // 已切歌，丢弃
         final resumeAt = _resumeAt;
         // 新文件的均衡倍率；开启淡入时从静音起步，由进度流逐步升起
-        _normalization = audio.normalization;
-        _updateFade(resumeAt ?? Duration.zero);
-        _applyVolume();
+        _volumeCtrl.setNormalization(audio.normalization);
+        _volumeCtrl.updateFade(resumeAt ?? Duration.zero, _duration);
+        _volumeCtrl.apply();
         final eme = audio.emeContent;
         final stream = audio.stream;
         if (eme != null) {
@@ -875,9 +809,7 @@ class PlaybackProvider extends ChangeNotifier {
         if (startPosition != null) positionNotifier.value = startPosition;
         _consecutiveSkips = 0;
         // 这次尝试成功了：重试预算还回去，用户在下一首上仍有完整的重试机会
-        _retryingTrack = false;
-        _retriesUsed = 0;
-        _transientRetried = false;
+        _retry.resetAll();
         // 等整首下载完再预取；暂停不应丢掉下载完成信号，切歌则丢弃旧结果。
         // 在 ready 通知前登记，监听器同步切歌时的新状态不能被旧曲目覆盖。
         _currentAudio = audio;
@@ -957,8 +889,7 @@ class PlaybackProvider extends ChangeNotifier {
     final retryable =
         _isTransientFailure(failure) &&
         !unsuitable &&
-        !_transientRetried &&
-        !_retryingTrack;
+        _retry.canReplayOnce;
     final canSkip =
         !hitLimit &&
         unsuitable &&
@@ -987,8 +918,7 @@ class PlaybackProvider extends ChangeNotifier {
     if (!canSkip) {
       // 重放也没成功：没打算在这首歌上再自动重来，把「这一下没加载上」的预算
       // 留给用户下一次点「重试」（那是一次新的手动播放尝试，见 [_startTrack]）。
-      _retriesUsed = 0;
-      _transientRetried = false;
+      _retry.resetBudget();
       _isStartingPlayback = false;
       _isPlaying = false;
       _isBuffering = false;
@@ -1443,9 +1373,7 @@ class PlaybackProvider extends ChangeNotifier {
       await pause();
     } else if (_loadedTrackId != track.id) {
       // 还没加载过 / 上次加载失败（重试）
-      _retryingTrack = false;
-      _retriesUsed = 0;
-      _transientRetried = false;
+      _retry.resetAll();
       _playbackError = null;
       await _playAudio(track);
     } else {
@@ -1454,24 +1382,10 @@ class PlaybackProvider extends ChangeNotifier {
   }
 
   /// 只跳过、不换曲：拿当前曲目重放。
-  ///
-  /// 用在网络类失败上——加载这一首时链路断了，同一首重来一次往往就成了。
-  /// 重试预算按曲目连续计：重置预算，好让这次重放拿到和第一次同样的
-  /// [PlaybackRetry.limit] 次机会（[_waitForRetry] 随后按预算逐次退避）。
-  ///
-  /// 再失败就只是又走一遍 [_handleLoadFailure]：那时 [_transientRetried] 已经成立，
-  /// 不会再重放第三次，而是报错收手——所以不必在这里判断重放有没有成。
   Future<void> _retryTrack() async {
-    _retriesUsed = 0;
-    _transientRetried = true;
-    // 闸门要一直立到重放彻底结束：重放失败时 [_handleLoadFailure] 会在
-    // `_startTrack` 内部同步再跑一遍，那时 [_transientRetried] 已经为真，
-    // 唯一拦住「再来一次重放」的就是这一位。等它返回之后再放下。
-    _retryingTrack = true;
     try {
-      await _startTrack(_currentTrack!, isRetry: true);
+      await _retry.runReplay(() => _startTrack(_currentTrack!, isRetry: true));
     } finally {
-      _retryingTrack = false;
       // 「连续跳过」计数还原：网络抖动不算「这首歌播不了」，不该攒进那两重上限
       _consecutiveSkips = (_consecutiveSkips - 1).clamp(0, 1 << 30);
     }
@@ -1731,12 +1645,10 @@ class PlaybackProvider extends ChangeNotifier {
     _isPlaying = false;
     _isBuffering = false;
     _playbackError = null;
-    _normalization = null;
     _currentDownloadReady = false;
     _prefetchedTrackId = null;
     _consecutiveSkips = 0;
-    _fadeFactor = 1;
-    _applyVolume();
+    _volumeCtrl.resetTrackGain();
     positionNotifier.value = Duration.zero;
     loadProgressNotifier.value = 0;
     try {
@@ -1750,73 +1662,38 @@ class PlaybackProvider extends ChangeNotifier {
   // Volume
   // ---------------------------------------------------------------------------
 
+  static const int maxFadeSeconds = PlaybackVolumeController.maxFadeSeconds;
+
   /// 拖动过程中 [persist] 为 false，松手时再写盘，避免每帧写 SharedPreferences。
   void setVolume(double value, {bool persist = false}) {
-    _volume = value.clamp(0.0, 1.0);
-    if (_volume > 0) _volumeBeforeMute = _volume;
-    _applyVolume();
-    if (persist) _storage.setVolume(_volume);
+    _volumeCtrl.setVolume(value, persist: persist);
     notifyListeners();
   }
 
   /// 音量均衡：按文件自带的响度数据衰减偏响的歌（设置页「播放」分组，持久化）。
-  bool get normalizeVolume => _normalize;
+  bool get normalizeVolume => _volumeCtrl.normalizeVolume;
 
   void setNormalizeVolume(bool value) {
-    if (value == _normalize) return;
-    _normalize = value;
-    _storage.setNormalizeVolume(value);
-    _applyVolume();
-    notifyListeners();
+    if (_volumeCtrl.setNormalizeVolume(value)) {
+      notifyListeners();
+    }
   }
 
   /// 歌曲间淡入淡出时长（秒），0 为关闭。
-  int get fadeSeconds => _fadeSeconds;
+  int get fadeSeconds => _volumeCtrl.fadeSeconds;
 
   void setFadeSeconds(int value) {
-    final next = value.clamp(0, maxFadeSeconds);
-    if (next == _fadeSeconds) return;
-    _fadeSeconds = next;
-    _storage.setFadeSeconds(next);
-    _updateFade(positionNotifier.value);
-    notifyListeners();
-  }
-
-  static const int maxFadeSeconds = 12;
-
-  /// 实际交给播放器的音量 = 用户音量 × 均衡倍率 × 淡入淡出倍率。
-  /// 与上次下发的值几乎相同时跳过（淡入淡出随进度流高频调用）。
-  void _applyVolume() {
-    final gain = _normalize ? (_normalization?.volumeFactor ?? 1.0) : 1.0;
-    final effective = (_volume * gain * _fadeFactor).clamp(0.0, 1.0);
-    if ((effective - _appliedVolume).abs() < 0.002) return;
-    _appliedVolume = effective;
-    _audio.setVolume(effective);
-  }
-
-  /// 按进度计算淡入淡出倍率（单播放器实现，两首不重叠）：
-  /// - 开头在 [_fadeSeconds] 的一半内（0.5–3 秒）从静音升到原音量；
-  /// - 结尾最后 [_fadeSeconds] 秒降到静音；曲目短于两倍淡出时长时不淡出；
-  /// - 用平方曲线：线性振幅在听感上前段降得太快，平方更接近匀速变轻。
-  void _updateFade(Duration position) {
-    var factor = 1.0;
-    if (_fadeSeconds > 0) {
-      final fadeMs = _fadeSeconds * 1000;
-      final posMs = position.inMilliseconds;
-      final durMs = _duration.inMilliseconds;
-      final fadeInMs = (fadeMs / 2).clamp(500.0, 3000.0);
-      if (posMs < fadeInMs) factor = posMs / fadeInMs;
-      if (durMs > fadeMs * 2) factor = min(factor, (durMs - posMs) / fadeMs);
-      factor = factor.clamp(0.0, 1.0);
-      factor *= factor;
+    if (_volumeCtrl.setFadeSeconds(
+      value,
+      position: positionNotifier.value,
+      duration: _duration,
+    )) {
+      notifyListeners();
     }
-    if (factor == _fadeFactor) return;
-    _fadeFactor = factor;
-    _applyVolume();
   }
 
   void toggleMute() {
-    setVolume(_volume > 0 ? 0 : _volumeBeforeMute, persist: true);
+    setVolume(_volumeCtrl.mutedOrRestoredVolume(), persist: true);
   }
 
   // ---------------------------------------------------------------------------
@@ -1909,7 +1786,7 @@ class PlaybackProvider extends ChangeNotifier {
     _errorController.close();
     positionNotifier.dispose();
     loadProgressNotifier.dispose();
-    retryNotifier.dispose();
+    _retry.dispose();
     _audio.dispose();
     super.dispose();
   }

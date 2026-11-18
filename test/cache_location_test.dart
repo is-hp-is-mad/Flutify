@@ -26,8 +26,7 @@ void main() {
     sandbox = await Directory.systemTemp.createTemp('flutify-cache-test-');
     SharedPreferences.setMockInitialValues({});
     storage = await StorageService.init();
-    location = CacheLocation(
-      storage,
+    location = CacheLocation(storage.cache,
       p.join(sandbox.path, 'support'),
       applicationRoot: p.join(sandbox.path, 'portable'),
     );
@@ -79,7 +78,7 @@ void main() {
         final legacy = p.join(alias, 'cache', 'libCachedImageData');
         await seed(p.join(support, 'audio'), 'old.mp4', [1, 2]);
         await seed(legacy, 'cover.png', [3, 4]);
-        await storage.setCacheLocationsJson(
+        await storage.cache.setCacheLocationsJson(
           jsonEncode({
             'artwork': {
               'preset': 'appData',
@@ -88,8 +87,7 @@ void main() {
           }),
         );
         location.dispose();
-        location = CacheLocation(
-          storage,
+        location = CacheLocation(storage.cache,
           support,
           legacyArtworkDirectory: legacy,
         );
@@ -179,8 +177,7 @@ void main() {
         [1, 2, 3],
       );
       expect(await lyrics.exists(), true);
-      final restored = CacheLocation(
-        storage,
+      final restored = CacheLocation(storage.cache,
         location.defaultRoot,
         applicationRoot: location.applicationRoot,
       );
@@ -203,7 +200,7 @@ void main() {
       expect(result.deferred, 2);
       expect(await file.exists(), true);
       location.dispose();
-      location = CacheLocation(storage, location.defaultRoot);
+      location = CacheLocation(storage.cache, location.defaultRoot);
       await location.initialize();
       final resumed = await location.resumeMigrations();
       expect(resumed.failed, 0);
@@ -238,8 +235,7 @@ void main() {
       final legacy = p.join(sandbox.path, 'legacy-artwork');
       final image = await seed(legacy, 'cover.png', [1, 2, 3]);
       location.dispose();
-      location = CacheLocation(
-        storage,
+      location = CacheLocation(storage.cache,
         p.join(sandbox.path, 'support'),
         legacyArtworkDirectory: legacy,
       );
@@ -327,7 +323,7 @@ void main() {
           Uint8List.fromList([4, 5]),
         );
         // Populate the retired root independently, as after a previous partial move.
-        final otherLocation = CacheLocation(storage, location.defaultRoot);
+        final otherLocation = CacheLocation(storage.cache, location.defaultRoot);
         final other = ArtworkCache(otherLocation);
         await other.putFile(
           'https://example.test/three',

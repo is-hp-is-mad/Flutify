@@ -14,17 +14,17 @@ import 'decrypt/decrypt_backend.dart';
 import 'episode_metadata.dart';
 import 'extended_metadata.dart';
 import 'progressive_download.dart';
-import 'spotify_id.dart';
+import '../../core/utils/spotify_id.dart';
 import 'storage_resolver.dart';
 import 'track_metadata.dart';
-import 'track_playback_exception.dart';
+import '../../models/track_playback_exception.dart';
 import '../audio/audio_engine.dart';
 
 export 'audio_normalization.dart';
 export 'decrypt/decrypt_backend.dart'
     show DecryptBackend, InlineDecryptBackend, IsolateDecryptBackend;
 export 'progressive_download.dart' show ProgressiveAudio;
-export 'track_playback_exception.dart';
+export '../../models/track_playback_exception.dart';
 
 /// 音频解密 IV（协议固定常量，对应 librespot `audio/src/decrypt.rs` 的 AUDIO_AESIV）。
 final Uint8List kAudioAesIv = Uint8List.fromList([

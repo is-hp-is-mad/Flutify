@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../utils/file_log.dart';
-import '../theme/md3e_theme.dart';
-import '../../ui/widgets/app_button.dart';
+import '../../core/utils/file_log.dart';
+import '../../core/theme/md3e_theme.dart';
+import 'app_button.dart';
 
 /// Paint a frame before opening plugins or touching persistent storage.
 /// 初始化期间只绘制窗口底色；首个内容页直接进入应用，异常时才显示诊断。

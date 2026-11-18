@@ -8,8 +8,9 @@ import '../models/editable_playlist.dart';
 import '../models/image.dart';
 import '../models/playlist.dart';
 import '../models/track.dart';
+import '../services/backup/backup_ports.dart';
 import '../services/library/library_source.dart';
-import '../services/storage_service.dart';
+import '../services/storage/library_cache_store.dart';
 
 /// Your Library：已点赞歌曲、收藏歌单、关注艺人、收藏专辑与本机歌单。
 ///
@@ -20,19 +21,19 @@ import '../services/storage_service.dart';
 /// - 未提供 source（单元测试 / 纯本地）：只使用本机持久化的数据。
 ///
 /// 歌单说明：账号歌单来自 rootlist；「新建歌单」「保存别人的歌单」目前只保存在本机（[ownPlaylists] /
-/// 本机收藏），尚未写回账号，刷新后仍然保留。
+/// 本机收藏），刷新后仍然保留。
 ///
 /// 所有列表采用「写时复制」：每次修改都生成新的 List 实例，getter 在两次修改之间
 /// 返回同一实例。这样组件可以安全地 `context.select` 整个列表，
 /// 只有真正发生变化时才重建。调用方不得原地修改返回的列表。
-class LibraryProvider extends ChangeNotifier {
+class LibraryProvider extends ChangeNotifier implements BackupLibraryPort {
   static const String likedSongsId = 'liked_songs_collection';
   static const String likedSongsUri = 'spotify:collection:tracks';
 
   /// 缓存结构版本：1 及以前含示例数据，升级时清空并仅迁移本机新建的歌单。
   static const int _schema = 2;
 
-  final StorageService _storage;
+  final LibraryCacheStore _storage;
   final LibrarySource? _source;
 
   /// 最新点赞在前（与 Spotify "Liked Songs" 排序一致）。
@@ -116,7 +117,10 @@ class LibraryProvider extends ChangeNotifier {
   }
 
   /// 当前账号的显示名（歌单所有者展示用）。
-  String get _userName => _storage.displayName.isNotEmpty ? _storage.displayName : _storage.username;
+  String get _userName =>
+      _storage.ownerDisplayName.isNotEmpty
+          ? _storage.ownerDisplayName
+          : _storage.ownerUsername;
 
   // ---------------------------------------------------------------------------
   // 从账号读取
@@ -158,20 +162,20 @@ class LibraryProvider extends ChangeNotifier {
         _likedTracks = tracks;
         _likedIds = tracks.map((t) => t.id).toSet();
         _likedSongsCache = null;
-        _storage.writeJsonList(StorageService.keyLibraryLikedTracks, tracks.map((t) => t.toJson()));
+        _storage.writeJsonList(LibraryCacheStore.keyLibraryLikedTracks, tracks.map((t) => t.toJson()));
       }),
       _run(source.fetchPlaylists, current, fail, (playlists) {
         _remotePlaylists = playlists.map(_withOwnerName).toList();
         _rebuildPlaylists();
-        _storage.writeJsonList(StorageService.keyLibraryPlaylists, _remotePlaylists.map((p) => p.toJson()));
+        _storage.writeJsonList(LibraryCacheStore.keyLibraryPlaylists, _remotePlaylists.map((p) => p.toJson()));
       }),
       _run(source.fetchAlbums, current, fail, (albums) {
         _albums = albums;
-        _storage.writeJsonList(StorageService.keyLibraryAlbums, albums.map((a) => a.toJson()));
+        _storage.writeJsonList(LibraryCacheStore.keyLibraryAlbums, albums.map((a) => a.toJson()));
       }),
       _run(source.fetchArtists, current, fail, (artists) {
         _artists = artists;
-        _storage.writeJsonList(StorageService.keyLibraryArtists, artists.map((a) => a.toJson()));
+        _storage.writeJsonList(LibraryCacheStore.keyLibraryArtists, artists.map((a) => a.toJson()));
       }),
     ]);
 
@@ -202,7 +206,7 @@ class LibraryProvider extends ChangeNotifier {
   SpotifyPlaylist _withOwnerName(SpotifyPlaylist p) {
     final owner = p.ownerName;
     if (owner.isEmpty || owner == 'spotify') return p.copyWith(ownerName: 'Spotify');
-    if (owner == _storage.username) return p.copyWith(ownerName: _userName);
+    if (owner == _storage.ownerUsername) return p.copyWith(ownerName: _userName);
     return p;
   }
 
@@ -214,10 +218,10 @@ class LibraryProvider extends ChangeNotifier {
     _artists = const [];
     _albums = const [];
     _rebuildPlaylists();
-    _storage.removeKey(StorageService.keyLibraryLikedTracks);
-    _storage.removeKey(StorageService.keyLibraryPlaylists);
-    _storage.removeKey(StorageService.keyLibraryArtists);
-    _storage.removeKey(StorageService.keyLibraryAlbums);
+    _storage.removeKey(LibraryCacheStore.keyLibraryLikedTracks);
+    _storage.removeKey(LibraryCacheStore.keyLibraryPlaylists);
+    _storage.removeKey(LibraryCacheStore.keyLibraryArtists);
+    _storage.removeKey(LibraryCacheStore.keyLibraryAlbums);
     _storage.setLibraryAccount('');
   }
 
@@ -310,7 +314,7 @@ class LibraryProvider extends ChangeNotifier {
     }
     _likedIds = _likedTracks.map((t) => t.id).toSet();
     _likedSongsCache = null;
-    _storage.writeJsonList(StorageService.keyLibraryLikedTracks, _likedTracks.map((t) => t.toJson()));
+    _storage.writeJsonList(LibraryCacheStore.keyLibraryLikedTracks, _likedTracks.map((t) => t.toJson()));
     notifyListeners();
     _sync((s) => s.setTrackLiked(track, liking));
   }
@@ -332,7 +336,7 @@ class LibraryProvider extends ChangeNotifier {
   void toggleFollowArtist(SpotifyArtist artist) {
     final following = !isFollowing(artist.id);
     _artists = following ? [artist, ..._artists] : _artists.where((a) => a.id != artist.id).toList();
-    _storage.writeJsonList(StorageService.keyLibraryArtists, _artists.map((a) => a.toJson()));
+    _storage.writeJsonList(LibraryCacheStore.keyLibraryArtists, _artists.map((a) => a.toJson()));
     notifyListeners();
     _sync((s) => s.setArtistFollowed(artist, following));
   }
@@ -340,7 +344,7 @@ class LibraryProvider extends ChangeNotifier {
   void toggleAlbumSaved(SpotifyAlbum album) {
     final saving = !isAlbumSaved(album.id);
     _albums = saving ? [album, ..._albums] : _albums.where((a) => a.id != album.id).toList();
-    _storage.writeJsonList(StorageService.keyLibraryAlbums, _albums.map((a) => a.toJson()));
+    _storage.writeJsonList(LibraryCacheStore.keyLibraryAlbums, _albums.map((a) => a.toJson()));
     notifyListeners();
     _sync((s) => s.setAlbumSaved(album, saving));
   }
@@ -349,30 +353,7 @@ class LibraryProvider extends ChangeNotifier {
   static SpotifyPlaylist mergePlaylists(
     SpotifyPlaylist base,
     SpotifyPlaylist incoming,
-  ) {
-    final seen = <String>{};
-    final mergedTracks = <SpotifyTrack>[];
-    for (final t in [...base.tracks, ...incoming.tracks]) {
-      final key = t.id.isNotEmpty ? t.id : t.uri;
-      if (key.isEmpty || seen.add(key)) {
-        mergedTracks.add(t);
-      }
-    }
-    final maxTotal = [
-      mergedTracks.length,
-      base.totalTracks,
-      incoming.totalTracks,
-    ].reduce((a, b) => a > b ? a : b);
-    return base.copyWith(
-      name: base.name.isNotEmpty ? base.name : incoming.name,
-      description: base.description.isNotEmpty
-          ? base.description
-          : incoming.description,
-      images: base.images.isNotEmpty ? base.images : incoming.images,
-      tracks: mergedTracks,
-      totalTracks: mergedTracks.isNotEmpty ? mergedTracks.length : maxTotal,
-    );
-  }
+  ) => BackupLibraryPort.mergePlaylists(base, incoming);
 
   static bool _isSamePlaylist(SpotifyPlaylist a, SpotifyPlaylist b) {
     if (a.id.isNotEmpty && b.id.isNotEmpty && a.id == b.id) return true;
@@ -394,7 +375,7 @@ class LibraryProvider extends ChangeNotifier {
     _likedTracks = [...added, ..._likedTracks];
     _likedIds = seen;
     _likedSongsCache = null;
-    _storage.writeJsonList(StorageService.keyLibraryLikedTracks, _likedTracks.map((t) => t.toJson()));
+    _storage.writeJsonList(LibraryCacheStore.keyLibraryLikedTracks, _likedTracks.map((t) => t.toJson()));
     notifyListeners();
     final source = _source;
     if (source != null && source.isSignedIn) {
@@ -518,27 +499,27 @@ class LibraryProvider extends ChangeNotifier {
   // Persistence
   // ---------------------------------------------------------------------------
   void _persistPlaylists() {
-    _storage.writeJsonList(StorageService.keyLibraryLocalPlaylists, _localPlaylists.map((p) => p.toJson()));
+    _storage.writeJsonList(LibraryCacheStore.keyLibraryLocalPlaylists, _localPlaylists.map((p) => p.toJson()));
   }
 
   void _load() {
     // 旧版缓存（含示例数据）：丢弃，只迁移用户在本机新建的歌单（local_ 前缀）
     if (_storage.librarySchema < _schema) {
       final legacy = _storage
-          .readJsonList(StorageService.keyLibraryPlaylists)
+          .readJsonList(LibraryCacheStore.keyLibraryPlaylists)
           .map(SpotifyPlaylist.fromJson)
           .where((p) => isOwnPlaylist(p.id))
           .toList();
       for (final key in [
-        StorageService.keyLibraryLikedTracks,
-        StorageService.keyLibraryPlaylists,
-        StorageService.keyLibraryArtists,
-        StorageService.keyLibraryAlbums,
+        LibraryCacheStore.keyLibraryLikedTracks,
+        LibraryCacheStore.keyLibraryPlaylists,
+        LibraryCacheStore.keyLibraryArtists,
+        LibraryCacheStore.keyLibraryAlbums,
       ]) {
         _storage.removeKey(key);
       }
       if (legacy.isNotEmpty) {
-        _storage.writeJsonList(StorageService.keyLibraryLocalPlaylists, legacy.map((p) => p.toJson()));
+        _storage.writeJsonList(LibraryCacheStore.keyLibraryLocalPlaylists, legacy.map((p) => p.toJson()));
       }
       _storage.setLibrarySchema(_schema);
     }
@@ -548,30 +529,30 @@ class LibraryProvider extends ChangeNotifier {
     final cacheValid = source == null || (source.isSignedIn && _storage.libraryAccount == source.accountId);
     if (!cacheValid) {
       for (final key in [
-        StorageService.keyLibraryLikedTracks,
-        StorageService.keyLibraryPlaylists,
-        StorageService.keyLibraryArtists,
-        StorageService.keyLibraryAlbums,
+        LibraryCacheStore.keyLibraryLikedTracks,
+        LibraryCacheStore.keyLibraryPlaylists,
+        LibraryCacheStore.keyLibraryArtists,
+        LibraryCacheStore.keyLibraryAlbums,
       ]) {
         _storage.removeKey(key);
       }
     }
 
     _likedTracks = cacheValid
-        ? _storage.readJsonList(StorageService.keyLibraryLikedTracks).map(SpotifyTrack.fromJson).toList()
+        ? _storage.readJsonList(LibraryCacheStore.keyLibraryLikedTracks).map(SpotifyTrack.fromJson).toList()
         : const [];
     _likedIds = _likedTracks.map((t) => t.id).toSet();
     _remotePlaylists = cacheValid
-        ? _storage.readJsonList(StorageService.keyLibraryPlaylists).map(SpotifyPlaylist.fromJson).toList()
+        ? _storage.readJsonList(LibraryCacheStore.keyLibraryPlaylists).map(SpotifyPlaylist.fromJson).toList()
         : const [];
     _artists = cacheValid
-        ? _storage.readJsonList(StorageService.keyLibraryArtists).map(SpotifyArtist.fromJson).toList()
+        ? _storage.readJsonList(LibraryCacheStore.keyLibraryArtists).map(SpotifyArtist.fromJson).toList()
         : const [];
     _albums = cacheValid
-        ? _storage.readJsonList(StorageService.keyLibraryAlbums).map(SpotifyAlbum.fromJson).toList()
+        ? _storage.readJsonList(LibraryCacheStore.keyLibraryAlbums).map(SpotifyAlbum.fromJson).toList()
         : const [];
     final rawLocal = _storage
-        .readJsonList(StorageService.keyLibraryLocalPlaylists)
+        .readJsonList(LibraryCacheStore.keyLibraryLocalPlaylists)
         .map(SpotifyPlaylist.fromJson)
         .where((p) => !p.id.endsWith('_liked') && !p.id.startsWith('backup_liked_'))
         .map((p) {

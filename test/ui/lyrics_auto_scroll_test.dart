@@ -33,14 +33,11 @@ void main() {
     (tester) async {
       SharedPreferences.setMockInitialValues({});
       final storage = await StorageService.init();
-      final playback = PlaybackProvider(
-        FakeAudioPlayerService(),
-        storage,
+      final playback = PlaybackProvider(FakeAudioPlayerService(), storage.playback,
         audioLoader: FakeTrackAudioSource(),
       );
       final spotify = SpotifyProvider(
-        FakeSpotifyApiService(
-          storage,
+        FakeSpotifyApiService(storage.auth,
           lyricsById: {
             for (final id in ['one', 'two'])
               id: SpotifyLyrics(
@@ -52,7 +49,7 @@ void main() {
               ),
           },
         ),
-        storage,
+        storage.library,
       );
       const first = SpotifyTrack(
         id: 'one',
@@ -123,9 +120,7 @@ void main() {
           LyricLine(startTimeMs: i * 1000, words: 'Line $i'),
       ],
     );
-    final playback = PlaybackProvider(
-      FakeAudioPlayerService(),
-      storage,
+    final playback = PlaybackProvider(FakeAudioPlayerService(), storage.playback,
       audioLoader: FakeTrackAudioSource(),
     );
     addTearDown(playback.dispose);
@@ -137,12 +132,9 @@ void main() {
         providers: [
           ChangeNotifierProvider.value(value: playback),
           ChangeNotifierProvider(
-            create: (_) => SpotifyProvider(
-              FakeSpotifyApiService(
-                storage,
+            create: (_) => SpotifyProvider(FakeSpotifyApiService(storage.auth,
                 lyricsById: {'synthetic-1': lyrics},
-              ),
-              storage,
+              ), storage.library,
             ),
           ),
         ],

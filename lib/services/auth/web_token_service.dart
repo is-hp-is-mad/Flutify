@@ -9,7 +9,7 @@ import '../../src/rust/api/backend.dart' as rust_backend;
 import '../../src/rust/api/protocol.dart' as rust;
 import '../network/http2_client.dart';
 import '../rust_backend_bridge.dart';
-import '../storage_service.dart';
+import '../storage/auth_session_store.dart';
 import 'web_token_exception.dart';
 import 'session_http_client.dart';
 
@@ -22,7 +22,7 @@ import 'session_http_client.dart';
 /// TOTP secret 来自 web-player.js（版本 61），还原算法见 [_deobfuscateSecret]。
 /// sp_dc 由一次性 Web 登录（WebView2 登录页）捕获，见 `web_login.dart`。
 class WebTokenService {
-  final StorageService _storage;
+  final AuthSessionStore _storage;
   final http.Client _client;
 
   /// 登录第一次铸造专用：401 不触发 [SessionHttpClient] 的清除登录态，见 [mintForLogin]。

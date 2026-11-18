@@ -8,6 +8,7 @@ import '../models/image.dart';
 import '../models/track.dart';
 import '../services/connect/connect_play_request.dart';
 import '../services/connect/connect_service.dart';
+import '../services/playback/playback_port.dart';
 
 /// Spotify Connect 遥控：同账号其他设备的列表、播放状态与远程控制。
 ///
@@ -15,7 +16,7 @@ import '../services/connect/connect_service.dart';
 /// - 只有桌面版会话可用（[available]）；其他会话所有操作都是空操作；
 /// - 远程曲目的艺人名等信息由 [resolveTrack] 补全（按 URI 缓存）；
 /// - 命令失败时抛出 [ConnectException]，由 UI 决定如何提示（免费账号部分操作会被服务端拒绝）。
-class ConnectProvider extends ChangeNotifier {
+class ConnectProvider extends ChangeNotifier implements RemoteConnectMediaPort {
   final ConnectService? _service;
   final bool Function() _available;
   final Future<SpotifyTrack?> Function(String uri) _resolveTrack;

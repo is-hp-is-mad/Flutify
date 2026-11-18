@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import '../../core/rust_core.dart';
+import '../rust_core.dart';
 import '../../src/rust/api/protocol.dart' as rust;
 
 /// Spotify ID（16 字节 GID）与 base62 / base16 / URI 的互转。

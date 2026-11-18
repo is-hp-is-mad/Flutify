@@ -116,10 +116,10 @@ class WatchFeedService {
         '${SpotifyEndpoints.defaultSpClientBase}/browsita/v1/browse',
       );
       if (proxy != null) {
-        rust.rustSessionSetProxy(proxy: proxy);
         final dto = await rust.rustFetchWatchFeedBrowseShelf(
           spclientBase: SpotifyEndpoints.defaultSpClientBase,
           timezone: timezone,
+          proxy: proxy,
         );
         return dto == null ? null : RustBackendBridge.watchFeedShelfFromDto(dto);
       }
@@ -139,12 +139,12 @@ class WatchFeedService {
         '${SpotifyEndpoints.defaultSpClientBase}/watch-feed-entrypoints/v1/discovery-from-seed',
       );
       if (proxy != null) {
-        rust.rustSessionSetProxy(proxy: proxy);
         final dto = await rust.rustFetchWatchFeedSeedShelf(
           spclientBase: SpotifyEndpoints.defaultSpClientBase,
           trackUri: trackUri,
           creatorUri: creatorUri,
           contextUri: contextUri,
+          proxy: proxy,
         );
         return dto == null ? null : RustBackendBridge.watchFeedShelfFromDto(dto);
       }
@@ -238,7 +238,6 @@ class WatchFeedService {
         '${SpotifyEndpoints.defaultSpClientBase}/watch-feed-view/v1/feed',
       );
       if (proxy != null) {
-        rust.rustSessionSetProxy(proxy: proxy);
         final dto = await rust.rustFetchWatchFeedProto(
           spclientBase: SpotifyEndpoints.defaultSpClientBase,
           feedId: spec.feedId,
@@ -247,6 +246,7 @@ class WatchFeedService {
             for (final e in spec.parameters.entries) (e.key, e.value),
           ],
           pageToken: pageToken,
+          proxy: proxy,
         );
         return RustBackendBridge.watchFeedPageFromDto(dto);
       }

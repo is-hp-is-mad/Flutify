@@ -1,4 +1,4 @@
-import 'package:flutify_app/services/protocol/spotify_id.dart';
+import 'package:flutify_app/core/utils/spotify_id.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

@@ -8,7 +8,7 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart'
 import 'package:path/path.dart' as p;
 
 import '../../core/file_digest.dart';
-import '../storage_service.dart';
+import '../storage/cache_prefs_store.dart';
 import 'cache_directory_access.dart';
 
 enum CacheCategory { audio, artwork, lyrics }
@@ -47,7 +47,7 @@ class CacheLock {
 
 /// Owns only disposable category directories, never their selected parent.
 class CacheLocation extends ChangeNotifier {
-  final StorageService storage;
+  final CachePrefsStore storage;
   String _defaultRoot;
   String get defaultRoot => _defaultRoot;
   final String applicationRoot;

@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import '../../core/rust_core.dart';
 import '../../src/rust/api/backend.dart' as rust;
 import '../network/retry_after_cooldown.dart';
+import '../rust_backend_bridge.dart';
 
 class QqMusicSong {
   final int id;
@@ -217,27 +218,31 @@ class QqMusicClient {
           if (body != null) 'Content-Type': 'application/json',
         };
         if (useRustBackend && RustCore.ready) {
-          final raw = await rust.rustLyricsHttpRequest(
-            method: method,
-            url: url.toString(),
-            headers: [for (final e in reqHeaders.entries) (e.key, e.value)],
-            body: body != null
-                ? Uint8List.fromList(utf8.encode(jsonEncode(body)))
-                : null,
-          );
-          final fakeRes = http.Response.bytes(raw.body, raw.status);
-          if (_rateLimit.observe(fakeRes)) return null;
-          if (raw.status == 403) {
-            _blockedUntil = _now().add(const Duration(minutes: 1));
+          final proxy = await RustBackendBridge.proxyForUrl(url.toString());
+          if (proxy != null) {
+            final raw = await rust.rustLyricsHttpRequest(
+              method: method,
+              url: url.toString(),
+              headers: [for (final e in reqHeaders.entries) (e.key, e.value)],
+              body: body != null
+                  ? Uint8List.fromList(utf8.encode(jsonEncode(body)))
+                  : null,
+              proxy: proxy,
+            );
+            final fakeRes = http.Response.bytes(raw.body, raw.status);
+            if (_rateLimit.observe(fakeRes)) return null;
+            if (raw.status == 403) {
+              _blockedUntil = _now().add(const Duration(minutes: 1));
+            }
+            if (raw.status != 200) return null;
+            if (raw.body.length > maxResponseBytes) return null;
+            final json = jsonDecode(utf8.decode(raw.body));
+            if (json is Map && json['code'] is num && json['code'] != 0) {
+              _blockedUntil = _now().add(const Duration(minutes: 1));
+            }
+            if (json is! Map || json['code'] != 0) return null;
+            return json;
           }
-          if (raw.status != 200) return null;
-          if (raw.body.length > maxResponseBytes) return null;
-          final json = jsonDecode(utf8.decode(raw.body));
-          if (json is Map && json['code'] is num && json['code'] != 0) {
-            _blockedUntil = _now().add(const Duration(minutes: 1));
-          }
-          if (json is! Map || json['code'] != 0) return null;
-          return json;
         }
         final request =
             http.AbortableRequest(method, url, abortTrigger: abort.future)

@@ -11,7 +11,7 @@ import '../../../models/track.dart';
 import '../../../providers/appearance_provider.dart';
 import '../../../providers/playback_provider.dart';
 import '../../../providers/connect_provider.dart';
-import '../../../services/storage_service.dart';
+import '../../../services/storage/preferences_store.dart';
 import '../../navigation/app_routes.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/connect/connect_actions.dart';
@@ -116,12 +116,12 @@ class FullPlayerSheet extends StatefulWidget {
 class _FullPlayerSheetState extends State<FullPlayerSheet> {
   double _dismissDragDistance = 0;
   late bool _pinned;
-  StorageService? _storage;
+  PreferencesStore? _storage;
 
   @override
   void initState() {
     super.initState();
-    _storage = context.read<StorageService?>();
+    _storage = context.read<PreferencesStore?>();
     _pinned = _storage?.immersivePinned ?? false;
   }
 

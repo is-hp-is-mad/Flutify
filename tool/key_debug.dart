@@ -12,7 +12,7 @@ import 'package:http/http.dart' as http;
 
 import 'package:flutify_app/services/protocol/access_point.dart';
 import 'package:flutify_app/services/protocol/extended_metadata.dart';
-import 'package:flutify_app/services/protocol/spotify_id.dart';
+import 'package:flutify_app/core/utils/spotify_id.dart';
 import 'package:flutify_app/services/protocol/track_metadata.dart';
 
 Future<void> main(List<String> args) async {

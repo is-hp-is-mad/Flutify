@@ -2,8 +2,11 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../../core/rust_core.dart';
 import '../../models/image.dart';
 import '../../models/podcast.dart';
+import '../../src/rust/api/backend.dart' as rust;
+import '../rust_backend_bridge.dart';
 
 /// 播客节目数据来源：解析 open.spotify.com 节目页的服务端渲染状态。
 ///
@@ -15,13 +18,13 @@ import '../../models/podcast.dart';
 ///
 /// 单集更多元数据（播放状态等）可再用 Pathfinder `decorateContextEpisodesOrChapters` 补全。
 class PodcastService {
-  final http.Client _client;
+  final http.Client? _client;
 
   /// 注意：UA 决定返回的页面变体 —— 完整的桌面 Chrome UA 拿到的是无 initialState 的桌面版
   /// SPA 壳；这个精简 UA 才会拿到内嵌实体数据的 mobile-web-player 页面（tool/show_page_probe.py 实测）。
   static const String _userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)';
 
-  PodcastService([http.Client? client]) : _client = client ?? http.Client();
+  PodcastService([http.Client? client]) : _client = client;
 
   static final RegExp _initialStateRe = RegExp(
     r'<script id="initialState"[^>]*>(.*?)</script>',
@@ -33,6 +36,18 @@ class PodcastService {
 
   /// 取节目详情与最新单集；失败（网络 / 结构变化）抛 [PodcastServiceException]。
   Future<PodcastShow> fetchShow(String showId) async {
+    if (_client == null && RustCore.ready) {
+      final proxy = await RustBackendBridge.proxyForUrl('https://open.spotify.com/show/$showId');
+      if (proxy != null) {
+        try {
+          final dto = await rust.rustFetchPodcastShow(
+            showId: showId,
+            proxy: proxy,
+          );
+          return _showFromDto(dto);
+        } catch (_) {}
+      }
+    }
     final state = await _fetchInitialState(
       'https://open.spotify.com/show/$showId',
     );
@@ -62,6 +77,18 @@ class PodcastService {
   /// 主要用于「最近播放」等只带单集 URI 的入口：解析出所属节目后再打开节目页。
   /// 失败抛 [PodcastServiceException]。
   Future<PodcastEpisode> fetchEpisode(String episodeId) async {
+    if (_client == null && RustCore.ready) {
+      final proxy = await RustBackendBridge.proxyForUrl('https://open.spotify.com/episode/$episodeId');
+      if (proxy != null) {
+        try {
+          final dto = await rust.rustFetchPodcastEpisode(
+            episodeId: episodeId,
+            proxy: proxy,
+          );
+          return _episodeFromDto(dto);
+        } catch (_) {}
+      }
+    }
     final state = await _fetchInitialState(
       'https://open.spotify.com/episode/$episodeId',
     );
@@ -107,8 +134,9 @@ class PodcastService {
   /// 拉取页面并解析 initialState（base64 JSON）。
   Future<Map<String, dynamic>> _fetchInitialState(String url) async {
     final http.Response res;
+    final c = _client ?? http.Client();
     try {
-      res = await _client.get(
+      res = await c.get(
         Uri.parse(url),
         headers: {
           'User-Agent': _userAgent,
@@ -116,8 +144,10 @@ class PodcastService {
         },
       );
     } catch (e) {
+      if (_client == null) c.close();
       throw PodcastServiceException('网络请求失败，请检查网络：$e');
     }
+    if (_client == null) c.close();
     if (res.statusCode != 200) {
       throw PodcastServiceException('加载失败', res.statusCode);
     }
@@ -252,3 +282,28 @@ class PodcastServiceException implements Exception {
   String toString() =>
       statusCode == null ? message : '$message（HTTP $statusCode）';
 }
+
+PodcastShow _showFromDto(rust.RustPodcastShowDto dto) => PodcastShow(
+  id: dto.id,
+  uri: dto.uri,
+  name: dto.name,
+  publisher: dto.publisher,
+  description: dto.description,
+  images: [for (final img in dto.images) RustBackendBridge.imageFromDto(img)],
+  episodes: [for (final ep in dto.episodes) _episodeFromDto(ep)],
+);
+
+PodcastEpisode _episodeFromDto(rust.RustPodcastEpisodeDto dto) => PodcastEpisode(
+  id: dto.id,
+  uri: dto.uri,
+  name: dto.name,
+  description: dto.description,
+  durationMs: dto.durationMs,
+  releaseDate: dto.releaseDate,
+  images: [for (final img in dto.images) RustBackendBridge.imageFromDto(img)],
+  showUri: dto.showUri,
+  showName: dto.showName,
+  previewUrl: dto.previewUrl,
+  resumeMs: dto.resumeMs,
+  played: dto.played,
+);

@@ -209,12 +209,12 @@ void main() {
     () async {
       SharedPreferences.setMockInitialValues({});
       final first = await StorageService.init();
-      final id = first.receiverDeviceId;
+      final id = first.auth.receiverDeviceId;
       expect(id, matches(RegExp(r'^[a-f0-9]{40}$')));
-      await first.clearLogin();
-      expect((await StorageService.init()).receiverDeviceId, id);
+      await first.auth.clearLogin();
+      expect((await StorageService.init()).auth.receiverDeviceId, id);
       SharedPreferences.setMockInitialValues({});
-      expect((await StorageService.init()).receiverDeviceId, isNot(id));
+      expect((await StorageService.init()).auth.receiverDeviceId, isNot(id));
     },
   );
 }

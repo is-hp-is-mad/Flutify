@@ -53,12 +53,12 @@ class ExtendedMetadataClient {
     if (useRustBackend && RustCore.ready) {
       final proxy = await RustBackendBridge.proxyForUrl(_endpoint);
       if (proxy != null) {
-        rust.rustSessionSetProxy(proxy: proxy);
         try {
           final entries = await rust.rustFetchExtendedMetadata(
             spclientBase: 'https://spclient.wg.spotify.com',
             entityUris: [entityUri],
             kind: kind,
+            proxy: proxy,
           );
           for (final e in entries) {
             if (e.uri == entityUri) {

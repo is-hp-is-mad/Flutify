@@ -1,6 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
+import '../../core/rust_core.dart';
+import '../../src/rust/api/backend.dart' as rust;
+import '../rust_backend_bridge.dart';
 import 'fairplay.dart';
 
 /// 服务的 DRM 体系（同一组入口与身份，按体系换端点与请求形态）。
@@ -47,7 +50,8 @@ class WidevineLicenseClient {
     this.hosts = defaultHosts,
     this.timeout = const Duration(seconds: 12),
     this.drmSystem,
-  }) : _client = client ?? http.Client();
+  }) : _customClient = client != null,
+       _client = client ?? http.Client();
 
   /// Web 播放器 access_token（Widevine 真密钥的身份凭据，sp_dc + TOTP 铸造）。
   final Future<String> Function() webToken;
@@ -63,6 +67,7 @@ class WidevineLicenseClient {
     'gue1-spclient.spotify.com',
   ];
 
+  final bool _customClient;
   final http.Client _client;
   final List<String> hosts;
   final Duration timeout;
@@ -83,12 +88,47 @@ class WidevineLicenseClient {
   static const String _ua =
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36';
 
+  List<String> get _hostsOrder => [
+    ?lastGoodHost,
+    for (final h in hosts)
+      if (h != lastGoodHost) h,
+  ];
+
   /// license 反代：POST `<service>/v1/audio/license`，返回 license 响应体。
   /// FairPlay 的请求形态见 [fairPlayLicenseUri]（`?assetId=hex`，体为原样 SPC）。
   Future<Uint8List> postLicense(Uint8List request) async {
     try {
       final token = await webToken();
       final ct = await clientToken();
+      if (!_customClient && RustCore.ready) {
+        final proxy = await RustBackendBridge.proxyForUrl(
+          'https://spclient.wg.spotify.com/widevine-license/v1/audio/license',
+        );
+        if (proxy != null) {
+          final path = _fairPlay
+              ? '/fairplay-license/v1/audio/license?assetId=hex'
+              : '/widevine-license/v1/audio/license';
+          try {
+            final res = await rust.rustRelayDrmRequest(
+              hosts: _hostsOrder,
+              method: 'POST',
+              pathAndQuery: path,
+              bearerToken: token,
+              clientToken: ct,
+              requestBody: request,
+              timeoutMs: BigInt.from(timeout.inMilliseconds),
+              proxy: proxy,
+            );
+            if (res.status != 200) {
+              throw LicenseHttpException(res.status, isCertificate: false);
+            }
+            lastGoodHost = res.host;
+            return res.body;
+          } on StateError {
+            rethrow;
+          } catch (_) {}
+        }
+      }
       return await _request('audio/license', (host) {
         final uri = _fairPlay
             ? fairPlayLicenseUri(host)
@@ -118,6 +158,35 @@ class WidevineLicenseClient {
     try {
       final ct = await clientToken();
       final token = _fairPlay ? await webToken() : null;
+      if (!_customClient && RustCore.ready) {
+        final proxy = await RustBackendBridge.proxyForUrl(
+          'https://spclient.wg.spotify.com/widevine-license/v1/application-certificate',
+        );
+        if (proxy != null) {
+          final path = _fairPlay
+              ? '/fairplay-license/v1/application-certificate'
+              : '/widevine-license/v1/application-certificate';
+          try {
+            final res = await rust.rustRelayDrmRequest(
+              hosts: _hostsOrder,
+              method: 'GET',
+              pathAndQuery: path,
+              bearerToken: token,
+              clientToken: ct,
+              requestBody: null,
+              timeoutMs: BigInt.from(timeout.inMilliseconds),
+              proxy: proxy,
+            );
+            if (res.status != 200) {
+              throw LicenseHttpException(res.status, isCertificate: true);
+            }
+            lastGoodHost = res.host;
+            return res.body;
+          } on StateError {
+            rethrow;
+          } catch (_) {}
+        }
+      }
       return await _request('application-certificate', (host) {
         final uri = _fairPlay
             ? fairPlayCertUri(host)

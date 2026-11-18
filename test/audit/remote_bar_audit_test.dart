@@ -40,9 +40,11 @@ void main() {
       MultiProvider(
         providers: [
           Provider<StorageService>.value(value: storage),
-          ChangeNotifierProvider(create: (_) => SpotifyProvider(SpotifyApiService(storage), storage)),
-          ChangeNotifierProvider(create: (_) => LibraryProvider(storage)),
-          ChangeNotifierProvider(create: (_) => PlaybackProvider(FakeAudioPlayerService(), storage)),
+          Provider<PreferencesStore>.value(value: storage.preferences),
+          Provider<CachePrefsStore>.value(value: storage.cache),
+          ChangeNotifierProvider(create: (_) => SpotifyProvider(SpotifyApiService(storage.auth), storage.library)),
+          ChangeNotifierProvider(create: (_) => LibraryProvider(storage.library)),
+          ChangeNotifierProvider(create: (_) => PlaybackProvider(FakeAudioPlayerService(), storage.playback)),
           ChangeNotifierProvider(
             create: (_) => ConnectProvider(service, available: () => true, resolveTrack: (_) async => null),
           ),

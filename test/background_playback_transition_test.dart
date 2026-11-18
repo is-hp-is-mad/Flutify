@@ -159,8 +159,7 @@ void main() {
     audio = _PreparingAudio();
     source = _DelayedSource();
     playback = PlaybackProvider(
-      audio,
-      await StorageService.init(),
+      audio, (await StorageService.init()).playback,
       audioLoader: source,
     );
     handler = FlutifyAudioHandler();

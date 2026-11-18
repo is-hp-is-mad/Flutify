@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:flutify_app/services/network/gateway_http_client.dart';
 import 'package:flutify_app/services/network/network_proxy.dart';
 import 'package:flutify_app/services/network/proxy_tunnel.dart';
-import 'package:flutify_app/services/network/spotify_gateway.dart';
+import 'package:flutify_app/models/spotify_gateway.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 const gateway = SpotifyGateway(

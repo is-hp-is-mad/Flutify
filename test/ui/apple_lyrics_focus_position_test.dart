@@ -24,16 +24,13 @@ void main() {
       ) async {
         SharedPreferences.setMockInitialValues({});
         final storage = await StorageService.init();
-        final prefs = PreferencesProvider(storage);
+        final prefs = PreferencesProvider(storage.preferences);
         prefs.update(prefs.prefs.copyWith(lyricsAutoTranslate: false));
-        final playback = PlaybackProvider(
-          FakeAudioPlayerService(),
-          storage,
+        final playback = PlaybackProvider(FakeAudioPlayerService(), storage.playback,
           audioLoader: FakeTrackAudioSource(),
         );
         final spotify = SpotifyProvider(
-          FakeSpotifyApiService(
-            storage,
+          FakeSpotifyApiService(storage.auth,
             lyricsById: {
               'apple-focus': SpotifyLyrics(
                 lines: [
@@ -43,7 +40,7 @@ void main() {
               ),
             },
           ),
-          storage,
+          storage.library,
         );
         addTearDown(prefs.dispose);
         addTearDown(playback.dispose);

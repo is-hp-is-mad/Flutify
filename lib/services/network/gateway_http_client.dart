@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'spotify_gateway.dart';
+import '../../models/spotify_gateway.dart';
 
 /// Shared by package:http, cover images and WebSocket handshakes. Redirects
 /// are resolved against the original URL, so gateway credentials never follow

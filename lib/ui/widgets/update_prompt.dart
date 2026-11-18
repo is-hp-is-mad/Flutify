@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../l10n/l10n.dart';
-import '../../services/updates/update_release.dart';
+import '../../models/update_release.dart';
 import '../../services/updates/update_service.dart';
 import 'package:material_3_expressive/material_3_expressive.dart' show M3EButtonStyle;
 import 'flutify_dialog.dart';

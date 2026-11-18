@@ -2,6 +2,8 @@ import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
+import '../../core/rust_core.dart';
+import '../../src/rust/api/backend.dart' as rust;
 import '../auth/proto_codec.dart';
 
 /// playplay 音频密钥（`POST /playplay/v1/key/{fileId}` 响应）。
@@ -21,6 +23,12 @@ class PlayplayKey {
 
   /// 解析响应体：`0a10 <R1:16B> 1204 <R2:4B>`。
   factory PlayplayKey.parse(Uint8List data) {
+    if (RustCore.ready) {
+      try {
+        final dto = rust.rustParsePlayplayKeyProto(data: data);
+        return PlayplayKey(r1: dto.r1, r2: dto.r2);
+      } catch (_) {}
+    }
     Uint8List? r1;
     Uint8List? r2;
     ProtoReader(data).forEach((f) {
@@ -49,16 +57,23 @@ Future<PlayplayKey> fetchPlayplayKey({
 }) async {
   final c = client ?? http.Client();
   try {
-    final reqk = Uint8List.fromList([
-      for (var i = 0; i < _reqkHex.length; i += 2) int.parse(_reqkHex.substring(i, i + 2), radix: 16),
-    ]);
-    final body = (ProtoWriter()
-          ..varintAlways(1, 5)
-          ..bytes(2, reqk)
-          ..varintAlways(4, 1)
-          ..varintAlways(5, 1)
-          ..int64(6, DateTime.now().millisecondsSinceEpoch ~/ 1000))
-        .toBytes();
+    final body = RustCore.ready
+        ? rust.rustEncodePlayplayKeyRequest(
+            nowSec: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+          )
+        : (ProtoWriter()
+              ..varintAlways(1, 5)
+              ..bytes(
+                2,
+                Uint8List.fromList([
+                  for (var i = 0; i < _reqkHex.length; i += 2)
+                    int.parse(_reqkHex.substring(i, i + 2), radix: 16),
+                ]),
+              )
+              ..varintAlways(4, 1)
+              ..varintAlways(5, 1)
+              ..int64(6, DateTime.now().millisecondsSinceEpoch ~/ 1000))
+            .toBytes();
     final res = await c.post(
       Uri.parse('https://gae2-spclient.spotify.com/playplay/v1/key/$fileIdHex'),
       headers: {...await headers(), 'Content-Type': 'application/x-protobuf'},

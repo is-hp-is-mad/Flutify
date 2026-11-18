@@ -22,7 +22,7 @@ import '../../../../providers/spotify_provider.dart';
 import '../../../../services/lyrics/lyrics_translation.dart';
 import '../../../widgets/connect/connect_actions.dart';
 import '../../../widgets/empty_state.dart';
-import '../../../widgets/skeleton.dart';
+import 'lyrics_view_parts.dart';
 import 'breathing_dots.dart';
 import 'apple_music_motion.dart';
 import 'lyric_line_view.dart';
@@ -113,7 +113,7 @@ class _LyricsViewState extends State<LyricsView>
 
   late final ValueListenable<Duration> _position;
   late final void Function(Duration position) _seek;
-  late final ScrollController _scroll = _LyricsScrollController(
+  late final ScrollController _scroll = LyricsReflowScrollController(
     reflowTarget: _translationLayoutTarget,
   );
 
@@ -415,16 +415,16 @@ class _LyricsViewState extends State<LyricsView>
   }
 
   /// 正在进行的无人声片段（显示呼吸点）；不在其中时为 null。
-  _Gap? get _currentGap {
+  LyricsGap? get _currentGap {
     if (!_isSynced || _blank.isEmpty) return null;
     final lines = _lyrics!.lines;
     final index = widget.appleMusicStyle ? _indexFor(_rawMs) : _activeIndex;
-    _Gap? gap;
+    LyricsGap? gap;
     if (index < 0) {
       if (_blank[0] && _gapEnd[0] != null) {
-        gap = _Gap(0, 0, _gapEnd[0]!);
+        gap = LyricsGap(0, 0, _gapEnd[0]!);
       } else if (_hasIntro) {
-        gap = _Gap(-1, 0, lines[0].startTimeMs);
+        gap = LyricsGap(-1, 0, lines[0].startTimeMs);
       }
     } else if (_blank[index] && _gapEnd[index] != null) {
       // 连续多个空行算同一段间奏，由第一个空行显示呼吸点
@@ -432,7 +432,7 @@ class _LyricsViewState extends State<LyricsView>
       while (head > 0 && _blank[head - 1]) {
         head--;
       }
-      gap = _Gap(
+      gap = LyricsGap(
         head,
         head == 0 ? 0 : lines[head].startTimeMs,
         _gapEnd[index]!,
@@ -450,7 +450,7 @@ class _LyricsViewState extends State<LyricsView>
 
   /// 对焦项：呼吸点所在项（-1 为前奏）或当前行。前奏阶段没有呼吸点时对焦第一句；
   /// 落在不显示呼吸点的空行（短间奏 / 歌曲末尾）时停在上一句有词的歌词。
-  int _focusEntryFor(_Gap? gap) {
+  int _focusEntryFor(LyricsGap? gap) {
     if (gap != null) {
       if (widget.appleMusicStyle && _rawMs >= gap.endMs - 1300) {
         for (var i = gap.entry + 1; i < _blank.length; i++) {
@@ -810,7 +810,7 @@ class _LyricsViewState extends State<LyricsView>
       _generation = generation;
     }
     final lyrics = _lyrics;
-    if (lyrics == null) return _LoadingLines(topInset: widget.topInset);
+    if (lyrics == null) return LyricsLoadingLines(topInset: widget.topInset);
     if (lyrics.lines.isEmpty) {
       return Padding(
         padding: EdgeInsets.only(
@@ -881,7 +881,7 @@ class _LyricsViewState extends State<LyricsView>
           : null,
       child: NotificationListener<ScrollNotification>(
         onNotification: _onScrollNotification,
-        child: _EdgeMask(
+        child: LyricsEdgeMask(
           enabled:
               !PerfFlags.noLyricsMask &&
               !DebugToggles.of(context).isOff(DebugToggle.lyricsMask),
@@ -1111,7 +1111,7 @@ class _LyricsViewState extends State<LyricsView>
   /// 无人声片段占位：[gap] 非空时展开显示呼吸点，否则收起为零高度。
   /// 展开 / 收起与切行滚动同时长同曲线，配合 [_scrollToActive] 的收起补偿保持位置连贯。
   Widget _gapEntry(
-    _Gap? gap,
+    LyricsGap? gap,
     double fontSize,
     bool centered, {
     required bool isPlaying,
@@ -1154,114 +1154,3 @@ class _LyricsViewState extends State<LyricsView>
   }
 }
 
-/// 一段无人声片段：[entry] 为显示呼吸点的行（-1 为第一句之前的前奏）。
-@immutable
-class _Gap {
-  final int entry;
-  final int startMs;
-  final int endMs;
-
-  const _Gap(this.entry, this.startMs, this.endMs);
-}
-
-class _LyricsScrollController extends ScrollController {
-  final double? Function() reflowTarget;
-
-  _LyricsScrollController({required this.reflowTarget});
-
-  @override
-  ScrollPosition createScrollPosition(
-    ScrollPhysics physics,
-    ScrollContext context,
-    ScrollPosition? oldPosition,
-  ) => _LyricsScrollPosition(
-    physics: physics,
-    context: context,
-    oldPosition: oldPosition,
-    initialPixels: initialScrollOffset,
-    keepScrollOffset: keepScrollOffset,
-    reflowTarget: reflowTarget,
-  );
-}
-
-class _LyricsScrollPosition extends ScrollPositionWithSingleContext {
-  final double? Function() reflowTarget;
-
-  _LyricsScrollPosition({
-    required super.physics,
-    required super.context,
-    super.oldPosition,
-    super.initialPixels,
-    super.keepScrollOffset,
-    required this.reflowTarget,
-  });
-
-  @override
-  bool applyContentDimensions(double minScrollExtent, double maxScrollExtent) {
-    final target = reflowTarget();
-    if (target != null && hasPixels) {
-      final corrected = target.clamp(minScrollExtent, maxScrollExtent);
-      if (corrected != pixels) correctBy(corrected - pixels);
-    }
-    return super.applyContentDimensions(minScrollExtent, maxScrollExtent);
-  }
-}
-
-/// 歌词加载中的骨架（白色半透明横条，适配深色流动背景）。
-class _LoadingLines extends StatelessWidget {
-  final double topInset;
-
-  const _LoadingLines({required this.topInset});
-
-  static const List<double> _widths = [0.82, 0.64, 0.9, 0.48, 0.74, 0.58];
-
-  @override
-  Widget build(BuildContext context) {
-    // 不可滚动的 ScrollView：窗口很矮时直接裁掉多余骨架，而不是溢出报错
-    return SingleChildScrollView(
-      physics: const NeverScrollableScrollPhysics(),
-      padding: EdgeInsets.fromLTRB(28, topInset + 24, 28, 0),
-      child: SkeletonPulse(
-        child: LayoutBuilder(
-          builder: (context, constraints) => Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (final w in _widths)
-                Container(
-                  width: constraints.maxWidth * w,
-                  height: 26,
-                  margin: const EdgeInsets.symmetric(vertical: 14),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.16),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// 歌词区上下边缘渐隐用的 dstIn 遮罩；[enabled] 为 false 时不套任何图层（仅诊断用）。
-class _EdgeMask extends StatelessWidget {
-  const _EdgeMask({
-    required this.enabled,
-    required this.shaderCallback,
-    required this.child,
-  });
-
-  final bool enabled;
-  final ShaderCallback shaderCallback;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => enabled
-      ? ShaderMask(
-          blendMode: BlendMode.dstIn,
-          shaderCallback: shaderCallback,
-          child: child,
-        )
-      : child;
-}

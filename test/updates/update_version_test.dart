@@ -1,4 +1,4 @@
-import 'package:flutify_app/services/updates/update_release.dart';
+import 'package:flutify_app/models/update_release.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

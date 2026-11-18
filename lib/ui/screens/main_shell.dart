@@ -14,7 +14,7 @@ import '../../providers/playback_provider.dart';
 import '../../providers/preferences_provider.dart';
 import '../../providers/spotify_provider.dart';
 import '../../services/deep_link/spotify_link_handler.dart';
-import '../../services/storage_service.dart';
+import '../../services/storage/preferences_store.dart';
 import '../navigation/app_routes.dart';
 import '../navigation/content_history.dart';
 import '../navigation/tab_navigator.dart';
@@ -139,7 +139,7 @@ class _MainShellState extends State<MainShell> {
       context,
       listen: false,
     )?.prefs;
-    final storage = Provider.of<StorageService?>(context, listen: false);
+    final storage = Provider.of<PreferencesStore?>(context, listen: false);
     return switch (prefs?.startPage) {
       StartPage.library => _library,
       StartPage.last => (storage?.lastTab ?? _home).clamp(_home, _library),
@@ -150,7 +150,7 @@ class _MainShellState extends State<MainShell> {
   /// 切换 Tab 并记录（供「上次位置」使用）。
   void _setIndex(int index) {
     setState(() => _currentIndex = index);
-    Provider.of<StorageService?>(context, listen: false)?.setLastTab(index);
+    Provider.of<PreferencesStore?>(context, listen: false)?.setLastTab(index);
   }
 
   @override

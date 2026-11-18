@@ -291,7 +291,6 @@ class DesktopDataSource {
         '${SpotifyEndpoints.defaultSpClientBase}/playlist/v2/playlist/$id',
       );
       if (proxy != null) {
-        rust.rustSessionSetProxy(proxy: proxy);
         try {
           yield* rust
               .rustFetchPlaylistStream(
@@ -299,6 +298,7 @@ class DesktopDataSource {
                 playlistId: id,
                 decorateHash:
                     PathfinderOperation.decorateContextTracks.sha256Hash,
+                proxy: proxy,
               )
               .map(RustBackendBridge.playlistFromDto);
           return;
@@ -401,11 +401,11 @@ class DesktopDataSource {
           '${SpotifyEndpoints.defaultSpClientBase}/playlist/v2/playlist/$id',
         );
         if (proxy != null) {
-          rust.rustSessionSetProxy(proxy: proxy);
           final dto = await rust.rustFetchPlaylistFull(
             spclientBase: SpotifyEndpoints.defaultSpClientBase,
             playlistId: id,
             decorateHash: PathfinderOperation.decorateContextTracks.sha256Hash,
+            proxy: proxy,
           );
           return dto == null ? null : RustBackendBridge.playlistFromDto(dto);
         }
@@ -590,10 +590,10 @@ class DesktopDataSource {
           PathfinderClient.endpoint,
         );
         if (proxy != null) {
-          rust.rustSessionSetProxy(proxy: proxy);
           final dtos = await rust.rustFetchTracksByUris(
             uris: uris,
             decorateHash: PathfinderOperation.decorateContextTracks.sha256Hash,
+            proxy: proxy,
           );
           return [for (final dto in dtos) RustBackendBridge.trackFromDto(dto)];
         }
@@ -814,6 +814,7 @@ class DesktopDataSource {
         final dto = await rust.rustFetchTrackCredits(
           hash: PathfinderOperation.queryTrackCreditsGroupedModal.sha256Hash,
           trackUri: 'spotify:track:$trackId',
+          proxy: proxy,
         );
         return dto == null ? null : RustBackendBridge.trackCreditsFromDto(dto);
       }

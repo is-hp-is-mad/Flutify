@@ -3,10 +3,10 @@ import 'dart:io';
 import 'dart:convert';
 
 import 'proxy_endpoint.dart';
-import 'proxy_mode.dart';
+import '../../models/proxy_mode.dart';
 import 'proxy_tunnel.dart';
 import 'system_proxy.dart';
-import 'spotify_gateway.dart';
+import '../../models/spotify_gateway.dart';
 import 'gateway_http_client.dart';
 
 /// 全局网络代理策略（设置 →「网络」）：所有 HTTP / WebSocket 请求与接入点的 TCP 连接都按它选路。

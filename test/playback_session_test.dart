@@ -31,9 +31,7 @@ void main() {
   });
 
   PlaybackProvider create(PlaybackSessionStore store, {FakeAudioPlayerService? audio, FakeTrackAudioSource? loader}) {
-    return PlaybackProvider(
-      audio ?? FakeAudioPlayerService(),
-      storage,
+    return PlaybackProvider(audio ?? FakeAudioPlayerService(), storage.playback,
       random: Random(1),
       audioLoader: loader ?? FakeTrackAudioSource(),
       sessionStore: store,

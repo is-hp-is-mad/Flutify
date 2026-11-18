@@ -133,8 +133,7 @@ void main() {
     });
     final storage = await StorageService.init();
     final feeds = <String>[];
-    final api = SpotifyApiService(
-      storage,
+    final api = SpotifyApiService(storage.auth,
       MockClient((request) async {
         final spec = request.bodyBytes;
         final body = String.fromCharCodes(spec);
@@ -157,11 +156,11 @@ void main() {
         return http.Response.bytes(bytes, 200);
       }),
     );
-    final prefs = PreferencesProvider(storage);
-    final library = LibraryProvider(storage);
+    final prefs = PreferencesProvider(storage.preferences);
+    final library = LibraryProvider(storage.library);
     final player = FakePreviewPlayer();
     final audio = FakeAudioPlayerService();
-    final playback = _MainPlayback(audio, storage);
+    final playback = _MainPlayback(audio, storage.playback);
     addTearDown(() {
       prefs.dispose();
       library.dispose();
@@ -264,7 +263,7 @@ void main() {
     await tester.tap(hint);
     await tester.pump();
     expect(hint, findsNothing);
-    expect(env.storage.watchFeedOnboardingShown, isTrue);
+    expect(env.storage.preferences.watchFeedOnboardingShown, isTrue);
   });
 
   testWidgets('切到后台暂停试听，回到前台继续', (tester) async {

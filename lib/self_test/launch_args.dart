@@ -1,4 +1,4 @@
-import '../constants/app_info.dart';
+import '../core/constants/app_info.dart';
 
 /// 自测版（self-test）专用启动参数。
 ///

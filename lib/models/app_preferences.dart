@@ -2,15 +2,13 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 
-import '../services/network/proxy_mode.dart';
+import 'proxy_mode.dart';
 import 'lyrics_source.dart';
 import 'playback_state.dart' show SpotifyRepeatMode;
 import 'shortcut_settings.dart';
-import '../services/network/spotify_gateway.dart';
+import 'spotify_gateway.dart';
 
-/// 网络代理：跟随系统 / 不使用（直连）/ 手动指定 HTTP 代理。
-/// ProxyMode 已移至 services/network/proxy_mode.dart（纯 Dart，供命令行探针复用），这里再导出保持兼容。
-export '../services/network/proxy_mode.dart' show ProxyMode;
+/// 网络代理：跟随系统 / 不使用（直连）/ 手动指定 HTTP 代理（定义于 `proxy_mode.dart`）。
 export 'lyrics_source.dart';
 
 /// 界面语言：跟随系统 / 固定中文 / 固定英文。

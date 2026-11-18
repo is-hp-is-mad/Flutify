@@ -45,8 +45,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     storage = await StorageService.init();
     temp = await Directory.systemTemp.createTemp('flutify-cache-ui-');
-    location = CacheLocation(
-      storage,
+    location = CacheLocation(storage.cache,
       p.join(temp.path, 'default'),
       applicationRoot: temp.path,
     );
@@ -73,6 +72,8 @@ void main() {
       MultiProvider(
         providers: [
           Provider<StorageService>.value(value: storage),
+          Provider<PreferencesStore>.value(value: storage.preferences),
+          Provider<CachePrefsStore>.value(value: storage.cache),
           ListenableProvider<CacheLocation?>.value(value: location),
           Provider<AudioCacheStore?>.value(value: null),
         ],

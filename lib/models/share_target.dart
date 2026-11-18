@@ -1,5 +1,5 @@
 import '../core/rust_core.dart';
-import '../services/protocol/spotify_id.dart';
+import '../core/utils/spotify_id.dart';
 import '../src/rust/api/protocol.dart' as rust;
 import 'album.dart';
 import 'artist.dart';

@@ -470,8 +470,7 @@ void main() {
       final f = await fixture(gate: gate);
       final audio = FakeAudioPlayerService();
       final playback = PlaybackProvider(
-        audio,
-        await StorageService.init(),
+        audio, (await StorageService.init()).playback,
         audioLoader: f.source,
       );
       addTearDown(playback.dispose);

@@ -5,7 +5,7 @@ import 'dart:typed_data';
 
 import 'network_proxy.dart';
 import 'proxy_endpoint.dart';
-import 'proxy_mode.dart';
+import '../../models/proxy_mode.dart';
 
 /// AP only needs byte writes/flush/close; its stream can be TCP or binary WS.
 class TunnelSocket {

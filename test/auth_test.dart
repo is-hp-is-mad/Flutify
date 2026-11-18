@@ -77,14 +77,14 @@ void main() {
   }
 
   SpotifyAuthService webAuth({void Function(String token)? onResolve}) =>
-      SpotifyAuthService(storage, fakeServer(), (token, _) async {
+      SpotifyAuthService(storage.auth, fakeServer(), (token, _) async {
         onResolve?.call(token);
         return 'web-user';
       });
 
   Future<void> seedWebSession() async {
-    await storage.setSpDc('sp-dc-cookie');
-    await storage.setWebAccessToken(
+    await storage.auth.setSpDc('sp-dc-cookie');
+    await storage.auth.setWebAccessToken(
       'web-access',
       DateTime.now().add(const Duration(hours: 1)).millisecondsSinceEpoch,
     );
@@ -110,8 +110,8 @@ void main() {
       expect(clientData['client_id'], SpotifyAuthConstants.webClientId);
       expect(clientData['client_version'], SpotifyAuthConstants.webClientVersion);
       expect((clientData['js_sdk_data'] as Map)['device_type'], 'computer');
-      expect(storage.clientTokenProfile, 'web');
-      expect(storage.clientToken, 'fake-client-token');
+      expect(storage.auth.clientTokenProfile, 'web');
+      expect(storage.auth.clientToken, 'fake-client-token');
       expect(auth.clientHeaders['app-platform'], 'WebPlayer');
 
       expect(auth.displayName, 'Web User', reason: '资料来自内部 profile-view/{用户名}，不能用 profile/me');
@@ -134,8 +134,8 @@ void main() {
         'sp_client_id': '0123456789abcdef0123456789abcdef',
       });
       final legacy = await StorageService.init();
-      expect(legacy.isLoggedIn, isFalse);
-      expect(legacy.accessToken, isEmpty);
+      expect(legacy.auth.isLoggedIn, isFalse);
+      expect(legacy.auth.accessToken, isEmpty);
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.containsKey('sp_stored_credential'), isFalse);
       expect(prefs.containsKey('sp_client_id'), isFalse);
@@ -165,12 +165,12 @@ void main() {
   group('AuthProvider', () {
     test('会话缺用户名：启动时补齐用户名、改正昵称并重新加载媒体库', () async {
       // 旧版本登录后只按 profile/me 存了别人的昵称，用户名为空
-      await storage.markDesktopSession();
+      await storage.auth.markDesktopSession();
       await seedWebSession();
-      await storage.setAccessToken('web-access');
-      await storage.setAccessTokenExpiry(DateTime.now().add(const Duration(hours: 1)).millisecondsSinceEpoch);
-      await storage.setDisplayName('Someone Else');
-      expect(storage.isLoggedIn, isTrue);
+      await storage.auth.setAccessToken('web-access');
+      await storage.auth.setAccessTokenExpiry(DateTime.now().add(const Duration(hours: 1)).millisecondsSinceEpoch);
+      await storage.auth.setDisplayName('Someone Else');
+      expect(storage.auth.isLoggedIn, isTrue);
 
       final provider = AuthProvider(webAuth());
       final reloaded = Completer<void>();

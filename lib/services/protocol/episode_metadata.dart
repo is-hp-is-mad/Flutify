@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import '../../core/rust_core.dart';
+import '../../src/rust/api/backend.dart' as rust;
 import '../auth/proto_codec.dart';
 import 'track_metadata.dart';
 
@@ -47,6 +49,26 @@ class EpisodeMetadata {
 
   /// 解析 protobuf `Episode`（宽松：未知字段跳过）。
   factory EpisodeMetadata.parse(Uint8List data) {
+    if (RustCore.ready) {
+      try {
+        final dto = rust.rustParseEpisodeMetadataProto(data: data);
+        return EpisodeMetadata(
+          gid: dto.gid,
+          name: dto.name,
+          showName: dto.showName,
+          durationMs: dto.durationMs,
+          description: dto.description,
+          files: [
+            for (final f in dto.files)
+              if (AudioFileFormat.fromWire(f.format) != null)
+                TrackAudioFile(
+                  fileId: f.fileId,
+                  format: AudioFileFormat.fromWire(f.format)!,
+                ),
+          ],
+        );
+      } catch (_) {}
+    }
     final gid = Uint8List(16);
     var name = '';
     var showName = '';

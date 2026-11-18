@@ -29,7 +29,7 @@ import 'canvas/canvas_service.dart';
 import 'pathfinder/desktop_data_source.dart';
 import 'pathfinder/pathfinder_client.dart';
 import 'podcast/podcast_service.dart';
-import 'storage_service.dart';
+import 'storage/auth_session_store.dart';
 import 'watchfeed/watch_feed_service.dart';
 
 /// 取数据失败（未登录、网络错误、接口返回异常）。[message] 为简体中文说明，可直接展示。
@@ -60,7 +60,7 @@ class SpotifyDataException implements Exception {
 /// - 列表类方法在请求失败时同样抛 [SpotifyDataException]，由 Provider 决定如何展示错误；
 ///   曲目 / 唱片列表这类「附属列表」失败时返回空列表，不阻塞详情页主体。
 class SpotifyApiService {
-  final StorageService _storage;
+  final AuthSessionStore _storage;
   final http.Client _client;
   late final CanvasService canvas = CanvasService(_client, headers: _headers);
 

@@ -1,4 +1,4 @@
-import '../services/protocol/track_playback_exception.dart';
+import 'track_playback_exception.dart';
 import 'track.dart';
 
 /// 一次播放失败的记录，供 UI 提示（SnackBar / 播放器内提示条）。

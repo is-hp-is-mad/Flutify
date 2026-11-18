@@ -8,7 +8,7 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 
 import 'package:flutify_app/services/protocol/access_point.dart';
-import 'package:flutify_app/services/protocol/spotify_id.dart';
+import 'package:flutify_app/core/utils/spotify_id.dart';
 
 Future<void> main() async {
   final prefs = jsonDecode(

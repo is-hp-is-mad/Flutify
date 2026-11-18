@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 import '../../core/constants/spotify_endpoints.dart';
 import '../protocol/access_point.dart';
 import '../rust_backend_bridge.dart';
-import '../storage_service.dart';
+import '../storage/auth_session_store.dart';
 import 'account_profile_service.dart';
 import 'auth_constants.dart';
 import 'client_profile.dart';
@@ -30,7 +30,7 @@ class SpotifyAuthService {
   /// Web 登录铸造的令牌属于 Web 播放器，client-token 与业务请求头必须同一身份。
   static const SpotifyClientProfile _profile = SpotifyClientProfile.web;
 
-  final StorageService _storage;
+  final AuthSessionStore _storage;
   final http.Client _client;
   final ClientTokenService _clientTokenService;
   final AccountProfileService _profiles;
@@ -61,7 +61,7 @@ class SpotifyAuthService {
   }
 
   factory SpotifyAuthService(
-    StorageService storage, [
+    AuthSessionStore storage, [
     http.Client? client,
     Future<String> Function(String accessToken, String deviceId)?
     usernameResolver,

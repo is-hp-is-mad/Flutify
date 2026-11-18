@@ -14,7 +14,7 @@ import '../eme/fairplay.dart';
 import '../eme/segmented_download.dart';
 import '../eme/streaming_download.dart';
 import 'audio_cache_store.dart';
-import 'spotify_id.dart';
+import '../../core/utils/spotify_id.dart';
 import 'storage_resolver.dart';
 import 'track_audio_loader.dart';
 import 'track_metadata.dart';

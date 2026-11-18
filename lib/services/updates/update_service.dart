@@ -7,15 +7,15 @@ import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 
 import '../../core/constants/app_info.dart';
-import '../storage_service.dart';
+import '../storage/update_state_store.dart';
 import 'update_downloader.dart';
 import 'update_installer.dart';
-import 'update_release.dart';
+import '../../models/update_release.dart';
 
 enum UpdateStatus { idle, checking, available, downloading, ready, installing, failed }
 
 class UpdateService extends ChangeNotifier {
-  final StorageService storage;
+  final UpdateStateStore storage;
   final UpdateInstaller installer;
   final http.Client client;
   final UpdateDownloader Function() downloaderFactory;

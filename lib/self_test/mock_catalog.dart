@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 
-import '../../models/album.dart';
-import '../../models/artist.dart';
-import '../../models/category.dart';
-import '../../models/connect_cluster.dart';
-import '../../models/device.dart';
-import '../../models/home_feed.dart';
-import '../../models/image.dart';
-import '../../models/lyrics.dart';
-import '../../models/playlist.dart';
-import '../../models/podcast.dart';
-import '../../models/track.dart';
-import '../../models/track_credits.dart';
-import '../../models/user_profile.dart';
+import '../models/album.dart';
+import '../models/artist.dart';
+import '../models/category.dart';
+import '../models/connect_cluster.dart';
+import '../models/device.dart';
+import '../models/home_feed.dart';
+import '../models/image.dart';
+import '../models/lyrics.dart';
+import '../models/playlist.dart';
+import '../models/podcast.dart';
+import '../models/track.dart';
+import '../models/track_credits.dart';
+import '../models/user_profile.dart';
 import 'mock_cover_server.dart';
 
 /// Mock 模式使用的离线完整目录与媒体库初始数据。

@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../../../core/constants/app_info.dart';
 import '../../../../l10n/l10n.dart';
-import '../../../../services/updates/update_release.dart';
+import '../../../../models/update_release.dart';
 import '../../../../services/updates/update_service.dart';
 import '../../../widgets/app_modal.dart';
 import '../../../widgets/flutify_dialog.dart';

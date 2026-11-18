@@ -127,10 +127,10 @@ class DesktopLibrarySource implements LibrarySource {
           '?decorate=revision,attributes,length,owner&from=0&length=$playlistLimit';
       final proxy = await RustBackendBridge.proxyForUrl(url);
       if (proxy != null) {
-        rust.rustSessionSetProxy(proxy: proxy);
         final dtos = await rust.rustFetchRootlist(
           spclientBase: _spclient,
           username: Uri.encodeComponent(user),
+          proxy: proxy,
         );
         playlists = [
           for (final d in dtos) RustBackendBridge.playlistSummaryFromDto(d),
@@ -184,7 +184,6 @@ class DesktopLibrarySource implements LibrarySource {
           '$_spclient/collection/v2/paging',
         );
         if (proxy != null) {
-          rust.rustSessionSetProxy(proxy: proxy);
           final dtos = await rust.rustFetchCollectionEntries(
             spclientBase: _spclient,
             username: user,
@@ -192,6 +191,7 @@ class DesktopLibrarySource implements LibrarySource {
             kind: kind,
             maxPages: _maxPages,
             pageSize: _pageSize,
+            proxy: proxy,
           );
           return [
             for (final dto in dtos)

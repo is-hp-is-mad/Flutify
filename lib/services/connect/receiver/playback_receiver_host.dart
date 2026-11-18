@@ -6,22 +6,22 @@ import '../../../models/artist.dart';
 import '../../../models/image.dart';
 import '../../../models/playback_state.dart';
 import '../../../models/track.dart';
-import '../../../providers/playback_provider.dart';
+import '../../playback/playback_port.dart';
 import 'connect_receiver.dart';
 import 'track_playback_state.dart';
 
-/// 把 [ConnectReceiver] 接到本机 [PlaybackProvider]：
-/// - 远程命令 → 本机播放（[PlaybackProvider.playReceiverQueue] 不经远程转发）；
+/// 把 [ConnectReceiver] 接到本机 [ReceiverPlaybackPort]：
+/// - 远程命令 → 本机播放（[ReceiverPlaybackPort.playReceiverQueue] 不经远程转发）；
 /// - 本机状态变化（切歌 / 暂停 / 拖动 / 播满 30 秒 / 音量）→ 回报给 [ConnectReceiver]。
 ///
-/// 本机按状态机的「播完自动进入」顺序排队，播完一首由 PlaybackProvider 自己接下一首，
+/// 本机按状态机的「播完自动进入」顺序排队，播完一首由播放器自己接下一首，
 /// 再由 [ConnectReceiver.onLocalTrackChanged] 对回状态机里的目标状态。
 class PlaybackReceiverHost implements ReceiverHost {
   @override
   bool get isAudible => playback.isPlaying && !playback.isBuffering;
   @override
   AudioPlaybackInfo get audioPlaybackInfo => playback.audioPlaybackInfo;
-  final PlaybackProvider playback;
+  final ReceiverPlaybackPort playback;
   late final ConnectReceiver receiver;
 
   String? _lastTrackUri;

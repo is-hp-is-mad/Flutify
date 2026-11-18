@@ -108,12 +108,29 @@ pub fn snapshot() -> SessionState {
     runtime_state().state.read().unwrap().clone()
 }
 
+tokio::task_local! {
+    static REQUEST_PROXY: String;
+}
+
+pub(crate) async fn with_request_proxy<F, T>(proxy: String, f: F) -> T
+where
+    F: std::future::Future<Output = T>,
+{
+    REQUEST_PROXY.scope(proxy, f).await
+}
+
+pub(crate) fn effective_proxy() -> String {
+    REQUEST_PROXY
+        .try_with(|p| p.clone())
+        .unwrap_or_else(|_| snapshot().proxy)
+}
+
 pub(crate) fn client_for_proxy(proxy: &str) -> Result<reqwest::Client, String> {
     http_client::client_for(proxy)
 }
 
 pub(crate) fn client_for_url(_url: &str) -> Result<reqwest::Client, String> {
-    let proxy = snapshot().proxy;
+    let proxy = effective_proxy();
     http_client::client_for(&proxy)
 }
 
@@ -211,7 +228,8 @@ pub async fn ensure_web_access_token(force_refresh: bool) -> Result<MintedToken,
             expiry_ms: s.access_token_expiry_ms,
         });
     }
-    let minted = mint_web_token(&s.sp_dc, &s.proxy).await?;
+    let proxy = effective_proxy();
+    let minted = mint_web_token(&s.sp_dc, &proxy).await?;
     let mut guard = runtime_state().state.write().unwrap();
     if guard.epoch == s.epoch {
         guard.access_token = minted.token.clone();
@@ -311,7 +329,8 @@ pub async fn ensure_client_token(force_refresh: bool) -> Result<GrantedClientTok
     if s.device_id.is_empty() {
         return Err("auth:missing device_id".to_string());
     }
-    let granted = request_web_client_token(&s.device_id, &s.proxy).await?;
+    let proxy = effective_proxy();
+    let granted = request_web_client_token(&s.device_id, &proxy).await?;
     let mut guard = runtime_state().state.write().unwrap();
     if guard.epoch == s.epoch {
         guard.client_token = granted.token.clone();
@@ -333,8 +352,8 @@ pub async fn authorized_request(
     for attempt in 0..4 {
         let access = ensure_web_access_token(false).await?;
         let client_tok = ensure_client_token(false).await.ok().map(|g| g.token);
-        let s = snapshot();
-        let client = http_client::client_for(&s.proxy)?;
+        let proxy = effective_proxy();
+        let client = http_client::client_for(&proxy)?;
 
         let mut req = client
             .request(method.clone(), url)
@@ -368,7 +387,7 @@ pub async fn authorized_request(
             .map_err(|e| format!("request:read body failed: {e}"))?
             .to_vec();
 
-        if status == 401 && !refreshed_auth && !s.sp_dc.is_empty() {
+        if status == 401 && !refreshed_auth && !snapshot().sp_dc.is_empty() {
             refreshed_auth = true;
             let _ = ensure_web_access_token(true).await;
             continue;

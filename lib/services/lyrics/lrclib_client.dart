@@ -48,12 +48,12 @@ class LrclibClient {
     if (useRustBackend && RustCore.ready) {
       final proxy = await RustBackendBridge.proxyForUrl('$baseUrl/get');
       if (proxy != null) {
-        rust.rustSessionSetProxy(proxy: proxy);
         final dto = await rust.rustLrclibGet(
           track: track,
           artist: artist,
           album: album,
           durationSec: durationSec,
+          proxy: proxy,
         );
         return RustBackendBridge.lrclibResponseFromDto(dto);
       }
@@ -70,11 +70,11 @@ class LrclibClient {
     if (useRustBackend && RustCore.ready) {
       final proxy = await RustBackendBridge.proxyForUrl('$baseUrl/search');
       if (proxy != null) {
-        rust.rustSessionSetProxy(proxy: proxy);
         final dto = await rust.rustLrclibSearch(
           track: track ?? '',
           artist: artist ?? '',
           q: q ?? '',
+          proxy: proxy,
         );
         return RustBackendBridge.lrclibResponseFromDto(dto);
       }

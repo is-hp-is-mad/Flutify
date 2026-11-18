@@ -8,7 +8,7 @@ import 'dart:typed_data';
 
 import 'package:flutify_app/services/auth/proto_codec.dart';
 import 'package:flutify_app/services/protocol/access_point.dart';
-import 'package:flutify_app/services/protocol/spotify_id.dart';
+import 'package:flutify_app/core/utils/spotify_id.dart';
 
 Future<void> main(List<String> args) async {
   if (args.isEmpty) {

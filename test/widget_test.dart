@@ -24,7 +24,7 @@ void main() {
         storageService: storage,
         audioEngine: AudioPlayerService(),
         emePlayer: EmePlayer(),
-        spotifyApiService: SpotifyApiService(storage),
+        spotifyApiService: SpotifyApiService(storage.auth),
       ),
     );
     await tester.pump(const Duration(milliseconds: 100));

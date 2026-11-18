@@ -3,9 +3,10 @@ import 'dart:async';
 import 'package:flutify_app/core/theme/md3e_theme.dart';
 import 'package:flutify_app/l10n/app_localizations.dart';
 import 'package:flutify_app/models/app_preferences.dart';
+import 'package:flutify_app/models/proxy_mode.dart';
 import 'package:flutify_app/providers/preferences_provider.dart';
 import 'package:flutify_app/services/network/network_proxy.dart';
-import 'package:flutify_app/services/network/spotify_gateway.dart';
+import 'package:flutify_app/models/spotify_gateway.dart';
 import 'package:flutify_app/services/storage_service.dart';
 import 'package:flutify_app/ui/screens/settings/widgets/gateway_settings.dart';
 import 'package:flutter/material.dart';
@@ -30,10 +31,10 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     storage = await StorageService.init();
-    await storage.setPreferencesJson(
+    await storage.preferences.setPreferencesJson(
       const AppPreferences(gateway: _gateway).encode(),
     );
-    prefs = PreferencesProvider(storage);
+    prefs = PreferencesProvider(storage.preferences);
     country = 'CN';
     offline = false;
     proxy = NetworkProxy(
@@ -98,7 +99,7 @@ void main() {
       await tester.enterText(codes, 'us jp，US');
       await tester.tap(find.text('Save'));
       await tester.pumpAndSettle();
-      final saved = AppPreferences.decode(storage.preferencesJson).gateway;
+      final saved = AppPreferences.decode(storage.preferences.preferencesJson).gateway;
       expect(saved.automatic, isTrue);
       expect(saved.directCountries, 'JP, US');
       expect(
@@ -136,7 +137,7 @@ void main() {
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
     expect(prefs.prefs.gateway, _gateway);
-    expect(AppPreferences.decode(storage.preferencesJson).gateway, _gateway);
+    expect(AppPreferences.decode(storage.preferences.preferencesJson).gateway, _gateway);
   });
 
   testWidgets('turning automatic off ignores a hidden invalid country edit', (

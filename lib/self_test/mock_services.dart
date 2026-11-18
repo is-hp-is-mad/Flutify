@@ -8,39 +8,39 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 
-import '../../models/album.dart';
-import '../../models/artist.dart';
-import '../../models/catalog_page.dart';
-import '../../models/category.dart';
-import '../../models/connect_cluster.dart';
-import '../../models/device.dart';
-import '../../models/editable_playlist.dart';
-import '../../models/home_feed.dart';
-import '../../models/lyrics.dart';
-import '../../models/playlist.dart';
-import '../../models/podcast.dart';
-import '../../models/track.dart';
-import '../../models/track_credits.dart';
-import '../../models/user_profile.dart';
-import '../constants/app_info.dart';
-import '../../services/audio/audio_engine.dart';
-import '../../services/audio/audio_output_service.dart';
-import '../../services/auth/spotify_auth_service.dart';
-import '../../services/cache/artwork_cache.dart';
-import '../../services/cache/cache_location.dart';
-import '../../services/canvas/canvas_service.dart';
-import '../../services/connect/connect_service.dart';
-import '../../services/eme/eme_player.dart';
-import '../../services/library/library_source.dart';
-import '../../services/lyrics/lyrics_resolver.dart';
-import '../../services/playback/playback_region_gate.dart';
-import '../../services/playback_session_store.dart';
-import '../../services/protocol/track_audio_loader.dart';
-import '../../services/spotify_api_service.dart';
-import '../../services/storage_service.dart';
-import '../../services/updates/update_installer.dart';
-import '../../services/updates/update_release.dart';
-import '../../services/updates/update_service.dart';
+import '../models/album.dart';
+import '../models/artist.dart';
+import '../models/catalog_page.dart';
+import '../models/category.dart';
+import '../models/connect_cluster.dart';
+import '../models/device.dart';
+import '../models/editable_playlist.dart';
+import '../models/home_feed.dart';
+import '../models/lyrics.dart';
+import '../models/playlist.dart';
+import '../models/podcast.dart';
+import '../models/track.dart';
+import '../models/track_credits.dart';
+import '../models/user_profile.dart';
+import '../core/constants/app_info.dart';
+import '../services/audio/audio_engine.dart';
+import '../services/audio/audio_output_service.dart';
+import '../services/auth/spotify_auth_service.dart';
+import '../services/cache/artwork_cache.dart';
+import '../services/cache/cache_location.dart';
+import '../services/canvas/canvas_service.dart';
+import '../services/connect/connect_service.dart';
+import '../services/eme/eme_player.dart';
+import '../services/library/library_source.dart';
+import '../services/lyrics/lyrics_resolver.dart';
+import '../services/playback/playback_region_gate.dart';
+import '../services/playback_session_store.dart';
+import '../services/protocol/track_audio_loader.dart';
+import '../services/spotify_api_service.dart';
+import '../services/storage_service.dart';
+import '../services/updates/update_installer.dart';
+import '../models/update_release.dart';
+import '../services/updates/update_service.dart';
 import 'mock_audio.dart';
 import 'mock_catalog.dart';
 import 'mock_cover_server.dart';
@@ -420,7 +420,7 @@ class _MockCanvasService extends CanvasService {
 
 /// Mock 鉴权服务：无条件返回有效 Mock 令牌与个人资料，支持免登录与登出测试。
 class MockSpotifyAuthService implements SpotifyAuthService {
-  final StorageService _storage;
+  final AuthSessionStore _storage;
 
   MockSpotifyAuthService(this._storage);
 
@@ -486,7 +486,7 @@ class MockSpotifyAuthService implements SpotifyAuthService {
 /// 全功能离线 Mock API 服务。
 class MockSpotifyApiService extends SpotifyApiService {
   final MockCatalog catalog;
-  final StorageService _mockStorage;
+  final AuthSessionStore _mockStorage;
   SpotifyAuthService? _mockAuth;
   late final MockLibrarySource _librarySource = MockLibrarySource(
     catalog,
@@ -864,7 +864,7 @@ class MockBootstrap {
     });
 
     final cacheLocation = CacheLocation(
-      storage,
+      storage.cache,
       tempDir.path,
       legacyArtworkDirectory: p.join(tempDir.path, 'legacy_artwork'),
     );
@@ -872,8 +872,8 @@ class MockBootstrap {
     final artworkCache = ArtworkCache(cacheLocation);
     CachedNetworkImageProvider.defaultCacheManager = artworkCache;
 
-    final api = MockSpotifyApiService(storage, catalog);
-    final auth = MockSpotifyAuthService(storage);
+    final api = MockSpotifyApiService(storage.auth, catalog);
+    final auth = MockSpotifyAuthService(storage.auth);
     api.attachAuth(auth);
 
     final trackLoader = MockTrackAudioSource(catalog);
@@ -887,7 +887,7 @@ class MockBootstrap {
     );
     final regionGate = PlaybackRegionGate(enabled: () => false);
     final updateService = UpdateService(
-      storage: storage,
+      storage: storage.updates,
       installer: _MockUpdateInstaller(tempDir),
       client: MockOfflineHttpClient(),
       currentTag: AppInfo.releaseTag,

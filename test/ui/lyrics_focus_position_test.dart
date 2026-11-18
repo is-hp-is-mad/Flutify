@@ -50,7 +50,7 @@ void main() {
     (tester) async {
       SharedPreferences.setMockInitialValues({});
       final storage = await StorageService.init();
-      final prefs = PreferencesProvider(storage);
+      final prefs = PreferencesProvider(storage.preferences);
       addTearDown(prefs.dispose);
       await tester.pumpWidget(
         ChangeNotifierProvider.value(
@@ -74,7 +74,7 @@ void main() {
       await tester.tapAt(tester.getCenter(slider));
       await tester.pumpAndSettle();
       expect(prefs.prefs.lyricsFocusPosition, closeTo(0.40, 0.02));
-      final restored = PreferencesProvider(await StorageService.init());
+      final restored = PreferencesProvider((await StorageService.init()).preferences);
       addTearDown(restored.dispose);
       expect(restored.prefs, prefs.prefs);
       expect(restored.prefs.hashCode, prefs.prefs.hashCode);
@@ -87,16 +87,13 @@ void main() {
     (tester) async {
       SharedPreferences.setMockInitialValues({});
       final storage = await StorageService.init();
-      final prefs = PreferencesProvider(storage);
+      final prefs = PreferencesProvider(storage.preferences);
       prefs.update(prefs.prefs.copyWith(lyricsAutoTranslate: false));
-      final playback = PlaybackProvider(
-        FakeAudioPlayerService(),
-        storage,
+      final playback = PlaybackProvider(FakeAudioPlayerService(), storage.playback,
         audioLoader: FakeTrackAudioSource(),
       );
       final spotify = SpotifyProvider(
-        FakeSpotifyApiService(
-          storage,
+        FakeSpotifyApiService(storage.auth,
           lyricsById: {
             'position-test': SpotifyLyrics(
               lines: [
@@ -106,7 +103,7 @@ void main() {
             ),
           },
         ),
-        storage,
+        storage.library,
       );
       final height = ValueNotifier(500.0);
       addTearDown(prefs.dispose);

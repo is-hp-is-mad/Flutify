@@ -2,10 +2,20 @@
 
 use crate::ap_client::{self, BackendApWelcome, BackendStorageResolveResult};
 use crate::audio_cache;
+use crate::catalog_backend::{
+    self, BackendCanvasMedia, BackendPodcastEpisode, BackendPodcastShow,
+};
 use crate::connect_backend;
+use crate::drm_backend::{
+    self, BackendDrmRelayResult, BackendPlaybackFile, BackendPlayplayKey, BackendProtoAudioFile,
+    BackendProtoEpisodeMetadata, BackendProtoTrackMetadata, BackendTrackPlaybackMedia,
+};
 use crate::frb_generated::StreamSink;
 use crate::http_client;
-use crate::lyrics_backend::{self, BackendLrclibCandidate, BackendLrclibResponse};
+use crate::lyrics_backend::{
+    self, BackendLrclibCandidate, BackendLrclibResponse, BackendSpotifyLyricAlternative,
+    BackendSpotifyLyricLine, BackendSpotifyLyrics,
+};
 use crate::spotify_backend::{
     self, BackendAlbum, BackendArtist, BackendCollectionEntry, BackendCreditGroup,
     BackendCreditPerson, BackendImage, BackendPlaylist, BackendPlaylistSummary, BackendTrack,
@@ -372,9 +382,10 @@ pub async fn rust_fetch_playlist_full(
     spclient_base: String,
     playlist_id: String,
     decorate_hash: String,
+    proxy: String,
 ) -> Result<Option<RustPlaylistDto>, String> {
     http_client::runtime()
-        .spawn(async move {
+        .spawn(spotify_session::with_request_proxy(proxy, async move {
             let pl = spotify_backend::fetch_playlist_full(
                 &spclient_base,
                 &playlist_id,
@@ -382,7 +393,7 @@ pub async fn rust_fetch_playlist_full(
             )
             .await?;
             Ok(pl.map(Into::into))
-        })
+        }))
         .await
         .map_err(|e| format!("join:{e}"))?
 }
@@ -390,12 +401,13 @@ pub async fn rust_fetch_playlist_full(
 pub async fn rust_fetch_tracks_by_uris(
     uris: Vec<String>,
     decorate_hash: String,
+    proxy: String,
 ) -> Result<Vec<RustTrackDto>, String> {
     http_client::runtime()
-        .spawn(async move {
+        .spawn(spotify_session::with_request_proxy(proxy, async move {
             let tracks = spotify_backend::fetch_tracks_by_uris(uris, &decorate_hash).await?;
             Ok(tracks.into_iter().map(Into::into).collect())
-        })
+        }))
         .await
         .map_err(|e| format!("join:{e}"))?
 }
@@ -407,9 +419,10 @@ pub async fn rust_fetch_collection_entries(
     kind: String,
     max_pages: u32,
     page_size: i32,
+    proxy: String,
 ) -> Result<Vec<RustCollectionEntryDto>, String> {
     http_client::runtime()
-        .spawn(async move {
+        .spawn(spotify_session::with_request_proxy(proxy, async move {
             let entries = spotify_backend::fetch_collection_entries(
                 &spclient_base,
                 &username,
@@ -420,7 +433,7 @@ pub async fn rust_fetch_collection_entries(
             )
             .await?;
             Ok(entries.into_iter().map(Into::into).collect())
-        })
+        }))
         .await
         .map_err(|e| format!("join:{e}"))?
 }
@@ -635,14 +648,15 @@ pub async fn rust_pathfinder_query(
     operation: String,
     hash: String,
     variables_json: String,
+    proxy: String,
 ) -> Result<String, String> {
     http_client::runtime()
-        .spawn(async move {
+        .spawn(spotify_session::with_request_proxy(proxy, async move {
             let vars: serde_json::Value = serde_json::from_str(&variables_json)
                 .map_err(|e| format!("bad_vars:{e}"))?;
             let data = spotify_session::pathfinder_query(&operation, &hash, vars).await?;
             serde_json::to_string(&data).map_err(|e| format!("encode:{e}"))
-        })
+        }))
         .await
         .map_err(|e| format!("join:{e}"))?
 }
@@ -652,9 +666,10 @@ pub fn rust_fetch_playlist_stream(
     spclient_base: String,
     playlist_id: String,
     decorate_hash: String,
+    proxy: String,
     sink: StreamSink<RustPlaylistDto>,
 ) {
-    http_client::runtime().spawn(async move {
+    http_client::runtime().spawn(spotify_session::with_request_proxy(proxy, async move {
         let res = spotify_backend::fetch_playlist_stream(
             &spclient_base,
             &playlist_id,
@@ -667,18 +682,19 @@ pub fn rust_fetch_playlist_stream(
         if let Err(err) = res {
             let _ = sink.add_error(err);
         }
-    });
+    }));
 }
 
 pub async fn rust_fetch_rootlist(
     spclient_base: String,
     username: String,
+    proxy: String,
 ) -> Result<Vec<RustPlaylistSummaryDto>, String> {
     http_client::runtime()
-        .spawn(async move {
+        .spawn(spotify_session::with_request_proxy(proxy, async move {
             let list = spotify_backend::fetch_rootlist(&spclient_base, &username).await?;
             Ok(list.into_iter().map(Into::into).collect())
-        })
+        }))
         .await
         .map_err(|e| format!("join:{e}"))?
 }
@@ -686,12 +702,13 @@ pub async fn rust_fetch_rootlist(
 pub async fn rust_fetch_track_credits(
     hash: String,
     track_uri: String,
+    proxy: String,
 ) -> Result<Option<RustTrackCreditsDto>, String> {
     http_client::runtime()
-        .spawn(async move {
+        .spawn(spotify_session::with_request_proxy(proxy, async move {
             let credits = spotify_backend::fetch_track_credits(&hash, &track_uri).await?;
             Ok(credits.map(Into::into))
-        })
+        }))
         .await
         .map_err(|e| format!("join:{e}"))?
 }
@@ -718,9 +735,10 @@ pub async fn rust_fetch_watch_feed_proto(
     entity_id: Option<String>,
     parameters: Vec<(String, String)>,
     page_token: Option<Vec<u8>>,
+    proxy: String,
 ) -> Result<RustWatchFeedPageDto, String> {
     http_client::runtime()
-        .spawn(async move {
+        .spawn(spotify_session::with_request_proxy(proxy, async move {
             let page = watchfeed_backend::fetch_watch_feed_proto(
                 &spclient_base,
                 &feed_id,
@@ -730,7 +748,7 @@ pub async fn rust_fetch_watch_feed_proto(
             )
             .await?;
             Ok(page.into())
-        })
+        }))
         .await
         .map_err(|e| format!("join:{e}"))?
 }
@@ -738,16 +756,17 @@ pub async fn rust_fetch_watch_feed_proto(
 pub async fn rust_fetch_watch_feed_browse_shelf(
     spclient_base: String,
     timezone: Option<String>,
+    proxy: String,
 ) -> Result<Option<RustWatchFeedShelfDto>, String> {
     http_client::runtime()
-        .spawn(async move {
+        .spawn(spotify_session::with_request_proxy(proxy, async move {
             let shelf = watchfeed_backend::fetch_watch_feed_browse_shelf(
                 &spclient_base,
                 timezone.as_deref(),
             )
             .await?;
             Ok(shelf.map(Into::into))
-        })
+        }))
         .await
         .map_err(|e| format!("join:{e}"))?
 }
@@ -757,9 +776,10 @@ pub async fn rust_fetch_watch_feed_seed_shelf(
     track_uri: String,
     creator_uri: String,
     context_uri: String,
+    proxy: String,
 ) -> Result<Option<RustWatchFeedShelfDto>, String> {
     http_client::runtime()
-        .spawn(async move {
+        .spawn(spotify_session::with_request_proxy(proxy, async move {
             let shelf = watchfeed_backend::fetch_watch_feed_seed_shelf(
                 &spclient_base,
                 &track_uri,
@@ -768,7 +788,7 @@ pub async fn rust_fetch_watch_feed_seed_shelf(
             )
             .await?;
             Ok(shelf.map(Into::into))
-        })
+        }))
         .await
         .map_err(|e| format!("join:{e}"))?
 }
@@ -776,12 +796,13 @@ pub async fn rust_fetch_watch_feed_seed_shelf(
 pub async fn rust_resolve_audio_storage(
     spclient_base: String,
     file_id_hex: String,
+    proxy: String,
 ) -> Result<RustStorageResolveDto, String> {
     http_client::runtime()
-        .spawn(async move {
+        .spawn(spotify_session::with_request_proxy(proxy, async move {
             let res = ap_client::resolve_audio_storage(&spclient_base, &file_id_hex).await?;
             Ok(res.into())
-        })
+        }))
         .await
         .map_err(|e| format!("join:{e}"))?
 }
@@ -790,16 +811,17 @@ pub async fn rust_fetch_extended_metadata(
     spclient_base: String,
     entity_uris: Vec<String>,
     kind: i32,
+    proxy: String,
 ) -> Result<Vec<RustExtendedMetadataEntryDto>, String> {
     http_client::runtime()
-        .spawn(async move {
+        .spawn(spotify_session::with_request_proxy(proxy, async move {
             let items =
                 ap_client::fetch_extended_metadata(&spclient_base, entity_uris, kind).await?;
             Ok(items
                 .into_iter()
                 .map(|(uri, data)| RustExtendedMetadataEntryDto { uri, data })
                 .collect())
-        })
+        }))
         .await
         .map_err(|e| format!("join:{e}"))?
 }
@@ -859,9 +881,10 @@ pub async fn rust_connect_state_request(
     path: String,
     connection_id: String,
     body_json: Option<String>,
+    proxy: String,
 ) -> Result<RustHttpRawDto, String> {
     http_client::runtime()
-        .spawn(async move {
+        .spawn(spotify_session::with_request_proxy(proxy, async move {
             let (status, body) = connect_backend::connect_state_request(
                 &spclient_host,
                 &method,
@@ -871,7 +894,7 @@ pub async fn rust_connect_state_request(
             )
             .await?;
             Ok(RustHttpRawDto { status, body })
-        })
+        }))
         .await
         .map_err(|e| format!("join:{e}"))?
 }
@@ -881,10 +904,11 @@ pub async fn rust_lrclib_get(
     artist: String,
     album: String,
     duration_sec: i32,
+    proxy: String,
 ) -> Result<RustLrclibResponseDto, String> {
     http_client::runtime()
         .spawn(async move {
-            Ok(lyrics_backend::lrclib_get(&track, &artist, &album, duration_sec).await.into())
+            Ok(lyrics_backend::lrclib_get(&track, &artist, &album, duration_sec, &proxy).await.into())
         })
         .await
         .map_err(|e| format!("join:{e}"))?
@@ -894,10 +918,11 @@ pub async fn rust_lrclib_search(
     track: String,
     artist: String,
     q: String,
+    proxy: String,
 ) -> Result<RustLrclibResponseDto, String> {
     http_client::runtime()
         .spawn(async move {
-            Ok(lyrics_backend::lrclib_search(&track, &artist, &q).await.into())
+            Ok(lyrics_backend::lrclib_search(&track, &artist, &q, &proxy).await.into())
         })
         .await
         .map_err(|e| format!("join:{e}"))?
@@ -908,13 +933,480 @@ pub async fn rust_lyrics_http_request(
     url: String,
     headers: Vec<(String, String)>,
     body: Option<Vec<u8>>,
+    proxy: String,
 ) -> Result<RustHttpRawDto, String> {
     http_client::runtime()
         .spawn(async move {
             let (status, body) =
-                lyrics_backend::lyrics_http_request(&method, &url, headers, body).await?;
+                lyrics_backend::lyrics_http_request(&method, &url, headers, body, &proxy).await?;
             Ok(RustHttpRawDto { status, body })
         })
+        .await
+        .map_err(|e| format!("join:{e}"))?
+}
+
+pub struct RustPlaybackFileDto {
+    pub file_id_hex: String,
+    pub format: i32,
+    pub bitrate: i32,
+    pub format_key: String,
+    pub encoding_id: Option<String>,
+}
+
+pub struct RustTrackPlaybackMediaDto {
+    pub name: String,
+    pub duration_ms: i32,
+    pub mp4_files: Vec<RustPlaybackFileDto>,
+    pub external_urls: Vec<String>,
+}
+
+pub struct RustDrmRelayResultDto {
+    pub host: String,
+    pub status: u16,
+    pub body: Vec<u8>,
+}
+
+pub struct RustProtoAudioFileDto {
+    pub file_id: Vec<u8>,
+    pub format: i32,
+}
+
+pub struct RustProtoTrackMetadataDto {
+    pub gid: Vec<u8>,
+    pub name: String,
+    pub album_name: String,
+    pub artist_names: Vec<String>,
+    pub duration_ms: i32,
+    pub explicit: bool,
+    pub files: Vec<RustProtoAudioFileDto>,
+    pub alternatives: Vec<RustProtoTrackMetadataDto>,
+}
+
+pub struct RustProtoEpisodeMetadataDto {
+    pub gid: Vec<u8>,
+    pub name: String,
+    pub show_name: String,
+    pub duration_ms: i32,
+    pub description: String,
+    pub files: Vec<RustProtoAudioFileDto>,
+}
+
+pub struct RustPlayplayKeyDto {
+    pub r1: Vec<u8>,
+    pub r2: Vec<u8>,
+}
+
+pub struct RustSpotifyLyricLineDto {
+    pub start_time_ms: i32,
+    pub words: String,
+    pub translation: String,
+    pub syllables: Vec<String>,
+}
+
+pub struct RustSpotifyLyricAlternativeDto {
+    pub language: String,
+    pub lines: Vec<String>,
+}
+
+pub struct RustSpotifyLyricsDto {
+    pub sync_type: String,
+    pub language: String,
+    pub lines: Vec<RustSpotifyLyricLineDto>,
+    pub alternatives: Vec<RustSpotifyLyricAlternativeDto>,
+}
+
+pub struct RustPodcastEpisodeDto {
+    pub id: String,
+    pub uri: String,
+    pub name: String,
+    pub description: String,
+    pub duration_ms: i32,
+    pub release_date: String,
+    pub images: Vec<RustImageDto>,
+    pub show_uri: String,
+    pub show_name: String,
+    pub preview_url: String,
+    pub resume_ms: i32,
+    pub played: bool,
+}
+
+pub struct RustPodcastShowDto {
+    pub id: String,
+    pub uri: String,
+    pub name: String,
+    pub publisher: String,
+    pub description: String,
+    pub images: Vec<RustImageDto>,
+    pub episodes: Vec<RustPodcastEpisodeDto>,
+}
+
+pub struct RustCanvasMediaDto {
+    pub url: String,
+    pub is_video: bool,
+    pub bytes: Vec<u8>,
+}
+
+impl From<BackendPlaybackFile> for RustPlaybackFileDto {
+    fn from(v: BackendPlaybackFile) -> Self {
+        Self {
+            file_id_hex: v.file_id_hex,
+            format: v.format,
+            bitrate: v.bitrate,
+            format_key: v.format_key,
+            encoding_id: v.encoding_id,
+        }
+    }
+}
+
+impl From<BackendTrackPlaybackMedia> for RustTrackPlaybackMediaDto {
+    fn from(v: BackendTrackPlaybackMedia) -> Self {
+        Self {
+            name: v.name,
+            duration_ms: v.duration_ms,
+            mp4_files: v.mp4_files.into_iter().map(Into::into).collect(),
+            external_urls: v.external_urls,
+        }
+    }
+}
+
+impl From<BackendDrmRelayResult> for RustDrmRelayResultDto {
+    fn from(v: BackendDrmRelayResult) -> Self {
+        Self {
+            host: v.host,
+            status: v.status,
+            body: v.body,
+        }
+    }
+}
+
+impl From<BackendProtoAudioFile> for RustProtoAudioFileDto {
+    fn from(v: BackendProtoAudioFile) -> Self {
+        Self {
+            file_id: v.file_id,
+            format: v.format,
+        }
+    }
+}
+
+impl From<BackendProtoTrackMetadata> for RustProtoTrackMetadataDto {
+    fn from(v: BackendProtoTrackMetadata) -> Self {
+        Self {
+            gid: v.gid,
+            name: v.name,
+            album_name: v.album_name,
+            artist_names: v.artist_names,
+            duration_ms: v.duration_ms,
+            explicit: v.explicit,
+            files: v.files.into_iter().map(Into::into).collect(),
+            alternatives: v.alternatives.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+impl From<BackendProtoEpisodeMetadata> for RustProtoEpisodeMetadataDto {
+    fn from(v: BackendProtoEpisodeMetadata) -> Self {
+        Self {
+            gid: v.gid,
+            name: v.name,
+            show_name: v.show_name,
+            duration_ms: v.duration_ms,
+            description: v.description,
+            files: v.files.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+impl From<BackendPlayplayKey> for RustPlayplayKeyDto {
+    fn from(v: BackendPlayplayKey) -> Self {
+        Self { r1: v.r1, r2: v.r2 }
+    }
+}
+
+impl From<BackendSpotifyLyricLine> for RustSpotifyLyricLineDto {
+    fn from(v: BackendSpotifyLyricLine) -> Self {
+        Self {
+            start_time_ms: v.start_time_ms,
+            words: v.words,
+            translation: v.translation,
+            syllables: v.syllables,
+        }
+    }
+}
+
+impl From<BackendSpotifyLyricAlternative> for RustSpotifyLyricAlternativeDto {
+    fn from(v: BackendSpotifyLyricAlternative) -> Self {
+        Self {
+            language: v.language,
+            lines: v.lines,
+        }
+    }
+}
+
+impl From<BackendSpotifyLyrics> for RustSpotifyLyricsDto {
+    fn from(v: BackendSpotifyLyrics) -> Self {
+        Self {
+            sync_type: v.sync_type,
+            language: v.language,
+            lines: v.lines.into_iter().map(Into::into).collect(),
+            alternatives: v.alternatives.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+impl From<BackendPodcastEpisode> for RustPodcastEpisodeDto {
+    fn from(v: BackendPodcastEpisode) -> Self {
+        Self {
+            id: v.id,
+            uri: v.uri,
+            name: v.name,
+            description: v.description,
+            duration_ms: v.duration_ms,
+            release_date: v.release_date,
+            images: v.images.into_iter().map(Into::into).collect(),
+            show_uri: v.show_uri,
+            show_name: v.show_name,
+            preview_url: v.preview_url,
+            resume_ms: v.resume_ms,
+            played: v.played,
+        }
+    }
+}
+
+impl From<BackendPodcastShow> for RustPodcastShowDto {
+    fn from(v: BackendPodcastShow) -> Self {
+        Self {
+            id: v.id,
+            uri: v.uri,
+            name: v.name,
+            publisher: v.publisher,
+            description: v.description,
+            images: v.images.into_iter().map(Into::into).collect(),
+            episodes: v.episodes.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+impl From<BackendCanvasMedia> for RustCanvasMediaDto {
+    fn from(v: BackendCanvasMedia) -> Self {
+        Self {
+            url: v.url,
+            is_video: v.is_video,
+            bytes: v.bytes,
+        }
+    }
+}
+
+pub async fn rust_fetch_track_playback_media(
+    spclient_base: String,
+    track_id_or_uri: String,
+    proxy: String,
+) -> Result<RustTrackPlaybackMediaDto, String> {
+    http_client::runtime()
+        .spawn(spotify_session::with_request_proxy(proxy, async move {
+            let media =
+                drm_backend::fetch_track_playback_media(&spclient_base, &track_id_or_uri).await?;
+            Ok(media.into())
+        }))
+        .await
+        .map_err(|e| format!("join:{e}"))?
+}
+
+#[flutter_rust_bridge::frb(sync)]
+pub fn rust_parse_track_playback_media_json(
+    body: Vec<u8>,
+    track_id_or_uri: String,
+) -> Result<RustTrackPlaybackMediaDto, String> {
+    drm_backend::parse_track_playback_media_json(&body, &track_id_or_uri).map(Into::into)
+}
+
+pub async fn rust_fetch_hls_manifest(
+    spclient_base: String,
+    file_id_hex: String,
+    proxy: String,
+) -> Result<String, String> {
+    http_client::runtime()
+        .spawn(spotify_session::with_request_proxy(proxy, async move {
+            drm_backend::fetch_hls_manifest(&spclient_base, &file_id_hex).await
+        }))
+        .await
+        .map_err(|e| format!("join:{e}"))?
+}
+
+#[flutter_rust_bridge::frb(sync)]
+pub fn rust_localize_hls_manifest(
+    m3u8: String,
+    origin: String,
+    widevine_key_format: bool,
+    fair_play: bool,
+    file_id_hex: Option<String>,
+) -> Result<String, String> {
+    drm_backend::localize_hls_manifest(
+        &m3u8,
+        &origin,
+        widevine_key_format,
+        fair_play,
+        file_id_hex.as_deref(),
+    )
+}
+
+pub async fn rust_relay_drm_request(
+    hosts: Vec<String>,
+    method: String,
+    path_and_query: String,
+    bearer_token: Option<String>,
+    client_token: String,
+    request_body: Option<Vec<u8>>,
+    timeout_ms: u64,
+    proxy: String,
+) -> Result<RustDrmRelayResultDto, String> {
+    http_client::runtime()
+        .spawn(spotify_session::with_request_proxy(proxy, async move {
+            let res = drm_backend::relay_drm_request(
+                hosts,
+                &method,
+                &path_and_query,
+                bearer_token,
+                &client_token,
+                request_body,
+                timeout_ms,
+            )
+            .await?;
+            Ok(res.into())
+        }))
+        .await
+        .map_err(|e| format!("join:{e}"))?
+}
+
+#[flutter_rust_bridge::frb(sync)]
+pub fn rust_parse_track_metadata_proto(data: Vec<u8>) -> RustProtoTrackMetadataDto {
+    drm_backend::parse_track_metadata_proto(&data).into()
+}
+
+#[flutter_rust_bridge::frb(sync)]
+pub fn rust_parse_episode_metadata_proto(data: Vec<u8>) -> RustProtoEpisodeMetadataDto {
+    drm_backend::parse_episode_metadata_proto(&data).into()
+}
+
+#[flutter_rust_bridge::frb(sync)]
+pub fn rust_encode_playplay_key_request(now_sec: i64) -> Vec<u8> {
+    drm_backend::encode_playplay_key_request(now_sec)
+}
+
+#[flutter_rust_bridge::frb(sync)]
+pub fn rust_parse_playplay_key_proto(data: Vec<u8>) -> Result<RustPlayplayKeyDto, String> {
+    drm_backend::parse_playplay_key_proto(&data).map(Into::into)
+}
+
+pub async fn rust_fetch_color_lyrics(
+    spclient_base: String,
+    track_id: String,
+    proxy: String,
+) -> Result<Option<RustSpotifyLyricsDto>, String> {
+    http_client::runtime()
+        .spawn(spotify_session::with_request_proxy(proxy, async move {
+            let lyrics = lyrics_backend::fetch_color_lyrics(&spclient_base, &track_id).await?;
+            Ok(lyrics.map(Into::into))
+        }))
+        .await
+        .map_err(|e| format!("join:{e}"))?
+}
+
+#[flutter_rust_bridge::frb(sync)]
+pub fn rust_parse_color_lyrics_json(body: Vec<u8>) -> Option<RustSpotifyLyricsDto> {
+    lyrics_backend::parse_color_lyrics_json(&body).map(Into::into)
+}
+
+pub async fn rust_fetch_podcast_show(
+    show_id: String,
+    proxy: String,
+) -> Result<RustPodcastShowDto, String> {
+    http_client::runtime()
+        .spawn(spotify_session::with_request_proxy(proxy, async move {
+            catalog_backend::fetch_podcast_show(&show_id).await.map(Into::into)
+        }))
+        .await
+        .map_err(|e| format!("join:{e}"))?
+}
+
+#[flutter_rust_bridge::frb(sync)]
+pub fn rust_parse_podcast_show_html(
+    show_id: String,
+    html: String,
+) -> Result<RustPodcastShowDto, String> {
+    catalog_backend::parse_podcast_show_html(&show_id, &html).map(Into::into)
+}
+
+pub async fn rust_fetch_podcast_episode(
+    episode_id: String,
+    proxy: String,
+) -> Result<RustPodcastEpisodeDto, String> {
+    http_client::runtime()
+        .spawn(spotify_session::with_request_proxy(proxy, async move {
+            catalog_backend::fetch_podcast_episode(&episode_id)
+                .await
+                .map(Into::into)
+        }))
+        .await
+        .map_err(|e| format!("join:{e}"))?
+}
+
+#[flutter_rust_bridge::frb(sync)]
+pub fn rust_parse_podcast_episode_html(
+    episode_id: String,
+    html: String,
+) -> Result<RustPodcastEpisodeDto, String> {
+    catalog_backend::parse_podcast_episode_html(&episode_id, &html).map(Into::into)
+}
+
+pub async fn rust_fetch_canvas(
+    hash: String,
+    track_uri: String,
+    proxy: String,
+) -> Result<Option<RustCanvasMediaDto>, String> {
+    http_client::runtime()
+        .spawn(spotify_session::with_request_proxy(proxy, async move {
+            let media = catalog_backend::fetch_canvas(&hash, &track_uri).await?;
+            Ok(media.map(Into::into))
+        }))
+        .await
+        .map_err(|e| format!("join:{e}"))?
+}
+
+pub async fn rust_track_playback_request(
+    spclient_host: String,
+    method: String,
+    path: String,
+    bearer_token: String,
+    client_token: String,
+    app_version: String,
+    proxy: String,
+    body_json: Option<String>,
+) -> Result<RustHttpRawDto, String> {
+    http_client::runtime()
+        .spawn(async move {
+            let (status, body) = connect_backend::track_playback_request(
+                &spclient_host,
+                &method,
+                &path,
+                &bearer_token,
+                &client_token,
+                &app_version,
+                &proxy,
+                body_json,
+            )
+            .await?;
+            Ok(RustHttpRawDto { status, body })
+        })
+        .await
+        .map_err(|e| format!("join:{e}"))?
+}
+
+pub async fn rust_write_backup_file_atomic(
+    file_path: String,
+    content: String,
+) -> Result<(), String> {
+    http_client::runtime()
+        .spawn_blocking(move || catalog_backend::write_backup_file_atomic(&file_path, &content))
         .await
         .map_err(|e| format!("join:{e}"))?
 }

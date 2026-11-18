@@ -4,7 +4,7 @@ import 'package:just_audio/just_audio.dart';
 import 'audio/audio_engine.dart';
 import 'downloading_audio_source.dart';
 import 'protocol/progressive_download.dart';
-import 'protocol/track_playback_exception.dart';
+import '../models/track_playback_exception.dart';
 
 /// just_audio 的薄封装。上层只依赖这里暴露的流与方法，
 /// 便于在测试中用 Fake 实现替换（不直接暴露 AudioPlayer 实例）。

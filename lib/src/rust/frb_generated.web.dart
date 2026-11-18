@@ -68,10 +68,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   RustAlbumDto dco_decode_box_autoadd_rust_album_dto(dynamic raw);
 
   @protected
+  RustCanvasMediaDto dco_decode_box_autoadd_rust_canvas_media_dto(dynamic raw);
+
+  @protected
   RustPlaylistDto dco_decode_box_autoadd_rust_playlist_dto(dynamic raw);
 
   @protected
   RustSessionConfig dco_decode_box_autoadd_rust_session_config(dynamic raw);
+
+  @protected
+  RustSpotifyLyricsDto dco_decode_box_autoadd_rust_spotify_lyrics_dto(
+    dynamic raw,
+  );
 
   @protected
   RustTrackCreditsDto dco_decode_box_autoadd_rust_track_credits_dto(
@@ -169,7 +177,34 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<RustPlaybackFileDto> dco_decode_list_rust_playback_file_dto(dynamic raw);
+
+  @protected
   List<RustPlaylistSummaryDto> dco_decode_list_rust_playlist_summary_dto(
+    dynamic raw,
+  );
+
+  @protected
+  List<RustPodcastEpisodeDto> dco_decode_list_rust_podcast_episode_dto(
+    dynamic raw,
+  );
+
+  @protected
+  List<RustProtoAudioFileDto> dco_decode_list_rust_proto_audio_file_dto(
+    dynamic raw,
+  );
+
+  @protected
+  List<RustProtoTrackMetadataDto> dco_decode_list_rust_proto_track_metadata_dto(
+    dynamic raw,
+  );
+
+  @protected
+  List<RustSpotifyLyricAlternativeDto>
+  dco_decode_list_rust_spotify_lyric_alternative_dto(dynamic raw);
+
+  @protected
+  List<RustSpotifyLyricLineDto> dco_decode_list_rust_spotify_lyric_line_dto(
     dynamic raw,
   );
 
@@ -213,7 +248,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   RustAlbumDto? dco_decode_opt_box_autoadd_rust_album_dto(dynamic raw);
 
   @protected
+  RustCanvasMediaDto? dco_decode_opt_box_autoadd_rust_canvas_media_dto(
+    dynamic raw,
+  );
+
+  @protected
   RustPlaylistDto? dco_decode_opt_box_autoadd_rust_playlist_dto(dynamic raw);
+
+  @protected
+  RustSpotifyLyricsDto? dco_decode_opt_box_autoadd_rust_spotify_lyrics_dto(
+    dynamic raw,
+  );
 
   @protected
   RustTrackCreditsDto? dco_decode_opt_box_autoadd_rust_track_credits_dto(
@@ -268,6 +313,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   RustArtistDto dco_decode_rust_artist_dto(dynamic raw);
 
   @protected
+  RustCanvasMediaDto dco_decode_rust_canvas_media_dto(dynamic raw);
+
+  @protected
   RustCollectionEntryDto dco_decode_rust_collection_entry_dto(dynamic raw);
 
   @protected
@@ -275,6 +323,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   RustCreditPersonDto dco_decode_rust_credit_person_dto(dynamic raw);
+
+  @protected
+  RustDrmRelayResultDto dco_decode_rust_drm_relay_result_dto(dynamic raw);
 
   @protected
   RustExtendedMetadataEntryDto dco_decode_rust_extended_metadata_entry_dto(
@@ -294,13 +345,49 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   RustLrclibResponseDto dco_decode_rust_lrclib_response_dto(dynamic raw);
 
   @protected
+  RustPlaybackFileDto dco_decode_rust_playback_file_dto(dynamic raw);
+
+  @protected
   RustPlaylistDto dco_decode_rust_playlist_dto(dynamic raw);
 
   @protected
   RustPlaylistSummaryDto dco_decode_rust_playlist_summary_dto(dynamic raw);
 
   @protected
+  RustPlayplayKeyDto dco_decode_rust_playplay_key_dto(dynamic raw);
+
+  @protected
+  RustPodcastEpisodeDto dco_decode_rust_podcast_episode_dto(dynamic raw);
+
+  @protected
+  RustPodcastShowDto dco_decode_rust_podcast_show_dto(dynamic raw);
+
+  @protected
+  RustProtoAudioFileDto dco_decode_rust_proto_audio_file_dto(dynamic raw);
+
+  @protected
+  RustProtoEpisodeMetadataDto dco_decode_rust_proto_episode_metadata_dto(
+    dynamic raw,
+  );
+
+  @protected
+  RustProtoTrackMetadataDto dco_decode_rust_proto_track_metadata_dto(
+    dynamic raw,
+  );
+
+  @protected
   RustSessionConfig dco_decode_rust_session_config(dynamic raw);
+
+  @protected
+  RustSpotifyLyricAlternativeDto dco_decode_rust_spotify_lyric_alternative_dto(
+    dynamic raw,
+  );
+
+  @protected
+  RustSpotifyLyricLineDto dco_decode_rust_spotify_lyric_line_dto(dynamic raw);
+
+  @protected
+  RustSpotifyLyricsDto dco_decode_rust_spotify_lyrics_dto(dynamic raw);
 
   @protected
   RustStorageResolveDto dco_decode_rust_storage_resolve_dto(dynamic raw);
@@ -313,6 +400,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   RustTrackDto dco_decode_rust_track_dto(dynamic raw);
+
+  @protected
+  RustTrackPlaybackMediaDto dco_decode_rust_track_playback_media_dto(
+    dynamic raw,
+  );
 
   @protected
   RustWatchFeedAudioDto dco_decode_rust_watch_feed_audio_dto(dynamic raw);
@@ -415,12 +507,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  RustCanvasMediaDto sse_decode_box_autoadd_rust_canvas_media_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   RustPlaylistDto sse_decode_box_autoadd_rust_playlist_dto(
     SseDeserializer deserializer,
   );
 
   @protected
   RustSessionConfig sse_decode_box_autoadd_rust_session_config(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustSpotifyLyricsDto sse_decode_box_autoadd_rust_spotify_lyrics_dto(
     SseDeserializer deserializer,
   );
 
@@ -542,7 +644,38 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<RustPlaybackFileDto> sse_decode_list_rust_playback_file_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<RustPlaylistSummaryDto> sse_decode_list_rust_playlist_summary_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<RustPodcastEpisodeDto> sse_decode_list_rust_podcast_episode_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<RustProtoAudioFileDto> sse_decode_list_rust_proto_audio_file_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<RustProtoTrackMetadataDto> sse_decode_list_rust_proto_track_metadata_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<RustSpotifyLyricAlternativeDto>
+  sse_decode_list_rust_spotify_lyric_alternative_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<RustSpotifyLyricLineDto> sse_decode_list_rust_spotify_lyric_line_dto(
     SseDeserializer deserializer,
   );
 
@@ -592,7 +725,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  RustCanvasMediaDto? sse_decode_opt_box_autoadd_rust_canvas_media_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   RustPlaylistDto? sse_decode_opt_box_autoadd_rust_playlist_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustSpotifyLyricsDto? sse_decode_opt_box_autoadd_rust_spotify_lyrics_dto(
     SseDeserializer deserializer,
   );
 
@@ -659,6 +802,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   RustArtistDto sse_decode_rust_artist_dto(SseDeserializer deserializer);
 
   @protected
+  RustCanvasMediaDto sse_decode_rust_canvas_media_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   RustCollectionEntryDto sse_decode_rust_collection_entry_dto(
     SseDeserializer deserializer,
   );
@@ -670,6 +818,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   RustCreditPersonDto sse_decode_rust_credit_person_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustDrmRelayResultDto sse_decode_rust_drm_relay_result_dto(
     SseDeserializer deserializer,
   );
 
@@ -695,6 +848,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  RustPlaybackFileDto sse_decode_rust_playback_file_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   RustPlaylistDto sse_decode_rust_playlist_dto(SseDeserializer deserializer);
 
   @protected
@@ -703,7 +861,52 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  RustPlayplayKeyDto sse_decode_rust_playplay_key_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustPodcastEpisodeDto sse_decode_rust_podcast_episode_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustPodcastShowDto sse_decode_rust_podcast_show_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustProtoAudioFileDto sse_decode_rust_proto_audio_file_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustProtoEpisodeMetadataDto sse_decode_rust_proto_episode_metadata_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustProtoTrackMetadataDto sse_decode_rust_proto_track_metadata_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   RustSessionConfig sse_decode_rust_session_config(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustSpotifyLyricAlternativeDto sse_decode_rust_spotify_lyric_alternative_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustSpotifyLyricLineDto sse_decode_rust_spotify_lyric_line_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustSpotifyLyricsDto sse_decode_rust_spotify_lyrics_dto(
     SseDeserializer deserializer,
   );
 
@@ -722,6 +925,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   RustTrackDto sse_decode_rust_track_dto(SseDeserializer deserializer);
+
+  @protected
+  RustTrackPlaybackMediaDto sse_decode_rust_track_playback_media_dto(
+    SseDeserializer deserializer,
+  );
 
   @protected
   RustWatchFeedAudioDto sse_decode_rust_watch_feed_audio_dto(
@@ -858,6 +1066,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_rust_canvas_media_dto(
+    RustCanvasMediaDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_rust_playlist_dto(
     RustPlaylistDto self,
     SseSerializer serializer,
@@ -866,6 +1080,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_rust_session_config(
     RustSessionConfig self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_rust_spotify_lyrics_dto(
+    RustSpotifyLyricsDto self,
     SseSerializer serializer,
   );
 
@@ -1011,8 +1231,44 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_rust_playback_file_dto(
+    List<RustPlaybackFileDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_rust_playlist_summary_dto(
     List<RustPlaylistSummaryDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_rust_podcast_episode_dto(
+    List<RustPodcastEpisodeDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_rust_proto_audio_file_dto(
+    List<RustProtoAudioFileDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_rust_proto_track_metadata_dto(
+    List<RustProtoTrackMetadataDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_rust_spotify_lyric_alternative_dto(
+    List<RustSpotifyLyricAlternativeDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_rust_spotify_lyric_line_dto(
+    List<RustSpotifyLyricLineDto> self,
     SseSerializer serializer,
   );
 
@@ -1074,8 +1330,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_rust_canvas_media_dto(
+    RustCanvasMediaDto? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_rust_playlist_dto(
     RustPlaylistDto? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_rust_spotify_lyrics_dto(
+    RustSpotifyLyricsDto? self,
     SseSerializer serializer,
   );
 
@@ -1155,6 +1423,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_rust_artist_dto(RustArtistDto self, SseSerializer serializer);
 
   @protected
+  void sse_encode_rust_canvas_media_dto(
+    RustCanvasMediaDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_rust_collection_entry_dto(
     RustCollectionEntryDto self,
     SseSerializer serializer,
@@ -1169,6 +1443,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_rust_credit_person_dto(
     RustCreditPersonDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_drm_relay_result_dto(
+    RustDrmRelayResultDto self,
     SseSerializer serializer,
   );
 
@@ -1200,6 +1480,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_rust_playback_file_dto(
+    RustPlaybackFileDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_rust_playlist_dto(
     RustPlaylistDto self,
     SseSerializer serializer,
@@ -1212,8 +1498,62 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_rust_playplay_key_dto(
+    RustPlayplayKeyDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_podcast_episode_dto(
+    RustPodcastEpisodeDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_podcast_show_dto(
+    RustPodcastShowDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_proto_audio_file_dto(
+    RustProtoAudioFileDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_proto_episode_metadata_dto(
+    RustProtoEpisodeMetadataDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_proto_track_metadata_dto(
+    RustProtoTrackMetadataDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_rust_session_config(
     RustSessionConfig self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_spotify_lyric_alternative_dto(
+    RustSpotifyLyricAlternativeDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_spotify_lyric_line_dto(
+    RustSpotifyLyricLineDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_spotify_lyrics_dto(
+    RustSpotifyLyricsDto self,
     SseSerializer serializer,
   );
 
@@ -1237,6 +1577,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_rust_track_dto(RustTrackDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_rust_track_playback_media_dto(
+    RustTrackPlaybackMediaDto self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_rust_watch_feed_audio_dto(

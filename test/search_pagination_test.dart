@@ -17,8 +17,8 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     final storage = await StorageService.init();
-    api = ControlledSearchApi(storage);
-    provider = SpotifyProvider(api, storage);
+    api = ControlledSearchApi(storage.auth);
+    provider = SpotifyProvider(api, storage.library);
     disposed = false;
     await Future<void>.delayed(Duration.zero);
   });

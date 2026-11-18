@@ -8,7 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
-import 'update_release.dart';
+import '../../models/update_release.dart';
 import 'windows_update_runner.dart';
 
 abstract class UpdateInstaller {

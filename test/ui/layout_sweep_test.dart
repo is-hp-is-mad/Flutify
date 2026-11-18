@@ -32,7 +32,7 @@ void main() {
 
       SharedPreferences.setMockInitialValues({});
       final storage = await StorageService.init();
-      await storage.setAppearanceJson(jsonEncode(AppearanceSettings.defaults.copyWith(fontScale: fontScale).toJson()));
+      await storage.preferences.setAppearanceJson(jsonEncode(AppearanceSettings.defaults.copyWith(fontScale: fontScale).toJson()));
 
       for (final width in widths) {
         tester.view.physicalSize = Size(width, height);
@@ -41,7 +41,7 @@ void main() {
           storageService: storage,
           audioEngine: FakeAudioPlayerService(),
           emePlayer: EmePlayer(),
-          spotifyApiService: FakeSpotifyApiService(storage),
+          spotifyApiService: FakeSpotifyApiService(storage.auth),
           trackAudioLoader: FakeTrackAudioSource(),
         ));
         await tester.pump(const Duration(milliseconds: 500));

@@ -46,10 +46,10 @@ Future<StorageResolveResult> resolveAudioStorage({
       '${SpotifyEndpoints.defaultSpClientBase}/storage-resolve/files/audio/interactive/$fileIdHex',
     );
     if (proxy != null) {
-      rust.rustSessionSetProxy(proxy: proxy);
       final dto = await rust.rustResolveAudioStorage(
         spclientBase: SpotifyEndpoints.defaultSpClientBase,
         fileIdHex: fileIdHex,
+        proxy: proxy,
       );
       return StorageResolveResult(
         result: dto.result,

@@ -13,7 +13,7 @@ void main() {
   Future<PreferencesProvider> settingsHost(WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({});
     final storage = await StorageService.init();
-    final prefs = PreferencesProvider(storage);
+    final prefs = PreferencesProvider(storage.preferences);
     addTearDown(prefs.dispose);
     await tester.pumpWidget(
       ChangeNotifierProvider.value(
@@ -93,7 +93,7 @@ void main() {
     ]);
     expect(shownOrder(tester), ['LRCLIB', 'Spotify', 'QQ 音乐', '网易云音乐']);
 
-    final restored = PreferencesProvider(await StorageService.init());
+    final restored = PreferencesProvider((await StorageService.init()).preferences);
     addTearDown(restored.dispose);
     expect(restored.prefs.lyricsSourceOrder, prefs.prefs.lyricsSourceOrder);
     expect(tester.takeException(), isNull);

@@ -290,13 +290,13 @@ Future<ControlledSearchApi> pumpSearch(
   SharedPreferences.setMockInitialValues({});
   final storage = await StorageService.init();
   for (final item in recent) {
-    await storage.addRecentSearch(item);
+    await storage.library.addRecentSearch(item);
   }
-  final api = ControlledSearchApi(storage, signedIn: signedIn);
-  final spotify = SpotifyProvider(api, storage);
+  final api = ControlledSearchApi(storage.auth, signedIn: signedIn);
+  final spotify = SpotifyProvider(api, storage.library);
   final audio = FakeAudioPlayerService();
-  final playback = PlaybackProvider(audio, storage);
-  final library = LibraryProvider(storage);
+  final playback = PlaybackProvider(audio, storage.playback);
+  final library = LibraryProvider(storage.library);
   final controller = TextEditingController(text: query);
   addTearDown(() {
     spotify.dispose();

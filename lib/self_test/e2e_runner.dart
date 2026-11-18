@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
@@ -13,66 +12,46 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 
-import '../../l10n/l10n.dart';
-import '../../models/appearance.dart';
-import '../../models/lyrics_query.dart';
-import '../../models/playback_context.dart';
-import '../../providers/appearance_provider.dart';
-import '../../providers/auth_provider.dart';
-import '../../providers/library_provider.dart';
-import '../../providers/playback_provider.dart';
-import '../../providers/spotify_provider.dart';
-import '../../services/updates/update_release.dart';
-import '../../services/updates/update_service.dart';
-import '../../ui/navigation/app_routes.dart';
-import '../../ui/screens/detail/album_detail_screen.dart';
-import '../../ui/screens/detail/artist_catalog_screen.dart';
-import '../../ui/screens/detail/artist_detail_screen.dart';
-import '../../ui/screens/detail/playlist_detail_screen.dart';
-import '../../ui/screens/detail/podcast_detail_screen.dart';
-import '../../ui/screens/home/home_screen.dart';
-import '../../ui/screens/home/home_section_screen.dart';
-import '../../ui/screens/home/widgets/home_chip_bar.dart';
-import '../../ui/screens/library/library_screen.dart';
-import '../../ui/screens/player/device_picker_sheet.dart';
-import '../../ui/screens/player/full_player_sheet.dart';
-import '../../ui/screens/player/immersive_lyrics_screen.dart';
-import '../../ui/screens/player/queue_sheet.dart';
-import '../../ui/screens/search/category_screen.dart';
-import '../../ui/screens/search/search_screen.dart';
-import '../../ui/screens/settings/settings_screen.dart';
-import '../../ui/screens/settings/widgets/shortcuts_dialog.dart';
-import '../../ui/shell/desktop/desktop_top_bar.dart';
-import '../../ui/shell/mobile/mobile_bottom_bar.dart';
-import '../../ui/shell/shell_breakpoints.dart';
-import '../../ui/widgets/hyper_icons.dart';
-import '../../ui/widgets/track_actions/track_credits_view.dart';
-import '../../ui/widgets/track_menu.dart';
-import '../constants/app_info.dart';
-import '../debug_toggles.dart';
+import '../core/debug_toggles.dart';
+import '../l10n/l10n.dart';
+import '../models/appearance.dart';
+import '../models/lyrics_query.dart';
+import '../models/playback_context.dart';
+import '../models/update_release.dart';
+import '../providers/appearance_provider.dart';
+import '../providers/auth_provider.dart';
+import '../providers/library_provider.dart';
+import '../providers/playback_provider.dart';
+import '../providers/spotify_provider.dart';
+import '../services/updates/update_service.dart';
+import '../ui/navigation/app_routes.dart';
+import '../ui/screens/detail/album_detail_screen.dart';
+import '../ui/screens/detail/artist_catalog_screen.dart';
+import '../ui/screens/detail/artist_detail_screen.dart';
+import '../ui/screens/detail/playlist_detail_screen.dart';
+import '../ui/screens/detail/podcast_detail_screen.dart';
+import '../ui/screens/home/home_screen.dart';
+import '../ui/screens/home/home_section_screen.dart';
+import '../ui/screens/home/widgets/home_chip_bar.dart';
+import '../ui/screens/library/library_screen.dart';
+import '../ui/screens/player/device_picker_sheet.dart';
+import '../ui/screens/player/full_player_sheet.dart';
+import '../ui/screens/player/immersive_lyrics_screen.dart';
+import '../ui/screens/player/queue_sheet.dart';
+import '../ui/screens/search/category_screen.dart';
+import '../ui/screens/search/search_screen.dart';
+import '../ui/screens/settings/settings_screen.dart';
+import '../ui/screens/settings/widgets/shortcuts_dialog.dart';
+import '../ui/shell/desktop/desktop_top_bar.dart';
+import '../ui/shell/mobile/mobile_bottom_bar.dart';
+import '../ui/shell/shell_breakpoints.dart';
+import '../ui/widgets/hyper_icons.dart';
+import '../ui/widgets/track_actions/track_credits_view.dart';
+import '../ui/widgets/track_menu.dart';
+import 'e2e_report.dart';
 import 'mock_services.dart';
 
-/// 单个 E2E 检查项的结果。
-class E2ECheckResult {
-  final String name;
-  final bool passed;
-  final int durationMs;
-  final String detail;
-
-  const E2ECheckResult({
-    required this.name,
-    required this.passed,
-    required this.durationMs,
-    this.detail = '',
-  });
-
-  Map<String, dynamic> toJson() => {
-    'name': name,
-    'passed': passed,
-    'durationMs': durationMs,
-    'detail': detail,
-  };
-}
+export 'e2e_report.dart' show E2ECheckResult;
 
 /// 自动化全平台 UI / 功能 / 多主题 E2E 自测执行器。
 ///
@@ -485,7 +464,7 @@ class E2ERunner {
     if (spotify.home.sections.length < 3) {
       throw StateError('Expected >=3 Home sections');
     }
-    if (!bootstrap.storageService.isLoggedIn) {
+    if (!bootstrap.storageService.auth.isLoggedIn) {
       throw StateError('Expected mock StorageService to be logged in');
     }
     return 'Signed in=${auth.displayName}, sections=${spotify.home.sections.length}';
@@ -1492,91 +1471,18 @@ class E2ERunner {
     final outDir = _outDir;
     if (outDir == null) return;
 
-    final metrics = {
-      'platform': Platform.operatingSystem,
-      'osVersion': Platform.operatingSystemVersion,
-      'releaseTag': AppInfo.releaseTag,
-      'appVersion': AppInfo.displayVersion,
-      'totalDurationMs': _clock.elapsedMilliseconds,
-      'frameCount': _frameSamples.length,
-      'screenshotCount': _screenshots.length,
-      'screenshotErrors': _screenshotErrors,
-      'phases': _phaseSpans,
-      'frames': _frameSamples,
-      'screenshots': _screenshots,
-    };
-    await File(
-      p.join(outDir.path, 'metrics.json'),
-    ).writeAsString(const JsonEncoder.withIndent('  ').convert(metrics));
-
-    if (_logLines.isNotEmpty) {
-      await File(
-        p.join(outDir.path, 'e2e.log'),
-      ).writeAsString('${_logLines.join('\n')}\n');
-    }
-
-    final summary = _computeSummary();
-    final passedCount = _results.where((r) => r.passed).length;
-    final failedCount = _results.length - passedCount;
-
-    final report = {
-      'platform': Platform.operatingSystem,
-      'releaseTag': AppInfo.releaseTag,
-      'appVersion': AppInfo.displayVersion,
-      'allPassed': failedCount == 0 && _results.isNotEmpty,
-      'passed': passedCount,
-      'failed': failedCount,
-      'totalDurationMs': _clock.elapsedMilliseconds,
-      'performance': summary,
-      'errors': _capturedErrors,
-      'checks': [for (final r in _results) r.toJson()],
-    };
-    await File(
-      p.join(outDir.path, 'report.json'),
-    ).writeAsString(const JsonEncoder.withIndent('  ').convert(report));
-
-    await File(
-      p.join(outDir.path, 'DONE'),
-    ).writeAsString(failedCount == 0 ? 'ok\n' : 'fail\n');
-  }
-
-  Map<String, dynamic> _computeSummary() {
-    if (_frameSamples.isEmpty) {
-      return {
-        'frameCount': 0,
-        'avgFps': 0.0,
-        'p50FrameMs': 0.0,
-        'p95FrameMs': 0.0,
-        'maxFrameMs': 0.0,
-        'jankOver16ms': 0,
-        'jankOver33ms': 0,
-        'peakRssMb': _round2(_currentRssMb()),
-      };
-    }
-    final totals = [
-      for (final f in _frameSamples) (f['totalMs'] as num).toDouble(),
-    ]..sort();
-    final avgTotal = totals.reduce((a, b) => a + b) / totals.length;
-    final p50 = totals[(totals.length * 0.5).floor().clamp(0, totals.length - 1)];
-    final p95 = totals[(totals.length * 0.95).floor().clamp(0, totals.length - 1)];
-    final maxMs = totals.last;
-    final jank16 = totals.where((v) => v > 16.67).length;
-    final jank33 = totals.where((v) => v > 33.33).length;
-    final peakRss = _frameSamples
-        .map((f) => (f['rssMb'] as num).toDouble())
-        .reduce(math.max);
-    return {
-      'frameCount': totals.length,
-      'avgBudgetFps': _round2(
-        avgTotal > 0 ? math.min(120.0, 1000.0 / avgTotal) : 0.0,
-      ),
-      'p50FrameMs': _round2(p50),
-      'p95FrameMs': _round2(p95),
-      'maxFrameMs': _round2(maxMs),
-      'jankOver16ms': jank16,
-      'jankOver33ms': jank33,
-      'peakRssMb': _round2(peakRss),
-    };
+    await E2EReportWriter.writeAll(
+      outDir: outDir,
+      totalDurationMs: _clock.elapsedMilliseconds,
+      frameSamples: _frameSamples,
+      screenshots: _screenshots,
+      screenshotErrors: _screenshotErrors,
+      phaseSpans: _phaseSpans,
+      logLines: _logLines,
+      capturedErrors: _capturedErrors,
+      results: _results,
+      currentRssMb: _currentRssMb(),
+    );
   }
 }
 

@@ -1,7 +1,7 @@
 import 'package:flutify_app/services/network/network_proxy.dart';
-import 'package:flutify_app/services/network/proxy_mode.dart';
+import 'package:flutify_app/models/proxy_mode.dart';
 import 'package:flutify_app/services/network/rust_route.dart';
-import 'package:flutify_app/services/network/spotify_gateway.dart';
+import 'package:flutify_app/models/spotify_gateway.dart';
 import 'package:flutify_app/services/network/system_proxy.dart';
 import 'package:flutter_test/flutter_test.dart';
 

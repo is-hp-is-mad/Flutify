@@ -144,7 +144,7 @@ void main() {
 
   testWidgets('制作人员弹窗：分组标题、合并后的角色、来源', (tester) async {
     SharedPreferences.setMockInitialValues({});
-    final api = _CreditsApi(await StorageService.init(), CreditsParser.parse(creditsResponse())!);
+    final api = _CreditsApi((await StorageService.init()).auth, CreditsParser.parse(creditsResponse())!);
     late BuildContext host;
     await tester.pumpWidget(
       MaterialApp(

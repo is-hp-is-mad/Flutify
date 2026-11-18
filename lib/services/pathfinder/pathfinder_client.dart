@@ -42,6 +42,7 @@ class PathfinderClient {
             operation: op.name,
             hash: op.sha256Hash,
             variablesJson: jsonEncode(variables),
+            proxy: proxy,
           );
           final decoded = jsonDecode(jsonStr);
           if (decoded is Map<String, dynamic>) return decoded;

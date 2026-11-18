@@ -75,12 +75,12 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     storage = await StorageService.init();
-    await storage.setAccessToken('test-token'); // 合成令牌：仅用于让服务走「已配置」分支
+    await storage.auth.setAccessToken('test-token'); // 合成令牌：仅用于让服务走「已配置」分支
     requests = [];
     lyricsStatus = 200;
     spotify = SpotifyProvider(
-      SpotifyApiService(storage, MockClient((req) async => handle(req))),
-      storage,
+      SpotifyApiService(storage.auth, MockClient((req) async => handle(req))),
+      storage.library,
     );
   });
 
@@ -104,7 +104,7 @@ void main() {
   });
 
   test('未登录（无令牌）时搜索返回空结果，不发请求', () async {
-    await storage.setAccessToken('');
+    await storage.auth.setAccessToken('');
 
     spotify.performSearch('anything');
     await Future<void>.delayed(const Duration(milliseconds: 450));
@@ -119,7 +119,7 @@ void main() {
     spotify.commitRecentSearch('weeknd');
 
     expect(spotify.recentSearches, ['weeknd', 'dua']);
-    expect(storage.recentSearches, ['weeknd', 'dua']);
+    expect(storage.library.recentSearches, ['weeknd', 'dua']);
   });
 
   test('lyrics are cached after the first fetch', () async {
@@ -200,13 +200,11 @@ void main() {
     setUp(() {
       fallbackOn = true;
       lrclibCalls = 0;
-      final api = SpotifyApiService(
-        storage,
+      final api = SpotifyApiService(storage.auth,
         MockClient((req) async => handle(req)),
       );
       withFallback = SpotifyProvider(
-        api,
-        storage,
+        api, storage.library,
         lyrics: LyricsResolver(
           api.getLyrics,
           fallback: LrclibLyricsSource(
@@ -304,13 +302,11 @@ void main() {
       );
       neteaseRequests = [];
       translationOn = false;
-      final api = SpotifyApiService(
-        storage,
+      final api = SpotifyApiService(storage.auth,
         MockClient((req) async => handle(req)),
       );
       bilingual = SpotifyProvider(
-        api,
-        storage,
+        api, storage.library,
         lyrics: LyricsResolver(
           api.getLyrics,
           fallback: LrclibLyricsSource(
@@ -350,8 +346,8 @@ void main() {
         cache: translationCache,
       );
       final provider = SpotifyProvider(
-        SpotifyApiService(storage, MockClient((req) async => handle(req))),
-        storage,
+        SpotifyApiService(storage.auth, MockClient((req) async => handle(req))),
+        storage.library,
         lyrics: LyricsResolver(
           (_) async => const SpotifyLyrics(),
           qqTranslation: qq,
@@ -413,8 +409,8 @@ void main() {
     test('作废前发出、晚到的结果照常返回但不写缓存，也不影响作废后新发出的请求', () async {
       final pending = <Completer<SpotifyLyrics>>[];
       final slow = SpotifyProvider(
-        SpotifyApiService(storage, MockClient((req) async => handle(req))),
-        storage,
+        SpotifyApiService(storage.auth, MockClient((req) async => handle(req))),
+        storage.library,
         lyrics: LyricsResolver((_) {
           final official = Completer<SpotifyLyrics>();
           pending.add(official);

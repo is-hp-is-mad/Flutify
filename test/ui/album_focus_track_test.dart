@@ -39,8 +39,7 @@ void main() {
     addTearDown(tester.view.reset);
     SharedPreferences.setMockInitialValues({'sp_access_token': 'token'});
     final storage = await StorageService.init();
-    final api = SpotifyApiService(
-      storage,
+    final api = SpotifyApiService(storage.auth,
       MockClient((request) async {
         final path = request.url.path;
         if (path.endsWith('/albums/alb/tracks')) {
@@ -72,8 +71,8 @@ void main() {
       }),
     );
     final audio = FakeAudioPlayerService();
-    final playback = PlaybackProvider(audio, storage);
-    final library = LibraryProvider(storage);
+    final playback = PlaybackProvider(audio, storage.playback);
+    final library = LibraryProvider(storage.library);
     addTearDown(() {
       playback.dispose();
       library.dispose();

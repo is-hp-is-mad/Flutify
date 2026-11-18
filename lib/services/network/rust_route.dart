@@ -1,6 +1,6 @@
 import 'network_proxy.dart';
 import 'proxy_endpoint.dart';
-import 'proxy_mode.dart';
+import '../../models/proxy_mode.dart';
 
 /// Rust 网络栈（HTTP/2、音频下载、WebSocket）对一个请求应走的路线。
 class RustRoute {

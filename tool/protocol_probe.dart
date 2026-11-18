@@ -14,7 +14,7 @@ import 'package:flutify_app/services/auth/auth_constants.dart';
 import 'package:flutify_app/services/auth/client_token_service.dart';
 import 'package:flutify_app/services/protocol/access_point.dart';
 import 'package:flutify_app/services/protocol/aes.dart';
-import 'package:flutify_app/services/protocol/spotify_id.dart';
+import 'package:flutify_app/core/utils/spotify_id.dart';
 import 'package:flutify_app/services/protocol/storage_resolver.dart';
 import 'package:flutify_app/services/protocol/track_audio_loader.dart';
 import 'package:flutify_app/services/protocol/track_metadata.dart';

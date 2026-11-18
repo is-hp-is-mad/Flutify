@@ -12,7 +12,7 @@ import 'library/playlist_cover.dart';
 import 'lyrics/lrclib_candidate.dart';
 import 'lyrics/lrclib_client.dart';
 import 'network/rust_route.dart';
-import 'storage_service.dart';
+import 'storage/auth_session_store.dart';
 
 /// Dart 与 `flutify_core` Rust 后端之间的会话同步与 DTO 转换桥。
 class RustBackendBridge {
@@ -25,18 +25,18 @@ class RustBackendBridge {
     return route.proxy;
   }
 
-  static void syncSession(StorageService storage, {String? deviceId}) {
+  static void syncSession(AuthSessionStore auth, {String? deviceId}) {
     if (!RustCore.ready) return;
     rust.rustSessionConfigure(
       config: rust.RustSessionConfig(
-        spDc: storage.spDc,
-        accessToken: storage.accessToken,
-        accessTokenExpiryMs: storage.accessTokenExpiry,
-        clientToken: storage.clientToken,
-        clientTokenExpiryMs: storage.clientTokenExpiry,
-        deviceId: deviceId ?? storage.deviceId,
+        spDc: auth.spDc,
+        accessToken: auth.accessToken,
+        accessTokenExpiryMs: auth.accessTokenExpiry,
+        clientToken: auth.clientToken,
+        clientTokenExpiryMs: auth.clientTokenExpiry,
+        deviceId: deviceId ?? auth.deviceId,
         proxy: '',
-        epoch: BigInt.from(storage.sessionEpoch),
+        epoch: BigInt.from(auth.sessionEpoch),
       ),
     );
   }

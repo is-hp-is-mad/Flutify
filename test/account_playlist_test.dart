@@ -163,8 +163,7 @@ void main() {
           SpotifyPlaylist(id: 'aaa', name: '通勤', totalTracks: 3),
         ],
       )..editable = const [playlist];
-      final library = LibraryProvider(
-        await StorageService.init(),
+      final library = LibraryProvider((await StorageService.init()).library,
         source: source,
       );
       await library.refresh();
@@ -185,8 +184,7 @@ void main() {
       final source = FakeLibrarySource()
         ..editableError = StateError('offline')
         ..writeError = StateError('offline');
-      final library = LibraryProvider(
-        await StorageService.init(),
+      final library = LibraryProvider((await StorageService.init()).library,
         source: source,
       );
 
@@ -201,8 +199,7 @@ void main() {
     test('未登录时不发请求', () async {
       final source = FakeLibrarySource(isSignedIn: false)
         ..editable = const [playlist];
-      final library = LibraryProvider(
-        await StorageService.init(),
+      final library = LibraryProvider((await StorageService.init()).library,
         source: source,
       );
 

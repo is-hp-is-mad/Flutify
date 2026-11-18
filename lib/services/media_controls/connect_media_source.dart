@@ -2,8 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
-import '../../providers/connect_provider.dart';
-import '../../providers/playback_provider.dart';
+import '../playback/playback_port.dart';
 import 'media_controls_sync.dart';
 import 'system_media_controls.dart';
 
@@ -11,11 +10,11 @@ import 'system_media_controls.dart';
 /// - 卡片显示远程曲目、播放状态与进度；
 /// - 按键发给远程设备。
 ///
-/// 何时接管与播放栏的远程模式一致（[ConnectProvider.controlsRemote]）。
+/// 何时接管与播放栏的远程模式一致（[RemoteConnectMediaPort.controlsRemote]）。
 /// 媒体键没有界面可以提示，命令失败（免费账号部分操作会被拒）时静默忽略。
 class ConnectMediaSource implements MediaSourceOverride {
-  final ConnectProvider connect;
-  final PlaybackProvider playback;
+  final RemoteConnectMediaPort connect;
+  final LocalPlaybackMediaPort playback;
 
   ConnectMediaSource(this.connect, this.playback) : changes = Listenable.merge([connect, playback]);
 

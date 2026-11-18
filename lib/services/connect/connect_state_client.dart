@@ -147,13 +147,13 @@ class ConnectStateClient {
         'https://${_spclientHost()}$path',
       );
       if (proxy != null) {
-        rust.rustSessionSetProxy(proxy: proxy);
         final raw = await rust.rustConnectStateRequest(
           spclientHost: _spclientHost(),
           method: method,
           path: path,
           connectionId: connId,
           bodyJson: body == null ? null : jsonEncode(body),
+          proxy: proxy,
         );
         if (raw.status < 200 || raw.status >= 300) {
           throw ConnectException.fromStatus(raw.status);

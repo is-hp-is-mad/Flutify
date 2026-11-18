@@ -43,7 +43,7 @@ void main() {
         storageService: storage,
         audioEngine: FakeAudioPlayerService(),
         emePlayer: EmePlayer(),
-        spotifyApiService: SpotifyApiService(storage),
+        spotifyApiService: SpotifyApiService(storage.auth),
       ),
     );
     await settle(tester);

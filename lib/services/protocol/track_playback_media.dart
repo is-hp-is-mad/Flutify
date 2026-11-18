@@ -1,6 +1,9 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import '../../core/rust_core.dart';
+import '../../src/rust/api/backend.dart' as rust;
+import '../rust_backend_bridge.dart';
 
 /// `track-playback/v1/media` 返回的一个音频文件（file_id + 格式 + 码率）。
 class PlaybackFile {
@@ -101,6 +104,21 @@ Future<TrackPlaybackMedia> fetchTrackPlaybackMedia(
   required Future<Map<String, String>> Function() headers,
   http.Client? client,
 }) async {
+  if (client == null && RustCore.ready) {
+    final proxy = await RustBackendBridge.proxyForUrl(
+      'https://spclient.wg.spotify.com/track-playback/v1/media',
+    );
+    if (proxy != null) {
+      try {
+        final dto = await rust.rustFetchTrackPlaybackMedia(
+          spclientBase: 'https://spclient.wg.spotify.com',
+          trackIdOrUri: trackIdOrUri,
+          proxy: proxy,
+        );
+        return _mediaFromDto(dto);
+      } catch (_) {}
+    }
+  }
   final c = client ?? http.Client();
   try {
     final id = trackIdOrUri.split(':').last.split('?').first.split('/').last;
@@ -117,6 +135,15 @@ Future<TrackPlaybackMedia> fetchTrackPlaybackMedia(
     final res = await c.get(url, headers: {...h, 'Accept': 'application/json'});
     if (res.statusCode != 200) {
       throw StateError('track-playback 失败：HTTP ${res.statusCode}');
+    }
+    if (RustCore.ready) {
+      try {
+        final dto = rust.rustParseTrackPlaybackMediaJson(
+          body: res.bodyBytes,
+          trackIdOrUri: uri,
+        );
+        return _mediaFromDto(dto);
+      } catch (_) {}
     }
     final body = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
     final item = _mediaItem(body['media'], uri);
@@ -171,6 +198,20 @@ Future<String> fetchHlsManifest(
   required Future<Map<String, String>> Function() headers,
   http.Client? client,
 }) async {
+  if (client == null && RustCore.ready) {
+    final proxy = await RustBackendBridge.proxyForUrl(
+      'https://spclient.wg.spotify.com/sneaktables/v2/hls/1/$fileIdHex/audio.m3u8',
+    );
+    if (proxy != null) {
+      try {
+        return await rust.rustFetchHlsManifest(
+          spclientBase: 'https://spclient.wg.spotify.com',
+          fileIdHex: fileIdHex,
+          proxy: proxy,
+        );
+      } catch (_) {}
+    }
+  }
   final c = client ?? http.Client();
   try {
     final url = Uri.parse(
@@ -189,3 +230,20 @@ Future<String> fetchHlsManifest(
     if (client == null) c.close();
   }
 }
+
+TrackPlaybackMedia _mediaFromDto(rust.RustTrackPlaybackMediaDto dto) =>
+    TrackPlaybackMedia(
+      name: dto.name,
+      durationMs: dto.durationMs,
+      mp4Files: [
+        for (final f in dto.mp4Files)
+          PlaybackFile(
+            fileIdHex: f.fileIdHex,
+            format: f.format,
+            bitrate: f.bitrate,
+            formatKey: f.formatKey,
+            encodingId: f.encodingId,
+          ),
+      ],
+      externalUrls: dto.externalUrls,
+    );

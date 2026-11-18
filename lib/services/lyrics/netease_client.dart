@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import '../../core/rust_core.dart';
 import '../../src/rust/api/backend.dart' as rust;
 import '../network/retry_after_cooldown.dart';
+import '../rust_backend_bridge.dart';
 
 /// 网易云音乐「搜索结果」里的一首曲目（只取歌词匹配需要的字段）。
 class NeteaseSong {
@@ -134,13 +135,17 @@ class NeteaseClient {
     List<int>? bodyBytes,
   }) async {
     if (useRustBackend && RustCore.ready) {
-      final raw = await rust.rustLyricsHttpRequest(
-        method: method,
-        url: url.toString(),
-        headers: [for (final e in headers.entries) (e.key, e.value)],
-        body: bodyBytes == null ? null : Uint8List.fromList(bodyBytes),
-      );
-      return http.Response.bytes(raw.body, raw.status);
+      final proxy = await RustBackendBridge.proxyForUrl(url.toString());
+      if (proxy != null) {
+        final raw = await rust.rustLyricsHttpRequest(
+          method: method,
+          url: url.toString(),
+          headers: [for (final e in headers.entries) (e.key, e.value)],
+          body: bodyBytes == null ? null : Uint8List.fromList(bodyBytes),
+          proxy: proxy,
+        );
+        return http.Response.bytes(raw.body, raw.status);
+      }
     }
     if (method == 'POST') {
       return _client

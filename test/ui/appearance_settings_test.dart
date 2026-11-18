@@ -43,7 +43,7 @@ void main() {
         storageService: storage,
         audioEngine: FakeAudioPlayerService(),
         emePlayer: EmePlayer(),
-        spotifyApiService: FakeSpotifyApiService(storage, lyricsById: lyrics),
+        spotifyApiService: FakeSpotifyApiService(storage.auth, lyricsById: lyrics),
         trackAudioLoader: FakeTrackAudioSource(),
       ),
     );
@@ -126,7 +126,7 @@ void main() {
 
     // 修改已写入存储（防抖 300ms）
     await tester.pump(const Duration(milliseconds: 400));
-    expect(storage.appearanceJson, contains('"cornerStyle":"square"'));
+    expect(storage.preferences.appearanceJson, contains('"cornerStyle":"square"'));
 
     // 恢复默认外观
     await tester.scrollUntilVisible(

@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 
 import '../audio/audio_engine.dart';
-import '../protocol/track_playback_exception.dart';
+import '../../models/track_playback_exception.dart';
 
 /// Retry connection failures, not every error classified as a playback error.
 bool isConnectionFailure(Object? error) {

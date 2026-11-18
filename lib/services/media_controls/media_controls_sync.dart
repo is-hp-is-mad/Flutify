@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../../models/track.dart';
-import '../../providers/playback_provider.dart';
+import '../playback/playback_port.dart';
 import '../widget/widget_bridge.dart';
 import 'system_media_controls.dart';
 
@@ -38,7 +38,7 @@ abstract interface class MediaSourceOverride {
 /// - 系统的「播放 / 暂停」按当前状态决定是否切换，避免重复按键把状态切反；
 /// - 本机与 [override] 之间切换时视为换曲，重新下发曲目与状态。
 class MediaControlsSync {
-  final PlaybackProvider playback;
+  final LocalPlaybackMediaPort playback;
   final SystemMediaControls controls;
   final WidgetBridge? widget;
 

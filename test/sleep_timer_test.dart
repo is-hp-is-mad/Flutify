@@ -24,7 +24,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     final storage = await StorageService.init();
     audio = FakeAudioPlayerService();
-    playback = PlaybackProvider(audio, storage, random: Random(1), audioLoader: FakeTrackAudioSource());
+    playback = PlaybackProvider(audio, storage.playback, random: Random(1), audioLoader: FakeTrackAudioSource());
     await playback.playTrack(a, contextQueue: [a, b]);
     audio.stateController.add(PlayerState(true, ProcessingState.ready));
   });

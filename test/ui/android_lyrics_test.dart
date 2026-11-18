@@ -85,15 +85,12 @@ void main() {
     final storage = await StorageService.init();
     final audio = FakeAudioPlayerService();
     final playback = PlaybackProvider(
-      audio,
-      storage,
+      audio, storage.playback,
       audioLoader: FakeTrackAudioSource(),
     );
-    final spotify = SpotifyProvider(
-      FakeSpotifyApiService(storage, lyricsById: {track.id: source}),
-      storage,
+    final spotify = SpotifyProvider(FakeSpotifyApiService(storage.auth, lyricsById: {track.id: source}), storage.library,
     );
-    final preferences = PreferencesProvider(storage);
+    final preferences = PreferencesProvider(storage.preferences);
     addTearDown(playback.dispose);
     addTearDown(spotify.dispose);
     addTearDown(preferences.dispose);
@@ -311,8 +308,7 @@ void main() {
             storageService: storage,
             audioEngine: audio,
             emePlayer: EmePlayer(),
-            spotifyApiService: FakeSpotifyApiService(
-              storage,
+            spotifyApiService: FakeSpotifyApiService(storage.auth,
               lyricsById: {track.id: lyrics},
             ),
             trackAudioLoader: FakeTrackAudioSource(),
@@ -803,7 +799,7 @@ void main() {
     addTearDown(tester.view.reset);
     SharedPreferences.setMockInitialValues({});
     final storage = await StorageService.init();
-    final preferences = PreferencesProvider(storage);
+    final preferences = PreferencesProvider(storage.preferences);
     addTearDown(preferences.dispose);
     await tester.pumpWidget(
       ChangeNotifierProvider.value(
@@ -824,14 +820,14 @@ void main() {
     await tester.pumpAndSettle();
     expect(preferences.prefs.lyricsBilingual, isTrue);
     expect(
-      AppPreferences.decode(storage.preferencesJson).lyricsBilingual,
+      AppPreferences.decode(storage.preferences.preferencesJson).lyricsBilingual,
       isTrue,
     );
     await tester.tap(communitySwitch);
     await tester.pumpAndSettle();
     expect(preferences.prefs.lyricsBilingual, isFalse);
     expect(
-      AppPreferences.decode(storage.preferencesJson).lyricsBilingual,
+      AppPreferences.decode(storage.preferences.preferencesJson).lyricsBilingual,
       isFalse,
     );
     expect(tester.takeException(), isNull);

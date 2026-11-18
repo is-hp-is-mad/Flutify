@@ -27,7 +27,7 @@ void main() {
     storage = await StorageService.init();
     audio = FakeAudioPlayerService();
     loader = FakeTrackAudioSource();
-    playback = PlaybackProvider(audio, storage, random: Random(42), audioLoader: loader);
+    playback = PlaybackProvider(audio, storage.playback, random: Random(42), audioLoader: loader);
     playback.setVolume(0.8);
   });
 
@@ -40,7 +40,7 @@ void main() {
 
     playback.setNormalizeVolume(true);
     expect(audio.lastVolume, closeTo(0.4, 1e-3));
-    expect(storage.normalizeVolume, isTrue);
+    expect(storage.playback.normalizeVolume, isTrue);
 
     // 没有响度数据的曲目（旧缓存）按原音量播放
     await playback.nextTrack();
@@ -48,12 +48,12 @@ void main() {
     expect(audio.lastVolume, closeTo(0.8, 1e-6));
 
     playback.setNormalizeVolume(false);
-    expect(storage.normalizeVolume, isFalse);
+    expect(storage.playback.normalizeVolume, isFalse);
   });
 
   test('fade ramps in at the start and out before the end', () async {
     playback.setFadeSeconds(4);
-    expect(storage.fadeSeconds, 4);
+    expect(storage.playback.fadeSeconds, 4);
 
     await playback.playTrack(a, contextQueue: const [a, b], context: ctx);
     audio.durationController.add(const Duration(seconds: 100));

@@ -424,6 +424,9 @@ fn parse_menu_track(m: &ProtoMsg<'_>) -> Option<BackendTrack> {
             id: id_from_uri(album_uri),
             name: album.str(2).to_string(),
             uri: album_uri.to_string(),
+            album_type: "album".to_string(),
+            release_date: String::new(),
+            total_tracks: 0,
             images: if cover.is_empty() {
                 Vec::new()
             } else {
@@ -433,6 +436,7 @@ fn parse_menu_track(m: &ProtoMsg<'_>) -> Option<BackendTrack> {
                     height: None,
                 }]
             },
+            artists: Vec::new(),
         })
     };
     Some(BackendTrack {
