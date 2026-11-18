@@ -75,6 +75,9 @@ Flutify 采用 **Flutter 表现层 + 高内聚领域服务端口 + Rust 核心�
 
 [FlutifyPS](https://github.com/is-hp-is-mad/FlutifyPS) 是 Flutify 的可选自建 HTTPS 反代服务，覆盖 Spotify API、媒体下载与 Connect 连接。若当前网络环境可直接访问 Spotify，则无需部署。
 
+> [!WARNING]
+> **已知使用 Cloudflare 反向代理导致 Spotify 封号概率极高，请谨慎反代。**
+
 部署方式见 [FlutifyPS 部署与接入说明](https://github.com/is-hp-is-mad/FlutifyPS#部署)，部署后在「设置 → 网络 → Spotify 反代」填入 HTTPS 地址与凭据即可。
 
 ---
