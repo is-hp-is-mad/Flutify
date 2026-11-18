@@ -679,29 +679,39 @@ fn read_varint(data: &[u8], pos: &mut usize) -> Option<u64> {
     None
 }
 
-fn skip_field(data: &[u8], pos: &mut usize, wire_type: u64) -> Option<()> {
-    match wire_type {
+fn read_len_slice<'a>(data: &'a [u8], pos: &mut usize) -> Option<&'a [u8]> {
+    let raw = read_varint(data, pos)?;
+    let len = usize::try_from(raw).ok()?;
+    let end = pos.checked_add(len)?;
+    if end > data.len() {
+        return None;
+    }
+    let slice = &data[*pos..end];
+    *pos = end;
+    Some(slice)
+}
+
+fn skip_field(data: &[u8], pos: &mut usize, wire: u64) -> Option<()> {
+    match wire {
         0 => {
             read_varint(data, pos)?;
         }
         1 => {
-            if *pos + 8 > data.len() {
+            let end = pos.checked_add(8)?;
+            if end > data.len() {
                 return None;
             }
-            *pos += 8;
+            *pos = end;
         }
         2 => {
-            let len = read_varint(data, pos)? as usize;
-            if *pos + len > data.len() {
-                return None;
-            }
-            *pos += len;
+            read_len_slice(data, pos)?;
         }
         5 => {
-            if *pos + 4 > data.len() {
+            let end = pos.checked_add(4)?;
+            if end > data.len() {
                 return None;
             }
-            *pos += 4;
+            *pos = end;
         }
         _ => return None,
     }
@@ -721,14 +731,10 @@ fn decode_collection_item(bytes: &[u8]) -> Option<(String, i64)> {
         let wire = tag & 0x7;
         match (field, wire) {
             (1, 2) => {
-                let Some(len) = read_varint(bytes, &mut pos).map(|n| n as usize) else {
+                let Some(slice) = read_len_slice(bytes, &mut pos) else {
                     break;
                 };
-                if pos + len > bytes.len() {
-                    break;
-                }
-                uri = String::from_utf8_lossy(&bytes[pos..pos + len]).to_string();
-                pos += len;
+                uri = String::from_utf8_lossy(slice).to_string();
             }
             (2, 0) => {
                 added_at = read_varint(bytes, &mut pos).unwrap_or(0) as i64;
@@ -762,26 +768,18 @@ pub fn decode_collection_page(data: &[u8]) -> (Vec<(String, i64)>, String) {
         let wire = tag & 0x7;
         match (field, wire) {
             (1, 2) => {
-                let Some(len) = read_varint(data, &mut pos).map(|n| n as usize) else {
+                let Some(slice) = read_len_slice(data, &mut pos) else {
                     break;
                 };
-                if pos + len > data.len() {
-                    break;
-                }
-                if let Some(entry) = decode_collection_item(&data[pos..pos + len]) {
+                if let Some(entry) = decode_collection_item(slice) {
                     items.push(entry);
                 }
-                pos += len;
             }
             (2, 2) => {
-                let Some(len) = read_varint(data, &mut pos).map(|n| n as usize) else {
+                let Some(slice) = read_len_slice(data, &mut pos) else {
                     break;
                 };
-                if pos + len > data.len() {
-                    break;
-                }
-                next_token = String::from_utf8_lossy(&data[pos..pos + len]).to_string();
-                pos += len;
+                next_token = String::from_utf8_lossy(slice).to_string();
             }
             _ => {
                 if skip_field(data, &mut pos, wire).is_none() {

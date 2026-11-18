@@ -409,6 +409,7 @@ return '';
               initialSettings: InAppWebViewSettings(
                 incognito: !Platform.isWindows,
                 javaScriptEnabled: true,
+                thirdPartyCookiesEnabled: true,
               ),
               onWebViewCreated: (controller) => _controller = controller,
               onReceivedError: (_, request, error) =>

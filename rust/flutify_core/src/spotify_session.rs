@@ -82,19 +82,28 @@ fn is_fresh(expiry_ms: i64) -> bool {
 
 /// 更新或初始化 Rust 会话状态（Dart 登录 / 启动恢复 / 刷新后同步）。
 pub fn configure_session(next: SessionState) {
-    let mut guard = runtime_state().state.write().unwrap();
+    let mut guard = runtime_state()
+        .state
+        .write()
+        .unwrap_or_else(|e| e.into_inner());
     *guard = next;
 }
 
 /// 仅更新代理地址。
 pub fn set_proxy(proxy: String) {
-    let mut guard = runtime_state().state.write().unwrap();
+    let mut guard = runtime_state()
+        .state
+        .write()
+        .unwrap_or_else(|e| e.into_inner());
     guard.proxy = proxy;
 }
 
 /// 清空会话凭证（保留代理配置）。
 pub fn clear_session() {
-    let mut guard = runtime_state().state.write().unwrap();
+    let mut guard = runtime_state()
+        .state
+        .write()
+        .unwrap_or_else(|e| e.into_inner());
     let proxy = guard.proxy.clone();
     let epoch = guard.epoch.wrapping_add(1);
     *guard = SessionState {
@@ -105,7 +114,11 @@ pub fn clear_session() {
 }
 
 pub fn snapshot() -> SessionState {
-    runtime_state().state.read().unwrap().clone()
+    runtime_state()
+        .state
+        .read()
+        .unwrap_or_else(|e| e.into_inner())
+        .clone()
 }
 
 tokio::task_local! {
@@ -387,9 +400,13 @@ pub async fn authorized_request(
             .map_err(|e| format!("request:read body failed: {e}"))?
             .to_vec();
 
-        if status == 401 && !refreshed_auth && !snapshot().sp_dc.is_empty() {
+        if status == 401
+            && attempt < 3
+            && !refreshed_auth
+            && !snapshot().sp_dc.is_empty()
+            && ensure_web_access_token(true).await.is_ok()
+        {
             refreshed_auth = true;
-            let _ = ensure_web_access_token(true).await;
             continue;
         }
         if (status == 429 || status == 503) && attempt < 3 {

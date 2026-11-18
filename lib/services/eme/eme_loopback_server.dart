@@ -197,6 +197,12 @@ class EmeLoopbackServer {
       endExclusive = m.group(2)!.isEmpty ? null : int.parse(m.group(2)!) + 1;
     }
 
+    if (dl != null && dl.error != null) {
+      response.statusCode = 503;
+      await response.close();
+      return;
+    }
+
     if (dl != null && !dl.done) {
       final need =
           endExclusive ?? (dl.expectedTotal > 0 ? dl.expectedTotal : start + 1);
@@ -207,9 +213,16 @@ class EmeLoopbackServer {
         await response.close();
         return;
       }
+      if (dl.error != null) {
+        response.statusCode = 503;
+        await response.close();
+        return;
+      }
     }
 
-    final total = file.lengthSync();
+    final total = (dl != null && !dl.done)
+        ? dl.available
+        : file.lengthSync();
     final end = (endExclusive ?? total).clamp(0, total);
     final len = end - start;
     if (len <= 0) {

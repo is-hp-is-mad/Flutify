@@ -28,6 +28,9 @@ class WebTokenService {
   /// 登录第一次铸造专用：401 不触发 [SessionHttpClient] 的清除登录态，见 [mintForLogin]。
   final http.Client _loginClient;
 
+  Future<String>? _inFlightEnsure;
+  int _inFlightEnsureEpoch = -1;
+
   WebTokenService(this._storage, [http.Client? client])
     : _client = SessionHttpClient(_storage, client ?? http.Client()),
       _loginClient = Http2Client(client ?? http.Client());
@@ -153,19 +156,23 @@ class WebTokenService {
       }
     }
     final httpClient = client ?? http.Client();
-    final uri = await _tokenUri(httpClient);
-    final res = await httpClient
-        .get(
-          uri,
-          headers: {
-            'Cookie': 'sp_dc=$spDc',
-            'User-Agent':
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36',
-            'Accept': 'application/json',
-          },
-        )
-        .timeout(const Duration(seconds: 10));
-    return _parseToken(res.statusCode, utf8.decode(res.bodyBytes));
+    try {
+      final uri = await _tokenUri(httpClient);
+      final res = await httpClient
+          .get(
+            uri,
+            headers: {
+              'Cookie': 'sp_dc=$spDc',
+              'User-Agent':
+                  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36',
+              'Accept': 'application/json',
+            },
+          )
+          .timeout(const Duration(seconds: 10));
+      return _parseToken(res.statusCode, utf8.decode(res.bodyBytes));
+    } finally {
+      if (client == null) httpClient.close();
+    }
   }
 
   /// 带 TOTP 的令牌地址。
@@ -295,6 +302,33 @@ class WebTokenService {
     if (cached.isNotEmpty && expiry > nowMs + 60 * 1000) {
       return cached;
     }
+    final existing = _inFlightEnsure;
+    if (existing != null && _inFlightEnsureEpoch == epoch) {
+      return await existing;
+    }
+    final future = _ensureWebAccessTokenUncached(
+      epoch: epoch,
+      cached: cached,
+      expiry: expiry,
+      retries: retries,
+    );
+    _inFlightEnsure = future;
+    _inFlightEnsureEpoch = epoch;
+    try {
+      return await future;
+    } finally {
+      if (identical(_inFlightEnsure, future)) {
+        _inFlightEnsure = null;
+      }
+    }
+  }
+
+  Future<String> _ensureWebAccessTokenUncached({
+    required int epoch,
+    required String cached,
+    required int expiry,
+    required int retries,
+  }) async {
     Object? lastError;
     StackTrace? lastStack;
     for (var attempt = 0; attempt <= retries; attempt++) {

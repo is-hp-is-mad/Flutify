@@ -323,10 +323,16 @@ async fn run_file(options: FileDownloadOptions, emit: Emit) -> Result<(), String
     if status != 206 {
         return Err(format!("request:CDN 返回 HTTP {status}"));
     }
+    const MAX_DOWNLOAD_BYTES: u64 = 4 * 1024 * 1024 * 1024;
+    const MAX_SEGMENTS: u64 = 65_536;
     let total = total_from_content_range(&first)
-        .filter(|t| *t > 0)
-        .ok_or_else(|| "request:CDN 未返回 Content-Range 总长".to_string())?;
-    let count = total.div_ceil(segment_bytes) as usize;
+        .filter(|t| *t > 0 && *t <= MAX_DOWNLOAD_BYTES)
+        .ok_or_else(|| "request:CDN 返回无效的 Content-Range 总长".to_string())?;
+    let raw_count = total.div_ceil(segment_bytes);
+    if raw_count == 0 || raw_count > MAX_SEGMENTS {
+        return Err("request:CDN 分片数量超出上限".to_string());
+    }
+    let count = raw_count as usize;
     *shared.segments.lock().unwrap() = Segments {
         got: vec![0; count],
         len: (0..count)

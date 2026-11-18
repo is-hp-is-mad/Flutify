@@ -139,13 +139,25 @@ class ProtoReader {
         return ProtoField(field, wireType, _readVarint(), Uint8List(0));
       case _WireType.lengthDelimited:
         final len = _readVarint();
+        if (len < 0 || len > _data.length - _pos) {
+          _pos = _data.length;
+          return null;
+        }
         final value = Uint8List.sublistView(_data, _pos, _pos + len);
         _pos += len;
         return ProtoField(field, wireType, 0, value);
       case 5: // fixed32：跳过 4 字节
+        if (_data.length - _pos < 4) {
+          _pos = _data.length;
+          return null;
+        }
         _pos += 4;
         return ProtoField(field, wireType, 0, Uint8List(0));
       case 1: // fixed64：跳过 8 字节
+        if (_data.length - _pos < 8) {
+          _pos = _data.length;
+          return null;
+        }
         _pos += 8;
         return ProtoField(field, wireType, 0, Uint8List(0));
       default:

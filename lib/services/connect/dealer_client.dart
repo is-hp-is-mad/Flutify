@@ -193,6 +193,9 @@ class DealerClient {
         onTimeout: () => throw const DealerException('等待 dealer 连接 id 超时'),
       );
       _ensureCurrent(epoch);
+      if (s.lost || !identical(s, _session)) {
+        throw const DealerException('dealer 连接在握手后已断开');
+      }
 
       _attempts = 0;
       _connectionId = id;
@@ -279,6 +282,7 @@ class DealerClient {
   }
 
   void _startHeartbeat(_Session s) {
+    if (s.lost) return;
     s.pingTimer = Timer.periodic(pingInterval, (_) {
       if (s.lost) return;
       try {

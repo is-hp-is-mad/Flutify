@@ -106,21 +106,26 @@ class ConnectProvider extends ChangeNotifier implements RemoteConnectMediaPort {
     bool paused = false,
     bool? repeatingContext,
     bool? repeatingTrack,
-  }) => _withTarget(
-    receiverDeviceId!,
-    () => _service!.play(
-      receiverDeviceId!,
-      contextUri: request.contextUri,
-      trackUris: request.trackUris,
-      trackUri: request.trackUri,
-      trackIndex: request.trackIndex,
-      seekToMs: seekToMs,
-      paused: paused,
-      repeatingContext: repeatingContext,
-      repeatingTrack: repeatingTrack,
-      confirm: true,
-    ),
-  );
+  }) {
+    final id = receiverDeviceId;
+    final service = _service;
+    if (id == null || service == null) return Future.value();
+    return _withTarget(
+      id,
+      () => service.play(
+        id,
+        contextUri: request.contextUri,
+        trackUris: request.trackUris,
+        trackUri: request.trackUri,
+        trackIndex: request.trackIndex,
+        seekToMs: seekToMs,
+        paused: paused,
+        repeatingContext: repeatingContext,
+        repeatingTrack: repeatingTrack,
+        confirm: true,
+      ),
+    );
+  }
 
   /// 本机播放端上改随机 / 循环：发给服务端，其他设备随之更新。
   Future<bool> setReceiverOptions({
@@ -149,10 +154,15 @@ class ConnectProvider extends ChangeNotifier implements RemoteConnectMediaPort {
   }
 
   /// 把远程设备上的播放转到本机播放端（同一首、同一进度）。
-  Future<void> transferToReceiver() => _receiverTransfer ??= _withTarget(
-    receiverDeviceId!,
-    () => _service!.transfer(receiverDeviceId!, confirm: true),
-  ).whenComplete(() => _receiverTransfer = null);
+  Future<void> transferToReceiver() {
+    final id = receiverDeviceId;
+    final service = _service;
+    if (id == null || service == null) return Future.value();
+    return _receiverTransfer ??= _withTarget(
+      id,
+      () => service.transfer(id, confirm: true),
+    ).whenComplete(() => _receiverTransfer = null);
+  }
 
   /// 正在使用的（远程）设备；没有活动设备时为 null。
 
@@ -226,6 +236,10 @@ class ConnectProvider extends ChangeNotifier implements RemoteConnectMediaPort {
         // 连接失败由 status 体现（offline），服务内部会自动重连
       }
     } else {
+      _volumeTimer?.cancel();
+      _volumeTimer = null;
+      _pendingVolume = null;
+      _pendingTarget = null;
       await service.stop();
       _cluster = ConnectCluster.empty;
       _remoteInControl = false;

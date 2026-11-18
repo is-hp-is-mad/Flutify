@@ -40,7 +40,7 @@ void main() {
     maximized = false;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
-          windowCalls.add(call.method);
+          if (call.method != 'isFullScreen') windowCalls.add(call.method);
           if (call.method == 'isMaximized') return maximized;
           if (call.method == 'isFullScreen') return false;
           if (call.method == 'maximize') maximized = true;

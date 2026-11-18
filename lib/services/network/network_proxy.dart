@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart' show debugPrint;
+
 import 'proxy_endpoint.dart';
 import '../../models/proxy_mode.dart';
 import 'proxy_tunnel.dart';
@@ -171,7 +173,8 @@ class NetworkProxy {
       gatewayCountry = country;
       gatewayLookupFailed = false;
       gateway = _gatewaySettings.copyWith(enabled: enabled);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[Proxy] 地区检测失败: $e');
       if (generation == _generation) gatewayLookupFailed = true;
     } finally {
       if (generation == _generation) {
