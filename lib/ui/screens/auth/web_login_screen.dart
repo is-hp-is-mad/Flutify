@@ -135,8 +135,9 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
   /// 最近一次页面地址（同意页自动点击的判定依据）。
   String? _currentUrl;
 
-  /// 调试开关：默认使用硬编码桌面 UA，点击右上角可切换为手机 UA 重载登录页。
-  bool _useMobileUa = false;
+  /// Android 默认使用清洗后的系统 WebView 手机 UA（避免 Client Hints 与桌面 UA 冲突导致风控 400），
+  /// 其他平台默认使用桌面 UA；点击右上角可手动切换对比。
+  bool _useMobileUa = !kIsWeb && Platform.isAndroid;
   String? _mobileUserAgent;
   int _webViewRevision = 0;
 
@@ -257,6 +258,10 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
       if (!mounted || _done || revision != _pageRevision) return;
       await EmePlayer.ensureEnvironment();
       if (!mounted || _done || revision != _pageRevision) return;
+      if (_useMobileUa) {
+        await _resolveMobileUserAgent();
+        if (!mounted || _done || revision != _pageRevision) return;
+      }
       // 加载登录页之前先确认出口地区；大陆出口时不创建 WebView，等用户选择
       if (!_regionSkipped && !await _checkRegion(revision)) return;
       setState(() {
