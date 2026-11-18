@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
@@ -34,6 +35,34 @@ export '../../../services/auth/web_login_flow.dart' show WebLoginStage;
 ///
 /// 性能说明：这是**用户主动打开的一次性登录页**，不是后台常驻渲染 open.spotify.com；
 /// 登录完成即销毁 WebView。
+/// 仅在 accounts.spotify.com 上捕获 >=400 的 fetch 响应体（Android WebView 的
+/// onReceivedHttpError 拿不到响应体），脱敏后通过 console.error 写入日志便于定位 400 原因。
+const String _kAccountsFetchErrorLogScript = r'''
+(() => {
+  if (window.__flutifyFetchErrHooked) return;
+  window.__flutifyFetchErrHooked = true;
+  if (location.hostname !== 'accounts.spotify.com' || typeof window.fetch !== 'function') return;
+  const origFetch = window.fetch.bind(window);
+  window.fetch = async function(input, init) {
+    const res = await origFetch(input, init);
+    try {
+      if (res && res.status >= 400) {
+        const rawUrl = typeof input === 'string' ? input : (input && input.url) || '';
+        const u = new URL(rawUrl, location.href);
+        if (u.hostname === 'accounts.spotify.com') {
+          const method = ((init && init.method) || (input && input.method) || 'GET').toUpperCase();
+          res.clone().text().then((txt) => {
+            const clean = String(txt || '').replace(/\s+/g, ' ').slice(0, 300);
+            console.error('[fetch-err] ' + method + ' ' + u.pathname + ' status=' + res.status + ' body=' + clean);
+          }).catch(() => {});
+        }
+      }
+    } catch (_) {}
+    return res;
+  };
+})();
+''';
+
 class WebLoginScreen extends StatefulWidget {
   const WebLoginScreen({super.key, this.regionProbe});
 
@@ -450,9 +479,16 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                         'https://accounts.spotify.com/login?continue=https%3A%2F%2Fopen.spotify.com%2F',
                       ),
                     ),
+                    initialUserScripts: UnmodifiableListView<UserScript>([
+                      UserScript(
+                        source: _kAccountsFetchErrorLogScript,
+                        injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START,
+                      ),
+                    ]),
                     initialSettings: InAppWebViewSettings(
                       disableContextMenu: true,
                       supportZoom: false,
+                      thirdPartyCookiesEnabled: true,
                       // 伪装成纯 Chrome（去掉 WebView2 的 Edg 标识）：Google 按 UA 封嵌入
                       // WebView（disallowed_useragent），伪装后有概率直接放行 Google 登录
                       userAgent:
