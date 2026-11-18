@@ -13,8 +13,8 @@ import '../../../../services/storage/preferences_store.dart';
 import '../widgets/proxy_auth_fields.dart';
 import '../widgets/proxy_server_fields.dart';
 import '../widgets/gateway_settings.dart';
+import '../widgets/settings_menu_field.dart';
 import '../widgets/settings_section.dart';
-import '../widgets/settings_segmented.dart';
 import '../../../widgets/flutify_progress.dart';
 
 /// 网络：代理模式（系统代理 / 不使用 / 手动）+ 手动代理的地址与认证 + 测试连接。
@@ -188,14 +188,16 @@ class _NetworkSectionState extends State<NetworkSection> {
         SettingsTile(
           title: l10n.settingsProxy,
           subtitle: subtitle,
-          below: SettingsSegmented<ProxyMode>(
-            values: ProxyMode.values,
-            labelOf: (m) => switch (m) {
-              ProxyMode.system => l10n.settingsProxySystem,
-              ProxyMode.none => l10n.settingsProxyNone,
-              ProxyMode.manual => l10n.settingsProxyManual,
-            },
-            selected: mode,
+          below: SettingsMenuField<ProxyMode>(
+            buttonKey: const ValueKey('proxy-mode'),
+            semanticLabel: l10n.settingsProxy,
+            icon: Icons.lan_rounded,
+            value: mode,
+            options: [
+              SettingsMenuOption(value: ProxyMode.system, label: l10n.settingsProxySystem),
+              SettingsMenuOption(value: ProxyMode.none, label: l10n.settingsProxyNone),
+              SettingsMenuOption(value: ProxyMode.manual, label: l10n.settingsProxyManual),
+            ],
             onChanged: _setMode,
           ),
         ),

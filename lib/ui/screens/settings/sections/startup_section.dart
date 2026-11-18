@@ -11,8 +11,8 @@ import '../../../../models/app_preferences.dart';
 import '../../../../providers/preferences_provider.dart';
 import '../../../../services/deep_link/spotify_link_handler.dart';
 import '../../../widgets/toast/app_toast.dart';
+import '../widgets/settings_menu_field.dart';
 import '../widgets/settings_section.dart';
-import '../widgets/settings_segmented.dart';
 import '../../../shell/desktop/desktop_integration.dart';
 
 /// 启动：启动时打开的页面；桌面端另有「记住窗口大小和位置」（下次启动生效）。
@@ -34,14 +34,15 @@ class StartupSection extends StatelessWidget {
       children: [
         SettingsTile(
           title: l10n.settingsStartPage,
-          below: SettingsSegmented<StartPage>(
-            values: StartPage.values,
-            labelOf: (v) => switch (v) {
-              StartPage.home => l10n.settingsStartPageHome,
-              StartPage.library => l10n.settingsStartPageLibrary,
-              StartPage.last => l10n.settingsStartPageLast,
-            },
-            selected: startPage,
+          below: SettingsMenuField<StartPage>(
+            semanticLabel: l10n.settingsStartPage,
+            icon: Icons.home_rounded,
+            value: startPage,
+            options: [
+              SettingsMenuOption(value: StartPage.home, label: l10n.settingsStartPageHome),
+              SettingsMenuOption(value: StartPage.library, label: l10n.settingsStartPageLibrary),
+              SettingsMenuOption(value: StartPage.last, label: l10n.settingsStartPageLast),
+            ],
             onChanged: (v) => provider.update(provider.prefs.copyWith(startPage: v)),
           ),
         ),

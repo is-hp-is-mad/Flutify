@@ -288,10 +288,17 @@ void main() {
     await openSettings(tester);
 
     expect(savedPrefs().proxyMode, ProxyMode.system);
+    final proxyDropdown = find.byKey(const ValueKey('proxy-mode'));
+    await tester.ensureVisible(proxyDropdown);
+    await settle(tester);
+    await tester.tap(proxyDropdown);
+    await settle(tester);
     await tapText(tester, '不使用');
     expect(savedPrefs().proxyMode, ProxyMode.none);
     expect(find.byKey(const ValueKey('proxy-host')), findsNothing);
 
+    await tester.tap(proxyDropdown);
+    await settle(tester);
     await tapText(tester, '手动');
     expect(savedPrefs().proxyMode, ProxyMode.manual);
 
