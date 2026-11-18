@@ -1240,6 +1240,23 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsCopyLogEmpty => '暂无日志';
 
   @override
+  String get settingsExportLog => '导出诊断日志';
+
+  @override
+  String get settingsExportLogSubtitle => '保存完整运行日志为 .log 或 .txt 文件';
+
+  @override
+  String get settingsExportLogFormat => '选择导出格式';
+
+  @override
+  String settingsExportLogDone(String path) {
+    return '日志已导出：$path';
+  }
+
+  @override
+  String get settingsExportLogFailed => '导出日志失败';
+
+  @override
   String get taskbarLyricsColorAuto => '自动';
 
   @override
@@ -3450,6 +3467,23 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get settingsCopyLogEmpty => '暫無日志';
+
+  @override
+  String get settingsExportLog => '匯出診斷日誌';
+
+  @override
+  String get settingsExportLogSubtitle => '將完整執行日誌儲存為 .log 或 .txt 檔案';
+
+  @override
+  String get settingsExportLogFormat => '選擇匯出格式';
+
+  @override
+  String settingsExportLogDone(String path) {
+    return '日誌已匯出：$path';
+  }
+
+  @override
+  String get settingsExportLogFailed => '匯出日誌失敗';
 
   @override
   String get taskbarLyricsColorAuto => '自動';

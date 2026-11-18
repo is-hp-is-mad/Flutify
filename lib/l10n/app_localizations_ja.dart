@@ -1242,6 +1242,23 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsCopyLogEmpty => 'ログはまだありません';
 
   @override
+  String get settingsExportLog => '診断ログをエクスポート';
+
+  @override
+  String get settingsExportLogSubtitle => '実行ログを .log または .txt ファイルとして保存';
+
+  @override
+  String get settingsExportLogFormat => '出力形式を選択';
+
+  @override
+  String settingsExportLogDone(String path) {
+    return 'ログをエクスポートしました: $path';
+  }
+
+  @override
+  String get settingsExportLogFailed => 'ログのエクスポートに失敗しました';
+
+  @override
   String get taskbarLyricsColorAuto => '自動';
 
   @override

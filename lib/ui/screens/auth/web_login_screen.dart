@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:collection';
+import 'dart:io' show Platform;
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:provider/provider.dart';
@@ -133,6 +135,9 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
   /// 最近一次页面地址（同意页自动点击的判定依据）。
   String? _currentUrl;
 
+  /// 按当前平台清洗后的浏览器 User-Agent（null 表示使用系统 WebView 默认值）。
+  String? _userAgent;
+
   @override
   void initState() {
     super.initState();
@@ -234,6 +239,35 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
     _controller = null;
   }
 
+  Future<String?> _resolveLoginUserAgent() async {
+    if (kIsWeb) return null;
+    String? raw;
+    try {
+      raw = (await InAppWebViewController.getDefaultUserAgent()).trim();
+    } catch (_) {
+      raw = null;
+    }
+    if (raw == null || raw.isEmpty) {
+      return Platform.isWindows
+          ? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36'
+          : null;
+    }
+    if (Platform.isAndroid) {
+      return raw
+          .replaceAll(RegExp(r';\s*wv\b|\bwv;\s*'), '')
+          .replaceAll(RegExp(r'\bVersion/\d+(?:\.\d+)*\s+'), '')
+          .replaceAll(RegExp(r'\s{2,}'), ' ')
+          .trim();
+    }
+    if (Platform.isWindows) {
+      return raw
+          .replaceAll(RegExp(r'\s+Edg/\S+'), '')
+          .replaceAll(RegExp(r'\s{2,}'), ' ')
+          .trim();
+    }
+    return null;
+  }
+
   Future<void> _retry() => _prepareLoginPage(retry: true);
 
   Future<void> _prepareLoginPage({bool retry = false}) async {
@@ -245,6 +279,8 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
       if (!mounted || _done || revision != _pageRevision) return;
       await EmePlayer.ensureEnvironment();
       if (!mounted || _done || revision != _pageRevision) return;
+      _userAgent ??= await _resolveLoginUserAgent();
+      if (!mounted || _done || revision != _pageRevision) return;
       // 加载登录页之前先确认出口地区；大陆出口时不创建 WebView，等用户选择
       if (!_regionSkipped && !await _checkRegion(revision)) return;
       setState(() {
@@ -255,7 +291,8 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
       if (retry) await _flow.retry();
       if (!mounted || _done || revision != _pageRevision) return;
       await _flow.poll();
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('[WebLogin] 准备登录页失败: $e\n$st');
       if (mounted && !_done && revision == _pageRevision) {
         setState(() {
           _webViewReady = false;
@@ -274,7 +311,8 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
     LoginRegion region;
     try {
       region = await _probeRegion();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[WebLogin] 地区检测异常: $e');
       region = const LoginRegion.unknown();
     }
     if (!mounted || _done) return false;
@@ -307,7 +345,8 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
     LoginRegion region;
     try {
       region = await _probeRegion();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[WebLogin] 地区复查异常: $e');
       return;
     }
     if (!mounted ||
@@ -489,10 +528,8 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                       disableContextMenu: true,
                       supportZoom: false,
                       thirdPartyCookiesEnabled: true,
-                      // 伪装成纯 Chrome（去掉 WebView2 的 Edg 标识）：Google 按 UA 封嵌入
-                      // WebView（disallowed_useragent），伪装后有概率直接放行 Google 登录
-                      userAgent:
-                          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36',
+                      // 保留当前平台真实 OS 与 Chromium 版本，仅去掉 WebView 嵌入标识
+                      userAgent: _userAgent,
                     ),
                     onWebViewCreated: (controller) => _controller = controller,
                     onReceivedError: (_, request, error) =>

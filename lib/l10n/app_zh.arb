@@ -660,6 +660,18 @@
   "settingsCopyLogSubtitle": "反馈问题时粘贴给开发者；日志只含运行记录，不含密码",
   "settingsCopyLogDone": "日志已复制到剪贴板",
   "settingsCopyLogEmpty": "暂无日志",
+  "settingsExportLog": "导出诊断日志",
+  "settingsExportLogSubtitle": "保存完整运行日志为 .log 或 .txt 文件",
+  "settingsExportLogFormat": "选择导出格式",
+  "settingsExportLogDone": "日志已导出：{path}",
+  "@settingsExportLogDone": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsExportLogFailed": "导出日志失败",
   "taskbarLyricsColorAuto": "自动",
   "taskbarLyricsColorWhite": "白色",
   "taskbarLyricsColorBlack": "黑色",

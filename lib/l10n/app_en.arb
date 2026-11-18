@@ -425,6 +425,18 @@
   "settingsCopyLogSubtitle": "Paste it when reporting a problem; contains run records, no passwords",
   "settingsCopyLogDone": "Log copied to clipboard",
   "settingsCopyLogEmpty": "No log yet",
+  "settingsExportLog": "Export diagnostic log",
+  "settingsExportLogSubtitle": "Save full runtime log as a .log or .txt file",
+  "settingsExportLogFormat": "Choose export format",
+  "settingsExportLogDone": "Log exported: {path}",
+  "@settingsExportLogDone": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsExportLogFailed": "Failed to export log",
   "taskbarLyricsColorAuto": "Auto",
   "taskbarLyricsColorWhite": "White",
   "taskbarLyricsColorBlack": "Black",

@@ -242,6 +242,7 @@ class UpdateService extends ChangeNotifier {
       if (_disposed || generation != _generation) return;
       status = UpdateStatus.failed;
       error = e.toString();
+      debugPrint('[Updates] Check failed: $e');
       _notify();
     }
   }
@@ -301,6 +302,7 @@ class UpdateService extends ChangeNotifier {
       if (_disposed || generation != _generation) return;
       status = UpdateStatus.failed;
       error = e.toString();
+      debugPrint('[Updates] Download failed: $e');
       _notify();
     } finally {
       if (identical(_downloader, downloader)) _downloader = null;

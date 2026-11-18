@@ -2369,6 +2369,36 @@ abstract class AppLocalizations {
   /// **'暂无日志'**
   String get settingsCopyLogEmpty;
 
+  /// No description provided for @settingsExportLog.
+  ///
+  /// In zh, this message translates to:
+  /// **'导出诊断日志'**
+  String get settingsExportLog;
+
+  /// No description provided for @settingsExportLogSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'保存完整运行日志为 .log 或 .txt 文件'**
+  String get settingsExportLogSubtitle;
+
+  /// No description provided for @settingsExportLogFormat.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择导出格式'**
+  String get settingsExportLogFormat;
+
+  /// No description provided for @settingsExportLogDone.
+  ///
+  /// In zh, this message translates to:
+  /// **'日志已导出：{path}'**
+  String settingsExportLogDone(String path);
+
+  /// No description provided for @settingsExportLogFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'导出日志失败'**
+  String get settingsExportLogFailed;
+
   /// No description provided for @taskbarLyricsColorAuto.
   ///
   /// In zh, this message translates to:
