@@ -78,6 +78,10 @@ Future<void> showUpdateDialog(BuildContext context, UpdateService service) => sh
 );
 
 Future<void> openUpdatePage(BuildContext context, UpdateService service) async {
+  // 手动更新（macOS / Linux 等）：同样记下「更新后续播」，新版本启动后自动接着放
+  try {
+    await service.beforeInstall?.call();
+  } catch (_) {}
   try {
     final opened = await launchUrl(service.release?.page ?? Uri.parse('https://github.com/is-hp-is-mad/Flutify/releases'),
         mode: LaunchMode.externalApplication);

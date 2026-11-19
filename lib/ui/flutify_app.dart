@@ -43,6 +43,7 @@ import '../services/connect/connect_service.dart';
 import '../services/connect/receiver/connect_receiver.dart';
 import '../services/connect/receiver/playback_receiver_host.dart';
 import '../services/eme/eme_player.dart';
+import '../services/updates/update_resume.dart';
 import '../services/lyric_bridge/lyric_metadata_controls.dart';
 import '../services/lyrics/lrclib_lyrics_source.dart';
 import '../services/lyrics/lyrics_resolver.dart';
@@ -152,6 +153,32 @@ class FlutifyApp extends StatelessWidget {
     this.e2eRunner,
   });
 
+  /// 更新后续播：点「安装更新」时正在播放就保存会话并记标记；新版本启动后（已登录、有上次曲目）自动开始播放。
+  void _wireResumeAfterUpdate(PlaybackProvider playback, SpotifyAuthService auth) {
+    final resume = UpdateResume(storageService.updates);
+    updateService?.beforeInstall = () async {
+      if (!playback.isPlaybackActive) return;
+      await playback.flushSession();
+      await resume.mark();
+      debugPrint('[Updates] 更新前正在播放：已记下，更新后自动续播');
+    };
+    unawaited(
+      resume.consume().then((shouldResume) {
+        if (!shouldResume) return;
+        // 首帧之后再播：音频引擎、EME 页面与登录态都已就绪
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!auth.isLoggedIn ||
+              playback.currentTrack == null ||
+              playback.isPlaybackActive) {
+            return;
+          }
+          debugPrint('[playback] 更新前在播放：自动续播');
+          unawaited(playback.togglePlayPause());
+        });
+      }),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     MediaControlsSync? mediaSync;
@@ -186,7 +213,7 @@ class FlutifyApp extends StatelessWidget {
           },
         ),
         ChangeNotifierProvider(
-          create: (_) {
+          create: (ctx) {
             final playback = PlaybackProvider(
               audioEngine,
               storageService.playback,
@@ -211,6 +238,7 @@ class FlutifyApp extends StatelessWidget {
               );
             };
             DesktopWindow.addBeforeCloseHook(playback.flushSession);
+            _wireResumeAfterUpdate(playback, ctx.read<SpotifyAuthService>());
             final controls = mediaControls;
             if (controls != null) {
               mediaSync = MediaControlsSync(

@@ -317,12 +317,20 @@ class UpdateService extends ChangeNotifier {
     _notify();
   }
 
+  /// 安装前 / 打开发布页手动更新前的回调（记下「更新后续播」标记等）；失败不影响更新。
+  Future<void> Function()? beforeInstall;
+
   Future<void> install() async {
     if (package == null || checksum == null || status != UpdateStatus.ready) return;
     status = UpdateStatus.installing;
     error = null;
     needsInstallPermission = false;
     _notify();
+    try {
+      await beforeInstall?.call();
+    } catch (e) {
+      debugPrint('[Updates] beforeInstall failed: $e');
+    }
     try {
       final opened = await installer.install(package!, checksum!);
       needsInstallPermission = !opened;
