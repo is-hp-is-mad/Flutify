@@ -9,12 +9,14 @@ const base = {
   GITHUB_SHA: HEAD, GITHUB_RUN_NUMBER: '150', BASE_TAG: 'v0.18',
 };
 const PUBLISHED = '2026-11-10T08:00:00Z';
+const AFTER_24H = Date.parse(PUBLISHED) + 24 * 60 * 60 * 1000;
 const release = (tag, publishedAt = PUBLISHED) => ({ tag, draft: false, publishedAt });
-function deps({ releases = [], created = 0, tags = {}, asked = [] } = {}) {
+function deps({ releases = [], created = 0, tags = {}, asked = [], now = AFTER_24H } = {}) {
   return {
     listReleases: () => releases,
     issuesCreatedSince: (time) => { asked.push(time); return created; },
     resolveTag: (tag) => tags[tag] ?? (releases.some((r) => r.tag === tag) ? OLD : null),
+    now: () => now,
   };
 }
 
@@ -98,6 +100,10 @@ test('the weekly run releases the newest beta only when no issue was opened afte
   const blocked = releaseConfig(env, deps({ releases, tags, created: 1 }));
   assert.equal(blocked.build, 'false');
   assert.match(blocked.reason, /1 issue\(s\) opened since v0\.18\.145-beta/);
+
+  const tooSoon = releaseConfig(env, deps({ releases, tags, now: AFTER_24H - 1 }));
+  assert.equal(tooSoon.build, 'false');
+  assert.match(tooSoon.reason, /less than 24h ago/);
 });
 
 test('the weekly run skips when there are no new commits since the last release', () => {

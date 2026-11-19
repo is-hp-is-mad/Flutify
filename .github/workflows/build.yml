@@ -1,7 +1,7 @@
 # 构建并发布 Android / Windows / macOS / Linux 安装包。每次编译都会打标签发布，区别只在通道：
 # - self-test：推送到 main 自动发布，开发者自测用（预发布）。
 # - beta：手动运行，选 channel=beta、填要提升的 self-test 标签，并勾选「已亲自验证」才会编译发布（预发布）。
-# - release：正式版。每周一 09:00（北京时间）定时运行：最新 beta 发布之后没有任何新开的 issue 才自动发布；
+# - release：正式版。每天 10:00（北京时间）定时运行：最新 beta 发布满 24 小时且之后没有任何新开的 issue 才自动发布；
 #   也可手动运行，把某个 beta 标签提升为正式版。
 # 标签第三段是「实质版本号」（= 本工作流的运行号，每编译一次加一，三个通道共用）：
 #   v0.18.135-selftest / v0.18.140-beta / v0.18.151。规则见 tool/release_config.cjs。
@@ -16,8 +16,8 @@ on:
   pull_request:
     branches: [main]
   schedule:
-    # 周一 01:00 UTC = 北京时间周一 09:00
-    - cron: '0 1 * * 1'
+    # 每天 02:00 UTC = 北京时间每天 10:00
+    - cron: '0 2 * * *'
   workflow_dispatch:
     inputs:
       channel:

@@ -3,7 +3,7 @@
 // 三个通道（每次编译都发布，区别只在通道）：
 // - self-test：推送到 main 自动发，开发者自测用；
 // - beta：某个 self-test 版经人工确认没问题后，手动运行工作流提升；
-// - release：正式版。每周一定时运行，最新 beta 发布之后没有任何新开的 issue 才自动发；也可手动提升。
+// - release：正式版。每天定时运行，最新 beta 发布满 24 小时且之后没有任何新开的 issue 才自动发；也可手动提升。
 //
 // 「实质版本号」= 本工作流的运行号（GITHUB_RUN_NUMBER），每编译一次加一，三个通道共用一个序列，
 // 写在标签的第三段：v0.18.135-selftest / v0.18.140-beta / v0.18.151。客户端只会从低号更新到高号。
@@ -97,6 +97,12 @@ function releaseConfig(env, deps) {
     // 发布之后新开的 issue 都算，不管现在是否已关闭：有人报过问题就留给人来判断
     if (!/^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/.test(beta.publishedAt || '')) {
       return skip(`${beta.tag} has no publication time.`);
+    }
+    const publishedMs = Date.parse(beta.publishedAt);
+    const nowMs = deps.now ? deps.now() : Date.now();
+    const minAgeMs = 24 * 60 * 60 * 1000;
+    if (!Number.isFinite(publishedMs) || nowMs - publishedMs < minAgeMs) {
+      return skip(`${beta.tag} was published less than 24h ago; not releasing.`);
     }
     const created = deps.issuesCreatedSince(beta.publishedAt);
     if (created > 0) {
