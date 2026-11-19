@@ -462,4 +462,81 @@ mod tests {
         assert_eq!(show.episodes[0].id, "ep1");
         assert_eq!(show.episodes[0].preview_url, "https://cdn/p.mp3");
     }
+
+    fn initial_state_html(state: &Value) -> String {
+        let b64 = base64::engine::general_purpose::STANDARD.encode(state.to_string());
+        format!("<script id=\"initialState\" type=\"text/plain\">\n{b64}\n</script>")
+    }
+
+    #[test]
+    fn parses_episode_page_with_show_wrapper_and_cover_fallback() {
+        let state = json!({
+            "entities": { "items": { "spotify:episode:ep9": {
+                "__typename": "Episode",
+                "uri": "spotify:episode:ep9",
+                "name": "Ep 9",
+                "duration": 1234,
+                "releaseDate": "2026-01-02",
+                "playedState": { "playPositionMilliseconds": 5000, "state": "IN_PROGRESS" },
+                "showOrAudiobook": { "data": {
+                    "uri": "spotify:show:s1",
+                    "name": "Show One",
+                    "coverArt": { "sources": [
+                        { "url": "https://img/small.jpg", "width": 64, "height": 64 },
+                        { "url": "https://img/big.jpg", "width": 640, "height": 640 }
+                    ] }
+                } }
+            } } }
+        });
+        let ep = parse_podcast_episode_html("ep9", &initial_state_html(&state)).unwrap();
+        assert_eq!(ep.id, "ep9");
+        assert_eq!(ep.show_uri, "spotify:show:s1");
+        assert_eq!(ep.show_name, "Show One");
+        assert_eq!(ep.duration_ms, 1234);
+        assert_eq!(ep.release_date, "2026-01-02");
+        assert_eq!(ep.resume_ms, 5000);
+        assert!(!ep.played);
+        // 单集无封面时回落到节目封面，大图在前
+        assert_eq!(ep.images.len(), 2);
+        assert_eq!(ep.images[0].url, "https://img/big.jpg");
+    }
+
+    #[test]
+    fn finished_episode_resets_resume_position() {
+        let state = json!({
+            "entities": { "items": { "spotify:episode:ep1": {
+                "__typename": "Episode",
+                "id": "ep1",
+                "playedState": { "playPositionMilliseconds": 9000, "state": "FINISHED" },
+                "podcastV2": { "data": { "uri": "spotify:show:s2", "name": "S2" } }
+            } } }
+        });
+        let ep = parse_podcast_episode_html("ep1", &initial_state_html(&state)).unwrap();
+        assert_eq!(ep.id, "ep1");
+        assert!(ep.played);
+        assert_eq!(ep.resume_ms, 0);
+        assert_eq!(ep.show_name, "S2");
+    }
+
+    #[test]
+    fn podcast_parse_errors_match_user_facing_messages() {
+        assert_eq!(
+            parse_podcast_show_html("x", "<html></html>").unwrap_err(),
+            "页面结构已变化，无法解析"
+        );
+        assert_eq!(
+            parse_podcast_show_html("x", "<script id=\"initialState\">!!!</script>").unwrap_err(),
+            "页面数据无法解析"
+        );
+        let empty = initial_state_html(&json!({ "entities": { "items": {} } }));
+        assert_eq!(parse_podcast_show_html("x", &empty).unwrap_err(), "没有找到对应的节目");
+        assert_eq!(parse_podcast_episode_html("x", &empty).unwrap_err(), "没有找到对应的单集");
+        let not_episode = initial_state_html(&json!({ "entities": { "items": {
+            "spotify:episode:x": { "__typename": "Chapter" }
+        } } }));
+        assert_eq!(
+            parse_podcast_episode_html("x", &not_episode).unwrap_err(),
+            "没有找到对应的单集"
+        );
+    }
 }

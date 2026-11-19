@@ -10,6 +10,7 @@ import 'api/backend.dart';
 import 'api/lyrics.dart';
 import 'api/network.dart';
 import 'api/protocol.dart';
+import 'api/session_tokens.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'frb_generated.dart';
