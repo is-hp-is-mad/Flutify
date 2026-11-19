@@ -1,0 +1,50 @@
+# 手动验证：Rust 单测 + clippy、Dart 静态检查（只在 error 时失败）+ flutter test。不打包、不发布。
+name: Verify
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: '3.44.0'
+
+jobs:
+  rust:
+    name: Rust test & clippy
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: rust/flutify_core
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust/flutify_core
+      - run: cargo test --locked
+      - run: cargo clippy --all-targets -- -D warnings
+
+  dart:
+    name: Dart analyze & test
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Analyze (fail on errors only)
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - run: flutter test
