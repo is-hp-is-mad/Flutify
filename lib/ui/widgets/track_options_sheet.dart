@@ -49,6 +49,7 @@ class TrackOptionsSheet extends StatelessWidget {
     final l10n = context.l10n;
     final isLiked = context.select<LibraryProvider, bool>((l) => l.isLiked(track.id));
     final album = track.album;
+    final showNavigation = !TrackMenuScope.hidesNavigation(hostContext);
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -110,13 +111,13 @@ class TrackOptionsSheet extends StatelessWidget {
                 if (hostContext.mounted) SongRadio.open(hostContext, track);
               },
             ),
-            if (album != null && album.id.isNotEmpty)
+            if (showNavigation && album != null && album.id.isNotEmpty)
               ListTile(
                 leading: const Icon(Icons.album_rounded),
                 title: Text(l10n.trackGoToAlbum),
                 onTap: () => AppRoutes.openAlbum(hostContext, album),
               ),
-            if (track.artists.isNotEmpty)
+            if (showNavigation && track.artists.isNotEmpty)
               ListTile(
                 leading: const Icon(Icons.person_rounded),
                 title: Text(l10n.trackGoToArtist(track.artists.length)),

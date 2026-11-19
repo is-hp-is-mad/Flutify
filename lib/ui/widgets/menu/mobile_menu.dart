@@ -9,7 +9,8 @@ class MobileMenu {
 
   static const double _hPad = 20;
 
-  /// 菜单行：图标 + 标题，可选副标题；[submenu] 为 true 时右侧显示 ›。
+  /// 菜单行：图标 + 标题，可选副标题；[submenu] 为 true 时右侧显示 ›；
+  /// [destructive] 为 true 时整行标红。
   /// 提供 [onTap] 时点击不关闭当前菜单，而是交由回调在上方弹出子菜单。
   static PopupMenuEntry<T> item<T>(
     T value,
@@ -18,15 +19,18 @@ class MobileMenu {
     String? subtitle,
     Color? iconColor,
     bool submenu = false,
+    bool destructive = false,
     void Function(BuildContext itemContext)? onTap,
   }) {
     final hasSubtitle = subtitle != null && subtitle.isNotEmpty;
     final rowHeight = hasSubtitle ? 60.0 : 50.0;
     Widget buildRow(BuildContext context) {
       final scheme = Theme.of(context).colorScheme;
+      // 破坏性操作（删除等）：图标与文字都用红色（Apple 菜单的 destructive 样式）
+      final labelColor = destructive ? scheme.error : scheme.onSurface;
       return Row(
         children: [
-          Icon(icon, size: 24, color: iconColor ?? scheme.onSurface),
+          Icon(icon, size: 24, color: iconColor ?? labelColor),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -37,7 +41,7 @@ class MobileMenu {
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 16, color: scheme.onSurface),
+                  style: TextStyle(fontSize: 16, color: labelColor),
                 ),
                 if (hasSubtitle) ...[
                   const SizedBox(height: 2),

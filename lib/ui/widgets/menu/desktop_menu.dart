@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/flutify_tokens.dart';
 import '../liquid_artwork_background.dart';
+import '../../shell/shell_breakpoints.dart';
+import 'apple_more_menu_route.dart';
 import 'hyper_menu_route.dart';
 import '../liquid_glass.dart';
 
@@ -77,7 +79,11 @@ class DesktopMenu {
 
   /// 菜单的锚点（Overlay 坐标）：位置贴着触发组件时（按钮菜单）就是组件本身，
   /// 否则（右键菜单）是指针处的一个小方块。
-  static Rect _anchorRect(BuildContext context, RenderBox overlay, Offset position) {
+  static Rect _anchorRect(
+    BuildContext context,
+    RenderBox overlay,
+    Offset position,
+  ) {
     final local = overlay.globalToLocal(position);
     final box = context.findRenderObject();
     if (box is RenderBox && box.hasSize && box.attached) {
@@ -302,6 +308,7 @@ class FlutifyPopupMenuButton<T> extends StatelessWidget {
     this.icon,
     this.child,
     this.position,
+    this.morph = false,
   });
 
   final PopupMenuItemBuilder<T> itemBuilder;
@@ -312,8 +319,31 @@ class FlutifyPopupMenuButton<T> extends StatelessWidget {
   final Widget? child;
   final PopupMenuPosition? position;
 
+  /// 「⋯」更多按钮：手机宽度上从按钮形变出 Apple Music 式上下文菜单（[AppleMoreMenu]），
+  /// 与材质设置无关；桌面宽度照旧。只在明确的 ⋯ 入口打开，其他下拉菜单不受影响。
+  final bool morph;
+
   @override
   Widget build(BuildContext context) {
+    if (morph &&
+        child == null &&
+        !ShellBreakpoints.isDesktop(MediaQuery.sizeOf(context).width)) {
+      return AppleMoreMenuSource(
+        child: Builder(
+          builder: (anchor) => IconButton(
+            icon: icon ?? const Icon(Icons.more_horiz_rounded),
+            tooltip: tooltip,
+            onPressed: () async {
+              final value = await AppleMoreMenu.show<T>(
+                anchor,
+                itemBuilder(anchor),
+              );
+              if (value != null) onSelected?.call(value);
+            },
+          ),
+        ),
+      );
+    }
     if (!context.tokens.hyperMaterial) {
       return PopupMenuButton<T>(
         itemBuilder: itemBuilder,
