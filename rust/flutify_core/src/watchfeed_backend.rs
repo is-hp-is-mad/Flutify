@@ -1,4 +1,10 @@
-//! WatchFeed（竖滑发现流）spclient Protobuf 请求编码、Android 身份请求与二进制响应解析。
+//! WatchFeed（竖滑发现流）spclient Protobuf 请求编码、Android 身份请求与二进制响应解析，
+//! 以及桌面版 Pathfinder（`watchFeedEntity` / `watchFeedView`）JSON 响应解析。
+//!
+//! 字段号来自 Spotify Android 9.2.0.26 反编译与线上实测，见 docs/DISCOVERY_FEED_ANALYSIS.md。
+//! 全部宽松解析：不认识的组件跳过，缺字段给空值，不报错。
+
+use serde_json::Value;
 
 use crate::proto_lite::{write_bytes, write_string, ProtoAny, ProtoMsg};
 use crate::spotify_backend::{id_from_uri, BackendAlbum, BackendArtist, BackendImage, BackendTrack};
@@ -49,6 +55,8 @@ pub struct BackendWatchFeedCreator {
     pub name: String,
     pub subtitle: String,
     pub image_url: String,
+    /// 月度听众（仅桌面版 Pathfinder 实体 feed 有）。
+    pub monthly_listeners: Option<i64>,
     pub follow_uri: String,
     pub follow_text: String,
     pub following_text: String,
@@ -82,6 +90,8 @@ pub struct BackendWatchFeedItem {
     pub entity_row: Option<BackendWatchFeedEntityRow>,
     pub texts: Vec<String>,
     pub track: Option<BackendTrack>,
+    /// 不透明 ARGB 背景色（仅桌面版 Pathfinder：专辑封面 extractedColors.colorDark）。
+    pub background_color: Option<i64>,
     pub can_share: bool,
     pub has_menu: bool,
     pub can_save: bool,
@@ -98,19 +108,37 @@ pub struct BackendWatchFeedPage {
     pub associated_onboarding_text: String,
 }
 
+/// 桌面版实体 feed（`watchFeedEntity`）的一页。
+#[derive(Debug, Clone)]
+pub struct BackendWatchFeedEntityPage {
+    pub items: Vec<BackendWatchFeedItem>,
+    pub total_count: i64,
+    pub next_offset: Option<i64>,
+}
+
+/// 只接受 https 地址；VideoFile 等字段偶尔是 manifest id。
 fn http_url(raw: &str) -> String {
-    if raw.starts_with("http://") || raw.starts_with("https://") {
+    if raw.starts_with("https://") {
         raw.to_string()
     } else {
         String::new()
     }
 }
 
-fn first_string(msg: &ProtoMsg<'_>) -> String {
-    for f in 1..=5 {
-        let s = msg.str(f);
-        if !s.is_empty() {
-            return s.to_string();
+/// 嵌套消息里的第一个非空字符串（Heading 的结构是多层 oneof，只关心标题文字）：
+/// 依次看字段 1..=4，本层是不含控制字符的字符串就返回，否则（深度 < 3 时）递归进该字段的子消息。
+fn first_string(msg: &ProtoMsg<'_>, depth: u32) -> String {
+    for field in 1..=4 {
+        if let Some(b) = msg.bytes(field) {
+            if !b.is_empty() && !b.iter().any(|&c| c < 0x20) {
+                return String::from_utf8_lossy(b).into_owned();
+            }
+        }
+        if depth < 3 {
+            let nested = first_string(&msg.msg(field), depth + 1);
+            if !nested.is_empty() {
+                return nested;
+            }
         }
     }
     String::new()
@@ -158,7 +186,7 @@ pub fn parse_browse_shelf(bytes: &[u8]) -> Option<BackendWatchFeedShelf> {
             continue;
         }
         return Some(BackendWatchFeedShelf {
-            title: first_string(&wf.msg(1)),
+            title: first_string(&wf.msg(1), 0),
             entries,
         });
     }
@@ -353,6 +381,7 @@ fn parse_creator(m: &ProtoMsg<'_>) -> Option<BackendWatchFeedCreator> {
             .first()
             .map(|v| v.msg(1).str(1).to_string())
             .unwrap_or_default(),
+        monthly_listeners: None,
         follow_uri: follow.str(1).to_string(),
         follow_text: follow.str(2).to_string(),
         following_text: follow.str(3).to_string(),
@@ -557,6 +586,7 @@ fn parse_item(layout: &ProtoAny<'_>) -> Option<BackendWatchFeedItem> {
         entity_row,
         texts,
         track,
+        background_color: None,
         can_share,
         has_menu,
         can_save,
@@ -613,6 +643,311 @@ pub fn parse_feed(bytes: &[u8]) -> BackendWatchFeedPage {
         associated_feed_uris,
         vertical_onboarding_text: vertical,
         associated_onboarding_text: associated,
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 桌面版：Pathfinder JSON（watchFeedEntity / watchFeedView）
+// ---------------------------------------------------------------------------
+
+static JSON_NULL: Value = Value::Null;
+
+/// `v[key]`；`v` 不是对象或没有该键时为 null（对应 Dart `_map(v)[key]`）。
+fn jget<'a>(v: &'a Value, key: &str) -> &'a Value {
+    v.get(key).unwrap_or(&JSON_NULL)
+}
+
+/// 数组元素；不是数组时为空。
+fn jlist(v: &Value) -> &[Value] {
+    v.as_array().map(Vec::as_slice).unwrap_or(&[])
+}
+
+/// 字符串值；不是字符串时为空串。
+fn jstr(v: &Value) -> &str {
+    v.as_str().unwrap_or("")
+}
+
+/// 数字 → 整数（浮点截断，同 Dart `num.toInt()`）；不是数字时为 None。
+fn jint(v: &Value) -> Option<i64> {
+    if let Some(i) = v.as_i64() {
+        return Some(i);
+    }
+    if let Some(u) = v.as_u64() {
+        return Some(u as i64);
+    }
+    v.as_f64().map(|f| f as i64)
+}
+
+/// 图片源里最大（或 `smallest` 时最小）的一张；尺寸取 `width`，没有再取 `maxWidth`，都没有为 0。
+fn pick_source(sources: &[Value], smallest: bool) -> String {
+    let mut best = "";
+    let mut best_size = if smallest { f64::INFINITY } else { -1.0 };
+    for s in sources {
+        let url = jstr(jget(s, "url"));
+        if url.is_empty() {
+            continue;
+        }
+        let size = [jget(s, "width"), jget(s, "maxWidth")]
+            .into_iter()
+            .find(|v| !v.is_null())
+            .and_then(Value::as_f64)
+            .unwrap_or(0.0);
+        let better = if smallest {
+            size < best_size
+        } else {
+            size > best_size
+        };
+        if better {
+            best = url;
+            best_size = size;
+        }
+    }
+    best.to_string()
+}
+
+/// `#RRGGBB` → 不透明 ARGB；格式不对返回 None。
+fn hex_color(hex: &str) -> Option<i64> {
+    let v = hex.strip_prefix('#').unwrap_or(hex);
+    if v.chars().map(char::len_utf16).sum::<usize>() != 6 {
+        return None;
+    }
+    i64::from_str_radix(v.trim(), 16)
+        .ok()
+        .map(|rgb| 0xFF00_0000 | rgb)
+}
+
+/// Pathfinder `Track` → 条目。canvas（有则播视频）、previews.audioPreviews（试听）、
+/// discoveryFeedHashtags（#标签，标题不带 #）、albumOfTrack.coverArt.extractedColors.colorDark（背景色）。
+fn entity_track(t: &Value) -> Option<BackendWatchFeedItem> {
+    let uri = jstr(jget(t, "uri"));
+    if !uri.starts_with("spotify:track:") {
+        return None;
+    }
+    let album = jget(t, "albumOfTrack");
+    let cover_art = jget(album, "coverArt");
+    let cover = pick_source(jlist(jget(cover_art, "sources")), false);
+    let artists = jlist(jget(jget(t, "artists"), "items"));
+    let first = artists.first().unwrap_or(&JSON_NULL);
+    let canvas = jget(t, "canvas");
+    let canvas_url = http_url(jstr(jget(canvas, "url")));
+    let canvas_thumb = pick_source(jlist(jget(jget(canvas, "thumbnail"), "sources")), false);
+    let preview = jlist(jget(jget(jget(t, "previews"), "audioPreviews"), "items"));
+    let preview_url = preview
+        .first()
+        .map(|p| http_url(jstr(jget(p, "url"))))
+        .unwrap_or_default();
+    let dark = jget(jget(cover_art, "extractedColors"), "colorDark");
+    let dark_hex = if jget(dark, "isFallback").as_bool() == Some(true) {
+        ""
+    } else {
+        jstr(jget(dark, "hex"))
+    };
+    let first_uri = jstr(jget(first, "uri"));
+    let album_uri = jstr(jget(album, "uri"));
+    let track = BackendTrack {
+        id: id_from_uri(uri),
+        name: jstr(jget(t, "name")).to_string(),
+        uri: uri.to_string(),
+        duration_ms: 0,
+        artists: artists
+            .iter()
+            .filter_map(|a| {
+                let auri = jstr(jget(a, "uri"));
+                if auri.is_empty() {
+                    return None;
+                }
+                Some(BackendArtist {
+                    id: id_from_uri(auri),
+                    name: jstr(jget(jget(a, "profile"), "name")).to_string(),
+                    uri: auri.to_string(),
+                    followers: None,
+                    images: Vec::new(),
+                })
+            })
+            .collect(),
+        album: if album_uri.is_empty() {
+            None
+        } else {
+            Some(BackendAlbum {
+                id: id_from_uri(album_uri),
+                name: jstr(jget(album, "name")).to_string(),
+                uri: album_uri.to_string(),
+                album_type: "album".to_string(),
+                release_date: String::new(),
+                total_tracks: 0,
+                images: if cover.is_empty() {
+                    Vec::new()
+                } else {
+                    vec![BackendImage {
+                        url: cover.clone(),
+                        width: None,
+                        height: None,
+                    }]
+                },
+                artists: Vec::new(),
+            })
+        },
+        explicit: jstr(jget(jget(t, "contentRating"), "label")) == "EXPLICIT",
+        is_playable: true,
+        added_at_ms: None,
+    };
+    let visual = if !canvas_url.is_empty() {
+        BackendWatchFeedVisual {
+            kind: 0,
+            video_url: canvas_url,
+            image_url: if canvas_thumb.is_empty() {
+                cover.clone()
+            } else {
+                canvas_thumb
+            },
+            animation_url: String::new(),
+            colors: Vec::new(),
+        }
+    } else {
+        BackendWatchFeedVisual {
+            kind: 1,
+            video_url: String::new(),
+            image_url: cover.clone(),
+            animation_url: String::new(),
+            colors: Vec::new(),
+        }
+    };
+    let creator = if first_uri.is_empty() {
+        None
+    } else {
+        Some(BackendWatchFeedCreator {
+            uri: first_uri.to_string(),
+            name: jstr(jget(jget(first, "profile"), "name")).to_string(),
+            subtitle: String::new(),
+            image_url: pick_source(
+                jlist(jget(jget(jget(first, "visuals"), "avatarImage"), "sources")),
+                true,
+            ),
+            monthly_listeners: jint(jget(jget(first, "stats"), "monthlyListeners")),
+            follow_uri: first_uri.to_string(),
+            follow_text: String::new(),
+            following_text: String::new(),
+        })
+    };
+    let hashtags = jlist(jget(t, "discoveryFeedHashtags"))
+        .iter()
+        .filter_map(|h| {
+            let title = jstr(jget(h, "title"));
+            let nav = jstr(jget(h, "uri"));
+            if title.is_empty() || !nav.starts_with("spotify:watch-feed") {
+                return None;
+            }
+            Some(BackendWatchFeedHashtag {
+                id: id_from_uri(nav.split('?').next().unwrap_or("")),
+                title: format!("#{title}"),
+                navigation_uri: nav.to_string(),
+                seed_item_uri: uri.to_string(),
+            })
+        })
+        .collect();
+    Some(BackendWatchFeedItem {
+        id: uri.to_string(),
+        uri: uri.to_string(),
+        visual,
+        audio: if preview_url.is_empty() {
+            None
+        } else {
+            Some(BackendWatchFeedAudio {
+                url: preview_url,
+                should_loop: true,
+                fade_in: false,
+            })
+        },
+        creator,
+        hashtags,
+        entity_row: None,
+        texts: Vec::new(),
+        track: Some(track),
+        background_color: hex_color(dark_hex),
+        can_share: true,
+        has_menu: true,
+        can_save: true,
+        has_progress_bar: true,
+    })
+}
+
+/// `data.getWatchFeedForEntity{items[TrackResponseWrapper{data: Track}], totalCount,
+/// pagingInfo{nextOffset}}` → 条目。`data` 为 Pathfinder 响应的 `data` 对象。
+pub fn parse_entity_feed(data: &Value) -> BackendWatchFeedEntityPage {
+    let feed = jget(data, "getWatchFeedForEntity");
+    let items: Vec<BackendWatchFeedItem> = jlist(jget(feed, "items"))
+        .iter()
+        .map(|w| jget(w, "data"))
+        .filter(|t| jget(t, "__typename").as_str() == Some("Track"))
+        .filter_map(entity_track)
+        .collect();
+    let total_count = jint(jget(feed, "totalCount")).unwrap_or(items.len() as i64);
+    BackendWatchFeedEntityPage {
+        next_offset: jint(jget(jget(feed, "pagingInfo"), "nextOffset")),
+        total_count,
+        items,
+    }
+}
+
+/// open.spotify.com Web 端 `watchFeedView`（#标签发现流）→ 一页。
+///
+/// 下一页令牌为 `web:{"offset":N,"previousItems":[…]}` 的 UTF-8 字节（previousItems 累加本页条目 uri），
+/// 由 Dart 端 `WatchFeedService` 识别后继续走 Web 端翻页。
+pub fn parse_discovery_feed_view(data: &Value, previous_items: &[String]) -> BackendWatchFeedPage {
+    let mut items = Vec::new();
+    let mut title = "";
+    let mut next_offset: Option<i64> = None;
+    for section in jlist(jget(jget(data, "homeSections"), "sections")) {
+        if jget(section, "__typename").as_str() != Some("HomeSection") {
+            continue;
+        }
+        let section_data = jget(section, "data");
+        let typename = jstr(jget(section_data, "__typename"));
+        if typename != "HomeWatchFeedSectionData" && typename != "HomeGenericSectionData" {
+            continue;
+        }
+        let label = jstr(jget(jget(section_data, "title"), "transformedLabel"));
+        if !label.is_empty() {
+            title = label;
+        }
+        let section_items = jget(section, "sectionItems");
+        for raw in jlist(jget(section_items, "items")) {
+            let content = jget(raw, "content");
+            if jget(content, "__typename").as_str() != Some("TrackResponseWrapper") {
+                continue;
+            }
+            let track = jget(content, "data");
+            if jget(track, "__typename").as_str() != Some("Track") {
+                continue;
+            }
+            if let Some(item) = entity_track(track) {
+                items.push(item);
+            }
+        }
+        if let Some(n) = jint(jget(jget(section_items, "pagingInfo"), "nextOffset")).filter(|&n| n > 0) {
+            next_offset = Some(n);
+        }
+    }
+    let next_page_token = next_offset.map(|offset| {
+        let previous: Vec<&str> = previous_items
+            .iter()
+            .map(String::as_str)
+            .chain(items.iter().map(|i: &BackendWatchFeedItem| i.uri.as_str()))
+            .collect();
+        let cursor = serde_json::json!({ "offset": offset, "previousItems": previous });
+        format!("web:{cursor}").into_bytes()
+    });
+    BackendWatchFeedPage {
+        header_titles: if title.is_empty() {
+            Vec::new()
+        } else {
+            vec![title.to_string()]
+        },
+        items,
+        next_page_token,
+        associated_feed_uris: Vec::new(),
+        vertical_onboarding_text: String::new(),
+        associated_onboarding_text: String::new(),
     }
 }
 
@@ -723,25 +1058,5 @@ pub async fn fetch_watch_feed_seed_shelf(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn encode_and_parse_empty_broken_feed_is_safe() {
-        let req = encode_watch_feed_request(
-            "discovery-feed",
-            Some("ent-1"),
-            &[("k".into(), "v".into())],
-            Some(&[1, 2, 3]),
-        );
-        let msg = ProtoMsg::parse(&req);
-        assert_eq!(msg.str(1), "discovery-feed");
-        assert_eq!(msg.str(2), "ent-1");
-        assert!(msg.has(101));
-
-        let page = parse_feed(&[0xff, 0xff, 0x01]);
-        assert!(page.items.is_empty());
-        assert!(parse_browse_shelf(&[0xff]).is_none());
-        assert!(parse_seed_shelf(&[]).is_none());
-    }
-}
+#[path = "watchfeed_backend_tests.rs"]
+mod tests;
