@@ -8,6 +8,7 @@
 
 import 'api/backend.dart';
 import 'api/lyrics.dart';
+import 'api/net_config.dart';
 import 'api/network.dart';
 import 'api/protocol.dart';
 import 'dart:async';
@@ -69,6 +70,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   RustCanvasMediaDto dco_decode_box_autoadd_rust_canvas_media_dto(dynamic raw);
+
+  @protected
+  RustNetConfig dco_decode_box_autoadd_rust_net_config(dynamic raw);
 
   @protected
   RustPlaylistDto dco_decode_box_autoadd_rust_playlist_dto(dynamic raw);
@@ -307,6 +311,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   RustAlbumDto dco_decode_rust_album_dto(dynamic raw);
 
   @protected
+  RustApSessionDto dco_decode_rust_ap_session_dto(dynamic raw);
+
+  @protected
   RustApWelcomeDto dco_decode_rust_ap_welcome_dto(dynamic raw);
 
   @protected
@@ -343,6 +350,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   RustLrclibResponseDto dco_decode_rust_lrclib_response_dto(dynamic raw);
+
+  @protected
+  RustNetConfig dco_decode_rust_net_config(dynamic raw);
 
   @protected
   RustPlaybackFileDto dco_decode_rust_playback_file_dto(dynamic raw);
@@ -508,6 +518,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   RustCanvasMediaDto sse_decode_box_autoadd_rust_canvas_media_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustNetConfig sse_decode_box_autoadd_rust_net_config(
     SseDeserializer deserializer,
   );
 
@@ -796,6 +811,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   RustAlbumDto sse_decode_rust_album_dto(SseDeserializer deserializer);
 
   @protected
+  RustApSessionDto sse_decode_rust_ap_session_dto(SseDeserializer deserializer);
+
+  @protected
   RustApWelcomeDto sse_decode_rust_ap_welcome_dto(SseDeserializer deserializer);
 
   @protected
@@ -846,6 +864,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   RustLrclibResponseDto sse_decode_rust_lrclib_response_dto(
     SseDeserializer deserializer,
   );
+
+  @protected
+  RustNetConfig sse_decode_rust_net_config(SseDeserializer deserializer);
 
   @protected
   RustPlaybackFileDto sse_decode_rust_playback_file_dto(
@@ -1068,6 +1089,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_rust_canvas_media_dto(
     RustCanvasMediaDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_rust_net_config(
+    RustNetConfig self,
     SseSerializer serializer,
   );
 
@@ -1414,6 +1441,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_rust_album_dto(RustAlbumDto self, SseSerializer serializer);
 
   @protected
+  void sse_encode_rust_ap_session_dto(
+    RustApSessionDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_rust_ap_welcome_dto(
     RustApWelcomeDto self,
     SseSerializer serializer,
@@ -1478,6 +1511,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     RustLrclibResponseDto self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_rust_net_config(RustNetConfig self, SseSerializer serializer);
 
   @protected
   void sse_encode_rust_playback_file_dto(
