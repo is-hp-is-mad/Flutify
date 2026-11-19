@@ -428,6 +428,8 @@ jobs:
         with:
           ref: ${{ needs.prepare.outputs.sha }}
           persist-credentials: false
+          # 自测版说明要列出相对上一个自测标签的提交，需要完整历史和标签
+          fetch-depth: 0
 
       - uses: actions/download-artifact@v4
         with:
@@ -451,6 +453,7 @@ jobs:
           RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
           CHANNEL: ${{ needs.prepare.outputs.channel }}
           SOURCE_TAG: ${{ needs.prepare.outputs.source }}
+          SHA: ${{ needs.prepare.outputs.sha }}
         run: |
           out="$RUNNER_TEMP/release-notes.md"
           case "$CHANNEL" in
@@ -458,6 +461,28 @@ jobs:
             beta) printf '%s\n\n' "> **beta 测试版**：由 ${SOURCE_TAG} 经人工确认后提升。" > "$out" ;;
             *) printf '%s\n\n' "> **正式版**：由 ${SOURCE_TAG} 提升。" > "$out" ;;
           esac
+          # 自测版：如实列出相对上一个自测标签（必须是本次提交的祖先）的提交，不套用整个版本系列共用的说明文件
+          if [ "$CHANNEL" = self-test ]; then
+            short=$(git rev-parse --short "$SHA")
+            prev=$(git tag --list 'v*-selftest' --merged "$SHA" --sort=-v:refname | grep -vxF "$RELEASE_TAG" | head -n 1 || true)
+            {
+              printf '## 本次改动\n\n'
+              if [ -n "$prev" ]; then
+                count=$(git rev-list --count --no-merges "$prev..$SHA")
+                printf '基于提交 `%s`，相对上一个自测版 %s 共 %s 个提交：\n\n' "$short" "$prev" "$count"
+                if [ "$count" -gt 0 ]; then
+                  git log --no-merges --format='- %s（%h）' "$prev..$SHA"
+                else
+                  printf '%s\n' '- 没有新提交（与上一个自测版代码相同，仅重新构建）。'
+                fi
+              else
+                printf '基于提交 `%s`，找不到更早的自测版标签，列出最近 20 个提交：\n\n' "$short"
+                git log --no-merges -n 20 --format='- %s（%h）' "$SHA"
+              fi
+              printf '\n%s\n' '构建产物：Windows x64 / ARM64 安装版和便携版，Android 三种 ABI 与通用 APK，macOS 未签名测试 ZIP，Linux x64 .deb 与 tar.gz；校验和见 SHA256SUMS.txt。构建通过不代表已完成实机验证。'
+            } >> "$out"
+            exit 0
+          fi
           # 说明文件按基础版本号取：v0.18.151-beta → docs/releases/v0.18.md
           notes="docs/releases/$(printf '%s' "$RELEASE_TAG" | sed -E 's/^(v[0-9]+\.[0-9]+).*/\1/').md"
           if [ -f "$notes" ]; then
