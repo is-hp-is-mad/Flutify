@@ -294,6 +294,8 @@
   "settingsMotionSection": "アニメーション",
   "settingsReduceMotion": "動きを減らす",
   "settingsReduceMotionSubtitle": "動く背景、画面切り替え、ホバー時のアニメーションを無効にします",
+  "settingsIncreaseContrast": "コントラストを上げる",
+  "settingsIncreaseContrastSubtitle": "前景と背景の色のコントラストを高めます。オンにするとアルバムページは通常の背景色になります。",
   "settingsPowerSaving": "省電力モード",
   "settingsPowerSavingSubtitle": "ガラスをすりガラス風の塗りに切り替え、歌詞画面の背景を静止します。歌詞のスクロールと演出はそのまま",
   "settingsFrameRate": "フレームレート上限",

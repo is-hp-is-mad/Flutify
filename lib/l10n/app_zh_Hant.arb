@@ -519,6 +519,8 @@
   "settingsMotionSection": "動效",
   "settingsReduceMotion": "減弱動效",
   "settingsReduceMotionSubtitle": "關閉流動背景、過渡與懸停等裝飾性動畫",
+  "settingsIncreaseContrast": "增加對比度",
+  "settingsIncreaseContrastSubtitle": "提高前景和背景的顏色對比。打開後專輯頁不再使用封面顏色。",
   "settingsPowerSaving": "省電模式",
   "settingsPowerSavingSubtitle": "玻璃改用磨砂底、歌詞頁背景不再流動；歌詞捲動與動效全部保留",
   "settingsFrameRate": "幀率上限",

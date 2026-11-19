@@ -348,6 +348,8 @@
   "settingsMotionSection": "Motion",
   "settingsReduceMotion": "Reduce motion",
   "settingsReduceMotionSubtitle": "Turns off flowing backgrounds, transitions and hover animations",
+  "settingsIncreaseContrast": "Increase Contrast",
+  "settingsIncreaseContrastSubtitle": "Increase color contrast between foreground and background. Album pages use the normal background.",
   "settingsPowerSaving": "Power saving",
   "settingsPowerSavingSubtitle": "Glass uses a frosted fill and the lyrics background stops flowing; lyric scrolling and effects stay",
   "settingsFrameRate": "Frame rate limit",

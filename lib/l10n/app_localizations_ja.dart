@@ -994,6 +994,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsReduceMotionSubtitle => '動く背景、画面切り替え、ホバー時のアニメーションを無効にします';
 
   @override
+  String get settingsIncreaseContrast => 'コントラストを上げる';
+
+  @override
+  String get settingsIncreaseContrastSubtitle =>
+      '前景と背景の色のコントラストを高めます。オンにするとアルバムページは通常の背景色になります。';
+
+  @override
   String get settingsPowerSaving => '省電力モード';
 
   @override

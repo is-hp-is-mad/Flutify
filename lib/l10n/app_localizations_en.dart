@@ -1029,6 +1029,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Turns off flowing backgrounds, transitions and hover animations';
 
   @override
+  String get settingsIncreaseContrast => 'Increase Contrast';
+
+  @override
+  String get settingsIncreaseContrastSubtitle =>
+      'Increase color contrast between foreground and background. Album pages use the normal background.';
+
+  @override
   String get settingsPowerSaving => 'Power saving';
 
   @override

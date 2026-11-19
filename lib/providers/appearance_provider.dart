@@ -10,7 +10,7 @@ import '../core/theme/md3e_theme.dart';
 import '../models/appearance.dart';
 import '../services/storage/preferences_store.dart';
 
-/// 外观设置：主题模式、强调色、动态取色、液态玻璃、纯黑、字号、圆角、减弱动效。
+/// 外观设置：主题模式、强调色、动态取色、液态玻璃、纯黑、字号、圆角、减弱动效、增加对比度。
 ///
 /// - 修改立即通知（界面实时预览），写入存储做 300ms 防抖（拖动滑杆时不会每帧写盘）；
 /// - 动态取色的封面色由 `DynamicAccentSync` 写入 [setArtworkColor]，关闭动态取色时忽略。

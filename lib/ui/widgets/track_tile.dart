@@ -21,6 +21,7 @@ import 'track_hotkeys.dart';
 import 'track_menu.dart';
 import 'track_table/track_table_columns.dart';
 import 'waveform_visualizer.dart';
+import 'menu/apple_more_menu_route.dart';
 
 /// 曲目行。
 ///
@@ -47,6 +48,18 @@ class TrackTile extends StatelessWidget {
   /// 为 null 时是普通曲目行（封面 + 歌名 / 艺人两行）。
   final TrackTableColumns? columns;
 
+  /// 行内爱心。专辑页按 Apple Music 曲目行关掉。
+  final bool showLike;
+
+  /// 行内时长。专辑页按 Apple Music 曲目行关掉。
+  final bool showDuration;
+
+  /// 行底细分隔线：从歌名左缘到距行右缘 16dp，高 0.5。
+  final bool showDivider;
+
+  /// 歌名最多几行。专辑页长歌名换行显示（最多 3 行），其他列表保持 1 行。
+  final int titleMaxLines;
+
   const TrackTile({
     super.key,
     required this.track,
@@ -58,6 +71,10 @@ class TrackTile extends StatelessWidget {
     this.subtitle,
     this.alwaysShowMore = false,
     this.columns,
+    this.showLike = true,
+    this.showDuration = true,
+    this.showDivider = false,
+    this.titleMaxLines = 1,
   });
 
   void _play(BuildContext context) {
@@ -98,15 +115,15 @@ class TrackTile extends StatelessWidget {
       context,
       track.id,
     );
-    final isLiked = context.select<LibraryProvider, bool>(
-      (l) => l.isLiked(track.id),
-    );
+    final isLiked = showLike
+        ? context.select<LibraryProvider, bool>((l) => l.isLiked(track.id))
+        : false;
     final columns = this.columns;
     final showCover = columns != null ? !columns.compact : this.showCover;
     // 紧凑视图且艺人单独成列：标题只占一行
     final artistInline = !(columns?.artist ?? false);
 
-    return HoverBuilder(
+    final tile = HoverBuilder(
       cursor: SystemMouseCursors.click,
       builder: (context, hovered) {
         final revealed = hovered || !hoverCapable;
@@ -213,7 +230,7 @@ class TrackTile extends StatelessWidget {
                                     ? colorScheme.primary
                                     : colorScheme.onSurface,
                               ),
-                              maxLines: 1,
+                              maxLines: titleMaxLines,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -283,72 +300,85 @@ class TrackTile extends StatelessWidget {
                 ],
 
                 // 已点赞常驻；未点赞只在悬停或移动端时出现（始终保留 40dp 占位，保证各行爱心绝对严格对齐）
-                _Reveal(
-                  visible: revealed,
-                  fixedExtent: true,
-                  idle: isLiked
-                      ? Icon(
-                          Icons.favorite_rounded,
-                          color: colorScheme.primary,
-                          size: 22,
-                        )
-                      : null,
-                  child: IconButton(
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-                    icon: Icon(
-                      isLiked
-                          ? Icons.favorite_rounded
-                          : Icons.favorite_border_rounded,
-                      color: isLiked
-                          ? colorScheme.primary
-                          : colorScheme.onSurfaceVariant,
-                      size: 22,
+                if (showLike)
+                  _Reveal(
+                    visible: revealed,
+                    fixedExtent: true,
+                    idle: isLiked
+                        ? Icon(
+                            Icons.favorite_rounded,
+                            color: colorScheme.primary,
+                            size: 22,
+                          )
+                        : null,
+                    child: IconButton(
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 40,
+                        minHeight: 40,
+                      ),
+                      icon: Icon(
+                        isLiked
+                            ? Icons.favorite_rounded
+                            : Icons.favorite_border_rounded,
+                        color: isLiked
+                            ? colorScheme.primary
+                            : colorScheme.onSurfaceVariant,
+                        size: 22,
+                      ),
+                      tooltip: isLiked
+                          ? context.l10n.likeRemove
+                          : context.l10n.likeAdd,
+                      onPressed: () =>
+                          context.read<LibraryProvider>().toggleLike(track),
                     ),
-                    tooltip: isLiked
-                        ? context.l10n.likeRemove
-                        : context.l10n.likeAdd,
-                    onPressed: () =>
-                        context.read<LibraryProvider>().toggleLike(track),
                   ),
-                ),
 
-                SizedBox(
-                  width: TrackTableColumns.durationWidth,
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: Text(
-                      Formatters.formatDurationMs(track.durationMs),
-                      textAlign: TextAlign.right,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w500,
-                        fontFeatures: const [FontFeature.tabularFigures()],
+                if (showDuration)
+                  SizedBox(
+                    width: TrackTableColumns.durationWidth,
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        Formatters.formatDurationMs(track.durationMs),
+                        textAlign: TextAlign.right,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w500,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
                       ),
                     ),
                   ),
-                ),
 
                 _Reveal(
                   visible: revealed || alwaysShowMore,
                   fixedExtent: true,
-                  child: Builder(
-                    // 独立 context：桌面菜单锚定在按钮下方
-                    builder: (buttonContext) => IconButton(
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-                      icon: Icon(
-                        hoverCapable
-                            ? Icons.more_horiz_rounded
-                            : Icons.more_vert_rounded,
-                        size: 20,
-                      ),
-                      color: colorScheme.onSurfaceVariant,
-                      tooltip: context.l10n.commonMoreOptions,
-                      onPressed: () => TrackMenu.show(
-                        actionContext,
-                        track,
-                        position: DesktopMenu.anchorOf(buttonContext),
+                  child: AppleMoreMenuSource(
+                    child: Builder(
+                      // 独立 context：桌面菜单锚定在按钮下方
+                      builder: (buttonContext) => IconButton(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 40,
+                          minHeight: 40,
+                        ),
+                        icon: Icon(
+                          hoverCapable
+                              ? Icons.more_horiz_rounded
+                              : Icons.more_vert_rounded,
+                          size: 20,
+                        ),
+                        color: colorScheme.onSurfaceVariant,
+                        tooltip: context.l10n.commonMoreOptions,
+                        onPressed: () => hoverCapable
+                            ? TrackMenu.show(
+                                actionContext,
+                                track,
+                                position: DesktopMenu.anchorOf(buttonContext),
+                              )
+                            // 触屏：从 ⋯ 按钮形变出上下文菜单（锚定在按钮本身）
+                            : TrackMenu.show(buttonContext, track, morph: true),
                       ),
                     ),
                   ),
@@ -365,6 +395,45 @@ class TrackTile extends StatelessWidget {
           child: row,
         );
       },
+    );
+    if (!showDivider) return tile;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        tile,
+        _TrackDivider(indent: _titleIndent(coverShown: showCover)),
+      ],
+    );
+  }
+
+  /// 歌名左缘：行内边距 + 曲号或封面 + 间距。分隔线从这里开始。
+  double _titleIndent({required bool coverShown}) {
+    final lead = coverShown
+        ? TrackTableColumns.coverWidth
+        : (index != null ? TrackTableColumns.indexWidth : 0);
+    return TrackTableColumns.horizontalPadding +
+        lead +
+        TrackTableColumns.leadGap;
+  }
+}
+
+/// Apple Music 曲目分隔线：0.5 高，右端距行缘 16。
+/// 颜色用前景色 22% 透明度，叠在白底或黑底上接近
+/// 浅色 `#4A3C3C43`、深色 `#A6545458`。
+class _TrackDivider extends StatelessWidget {
+  final double indent;
+
+  const _TrackDivider({required this.indent});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(left: indent, right: 16),
+      child: ColoredBox(
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.22),
+        child: const SizedBox(width: double.infinity, height: 0.5),
+      ),
     );
   }
 }

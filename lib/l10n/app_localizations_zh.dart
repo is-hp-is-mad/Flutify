@@ -997,6 +997,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsReduceMotionSubtitle => '关闭流动背景、过渡与悬停等装饰性动画';
 
   @override
+  String get settingsIncreaseContrast => '增加对比度';
+
+  @override
+  String get settingsIncreaseContrastSubtitle => '提高前景和背景的颜色对比。打开后专辑页不再使用封面颜色。';
+
+  @override
   String get settingsPowerSaving => '省电模式';
 
   @override
@@ -3229,6 +3235,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get settingsReduceMotionSubtitle => '關閉流動背景、過渡與懸停等裝飾性動畫';
+
+  @override
+  String get settingsIncreaseContrast => '增加對比度';
+
+  @override
+  String get settingsIncreaseContrastSubtitle => '提高前景和背景的顏色對比。打開後專輯頁不再使用封面顏色。';
 
   @override
   String get settingsPowerSaving => '省電模式';

@@ -29,6 +29,12 @@ class MotionSection extends StatelessWidget {
           onChanged: (v) => provider.update(settings.copyWith(reduceMotion: v)),
         ),
         SettingsSwitchTile(
+          title: l10n.settingsIncreaseContrast,
+          subtitle: l10n.settingsIncreaseContrastSubtitle,
+          value: settings.increaseContrast,
+          onChanged: (v) => provider.update(settings.copyWith(increaseContrast: v)),
+        ),
+        SettingsSwitchTile(
           title: l10n.settingsPowerSaving,
           subtitle: l10n.settingsPowerSavingSubtitle,
           value: settings.powerSaving,

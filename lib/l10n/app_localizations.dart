@@ -1907,6 +1907,18 @@ abstract class AppLocalizations {
   /// **'关闭流动背景、过渡与悬停等装饰性动画'**
   String get settingsReduceMotionSubtitle;
 
+  /// No description provided for @settingsIncreaseContrast.
+  ///
+  /// In zh, this message translates to:
+  /// **'增加对比度'**
+  String get settingsIncreaseContrast;
+
+  /// No description provided for @settingsIncreaseContrastSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'提高前景和背景的颜色对比。打开后专辑页不再使用封面颜色。'**
+  String get settingsIncreaseContrastSubtitle;
+
   /// No description provided for @settingsPowerSaving.
   ///
   /// In zh, this message translates to:
