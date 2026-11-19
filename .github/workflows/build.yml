@@ -120,6 +120,10 @@ jobs:
 
       - run: flutter pub get
 
+      - name: Build Rust core for tests
+        if: needs.prepare.outputs.run_tests == 'true'
+        run: cargo build --release --locked --manifest-path rust/flutify_core/Cargo.toml
+
       - name: Test playback recovery and authorization
         if: needs.prepare.outputs.run_tests == 'true'
         run: |
@@ -333,6 +337,10 @@ jobs:
 
       - run: flutter pub get
 
+      - name: Build Rust core for tests
+        if: needs.prepare.outputs.run_tests == 'true'
+        run: cargo build --release --locked --manifest-path rust/flutify_core/Cargo.toml
+
       - if: needs.prepare.outputs.run_tests == 'true'
         run: flutter test
 
@@ -398,6 +406,10 @@ jobs:
           echo "/usr/lib/ccache" >> "$GITHUB_PATH"
 
       - run: flutter pub get
+
+      - name: Build Rust core for tests
+        if: needs.prepare.outputs.run_tests == 'true'
+        run: cargo build --release --locked --manifest-path rust/flutify_core/Cargo.toml
 
       - if: needs.prepare.outputs.run_tests == 'true'
         run: flutter test

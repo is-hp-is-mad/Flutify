@@ -94,6 +94,11 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust/flutify_core
+      - name: Build Rust core for tests
+        run: cargo build --release --locked --manifest-path rust/flutify_core/Cargo.toml
       - run: flutter pub get
       - name: Analyze (fail on errors only)
         run: flutter analyze --no-fatal-infos --no-fatal-warnings lib test
