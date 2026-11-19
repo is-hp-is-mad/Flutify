@@ -980,6 +980,8 @@ mod tests {
 
     /// 网关隧道：二进制字节原样往返、请求路径与凭据头正确（替代原 Dart ProxyTunnel 网关测试）。
     #[test]
+    // tungstenite 的握手回调签名固定返回 Result<Response, ErrorResponse>
+    #[allow(clippy::result_large_err)]
     fn gateway_tunnel_carries_binary_bytes() {
         block(async {
             let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
