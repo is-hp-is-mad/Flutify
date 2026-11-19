@@ -69,6 +69,17 @@ const playIfRequested = (el, gen) => {
 // 当前曲目的 'emeStall' 监听（模块级保存，换歌时先摘掉上一首的，避免旧闭包对新曲目报错）
 let stallListener = null;
 
+// ---- 每首歌只请求一次 license（对齐官方 Web 播放器）----
+// hls.js 1.5.13 从清单 EXT-X-KEY 的 pssh 与媒体 encrypted 事件的 pssh 用两套固定偏移推 keyId，
+// 对 Spotify 的 pssh 推出来不一致，于是给同一首歌建第二个会话、多请求一次 license（用量翻倍、更易被限流）。
+// 官方 Web 播放器只用清单（seektable）里的 pssh 建会话，原生 encrypted 事件只记日志。这里同样：
+// 清单 key 已建会话后拦下 encrypted 事件；若拿到可用密钥后媒体仍卡在缺密钥，再把拦下的事件放行给 hls.js。
+let emeSessions = 0, emeKeyUsable = false, emeBlockedEncrypted = null, emeWaitingForKey = false;
+let emeKeyUsableListener = null;
+const resetEmeDedup = () => {
+  emeSessions = 0; emeKeyUsable = false; emeBlockedEncrypted = null; emeWaitingForKey = false;
+};
+
 const send = (type, data) => {
   try { window.flutter_inappwebview.callHandler('emeEvent', JSON.stringify({type, ...(data||{})})); } catch (e) {}
 };
@@ -113,10 +124,15 @@ try {
     const _cs = MediaKeys.prototype.createSession;
     MediaKeys.prototype.createSession = function (...args) {
       send('log', {msg: '[hook] createSession 调用'});
+      emeSessions++;
       const s = _cs.apply(this, args);
       s.addEventListener('message', (ev) => send('log',
         {msg: '[hook] session message type=' + ev.messageType + ' body=' + (ev.message ? ev.message.byteLength : 0) + 'B'}));
-      s.addEventListener('keystatuseschange', () => send('log', {msg: '[hook] session keystatuseschange'}));
+      s.addEventListener('keystatuseschange', () => {
+        send('log', {msg: '[hook] session keystatuseschange'});
+        try { s.keyStatuses.forEach((status) => { if (status === 'usable') emeKeyUsable = true; }); } catch (e) {}
+        if (emeKeyUsable) window.dispatchEvent(new Event('emeKeyUsable'));
+      });
       return s;
     };
   }
@@ -211,6 +227,7 @@ window.emePlayHls = (fairPlay, gen, autoplay = true, revision = 0, position = 0)
     // 换歌 / 失败重试：销毁上一首的 hls 与 audio，避免残留状态串台
     if (hls) { try { hls.destroy(); } catch (e) {} hls = null; }
     if (audio) { try { audio.pause(); audio.remove(); } catch (e) {} audio = null; }
+    resetEmeDedup();
     audio = document.createElement('audio');
     audio.volume = pageVolume;
     applySink(audio);
@@ -222,7 +239,36 @@ window.emePlayHls = (fairPlay, gen, autoplay = true, revision = 0, position = 0)
     audio.addEventListener('waiting', () => gsend('buffering', {}));
     audio.addEventListener('ended', () => gsend('ended', {}));
     audio.addEventListener('error', () => gsend('error', {msg: audio.error ? (audio.error.code + ':' + audio.error.message) : 'unknown'}));
-    audio.addEventListener('encrypted', (ev) => gsend('log', {msg: 'encrypted 事件 initDataType=' + ev.initDataType + ' initData=' + (ev.initData ? ev.initData.byteLength : 0) + 'B'}));
+    audio.addEventListener('encrypted', (ev) => {
+      gsend('log', {msg: 'encrypted 事件 initDataType=' + ev.initDataType + ' initData=' + (ev.initData ? ev.initData.byteLength : 0) + 'B'});
+      // 先于 hls.js 注册（attachMedia 在后），stopImmediatePropagation 即可让它看不到这次事件
+      if (!useFairPlay && !ev.flutifyReplay && emeSessions > 0 && ev.initData) {
+        ev.stopImmediatePropagation();
+        emeBlockedEncrypted = {initDataType: ev.initDataType, initData: ev.initData};
+        gsend('log', {msg: '已拦截重复 license 会话（清单 key 已建会话，与官方 Web 播放器一样忽略媒体 encrypted 事件）'});
+      }
+    });
+    // 兜底：已拿到可用密钥、媒体仍卡在缺密钥 1.5s，说明这首确实还要别的 key，把拦下的事件放行给 hls.js。
+    // 只看 waitingforkey 不够：license 还在路上（如限流冷却中）时它本来就会触发，放行会多请求一次。
+    const replayIfStillMissingKey = () => {
+      if (!emeBlockedEncrypted || !emeWaitingForKey || !emeKeyUsable) return;
+      setTimeout(() => {
+        const blocked = emeBlockedEncrypted;
+        if (!blocked || el !== audio || !emeWaitingForKey || audio.readyState >= 3) return;
+        emeBlockedEncrypted = null;
+        gsend('log', {msg: '可用密钥已到但仍缺密钥，放行 encrypted 事件给 hls.js'});
+        try {
+          const replay = new MediaEncryptedEvent('encrypted', {initDataType: blocked.initDataType, initData: blocked.initData});
+          replay.flutifyReplay = true;
+          audio.dispatchEvent(replay);
+        } catch (e) { gsend('log', {msg: '放行 encrypted 事件失败: ' + e}); }
+      }, 1500);
+    };
+    audio.addEventListener('waitingforkey', () => { emeWaitingForKey = true; replayIfStillMissingKey(); });
+    audio.addEventListener('playing', () => { emeWaitingForKey = false; });
+    if (emeKeyUsableListener) window.removeEventListener('emeKeyUsable', emeKeyUsableListener);
+    emeKeyUsableListener = replayIfStillMissingKey;
+    window.addEventListener('emeKeyUsable', replayIfStillMissingKey);
     // 诊断：媒体元素状态迁移（定位「不出声也不报错」卡在 readyState 哪一级）
     ['play','pause','waiting','stalled','canplay','canplaythrough','playing','waitingforkey','loadeddata','loadedmetadata','durationchange']
       .forEach((n) => audio.addEventListener(n, () => gsend('log',
