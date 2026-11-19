@@ -5,7 +5,7 @@
 //! - `authorized_get` / `authorized_post` / `pathfinder_query` 自动附带鉴权头与代理，
 //!   遇到 401 时自动单飞续期并重试一次，遇到 429/503 时按退避策略重试。
 
-use std::sync::{OnceLock, RwLock};
+use std::sync::{Arc, OnceLock, RwLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use serde::Deserialize;
@@ -139,6 +139,52 @@ where
     REQUEST_PROXY.scope(proxy, f).await
 }
 
+tokio::task_local! {
+    /// 任务级会话覆盖（多账号备份）：作用域内的鉴权请求改用这份凭据，续期结果也只写回这里，不影响主会话。
+    static REQUEST_SESSION: Arc<std::sync::Mutex<SessionState>>;
+}
+
+/// 在 [state] 这份会话凭据下执行 [f]（见 [`REQUEST_SESSION`]）。
+/// `access_token_expiry_ms` 为 0 时视为已过期，首个请求前用 `sp_dc` 铸造。
+pub(crate) async fn with_session<F, T>(state: SessionState, f: F) -> T
+where
+    F: std::future::Future<Output = T>,
+{
+    REQUEST_SESSION
+        .scope(Arc::new(std::sync::Mutex::new(state)), f)
+        .await
+}
+
+fn session_override() -> Option<Arc<std::sync::Mutex<SessionState>>> {
+    REQUEST_SESSION.try_with(Arc::clone).ok()
+}
+
+/// 当前生效的会话（任务级覆盖优先）。
+fn current_session() -> SessionState {
+    match session_override() {
+        Some(s) => s.lock().unwrap_or_else(|e| e.into_inner()).clone(),
+        None => snapshot(),
+    }
+}
+
+/// `tokio::spawn`，但把当前任务的请求级代理与会话覆盖带进新任务（task-local 不会自动继承）。
+pub(crate) fn spawn_scoped<F, T>(f: F) -> tokio::task::JoinHandle<T>
+where
+    F: std::future::Future<Output = T> + Send + 'static,
+    T: Send + 'static,
+{
+    let proxy = REQUEST_PROXY.try_with(Clone::clone).ok();
+    let session = session_override();
+    tokio::spawn(async move {
+        match (proxy, session) {
+            (Some(p), Some(s)) => REQUEST_PROXY.scope(p, REQUEST_SESSION.scope(s, f)).await,
+            (Some(p), None) => REQUEST_PROXY.scope(p, f).await,
+            (None, Some(s)) => REQUEST_SESSION.scope(s, f).await,
+            (None, None) => f.await,
+        }
+    })
+}
+
 pub(crate) fn effective_proxy() -> String {
     REQUEST_PROXY
         .try_with(|p| p.clone())
@@ -230,6 +276,9 @@ pub async fn mint_web_token(sp_dc: &str, proxy: &str) -> Result<MintedToken, Str
 
 /// 单飞获取有效 `access_token`；若缓存有效直接返回，否则加锁用 `sp_dc` 刷新。
 pub async fn ensure_web_access_token(force_refresh: bool) -> Result<MintedToken, String> {
+    if let Some(ov) = session_override() {
+        return ensure_override_access_token(&ov, force_refresh).await;
+    }
     if !force_refresh {
         let s = snapshot();
         if !s.access_token.is_empty() && is_fresh(s.access_token_expiry_ms) {
@@ -328,6 +377,9 @@ pub async fn request_web_client_token(
 
 /// 单飞获取有效 `client-token`。
 pub async fn ensure_client_token(force_refresh: bool) -> Result<GrantedClientToken, String> {
+    if let Some(ov) = session_override() {
+        return ensure_override_client_token(&ov, force_refresh).await;
+    }
     if !force_refresh {
         let s = snapshot();
         if !s.client_token.is_empty() && is_fresh(s.client_token_expiry_ms) {
@@ -356,6 +408,47 @@ pub async fn ensure_client_token(force_refresh: bool) -> Result<GrantedClientTok
         guard.client_token = granted.token.clone();
         guard.client_token_expiry_ms = granted.expiry_ms;
     }
+    Ok(granted)
+}
+
+/// 任务级会话的 access_token：未过期直接用，否则用它自己的 `sp_dc` 铸造并写回覆盖（备份任务串行执行，不需要单飞）。
+async fn ensure_override_access_token(
+    ov: &Arc<std::sync::Mutex<SessionState>>,
+    force_refresh: bool,
+) -> Result<MintedToken, String> {
+    let s = ov.lock().unwrap_or_else(|e| e.into_inner()).clone();
+    if !force_refresh && !s.access_token.is_empty() && is_fresh(s.access_token_expiry_ms) {
+        return Ok(MintedToken {
+            token: s.access_token,
+            expiry_ms: s.access_token_expiry_ms,
+        });
+    }
+    let minted = mint_web_token(&s.sp_dc, &effective_proxy()).await?;
+    let mut guard = ov.lock().unwrap_or_else(|e| e.into_inner());
+    guard.access_token = minted.token.clone();
+    guard.access_token_expiry_ms = minted.expiry_ms;
+    Ok(minted)
+}
+
+/// 任务级会话的 client-token：有就用；没有且给了 device_id 时申请一次。
+async fn ensure_override_client_token(
+    ov: &Arc<std::sync::Mutex<SessionState>>,
+    force_refresh: bool,
+) -> Result<GrantedClientToken, String> {
+    let s = ov.lock().unwrap_or_else(|e| e.into_inner()).clone();
+    if !force_refresh && !s.client_token.is_empty() && is_fresh(s.client_token_expiry_ms) {
+        return Ok(GrantedClientToken {
+            token: s.client_token,
+            expiry_ms: s.client_token_expiry_ms,
+        });
+    }
+    if s.device_id.is_empty() {
+        return Err("auth:missing device_id".to_string());
+    }
+    let granted = request_web_client_token(&s.device_id, &effective_proxy()).await?;
+    let mut guard = ov.lock().unwrap_or_else(|e| e.into_inner());
+    guard.client_token = granted.token.clone();
+    guard.client_token_expiry_ms = granted.expiry_ms;
     Ok(granted)
 }
 
@@ -410,7 +503,7 @@ pub async fn authorized_request(
         if status == 401
             && attempt < 3
             && !refreshed_auth
-            && !snapshot().sp_dc.is_empty()
+            && !current_session().sp_dc.is_empty()
             && ensure_web_access_token(true).await.is_ok()
         {
             refreshed_auth = true;
@@ -470,6 +563,59 @@ pub async fn pathfinder_query(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn block_on<F: std::future::Future>(f: F) -> F::Output {
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+            .block_on(f)
+    }
+
+    #[test]
+    fn session_override_is_task_scoped_and_inherited_by_spawn_scoped() {
+        let far = now_ms() + 3_600_000;
+        let state = SessionState {
+            sp_dc: "backup-dc".to_string(),
+            access_token: "backup-at".to_string(),
+            access_token_expiry_ms: far,
+            client_token: "backup-ct".to_string(),
+            client_token_expiry_ms: far,
+            ..SessionState::default()
+        };
+        let (direct, spawned, outside) = block_on(async {
+            let inside = with_session(state, async {
+                let direct = ensure_web_access_token(false).await.unwrap().token;
+                let spawned = spawn_scoped(async {
+                    (
+                        ensure_web_access_token(false).await.unwrap().token,
+                        ensure_client_token(false).await.unwrap().token,
+                        current_session().sp_dc,
+                    )
+                })
+                .await
+                .unwrap();
+                (direct, spawned)
+            })
+            .await;
+            (inside.0, inside.1, session_override().is_none())
+        });
+        assert_eq!(direct, "backup-at");
+        assert_eq!(
+            spawned,
+            ("backup-at".to_string(), "backup-ct".to_string(), "backup-dc".to_string())
+        );
+        // 作用域外不受影响
+        assert!(outside);
+    }
+
+    #[test]
+    fn spawn_scoped_keeps_request_proxy() {
+        let proxy = block_on(with_request_proxy("socks5h://127.0.0.1:1".to_string(), async {
+            spawn_scoped(async { effective_proxy() }).await.unwrap()
+        }));
+        assert_eq!(proxy, "socks5h://127.0.0.1:1");
+    }
 
     #[test]
     fn configure_and_clear_session_preserves_proxy_and_bumps_epoch() {

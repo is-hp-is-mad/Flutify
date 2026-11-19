@@ -437,7 +437,7 @@ pub async fn fetch_tracks_by_uris(
         let sem = sem.clone();
         let chunk_uris: Vec<String> = chunk.to_vec();
         let hash = decorate_hash.to_string();
-        tasks.push(tokio::spawn(async move {
+        tasks.push(spotify_session::spawn_scoped(async move {
             let _permit = sem.acquire_owned().await.map_err(|e| e.to_string())?;
             let data = spotify_session::pathfinder_query(
                 "decorateContextTracks",
@@ -580,7 +580,7 @@ pub async fn fetch_playlist_full(
                 let sem = sem.clone();
                 let base_owned = base.to_string();
                 let pid_owned = playlist_id.to_string();
-                page_tasks.push(tokio::spawn(async move {
+                page_tasks.push(spotify_session::spawn_scoped(async move {
                     let _permit = sem.acquire_owned().await.map_err(|e| e.to_string())?;
                     let (_raw, uris, ts) =
                         fetch_playlist_page(&base_owned, &pid_owned, offset).await?;
@@ -993,7 +993,7 @@ where
             let sem = sem.clone();
             let base_owned = base.to_string();
             let pid_owned = playlist_id.to_string();
-            page_tasks.push(tokio::spawn(async move {
+            page_tasks.push(spotify_session::spawn_scoped(async move {
                 let _permit = sem.acquire_owned().await.map_err(|e| e.to_string())?;
                 let (_raw, uris, ts) =
                     fetch_playlist_page(&base_owned, &pid_owned, offset).await?;

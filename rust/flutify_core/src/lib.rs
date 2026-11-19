@@ -10,6 +10,7 @@ pub mod ap_client;
 pub mod ap_crypto;
 pub mod api;
 pub mod artist_match;
+pub mod backup_backend;
 pub mod audio_cache;
 pub mod audio_normalization;
 pub mod catalog_backend;
