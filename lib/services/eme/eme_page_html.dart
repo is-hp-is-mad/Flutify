@@ -72,12 +72,13 @@ let stallListener = null;
 // ---- 每首歌只请求一次 license（对齐官方 Web 播放器）----
 // hls.js 1.5.13 从清单 EXT-X-KEY 的 pssh 与媒体 encrypted 事件的 pssh 用两套固定偏移推 keyId，
 // 对 Spotify 的 pssh 推出来不一致，于是给同一首歌建第二个会话、多请求一次 license（用量翻倍、更易被限流）。
-// 官方 Web 播放器只用清单（seektable）里的 pssh 建会话，原生 encrypted 事件只记日志。这里同样：
-// 清单 key 已建会话后拦下 encrypted 事件；若拿到可用密钥后媒体仍卡在缺密钥，再把拦下的事件放行给 hls.js。
-let emeSessions = 0, emeKeyUsable = false, emeBlockedEncrypted = null, emeWaitingForKey = false;
+// 官方 Web 播放器只用清单（seektable）里的 pssh 建会话，原生 encrypted 事件只记日志、没有回退。这里同样：
+// 清单 key 已建会话后拦下 encrypted 事件。实机验证（83B / 89B 两种 initData）拦下后均正常解密播放。
+// 只留诊断：拿到可用密钥后媒体仍卡在缺密钥，记一行日志（真遇到时说明内容需要第二把 key）。
+let emeSessions = 0, emeKeyUsable = false, emeWaitingForKey = false;
 let emeKeyUsableListener = null;
 const resetEmeDedup = () => {
-  emeSessions = 0; emeKeyUsable = false; emeBlockedEncrypted = null; emeWaitingForKey = false;
+  emeSessions = 0; emeKeyUsable = false; emeWaitingForKey = false;
 };
 
 const send = (type, data) => {
@@ -242,33 +243,24 @@ window.emePlayHls = (fairPlay, gen, autoplay = true, revision = 0, position = 0)
     audio.addEventListener('encrypted', (ev) => {
       gsend('log', {msg: 'encrypted 事件 initDataType=' + ev.initDataType + ' initData=' + (ev.initData ? ev.initData.byteLength : 0) + 'B'});
       // 先于 hls.js 注册（attachMedia 在后），stopImmediatePropagation 即可让它看不到这次事件
-      if (!useFairPlay && !ev.flutifyReplay && emeSessions > 0 && ev.initData) {
+      if (!useFairPlay && emeSessions > 0) {
         ev.stopImmediatePropagation();
-        emeBlockedEncrypted = {initDataType: ev.initDataType, initData: ev.initData};
         gsend('log', {msg: '已拦截重复 license 会话（清单 key 已建会话，与官方 Web 播放器一样忽略媒体 encrypted 事件）'});
       }
     });
-    // 兜底：已拿到可用密钥、媒体仍卡在缺密钥 1.5s，说明这首确实还要别的 key，把拦下的事件放行给 hls.js。
-    // 只看 waitingforkey 不够：license 还在路上（如限流冷却中）时它本来就会触发，放行会多请求一次。
-    const replayIfStillMissingKey = () => {
-      if (!emeBlockedEncrypted || !emeWaitingForKey || !emeKeyUsable) return;
+    // 诊断：已拿到可用密钥、媒体仍卡在缺密钥 1.5s（license 在路上时 waitingforkey 本来就会触发，所以要先有可用密钥）
+    const reportStillMissingKey = () => {
+      if (!emeWaitingForKey || !emeKeyUsable) return;
       setTimeout(() => {
-        const blocked = emeBlockedEncrypted;
-        if (!blocked || el !== audio || !emeWaitingForKey || audio.readyState >= 3) return;
-        emeBlockedEncrypted = null;
-        gsend('log', {msg: '可用密钥已到但仍缺密钥，放行 encrypted 事件给 hls.js'});
-        try {
-          const replay = new MediaEncryptedEvent('encrypted', {initDataType: blocked.initDataType, initData: blocked.initData});
-          replay.flutifyReplay = true;
-          audio.dispatchEvent(replay);
-        } catch (e) { gsend('log', {msg: '放行 encrypted 事件失败: ' + e}); }
+        if (el !== audio || !emeWaitingForKey || audio.readyState >= 3) return;
+        gsend('log', {msg: '可用密钥已到但仍缺密钥：被拦下的 encrypted 事件可能带了另一把 key'});
       }, 1500);
     };
-    audio.addEventListener('waitingforkey', () => { emeWaitingForKey = true; replayIfStillMissingKey(); });
+    audio.addEventListener('waitingforkey', () => { emeWaitingForKey = true; reportStillMissingKey(); });
     audio.addEventListener('playing', () => { emeWaitingForKey = false; });
     if (emeKeyUsableListener) window.removeEventListener('emeKeyUsable', emeKeyUsableListener);
-    emeKeyUsableListener = replayIfStillMissingKey;
-    window.addEventListener('emeKeyUsable', replayIfStillMissingKey);
+    emeKeyUsableListener = reportStillMissingKey;
+    window.addEventListener('emeKeyUsable', reportStillMissingKey);
     // 诊断：媒体元素状态迁移（定位「不出声也不报错」卡在 readyState 哪一级）
     ['play','pause','waiting','stalled','canplay','canplaythrough','playing','waitingforkey','loadeddata','loadedmetadata','durationchange']
       .forEach((n) => audio.addEventListener(n, () => gsend('log',
