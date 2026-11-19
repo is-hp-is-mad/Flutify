@@ -1,7 +1,7 @@
 //! HTTP/2 客户端（reqwest + rustls）：Spotify API 这类同时发十几个请求的场景，
 //! 在一条连接上多路复用，省掉 dart:io（仅 HTTP/1.1）为每个并发请求各建一次连接 / 握手。
 //!
-//! 代理地址由 Dart 按系统 / PAC / 手动设置算好后传入（[client_for]）；Spotify 请求经统一出口 [send]，
+//! 代理地址由 Dart 按系统 / PAC / 手动设置算好后传入（[client_for]）；Spotify 请求经统一出口 [send_request]，
 //! 启用自建网关时在这里改写到网关（配置由 `net_config` 推送）。证书诊断仍在 Dart 网络层。
 //! 证书同时信任系统证书库与 Mozilla 根证书（公司网络的 HTTPS 检查代理照常可用）。
 
@@ -66,7 +66,7 @@ pub fn client_for(proxy: &str) -> Result<reqwest::Client, String> {
     Ok(client)
 }
 
-/// [send] 的错误：保留 reqwest 错误（调用方可能要区分建连 / 超时），其余为说明文字。
+/// [send_request] 的错误：保留 reqwest 错误（调用方可能要区分建连 / 超时），其余为说明文字。
 #[derive(Debug)]
 pub enum SendError {
     Http(reqwest::Error),
@@ -82,14 +82,14 @@ impl std::fmt::Display for SendError {
     }
 }
 
-/// `RequestBuilder::send` 的替代：经 [send] 发出（自建网关改写 / 重定向在这里处理）。
+/// `RequestBuilder::send` 的替代：经 [send_request] 发出（自建网关改写 / 重定向在这里处理）。
 pub trait RoutedSend {
     fn send_routed(self) -> impl std::future::Future<Output = Result<reqwest::Response, SendError>> + Send;
 }
 
 impl RoutedSend for reqwest::RequestBuilder {
     fn send_routed(self) -> impl std::future::Future<Output = Result<reqwest::Response, SendError>> + Send {
-        send(self)
+        send_request(self)
     }
 }
 
@@ -102,7 +102,7 @@ const GATEWAY_MAX_REDIRECTS: usize = 5;
 /// GET / HEAD（及 POST 的 303）重定向，禁止 HTTPS 降级。
 ///
 /// 已由 Dart 改写成网关地址的请求（下载、HTTP/2 通道）也可以经过这里：网关主机本身不在支持列表里，不会二次改写。
-pub async fn send(builder: reqwest::RequestBuilder) -> Result<reqwest::Response, SendError> {
+pub async fn send_request(builder: reqwest::RequestBuilder) -> Result<reqwest::Response, SendError> {
     let (client, request) = builder.build_split();
     let request = request.map_err(SendError::Http)?;
     match crate::net_config::get().gateway {
