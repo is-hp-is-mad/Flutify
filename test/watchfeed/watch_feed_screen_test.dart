@@ -20,6 +20,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../fakes/fake_audio_player_service.dart';
+import 'support/dart_watch_feed_parser.dart';
 import 'watch_feed_fixtures.dart';
 
 /// 记录调用的试听播放器替身（测试环境没有音频平台实现）。
@@ -155,6 +156,7 @@ void main() {
         }
         return http.Response.bytes(bytes, 200);
       }),
+      const DartWatchFeedDecoder(),
     );
     final prefs = PreferencesProvider(storage.preferences);
     final library = LibraryProvider(storage.library);

@@ -7,6 +7,7 @@ import '../models/track.dart';
 import '../models/track_credits.dart';
 import '../models/watch_feed.dart';
 import '../src/rust/api/backend.dart' as rust;
+import '../src/rust/api/watchfeed.dart' as wf;
 import 'library/collection_codec.dart';
 import 'library/playlist_cover.dart';
 import 'lyrics/lrclib_candidate.dart';
@@ -160,70 +161,80 @@ class RustBackendBridge {
     _ => WatchFeedVisualKind.gradient,
   };
 
+  static WatchFeedItem watchFeedItemFromDto(rust.RustWatchFeedItemDto dto) =>
+      WatchFeedItem(
+        id: dto.id,
+        uri: dto.uri,
+        visual: WatchFeedVisual(
+          kind: _visualKind(dto.visual.kind),
+          videoUrl: dto.visual.videoUrl,
+          imageUrl: dto.visual.imageUrl,
+          animationUrl: dto.visual.animationUrl,
+          colors: dto.visual.colors,
+        ),
+        audio: dto.audio == null
+            ? null
+            : WatchFeedAudio(
+                url: dto.audio!.url,
+                shouldLoop: dto.audio!.shouldLoop,
+                fadeIn: dto.audio!.fadeIn,
+              ),
+        creator: dto.creator == null
+            ? null
+            : WatchFeedCreator(
+                uri: dto.creator!.uri,
+                name: dto.creator!.name,
+                subtitle: dto.creator!.subtitle,
+                imageUrl: dto.creator!.imageUrl,
+                monthlyListeners: dto.creator!.monthlyListeners?.toInt(),
+                followUri: dto.creator!.followUri,
+                followText: dto.creator!.followText,
+                followingText: dto.creator!.followingText,
+              ),
+        hashtags: [
+          for (final h in dto.hashtags)
+            WatchFeedHashtag(
+              id: h.id,
+              title: h.title,
+              navigationUri: h.navigationUri,
+              seedItemUri: h.seedItemUri,
+            ),
+        ],
+        entityRow: dto.entityRow == null
+            ? null
+            : WatchFeedEntityRow(
+                title: dto.entityRow!.title,
+                subtitle: dto.entityRow!.subtitle,
+                imageUrl: dto.entityRow!.imageUrl,
+                playUri: dto.entityRow!.playUri,
+                accessibilityText: dto.entityRow!.accessibilityText,
+              ),
+        texts: dto.texts,
+        track: dto.track == null ? null : trackFromDto(dto.track!),
+        backgroundColor: dto.backgroundColor?.toInt(),
+        canShare: dto.canShare,
+        hasMenu: dto.hasMenu,
+        canSave: dto.canSave,
+        hasProgressBar: dto.hasProgressBar,
+      );
+
   static WatchFeedPage watchFeedPageFromDto(rust.RustWatchFeedPageDto dto) =>
       WatchFeedPage(
         headerTitles: dto.headerTitles,
-        items: [
-          for (final item in dto.items)
-            WatchFeedItem(
-              id: item.id,
-              uri: item.uri,
-              visual: WatchFeedVisual(
-                kind: _visualKind(item.visual.kind),
-                videoUrl: item.visual.videoUrl,
-                imageUrl: item.visual.imageUrl,
-                animationUrl: item.visual.animationUrl,
-                colors: item.visual.colors,
-              ),
-              audio: item.audio == null
-                  ? null
-                  : WatchFeedAudio(
-                      url: item.audio!.url,
-                      shouldLoop: item.audio!.shouldLoop,
-                      fadeIn: item.audio!.fadeIn,
-                    ),
-              creator: item.creator == null
-                  ? null
-                  : WatchFeedCreator(
-                      uri: item.creator!.uri,
-                      name: item.creator!.name,
-                      subtitle: item.creator!.subtitle,
-                      imageUrl: item.creator!.imageUrl,
-                      followUri: item.creator!.followUri,
-                      followText: item.creator!.followText,
-                      followingText: item.creator!.followingText,
-                    ),
-              hashtags: [
-                for (final h in item.hashtags)
-                  WatchFeedHashtag(
-                    id: h.id,
-                    title: h.title,
-                    navigationUri: h.navigationUri,
-                    seedItemUri: h.seedItemUri,
-                  ),
-              ],
-              entityRow: item.entityRow == null
-                  ? null
-                  : WatchFeedEntityRow(
-                      title: item.entityRow!.title,
-                      subtitle: item.entityRow!.subtitle,
-                      imageUrl: item.entityRow!.imageUrl,
-                      playUri: item.entityRow!.playUri,
-                      accessibilityText: item.entityRow!.accessibilityText,
-                    ),
-              texts: item.texts,
-              track: item.track == null ? null : trackFromDto(item.track!),
-              canShare: item.canShare,
-              hasMenu: item.hasMenu,
-              canSave: item.canSave,
-              hasProgressBar: item.hasProgressBar,
-            ),
-        ],
+        items: [for (final item in dto.items) watchFeedItemFromDto(item)],
         nextPageToken: dto.nextPageToken,
         associatedFeedUris: dto.associatedFeedUris,
         verticalOnboardingText: dto.verticalOnboardingText,
         associatedOnboardingText: dto.associatedOnboardingText,
       );
+
+  static WatchFeedEntityPage watchFeedEntityPageFromDto(
+    wf.RustWatchFeedEntityPageDto dto,
+  ) => WatchFeedEntityPage(
+    items: [for (final item in dto.items) watchFeedItemFromDto(item)],
+    totalCount: dto.totalCount.toInt(),
+    nextOffset: dto.nextOffset?.toInt(),
+  );
 
   static LrclibResponse lrclibResponseFromDto(rust.RustLrclibResponseDto dto) =>
       LrclibResponse([

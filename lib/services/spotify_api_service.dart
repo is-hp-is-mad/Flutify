@@ -30,6 +30,7 @@ import 'pathfinder/desktop_data_source.dart';
 import 'pathfinder/pathfinder_client.dart';
 import 'podcast/podcast_service.dart';
 import 'storage/auth_session_store.dart';
+import 'watchfeed/watch_feed_decoder.dart';
 import 'watchfeed/watch_feed_service.dart';
 
 /// 取数据失败（未登录、网络错误、接口返回异常）。[message] 为简体中文说明，可直接展示。
@@ -69,7 +70,9 @@ class SpotifyApiService {
     _client,
     headers: _headers,
     useRustBackend: !_hasCustomClient,
+    decoder: _watchFeedDecoder ?? const RustWatchFeedDecoder(),
   );
+  final WatchFeedDecoder? _watchFeedDecoder;
 
   /// 鉴权服务；接入后每次请求前自动续期 access_token。未接入时仅使用手动填写的 Token。
   SpotifyAuthService? _auth;
@@ -119,8 +122,13 @@ class SpotifyApiService {
     ),
   );
 
-  SpotifyApiService(this._storage, [http.Client? client])
-    : _hasCustomClient = client != null,
+  /// [watchFeedDecoder] 只供测试注入（单测不加载 Rust 核心）。
+  SpotifyApiService(
+    this._storage, [
+    http.Client? client,
+    WatchFeedDecoder? watchFeedDecoder,
+  ]) : _watchFeedDecoder = watchFeedDecoder,
+      _hasCustomClient = client != null,
       _client = SessionHttpClient(_storage, client ?? http.Client());
 
   void attachAuth(SpotifyAuthService auth) {
