@@ -342,7 +342,9 @@ class EmeLoopbackServer {
       );
     }
     try {
-      request.response.statusCode = 500;
+      // 限流如实回 429（hls.js 与日志都能看出是限流，而不是笼统的 500）
+      request.response.statusCode =
+          error is LicenseHttpException && error.isThrottled ? 429 : 500;
       request.response.headers.contentType = ContentType(
         'text',
         'plain',

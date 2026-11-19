@@ -12,11 +12,20 @@ enum EmeDrmSystem { widevine, fairplay }
 
 /// Status only: callers can report a server rejection without logging payloads.
 class LicenseHttpException extends StateError {
-  LicenseHttpException(this.statusCode, {required this.isCertificate})
-    : super('DRM ${isCertificate ? 'certificate' : 'license'} HTTP $statusCode');
+  LicenseHttpException(
+    this.statusCode, {
+    required this.isCertificate,
+    this.retryAfter,
+  }) : super('DRM ${isCertificate ? 'certificate' : 'license'} HTTP $statusCode');
 
   final int statusCode;
   final bool isCertificate;
+
+  /// 服务端 `Retry-After`（仅 429 / 503 时可能有）。
+  final Duration? retryAfter;
+
+  /// Spotify 限流（请求过于频繁）。
+  bool get isThrottled => statusCode == 429;
 
   String get code =>
       '${isCertificate ? 'certificate' : 'license'}_http_$statusCode';
@@ -50,6 +59,8 @@ class WidevineLicenseClient {
     this.hosts = defaultHosts,
     this.timeout = const Duration(seconds: 12),
     this.drmSystem,
+    this.throttleBackoff = const Duration(seconds: 5),
+    this.maxThrottleHold = const Duration(seconds: 15),
   }) : _customClient = client != null,
        _client = client ?? http.Client();
 
@@ -85,6 +96,41 @@ class WidevineLicenseClient {
   /// 最近一次成功的入口；下次优先用它。
   String? lastGoodHost;
 
+  /// 被限流（429）后的首次冷却时长；连续限流时逐级翻倍，最长 60 秒。
+  final Duration throttleBackoff;
+
+  /// 冷却剩余时间不超过它时，把 license 请求挂起到冷却结束再发（播放只是晚一点开始）；
+  /// 否则直接报限流。hls.js 侧的首字节超时要大于它（见 eme_page_html.dart 的 keyLoadPolicy）。
+  final Duration maxThrottleHold;
+
+  DateTime? _throttledUntil;
+  int _throttleLevel = 0;
+
+  /// 当前是否处于限流冷却期（界面可据此提示「稍后再试」）。
+  bool get isThrottled =>
+      _throttledUntil != null && DateTime.now().isBefore(_throttledUntil!);
+
+  void _enterThrottle(LicenseHttpException e) {
+    final backoff = throttleBackoff * (1 << _throttleLevel.clamp(0, 4));
+    var wait = e.retryAfter ?? backoff;
+    if (wait > const Duration(seconds: 60)) wait = const Duration(seconds: 60);
+    _throttledUntil = DateTime.now().add(wait);
+    _throttleLevel++;
+    debugPrint('[eme] license 被限流（HTTP 429），${wait.inSeconds}s 内不再请求');
+  }
+
+  /// 冷却中：剩余时间短就等过去，长就直接报限流（不打到 Spotify，避免越重试限流越久）。
+  Future<void> _awaitThrottle() async {
+    final until = _throttledUntil;
+    if (until == null) return;
+    final remaining = until.difference(DateTime.now());
+    if (remaining <= Duration.zero) return;
+    if (remaining > maxThrottleHold) {
+      throw LicenseHttpException(429, isCertificate: false, retryAfter: remaining);
+    }
+    await Future<void>.delayed(remaining);
+  }
+
   static const String _ua =
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36';
 
@@ -96,7 +142,26 @@ class WidevineLicenseClient {
 
   /// license 反代：POST `<service>/v1/audio/license`，返回 license 响应体。
   /// FairPlay 的请求形态见 [fairPlayLicenseUri]（`?assetId=hex`，体为原样 SPC）。
+  ///
+  /// Spotify 返回 429 时进入冷却（见 [throttleBackoff]）：冷却期内不发请求；冷却够短就挂起等过去再试一次。
   Future<Uint8List> postLicense(Uint8List request) async {
+    for (var attempt = 0; ; attempt++) {
+      await _awaitThrottle();
+      try {
+        final body = await _postLicenseOnce(request);
+        _throttleLevel = 0;
+        _throttledUntil = null;
+        return body;
+      } on LicenseHttpException catch (e) {
+        if (!e.isThrottled) rethrow;
+        _enterThrottle(e);
+        final remaining = _throttledUntil!.difference(DateTime.now());
+        if (attempt > 0 || remaining > maxThrottleHold) rethrow;
+      }
+    }
+  }
+
+  Future<Uint8List> _postLicenseOnce(Uint8List request) async {
     try {
       final token = await webToken();
       final ct = await clientToken();
@@ -227,9 +292,11 @@ class WidevineLicenseClient {
           '[eme] license $name @ $host → HTTP ${res.statusCode} ${res.bodyBytes.length}B',
         );
         if (res.statusCode != 200) {
+          final retryAfter = int.tryParse(res.headers['retry-after'] ?? '');
           throw LicenseHttpException(
             res.statusCode,
             isCertificate: name == 'application-certificate',
+            retryAfter: retryAfter == null ? null : Duration(seconds: retryAfter),
           );
         }
         lastGoodHost = host;

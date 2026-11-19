@@ -248,6 +248,14 @@ window.emePlayHls = (fairPlay, gen, autoplay = true, revision = 0, position = 0)
         // 宽限：本地服务，无需重试策略
         fragLoadingMaxRetry: 2,
         manifestLoadingMaxRetry: 2,
+        // license 走本地中转：被 Spotify 限流时中转会把请求挂起到冷却结束（最长 15s），
+        // 首字节超时要比它长；出错时少量、指数退避重试，避免密集重试让限流越来越久
+        keyLoadPolicy: {default: {
+          maxTimeToFirstByteMs: 30000,
+          maxLoadTimeMs: 40000,
+          timeoutRetry: {maxNumRetry: 1, retryDelayMs: 2000, maxRetryDelayMs: 8000, backoff: 'exponential'},
+          errorRetry: {maxNumRetry: 2, retryDelayMs: 3000, maxRetryDelayMs: 15000, backoff: 'exponential'},
+        }},
       });
       // 诊断：hls 管线关键事件逐个埋点；bundle 是 hls.js 1.5.13，不暴露
       // KEY_SYSTEM_* 公共事件（只有 ErrorDetails 常量），按存在性守卫自动跳过
