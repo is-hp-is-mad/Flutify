@@ -15,6 +15,7 @@ import '../../widgets/connect/remote_transport_controls.dart';
 import '../../widgets/cover_image.dart';
 import '../../widgets/liquid_glass.dart';
 import '../../widgets/marquee_text.dart';
+import '../../widgets/menu/apple_more_menu_route.dart';
 import '../../widgets/playback_scrubber.dart';
 import '../../widgets/player_controls.dart';
 import '../../widgets/text_metrics.dart';
@@ -179,7 +180,8 @@ class PlayerSceneTopBar extends StatelessWidget {
             icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 30),
             color: Colors.white,
             tooltip: context.l10n.commonClose,
-            onPressed: () => Navigator.pop(context),
+            // maybePop：交给播放页路由做可中断的收回（落回迷你条后才出栈）
+            onPressed: () => Navigator.maybePop(context),
           ),
           Expanded(
             child: Column(
@@ -210,14 +212,21 @@ class PlayerSceneTopBar extends StatelessWidget {
             ),
           ),
           ?pin,
-          Builder(
-            // 独立 context：桌面对话框中菜单锚定在按钮下方
-            builder: (buttonContext) => IconButton(
-              icon: const Icon(Icons.more_vert_rounded, size: 22),
-              color: Colors.white,
-              tooltip: context.l10n.commonMoreOptions,
-              onPressed: () =>
-                  TrackMenu.show(buttonContext, track, onConnect: onConnect),
+          // ⋯ 按钮本身在菜单展开时化作玻璃团块（AppleMoreMenu）
+          AppleMoreMenuSource(
+            child: Builder(
+              // 独立 context：桌面对话框中菜单锚定在按钮下方
+              builder: (buttonContext) => IconButton(
+                icon: const Icon(Icons.more_vert_rounded, size: 22),
+                color: Colors.white,
+                tooltip: context.l10n.commonMoreOptions,
+                onPressed: () => TrackMenu.show(
+                  buttonContext,
+                  track,
+                  onConnect: onConnect,
+                  morph: true,
+                ),
+              ),
             ),
           ),
         ],

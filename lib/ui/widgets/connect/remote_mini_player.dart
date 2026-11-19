@@ -40,73 +40,47 @@ class RemoteMiniPlayer extends StatelessWidget {
       fallback: const Color(0xFF3A3A42),
       builder: (context, artColor) {
         final background = Color.lerp(artColor, Colors.black, 0.35)!;
+        final title = track?.name ?? player.title;
+        _RemoteMiniFace face({required bool onSurface}) => _RemoteMiniFace(
+          imageUrl: imageUrl,
+          title: title,
+          trackKey: player.trackUri,
+          showArtwork: false,
+          onSurface: onSurface,
+        );
         return MiniPlayerBounds(
           child: PlayerExpansionSource(
             key: const ValueKey('mini-player-expansion-source'),
             color: background,
             translucent: tokens.hyperMaterial,
-            borderRadius: tokens.squareCorners
-                ? tokens.radius(16)
-                : BorderRadius.circular(32),
-            compactChild: _RemoteMiniRow(
-              imageUrl: imageUrl,
-              title: track?.name ?? player.title,
-              trackKey: player.trackUri,
-              showArtwork: false,
+            borderRadius: MiniPlayerStyle.surfaceRadius(context),
+            // 展开外壳里的两份副本（不含封面）：封面色上的白字、玻璃上的原样
+            compactChild: MiniPlayerDock.carry(context, face(onSurface: false)),
+            material: MiniPlayerStyle.expansionMaterial(
+              context,
+              MiniPlayerDock.carry(context, face(onSurface: true)),
             ),
             child: MiniPlayerSurface(
               background: background,
               shape: shape,
               child: Material(
                 type: MaterialType.transparency,
-                child: InkWell(
-                  customBorder: shape,
-                  mouseCursor: SystemMouseCursors.click,
-                  onTap: () => FullPlayerSheet.show(context),
-                  child: MiniPlayerSwipe(
-                    onSwipe: (next) => ConnectActions.run(
-                      context,
-                      next ? connect.skipNext : connect.skipPrevious,
-                    ),
-                    child: Stack(
-                      children: [
-                        _RemoteMiniRow(
-                          imageUrl: imageUrl,
-                          title: track?.name ?? player.title,
-                          trackKey: player.trackUri,
-                        ),
-                        // 细进度线：左右内缩到胶囊直线段内
-                        Positioned(
-                          left: 28,
-                          right: 28,
-                          bottom: 3,
-                          child: MiniPlayerFoldAway(
-                            fold: MiniPlayerDock.maybeOf(context),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(1),
-                              child: RemoteProgressBuilder(
-                                builder: (context, positionMs, durationMs) =>
-                                    LinearProgressIndicator(
-                                      value: durationMs <= 0
-                                          ? 0
-                                          : (positionMs / durationMs).clamp(
-                                              0.0,
-                                              1.0,
-                                            ),
-                                      minHeight: 2,
-                                      backgroundColor:
-                                          MiniPlayerStyle.foreground(
-                                            context,
-                                          ).withAlpha(40),
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        MiniPlayerStyle.foreground(context),
-                                      ),
-                                    ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                // 上滑跟手打开播放页（Apple Music 迷你条行为）；横滑切歌、点按照旧
+                child: PlayerOpenDrag(
+                  child: InkWell(
+                    customBorder: shape,
+                    mouseCursor: SystemMouseCursors.click,
+                    onTap: () => FullPlayerSheet.show(context),
+                    child: MiniPlayerSwipe(
+                      onSwipe: (next) => ConnectActions.run(
+                        context,
+                        next ? connect.skipNext : connect.skipPrevious,
+                      ),
+                      child: _RemoteMiniFace(
+                        imageUrl: imageUrl,
+                        title: title,
+                        trackKey: player.trackUri,
+                      ),
                     ),
                   ),
                 ),
@@ -119,17 +93,78 @@ class RemoteMiniPlayer extends StatelessWidget {
   }
 }
 
+/// 远程迷你条上画的全部内容：那一行 + 底部细进度线（展开外壳用不含封面的副本）。
+class _RemoteMiniFace extends StatelessWidget {
+  final String imageUrl;
+  final String title;
+  final String trackKey;
+  final bool showArtwork;
+  final bool onSurface;
+
+  const _RemoteMiniFace({
+    required this.imageUrl,
+    required this.title,
+    required this.trackKey,
+    this.showArtwork = true,
+    this.onSurface = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final foreground = MiniPlayerStyle.foreground(
+      context,
+      onSurface: onSurface,
+    );
+    return Stack(
+      children: [
+        _RemoteMiniRow(
+          imageUrl: imageUrl,
+          title: title,
+          trackKey: trackKey,
+          showArtwork: showArtwork,
+          onSurface: onSurface,
+        ),
+        // 细进度线：左右内缩到胶囊直线段内
+        Positioned(
+          left: 28,
+          right: 28,
+          bottom: 3,
+          child: MiniPlayerFoldAway(
+            fold: MiniPlayerDock.maybeOf(context),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(1),
+              child: RemoteProgressBuilder(
+                builder: (context, positionMs, durationMs) =>
+                    LinearProgressIndicator(
+                      value: durationMs <= 0
+                          ? 0
+                          : (positionMs / durationMs).clamp(0.0, 1.0),
+                      minHeight: 2,
+                      backgroundColor: foreground.withAlpha(40),
+                      valueColor: AlwaysStoppedAnimation<Color>(foreground),
+                    ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _RemoteMiniRow extends StatelessWidget {
   final String imageUrl;
   final String title;
   final String trackKey;
   final bool showArtwork;
+  final bool onSurface;
 
   const _RemoteMiniRow({
     required this.imageUrl,
     required this.title,
     required this.trackKey,
     this.showArtwork = true,
+    this.onSurface = true,
   });
 
   @override
@@ -143,7 +178,7 @@ class _RemoteMiniRow extends StatelessWidget {
     final artwork = MiniPlayerStyle.artworkSize(context);
     final foreground = MiniPlayerStyle.foreground(
       context,
-      onSurface: showArtwork,
+      onSurface: onSurface,
     );
 
     return Padding(

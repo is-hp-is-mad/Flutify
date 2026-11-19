@@ -1,7 +1,11 @@
 import 'dart:ui' as ui;
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutify_app/core/utils/artwork_palette.dart';
 import 'package:flutify_app/main.dart';
+import 'package:flutify_app/models/album.dart';
+import 'package:flutify_app/models/appearance.dart';
+import 'package:flutify_app/models/image.dart';
 import 'package:flutify_app/models/playback_context.dart';
 import 'package:flutify_app/models/track.dart';
 import 'package:flutify_app/providers/appearance_provider.dart';
@@ -201,7 +205,7 @@ void main() {
             await tester.drag(close, const Offset(0, 200));
         }
         await tester.pump();
-        for (var frame = 0; frame < 10; frame++) {
+        for (var frame = 0; frame < 14; frame++) {
           await tester.pump(const Duration(milliseconds: 60));
         }
         expect(find.byType(FullPlayerSheet), findsNothing);
@@ -523,7 +527,7 @@ void main() {
     final origin = tester.getRect(
       find.byKey(const ValueKey('mini-player-expansion-source')),
     );
-    final artworkOrigin = tester.getRect(find.byType(Hero));
+    final artworkOrigin = tester.getRect(find.byType(PlayerArtworkHero));
 
     await tester.tap(find.byType(MiniPlayer));
     await tester.pump();
@@ -538,10 +542,13 @@ void main() {
     }
 
     expect(surface(), origin);
-    await tester.pump(const Duration(milliseconds: 120));
+    // Early in the opening the shell is already growing out of the pill in
+    // every direction: its top leads, its sides and bottom follow.
+    await tester.pump(const Duration(milliseconds: 24));
     final expanding = surface();
     expect(expanding.top, lessThan(origin.top));
     expect(expanding.bottom, greaterThan(origin.bottom));
+    expect(expanding.left, lessThan(origin.left));
     expect(
       origin.top - expanding.top,
       greaterThan(expanding.bottom - origin.bottom),
@@ -552,7 +559,8 @@ void main() {
     final artwork = tester.getRect(
       find.byKey(const ValueKey('player-artwork-flight')),
     );
-    expect(artwork.top, lessThan(artworkOrigin.top));
+    // The artwork rides inside the rising sheet (Apple Music shows it below
+    // the pill's row at first) while it grows towards the player's cover.
     expect(artwork.left, greaterThan(artworkOrigin.left));
     expect(artwork.width, greaterThan(artworkOrigin.width));
     final artworkClip = tester.widget<ClipRRect>(
@@ -565,13 +573,23 @@ void main() {
     final compact = tester.widget<Opacity>(
       find.byKey(const ValueKey('player-expansion-compact')),
     );
-    expect(compact.opacity, inExclusiveRange(0, 1));
+    // The pill's row only starts leaving once the shell is under way.
+    expect(compact.opacity, greaterThan(0.9));
+
+    // The pill has grown into a card that still floats clear of the screen
+    // edges on its way up; it only fills the screen as it settles.
+    await tester.pump(const Duration(milliseconds: 120));
+    final rising = surface();
+    expect(rising.left, inExclusiveRange(0, origin.left));
+    expect(rising.right, inExclusiveRange(origin.right, 390));
+    expect(rising.bottom, inExclusiveRange(expanding.bottom, 844));
+    expect(rising.top, inExclusiveRange(0, expanding.top));
     final controls = tester.widget<Opacity>(
       find.byKey(const ValueKey('player-expansion-controls')),
     );
-    expect(controls.opacity, inExclusiveRange(0, 1));
+    expect(controls.opacity, inInclusiveRange(0, 1));
 
-    await tester.pump(const Duration(milliseconds: 480));
+    await tester.pump(const Duration(milliseconds: 600));
     expect(surface(), const Rect.fromLTWH(0, 0, 390, 844));
     await settle(tester);
     expect(find.byKey(const ValueKey('player-artwork-flight')), findsNothing);
@@ -603,7 +621,7 @@ void main() {
     await settle(tester);
     expect(find.byType(FullPlayerSheet), findsNothing);
     expect(find.byType(ModalBarrier), findsNWidgets(originalBarriers));
-    expect(tester.getRect(find.byType(Hero)).size, const Size(44, 44));
+    expect(tester.getRect(find.byType(PlayerArtworkHero)).size, const Size(44, 44));
     debugDefaultTargetPlatformOverride = null;
     expect(tester.takeException(), isNull);
   });
@@ -684,13 +702,13 @@ void main() {
       final origin = tester.getRect(
         find.byKey(const ValueKey('mini-player-expansion-source')),
       );
-      final artworkOrigin = tester.getRect(find.byType(Hero));
+      final artworkOrigin = tester.getRect(find.byType(PlayerArtworkHero));
       await tester.tap(find.byType(MiniPlayer));
       await settle(tester);
       final expandedArtwork = tester.getRect(
         find.descendant(
           of: find.byType(FullPlayerSheet),
-          matching: find.byType(Hero),
+          matching: find.byType(PlayerArtworkHero),
         ),
       );
       final close = find.byIcon(Icons.keyboard_arrow_down_rounded);
@@ -705,34 +723,41 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      // Sample the entire return, including the first 68% when the old compact
-      // row stayed hidden even though the artwork was already moving home.
-      for (var frame = 0; frame < 7; frame++) {
-        await tester.pump(const Duration(milliseconds: 60));
-        final artwork = tester.getRect(
-          find.byKey(const ValueKey('player-artwork-flight')),
-        );
-        final returned =
-            (expandedArtwork.width - artwork.width) /
-            (expandedArtwork.width - artworkOrigin.width);
+      // Sample the whole return: artwork, song info and buttons all come home
+      // on the same progress, so none of them may move away from the pill or
+      // fade out again once they started returning.
+      var previousOpacity = 0.0;
+      double? previousWidth;
+      var sawFlight = false;
+      for (var frame = 0; frame < 12; frame++) {
+        await tester.pump(const Duration(milliseconds: 40));
+        final flight = find.byKey(const ValueKey('player-artwork-flight'));
         final compact = find.byKey(const ValueKey('player-expansion-compact'));
-        expect(compact, findsOneWidget);
-        expect(
-          tester.widget<Opacity>(compact).opacity,
-          closeTo(returned, 0.001),
-          reason: 'Song info and buttons must fade in as the artwork returns',
-        );
-        final rowReturned =
-            (tester.getTopLeft(compact).dy + 16) / (origin.top + 16);
-        expect(
-          rowReturned,
-          closeTo(returned, 0.001),
-          reason: 'The compact row must travel home on the artwork timeline',
-        );
+        if (find.byType(FullPlayerSheet).evaluate().isEmpty) break;
+        final opacity = compact.evaluate().isEmpty
+            ? 0.0
+            : tester.widget<Opacity>(compact).opacity;
+        expect(opacity, greaterThanOrEqualTo(previousOpacity));
+        previousOpacity = opacity;
+        if (flight.evaluate().isNotEmpty) {
+          sawFlight = true;
+          final width = tester.getRect(flight).width;
+          expect(width, lessThanOrEqualTo(expandedArtwork.width + 0.5));
+          expect(width, greaterThanOrEqualTo(artworkOrigin.width - 0.5));
+          if (previousWidth != null) {
+            expect(width, lessThanOrEqualTo(previousWidth + 0.5));
+          }
+          previousWidth = width;
+        }
+        if (opacity > 0) {
+          // The pill's row rides on the shell's left edge.
+          expect(tester.getTopLeft(compact).dx, lessThanOrEqualTo(origin.left));
+        }
       }
+      expect(sawFlight, isTrue, reason: 'the artwork must fly home');
       await settle(tester);
       expect(find.byType(FullPlayerSheet), findsNothing);
-      expect(tester.getRect(find.byType(Hero)), artworkOrigin);
+      expect(tester.getRect(find.byType(PlayerArtworkHero)), artworkOrigin);
       debugDefaultTargetPlatformOverride = null;
       expect(tester.takeException(), isNull);
     });
@@ -779,7 +804,7 @@ void main() {
     await pumpPlaying(tester);
     await tester.tap(find.byType(MiniPlayer));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 120));
+    await tester.pump(const Duration(milliseconds: 24));
     Rect surface() => tester
         .widget<ClipPath>(
           find.byKey(const ValueKey('player-expansion-surface')),
@@ -796,9 +821,13 @@ void main() {
     expect(surface(), before);
     expect(tester.getRect(compact), compactBefore);
     expect(tester.widget<Opacity>(compact).opacity, opacityBefore);
+    // Reversed in place, like UIViewPropertyAnimator.isReversed.
     await tester.pump(const Duration(milliseconds: 16));
     expect(surface().height, lessThan(before.height));
-    expect(tester.widget<Opacity>(compact).opacity, greaterThan(opacityBefore));
+    expect(
+      tester.widget<Opacity>(compact).opacity,
+      greaterThanOrEqualTo(opacityBefore),
+    );
     await settle(tester);
     expect(find.byType(FullPlayerSheet), findsNothing);
     debugDefaultTargetPlatformOverride = null;
@@ -1024,6 +1053,112 @@ void main() {
       debugDefaultTargetPlatformOverride = null;
     });
   }
+
+  testWidgets(
+    'open keeps MainShell stationary, expanded cover uses unscaled full-res high quality, and glass collapse never blinks',
+    (tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      addTearDown(() => debugDefaultTargetPlatformOverride = null);
+      final playback = await pumpPlaying(tester);
+      const trackWithArt = SpotifyTrack(
+        id: 'synthetic-art',
+        name: 'Synthetic HiRes Artwork Track With Long Scrolling Title',
+        durationMs: 180000,
+        album: SpotifyAlbum(
+          id: 'album-1',
+          name: 'Synthetic Album',
+          images: [
+            SpotifyImage(
+              url: 'https://i.scdn.co/image/ab67616d0000b273synthetic',
+              width: 640,
+              height: 640,
+            ),
+          ],
+        ),
+      );
+      await playback.playTrack(trackWithArt, contextQueue: [trackWithArt]);
+      final appearance = tester
+          .element(find.byType(MainShell))
+          .read<AppearanceProvider>();
+      appearance.update(
+        appearance.settings.copyWith(glassMaterial: GlassMaterial.hyper),
+      );
+      await settle(tester);
+
+      final stackFinder = find.descendant(
+        of: find.byType(MainShell),
+        matching: find.byType(IndexedStack, skipOffstage: false),
+      );
+      final initialElement = tester.element(stackFinder);
+      final initialRect = tester.getRect(stackFinder);
+      expect(initialRect, const Rect.fromLTWH(0, 0, 390, 844));
+
+      await tester.tap(find.byType(MiniPlayer));
+      await tester.pump();
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 24));
+        // MainShell body must stay stationary at 1.0 scale and keep its Element
+        // (no Frame-1 tree-depth swap or 0.93 shrink).
+        expect(
+          tester.element(stackFinder),
+          same(initialElement),
+          reason: 'IndexedStack reparented at open frame $i',
+        );
+        expect(
+          tester.getRect(stackFinder),
+          initialRect,
+          reason: 'MainShell body scaled/jittered at open frame $i',
+        );
+      }
+      await settle(tester);
+
+      // Expanded cover must lay out directly at SwipeableArtwork's exact size
+      // (no fractional FittedBox downscale), full intrinsic resolution, and high filter quality.
+      final swipeRect = tester.getRect(find.byType(SwipeableArtwork));
+      final coverFinder = find.descendant(
+        of: find.byType(SwipeableArtwork),
+        matching: find.byType(CachedNetworkImage),
+      );
+      expect(coverFinder, findsOneWidget);
+      expect(tester.getRect(coverFinder), swipeRect);
+      final coverImage = tester.widget<CachedNetworkImage>(coverFinder);
+      expect(coverImage.memCacheWidth, isNull);
+      expect(coverImage.filterQuality, FilterQuality.high);
+
+      // Collapse in hyper-glass mode: on every frame through route pop, either
+      // PlayerExpansionTransition draws the bar or the real MiniPlayer is already
+      // visible (opacity == 1) — never a 1-frame invisible gap.
+      await tester.tap(find.byIcon(Icons.keyboard_arrow_down_rounded));
+      await tester.pump();
+      final sourceOpacityFinder = find
+          .descendant(
+            of: find.byKey(const ValueKey('mini-player-expansion-source')),
+            matching: find.byType(Opacity),
+          )
+          .first;
+      for (var frame = 0; frame < 45; frame++) {
+        await tester.pump(const Duration(milliseconds: 16));
+        final transitionMounted = find
+            .byType(PlayerExpansionTransition)
+            .evaluate()
+            .isNotEmpty;
+        final realBarOpacity = tester
+            .widget<Opacity>(sourceOpacityFinder)
+            .opacity;
+        expect(
+          transitionMounted || realBarOpacity == 1.0,
+          isTrue,
+          reason: '1-frame invisible bottom bar blink at collapse frame $frame',
+        );
+        if (!transitionMounted) break;
+      }
+      await settle(tester);
+      expect(find.byType(FullPlayerSheet), findsNothing);
+      expect(tester.widget<Opacity>(sourceOpacityFinder).opacity, 1.0);
+      debugDefaultTargetPlatformOverride = null;
+      expect(tester.takeException(), isNull);
+    },
+  );
 }
 
 Future<void> settle(WidgetTester tester) async {

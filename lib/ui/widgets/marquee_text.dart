@@ -92,26 +92,25 @@ class _MarqueeTextState extends State<MarqueeText>
       textStyle,
     );
 
+    final tickerEnabled = TickerMode.valuesOf(context).enabled;
     return LayoutBuilder(
       builder: (context, constraints) {
         final viewportWidth = constraints.maxWidth;
-        final shouldAnimate =
+        final overflows =
             widget.enabled &&
             !mediaQuery.disableAnimations &&
             viewportWidth.isFinite &&
             contentWidth > viewportWidth + 0.5;
+        final shouldAnimate = overflows && tickerEnabled;
         _scheduleConfiguration(
           viewportWidth: viewportWidth,
           contentWidth: contentWidth,
           shouldAnimate: shouldAnimate,
         );
 
-        final configured =
-            _shouldAnimate &&
-            _viewportWidth == viewportWidth &&
-            (_contentWidth - contentWidth).abs() < 0.5 &&
-            _controller.duration != null;
-        if (!configured) return _buildStaticText();
+        // 只要超宽就从首帧直接画静止在 0 处的右缘柔化布局，避免第 1 帧先画省略号 `…`、
+        // 第 2 帧 postFrameCallback 再切成 ShaderMask 造成迷你条歌名跳变。
+        if (!overflows) return _buildStaticText();
 
         return Semantics(
           container: true,

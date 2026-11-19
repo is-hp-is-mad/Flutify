@@ -205,8 +205,9 @@ class _PlayerSceneViewState extends State<PlayerSceneView> {
         interactionSuspended: _destinationsOpen,
         background: PlayerExpansionReveal(
           animation: expansion,
-          start: 0,
           rise: 0,
+          // 迷你条颜色 → 播放页封面色：几乎整段行程都在渐变
+          progress: PlayerExpansionMotion.backdrop,
           child: LyricsBackdrop(
             imageUrl: track.coverUrl,
             reducedEffects: !widget.fullBackdrop && _view != PlayerView.lyrics,
@@ -315,31 +316,32 @@ class _PlayerSceneViewState extends State<PlayerSceneView> {
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        FittedBox(
-                          child: SwipeableArtwork(
-                            url: track.coverUrl,
-                            size: 400,
-                            dragScale: size / 400,
-                            child: canvasActive
-                                ? TickerMode(
-                                    // 只用于暂停/恢复 Canvas 视频（CanvasArtwork
-                                    // 读它决定 active）；绝不能包在
-                                    // SwipeableArtwork 外层，否则会冻结
-                                    // 滑动回弹和换封面淡入动画
-                                    enabled: isEnlarged,
-                                    child: CanvasArtwork(
-                                      track: track,
-                                      size: 400,
-                                      remote: remote,
-                                      borderRadius: BorderRadius.zero,
-                                    ),
-                                  )
-                                : CoverImage(
-                                    url: track.coverUrl,
-                                    size: 400,
+                        SwipeableArtwork(
+                          url: track.coverUrl,
+                          size: size,
+                          child: canvasActive
+                              ? TickerMode(
+                                  // 只用于暂停/恢复 Canvas 视频（CanvasArtwork
+                                  // 读它决定 active）；绝不能包在
+                                  // SwipeableArtwork 外层，否则会冻结
+                                  // 滑动回弹和换封面淡入动画
+                                  enabled: isEnlarged,
+                                  child: CanvasArtwork(
+                                    track: track,
+                                    size: size,
+                                    remote: remote,
                                     borderRadius: BorderRadius.zero,
                                   ),
-                          ),
+                                )
+                              : CoverImage(
+                                  url: track.coverUrl,
+                                  size: size,
+                                  cacheSize: 400,
+                                  filterQuality: progress == 0
+                                      ? FilterQuality.high
+                                      : FilterQuality.medium,
+                                  borderRadius: BorderRadius.zero,
+                                ),
                         ),
                         if (isEnlarged)
                           Positioned(

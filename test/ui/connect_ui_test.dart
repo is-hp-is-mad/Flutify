@@ -820,6 +820,9 @@ void main() {
           of: title,
           matching: find.byType(SingleChildScrollView),
         );
+        // A just-restarted title draws its first frame as static text, which
+        // is the start position.
+        if (scroll.evaluate().isEmpty) return 0;
         return tester.widget<SingleChildScrollView>(scroll).controller!.offset;
       }
 

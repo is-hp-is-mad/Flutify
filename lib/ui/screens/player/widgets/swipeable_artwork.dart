@@ -102,10 +102,16 @@ class _SwipeableArtworkState extends State<SwipeableArtwork> {
             final progress = (dx.abs() / size).clamp(0.0, 1.0);
             return Transform.translate(
               offset: Offset(dx, 0),
-              child: Transform.rotate(
-                angle: dx / size * 0.06,
-                child: Opacity(opacity: 1 - progress * 0.5, child: child),
-              ),
+              // 静止时不套中心旋转与半透明，避免非整数尺寸下 Alignment.center 矩阵引入亚像素偏移
+              child: dx == 0
+                  ? child
+                  : Transform.rotate(
+                      angle: dx / size * 0.06,
+                      child: Opacity(
+                        opacity: 1 - progress * 0.5,
+                        child: child,
+                      ),
+                    ),
             );
           },
           child: Container(
