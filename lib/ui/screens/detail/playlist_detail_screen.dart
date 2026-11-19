@@ -175,15 +175,26 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
     final playbackContext = isLikedSongs
         ? PlaybackContext.collection(title, uri: LibraryProvider.likedSongsUri)
         : PlaybackContext.playlist(playlist.name, uri: playlist.contextUri);
-    final totalMs = tracks.fold<int>(0, (sum, t) => sum + t.durationMs);
-    // 「12 首歌曲，45 分 12 秒」；时长未知时只显示歌曲数
-    final songs = l10n.songCount(tracks.length);
-    final summary = totalMs > 0
-        ? l10n.countAndDuration(
-            songs,
-            Formatters.formatLongDuration(l10n, totalMs),
-          )
-        : songs;
+    // 歌曲数取歌单总数（分页接口第一页就给出 totalTracks），不是已加载的条数：长歌单分页加载时
+    // 不再把「已加载 300 首」显示成「300 首歌曲」。动态歌单等可能报 0 或偏小，取两者较大值。
+    final loadedCount = tracks.length;
+    final totalCount =
+        playlist.totalTracks > loadedCount ? playlist.totalTracks : loadedCount;
+    final songs = l10n.songCount(totalCount);
+    final String summary;
+    if (loadedCount < totalCount) {
+      // 没加载完（仍在加载或中途失败）：「1200 首歌曲 · 已加载 300 首」；时长只是已加载部分，不显示
+      summary = '$songs · ${l10n.songCountLoaded(loadedCount)}';
+    } else {
+      // 「12 首歌曲，45 分 12 秒」；时长未知时只显示歌曲数
+      final totalMs = tracks.fold<int>(0, (sum, t) => sum + t.durationMs);
+      summary = totalMs > 0
+          ? l10n.countAndDuration(
+              songs,
+              Formatters.formatLongDuration(l10n, totalMs),
+            )
+          : songs;
+    }
 
     // 播放按排序后的顺序（与官方一致）；搜索只影响显示
     final sorted = _sortedTracks(tracks);

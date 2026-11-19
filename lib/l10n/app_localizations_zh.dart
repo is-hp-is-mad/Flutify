@@ -243,6 +243,11 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String songCountLoaded(int count) {
+    return '已加载 $count 首';
+  }
+
+  @override
   String followerCount(String count) {
     return '$count 位粉丝';
   }
@@ -2469,6 +2474,11 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
       other: '$count 首歌曲',
     );
     return '$_temp0';
+  }
+
+  @override
+  String songCountLoaded(int count) {
+    return '已載入 $count 首';
   }
 
   @override

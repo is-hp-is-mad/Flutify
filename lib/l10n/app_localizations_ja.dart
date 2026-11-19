@@ -233,6 +233,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String songCountLoaded(int count) {
+    return '$count 曲読み込み済み';
+  }
+
+  @override
   String followerCount(String count) {
     return 'フォロワー $count 人';
   }

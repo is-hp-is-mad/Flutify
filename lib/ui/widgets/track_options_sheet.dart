@@ -232,7 +232,12 @@ class TrackOptionsSheet extends StatelessWidget {
                       return ListTile(
                         leading: CoverImage(url: playlist.coverUrl, size: 48, borderRadius: BorderRadius.circular(6)),
                         title: Text(playlist.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                        subtitle: Text(l10n.songCount(playlist.tracks.length)),
+                        // 媒体库里的歌单可能还没拉曲目（tracks 为空），总数取 rootlist 给的 totalTracks
+                        subtitle: Text(l10n.songCount(
+                          playlist.totalTracks > playlist.tracks.length
+                              ? playlist.totalTracks
+                              : playlist.tracks.length,
+                        )),
                         trailing: contains
                             ? Icon(Icons.check_circle_rounded, color: Theme.of(ctx).colorScheme.primary)
                             : null,

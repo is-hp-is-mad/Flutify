@@ -247,6 +247,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String songCountLoaded(int count) {
+    return '$count loaded';
+  }
+
+  @override
   String followerCount(String count) {
     return '$count followers';
   }

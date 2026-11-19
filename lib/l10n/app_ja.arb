@@ -59,6 +59,7 @@
   "filterPlaylists": "プレイリスト",
   "filterAlbums": "アルバム",
   "songCount": "{count} 曲",
+  "songCountLoaded": "{count} 曲読み込み済み",
   "followerCount": "フォロワー {count} 人",
   "durationHoursMinutes": "{hours} 時間 {minutes} 分",
   "durationMinutesSeconds": "{minutes} 分 {seconds} 秒",

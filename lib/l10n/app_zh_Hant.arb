@@ -121,6 +121,14 @@
       }
     }
   },
+  "songCountLoaded": "已載入 {count} 首",
+  "@songCountLoaded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "followerCount": "{count} 位粉絲",
   "@followerCount": {
     "description": "粉丝数，count 为已格式化的紧凑数字（如 1.2 万）",

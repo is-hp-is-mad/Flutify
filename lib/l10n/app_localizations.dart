@@ -521,6 +521,12 @@ abstract class AppLocalizations {
   /// **'{count, plural, other{{count} 首歌曲}}'**
   String songCount(int count);
 
+  /// 分页加载的长歌单尚未加载完时，跟在总曲目数后面显示已加载多少首，如「1200 首歌曲 · 已加载 300 首」
+  ///
+  /// In zh, this message translates to:
+  /// **'已加载 {count} 首'**
+  String songCountLoaded(int count);
+
   /// 粉丝数，count 为已格式化的紧凑数字（如 1.2 万）
   ///
   /// In zh, this message translates to:

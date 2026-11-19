@@ -107,6 +107,7 @@
   "filterPlaylists": "Playlists",
   "filterAlbums": "Albums",
   "songCount": "{count, plural, =1{1 song} other{{count} songs}}",
+  "songCountLoaded": "{count} loaded",
   "followerCount": "{count} followers",
   "durationHoursMinutes": "{hours} hr {minutes} min",
   "durationMinutesSeconds": "{minutes} min {seconds} sec",
