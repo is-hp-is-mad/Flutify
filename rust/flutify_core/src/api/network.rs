@@ -40,28 +40,6 @@ fn download_emit(sink: StreamSink<AudioDownloadEvent>) -> Emit {
     Arc::new(move |event: DownloadEvent| sink.add(event.into()).is_ok())
 }
 
-/// AP 链路：从 [offset] 起下载并（[key] 非空时）AES-128-CTR 解密，逐块推送解密后的数据。
-pub fn audio_download_decrypt(
-    sink: StreamSink<AudioDownloadEvent>,
-    proxy: String,
-    url: String,
-    headers: Vec<HttpHeaderEntry>,
-    offset: i64,
-    key: Vec<u8>,
-    iv: Vec<u8>,
-) {
-    let emit = download_emit(sink);
-    http_client::runtime().spawn(downloads::download_decrypt(
-        proxy,
-        url,
-        pairs(headers),
-        offset.max(0) as u64,
-        key,
-        iv,
-        emit,
-    ));
-}
-
 /// EME 链路：多连接分段下载写入 [path]，推送「从 0 起连续可用字节」进度。
 #[allow(clippy::too_many_arguments)] // FFI 入口，参数与 Dart 调用一一对应
 pub fn audio_download_to_file(

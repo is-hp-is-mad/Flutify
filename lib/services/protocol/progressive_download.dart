@@ -2,17 +2,12 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
-import 'package:http/http.dart' as http;
-
-import '../../core/rust_core.dart';
-import '../../src/rust/api/network.dart' as rust_net;
+import '../../src/rust/api/audio_stream.dart' as rust_stream;
+import '../../src/rust/api/network.dart' show AudioDownloadEvent;
 import '../../src/rust/api/protocol.dart' as rust;
 import '../network/rust_route.dart';
 import 'audio_normalization.dart';
-import 'decrypt/audio_decryptor.dart';
-import 'decrypt/decrypt_backend.dart';
 import 'track_metadata.dart';
-
 /// Spotify 音频文件头的处理规则（落盘与边下边播共用）。
 ///
 /// Spotify 的 Ogg 文件以 0xa7 字节的私有头页开头（librespot `SPOTIFY_OGG_HEADER_END`），
@@ -71,34 +66,75 @@ abstract class ProgressiveAudio {
   Stream<List<int>> read(int start, [int? end]);
 }
 
-/// 一次 CDN 下载：流式解密到内存缓冲区，同时可被播放器按区间读取。
+/// 一次边下边播下载的事件来源：按顺序推送 [AudioDownloadEvent]（语义见 Rust
+/// `api::audio_stream::audio_progressive_download`）；取消订阅即停止下载。
+typedef ProgressiveFetch =
+    Stream<AudioDownloadEvent> Function(
+      List<String> urls,
+      Uint8List key,
+      Uint8List iv,
+      int maxAttempts,
+    );
+
+/// 生产实现：下载、AES-128-CTR 解密、Range 续传、CDN 轮换与重试全部在 Rust 里完成。
+/// 这里只为每个 CDN 地址选好路线（代理 / 网关，见 [rustRouteFor]）。
+Stream<AudioDownloadEvent> rustProgressiveFetch(
+  List<String> urls,
+  Uint8List key,
+  Uint8List iv,
+  int maxAttempts,
+) async* {
+  final targets = <rust_stream.AudioDownloadTarget>[];
+  for (final url in urls) {
+    final route = await rustRouteFor(Uri.parse(url));
+    if (route == null) throw StateError('网关配置无效，无法下载音频');
+    targets.add(
+      rust_stream.AudioDownloadTarget(
+        proxy: route.proxy,
+        url: route.url.toString(),
+        headers: [
+          for (final h in route.headers.entries)
+            rust.HttpHeaderEntry(name: h.key, value: h.value),
+        ],
+      ),
+    );
+  }
+  yield* rust_stream.audioProgressiveDownload(
+    targets: targets,
+    key: key,
+    iv: iv,
+    maxAttempts: maxAttempts,
+  );
+}
+
+/// 一次 CDN 下载：Rust 流式下载并解密，明文按文件偏移写进内存缓冲区，同时可被播放器按区间读取。
 ///
 /// 规则：
 /// - 头部（[SpotifyAudioHeader.probeLength] 字节）到达后 [ready] 完成，此时即可开始播放；
-/// - 中途断线时用 HTTP Range 从已收到的位置续传，依次轮换 CDN 地址，累计失败 [maxAttempts] 次才放弃；
+/// - 中途断线时由 Rust 用 HTTP Range 从已收到的位置续传，依次轮换 CDN 地址，累计失败 [maxAttempts] 次才放弃；
 /// - 服务器没给出总长度（无 Content-Length）时无法预分配缓冲区，退化为下载完成后才 [ready]。
 class ProgressiveDownload implements ProgressiveAudio {
   final List<String> urls;
 
-  /// 解密方式（当前为 AES-128-CTR，见 [AesCtrDecryptSpec]）。
-  final DecryptSpec decrypt;
-
-  /// 解密在哪里执行：生产环境为常驻后台 Isolate，测试默认在当前线程。
-  final DecryptBackend backend;
+  /// AES-128-CTR 音频密钥与 IV（[key] 为空表示数据本身是明文）。
+  final Uint8List key;
+  final Uint8List iv;
   final AudioFileFormat format;
-  final http.Client client;
 
-  /// 单个地址失败后重试的总次数上限（含轮换到其他地址）。
+  /// 下载事件来源：生产为 [rustProgressiveFetch]，测试可注入假实现。
+  final ProgressiveFetch fetch;
+
+  /// 失败后重试的总次数上限（含轮换到其他地址）。
   final int maxAttempts;
 
   ProgressiveDownload({
     required this.urls,
-    required this.decrypt,
+    required this.key,
+    required this.iv,
     required this.format,
-    required this.client,
-    this.backend = const InlineDecryptBackend(),
     this.maxAttempts = 4,
-  });
+    ProgressiveFetch? fetch,
+  }) : fetch = fetch ?? rustProgressiveFetch;
 
   /// 解密后的完整文件（含私有头）；总长度未知时下载期间为 null。
   Uint8List? _buffer;
@@ -107,6 +143,10 @@ class ProgressiveDownload implements ProgressiveAudio {
   Uint8List? _normalizationBytes;
   Object? _error;
   bool _started = false;
+  StreamSubscription<AudioDownloadEvent>? _subscription;
+
+  /// 总长度未知时收集中的数据（完成后整体放入 [_buffer]）。
+  BytesBuilder? _pending;
 
   /// 使用者计数：见 [retain]。
   int _holders = 0;
@@ -139,7 +179,8 @@ class ProgressiveDownload implements ProgressiveAudio {
     };
   }
 
-  /// 立即取消下载：[ready] / [done] 以 [DownloadCancelledException] 结束，不写缓存。
+  /// 立即取消下载（取消 Rust 事件流，连接随之关闭）：[ready] / [done] 以
+  /// [DownloadCancelledException] 结束，不写缓存。
   void cancel() {
     if (_cancelled || _done.isCompleted) return;
     _cancelled = true;
@@ -201,167 +242,65 @@ class ProgressiveDownload implements ProgressiveAudio {
     // 结果通过 ready / done 观察；未被监听的错误不应成为未捕获异常
     _ready.future.catchError((Object _) {});
     _done.future.catchError((Object _) {});
-    unawaited(_run());
-  }
-
-  Future<void> _run() async {
     if (urls.isEmpty) {
       _fail(StateError('没有可用的 CDN 地址'));
       return;
     }
-    Object? lastError;
-    for (var attempt = 0; attempt < maxAttempts; attempt++) {
-      if (_cancelled) return;
-      final url = urls[attempt % urls.length];
-      try {
-        await _fetch(url);
-        if (_cancelled) return;
-        _complete();
-        return;
-      } catch (e) {
-        if (_cancelled) return;
-        lastError = e;
-      }
-    }
-    _fail(StateError('所有 CDN 地址下载失败：$lastError'));
-  }
-
-  /// 从 [_received] 处开始（续传时带 Range）下载到结尾。
-  ///
-  /// AES-CTR 时由 Rust 下载并解密（直连、经代理或经网关；数据只跨一次 FFI，不再经 Dart 解密
-  /// Isolate 往返）；Rust 建连失败（一个字节都没收到）时改走下面的 Dart 实现。
-  Future<void> _fetch(String url) async {
-    final spec = decrypt;
-    if (RustCore.ready && spec is AesCtrDecryptSpec) {
-      final route = await rustRouteFor(Uri.parse(url));
-      if (route != null && await _fetchRust(route, spec)) return;
-    }
-    await _fetchDart(url);
-  }
-
-  /// Rust 下载 + 解密；建连失败（未收到数据）返回 false。
-  Future<bool> _fetchRust(RustRoute route, AesCtrDecryptSpec spec) async {
-    final resume = _received > 0 && _buffer != null;
-    var pos = 0;
-    Uint8List? buffer;
-    BytesBuilder? pending;
-    var gotData = false;
-    // 跳出 await for 即取消订阅：Rust 端推送失败后立即停止下载、关闭连接
-    await for (final e in rust_net.audioDownloadDecrypt(
-      proxy: route.proxy,
-      url: route.url.toString(),
-      headers: [
-        for (final h in route.headers.entries)
-          rust.HttpHeaderEntry(name: h.key, value: h.value),
-      ],
-      offset: resume ? _received : 0,
-      key: spec.key,
-      iv: spec.iv,
-    )) {
-      if (_cancelled) throw const DownloadCancelledException();
-      switch (e.kind) {
-        case 0: // 元信息：服务器忽略 Range 时从头重新写（内容相同）
-          pos = e.status == 206 ? _received : 0;
-          if (_buffer == null && e.total > 0) _buffer = Uint8List(e.total);
-          buffer = _buffer;
-          pending = buffer == null ? BytesBuilder(copy: false) : null;
-        case 1: // 已解密数据块
-          gotData = true;
-          final data = e.data;
-          final target = buffer;
-          if (target != null) {
-            if (pos + data.length > target.length) {
-              throw StateError('CDN 返回的数据超出声明长度');
-            }
-            target.setRange(pos, pos + data.length, data);
-            pos += data.length;
-            if (pos > _received) _advance(pos);
-          } else {
-            pending?.add(data);
-          }
-        case 3: // 完成
-          return _finishFetch(buffer, pending);
-        case 4: // 失败
-          if (!gotData && e.message.startsWith('connect:')) return false;
-          throw StateError(e.message.replaceFirst(RegExp('^[a-z]+:'), ''));
-      }
-    }
-    throw StateError('下载意外中断');
-  }
-
-  /// 一次请求结束：总长度未知时整体放入缓冲区；已知时检查是否收全。
-  bool _finishFetch(Uint8List? buffer, BytesBuilder? pending) {
-    if (buffer == null) {
-      final bytes = pending?.takeBytes() ?? Uint8List(0);
-      if (bytes.isEmpty) throw StateError('CDN 返回空文件');
-      _buffer = bytes;
-      _advance(bytes.length);
-    } else if (_received < buffer.length) {
-      throw StateError('下载中断（$_received/${buffer.length}）');
-    }
-    return true;
-  }
-
-  Future<void> _fetchDart(String url) async {
-    final resume = _received > 0 && _buffer != null;
-    final request = http.Request('GET', Uri.parse(url));
-    if (resume) request.headers['Range'] = 'bytes=$_received-';
-    final response = await client.send(request);
-    final status = response.statusCode;
-    if (status != 200 && status != 206) {
-      await response.stream.drain<void>().catchError((_) {});
-      throw StateError('CDN 返回 HTTP $status');
-    }
-
-    // 服务器忽略 Range 时从头重新写（内容相同，已交给播放器的数据不受影响）
-    var pos = status == 206 ? _received : 0;
-    if (_buffer == null) {
-      final total = _totalLength(response);
-      if (total != null && total > 0) _buffer = Uint8List(total);
-    }
-    final decryptor = backend.open(decrypt, offset: pos);
-    final buffer = _buffer;
-    // 总长度未知：先收集，结束后再整体放入缓冲区
-    final pending = buffer == null ? BytesBuilder(copy: false) : null;
-
-    try {
-      // 逐块等解密结果再读下一块：顺序天然保证，网络读取也随之形成背压
-      await for (final chunk in response.stream) {
-        // 取消：跳出 await for 会取消底层 HTTP 订阅，连接随之关闭
-        if (_cancelled) throw const DownloadCancelledException();
-        final data = await decryptor.process(chunk is Uint8List ? chunk : Uint8List.fromList(chunk));
-        if (buffer != null) {
-          if (pos + data.length > buffer.length) throw StateError('CDN 返回的数据超出声明长度');
-          buffer.setRange(pos, pos + data.length, data);
-          pos += data.length;
-          if (pos > _received) _advance(pos);
-        } else {
-          pending!.add(data);
+    if (_done.isCompleted) return; // 开始前已被取消
+    _subscription = fetch(urls, key, iv, maxAttempts).listen(
+      (event) {
+        try {
+          _onEvent(event);
+        } catch (e) {
+          _fail(e);
         }
-      }
-    } finally {
-      decryptor.close();
-    }
-
-    if (pending != null) {
-      final bytes = pending.takeBytes();
-      if (bytes.isEmpty) throw StateError('CDN 返回空文件');
-      _buffer = bytes;
-      _advance(bytes.length);
-    } else if (_received < buffer!.length) {
-      throw StateError('下载中断（$_received/${buffer.length}）');
-    }
+      },
+      onError: (Object e) => _fail(e is StateError ? e : StateError('$e')),
+      onDone: () => _fail(StateError('下载意外中断')),
+      cancelOnError: true,
+    );
   }
 
-  /// 总长度：200 取 Content-Length；206 取 Content-Range 的 `/total`。
-  static int? _totalLength(http.StreamedResponse response) {
-    if (response.statusCode == 206) {
-      final range = response.headers['content-range'];
-      final slash = range?.lastIndexOf('/') ?? -1;
-      if (range != null && slash >= 0) return int.tryParse(range.substring(slash + 1).trim());
-      return null;
+  // 事件类型（与 Rust downloads::EVENT_* 一致）
+  static const int _eventMeta = 0;
+  static const int _eventData = 1;
+  static const int _eventDone = 3;
+  static const int _eventError = 4;
+
+  void _onEvent(AudioDownloadEvent e) {
+    if (_done.isCompleted) return;
+    switch (e.kind) {
+      case _eventMeta:
+        // 每次请求（含重试）一条：总长第一次已知时分配缓冲区；仍未知时 Rust 从头重下，丢弃已收集的数据
+        if (_buffer == null && e.total > 0) _buffer = Uint8List(e.total);
+        _pending = _buffer == null ? BytesBuilder(copy: false) : null;
+      case _eventData:
+        final data = e.data;
+        final buffer = _buffer;
+        if (buffer == null) {
+          _pending?.add(data);
+          return;
+        }
+        // 服务器忽略 Range 时 Rust 从头重新推送（内容相同），按偏移覆盖写不影响已交给播放器的数据
+        final start = e.bytes;
+        final end = start + data.length;
+        if (start < 0 || end > buffer.length) throw StateError('CDN 返回的数据超出声明长度');
+        buffer.setRange(start, end, data);
+        if (end > _received) _advance(end);
+      case _eventDone:
+        if (_buffer == null) {
+          final bytes = _pending?.takeBytes() ?? Uint8List(0);
+          _pending = null;
+          if (bytes.isEmpty) throw StateError('CDN 返回空文件');
+          _buffer = bytes;
+          _advance(bytes.length);
+        } else if (_received < _buffer!.length) {
+          throw StateError('下载中断（$_received/${_buffer!.length}）');
+        }
+        _complete();
+      case _eventError:
+        throw StateError(e.message.replaceFirst(RegExp('^[a-z]+:'), ''));
     }
-    return response.contentLength;
   }
 
   void _advance(int received) {
@@ -385,6 +324,7 @@ class ProgressiveDownload implements ProgressiveAudio {
   }
 
   void _complete() {
+    _stopFetch();
     if (!_ready.isCompleted) _ready.complete();
     _done.complete();
     for (final listener in _progressListeners) {
@@ -395,11 +335,20 @@ class ProgressiveDownload implements ProgressiveAudio {
   }
 
   void _fail(Object error) {
+    if (_done.isCompleted) return;
+    _stopFetch();
     _error = error;
     if (!_ready.isCompleted) _ready.completeError(error);
     _done.completeError(error);
     _progressListeners.clear();
     _releaseWaiters();
+  }
+
+  void _stopFetch() {
+    final subscription = _subscription;
+    _subscription = null;
+    _pending = null;
+    subscription?.cancel().ignore();
   }
 
   void _releaseWaiters() {
