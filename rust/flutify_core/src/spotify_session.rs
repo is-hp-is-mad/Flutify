@@ -23,7 +23,8 @@ const PATHFINDER_ENDPOINT: &str = "https://api-partner.spotify.com/pathfinder/v2
 const WEB_USER_AGENT: &str =
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36";
 const WEB_CLIENT_ID: &str = "d8a5ed958d274c2e8ee717e6a4b0971d";
-const WEB_CLIENT_VERSION: &str = "1.2.88.149.g21766524";
+/// 与 Dart `SpotifyAuthConstants.webClientVersion` 保持一致：client-token 与业务请求头须同一身份。
+const WEB_CLIENT_VERSION: &str = "1.3.8.509.g26b6eac7300d";
 const TOTP_VERSION: u32 = 61;
 const OBFUSCATED_SECRET_V61: &str = r#",7/*F("rLJ2oxaKL^f+E1xvP@N"#;
 
