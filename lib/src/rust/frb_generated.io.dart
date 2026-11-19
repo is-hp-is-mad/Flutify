@@ -48,9 +48,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   String dco_decode_String(dynamic raw);
 
   @protected
-  ApHandshakeKeys dco_decode_ap_handshake_keys(dynamic raw);
-
-  @protected
   AudioDownloadEvent dco_decode_audio_download_event(dynamic raw);
 
   @protected
@@ -381,9 +378,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   RustApSessionDto dco_decode_rust_ap_session_dto(dynamic raw);
 
   @protected
-  RustApWelcomeDto dco_decode_rust_ap_welcome_dto(dynamic raw);
-
-  @protected
   RustArtistCatalogPageDto dco_decode_rust_artist_catalog_page_dto(dynamic raw);
 
   @protected
@@ -467,9 +461,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   RustPlaylistSummaryDto dco_decode_rust_playlist_summary_dto(dynamic raw);
-
-  @protected
-  RustPlayplayKeyDto dco_decode_rust_playplay_key_dto(dynamic raw);
 
   @protected
   RustPodcastEpisodeDto dco_decode_rust_podcast_episode_dto(dynamic raw);
@@ -601,9 +592,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   String sse_decode_String(SseDeserializer deserializer);
-
-  @protected
-  ApHandshakeKeys sse_decode_ap_handshake_keys(SseDeserializer deserializer);
 
   @protected
   AudioDownloadEvent sse_decode_audio_download_event(
@@ -1020,9 +1008,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   RustApSessionDto sse_decode_rust_ap_session_dto(SseDeserializer deserializer);
 
   @protected
-  RustApWelcomeDto sse_decode_rust_ap_welcome_dto(SseDeserializer deserializer);
-
-  @protected
   RustArtistCatalogPageDto sse_decode_rust_artist_catalog_page_dto(
     SseDeserializer deserializer,
   );
@@ -1136,11 +1121,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   RustPlaylistSummaryDto sse_decode_rust_playlist_summary_dto(
-    SseDeserializer deserializer,
-  );
-
-  @protected
-  RustPlayplayKeyDto sse_decode_rust_playplay_key_dto(
     SseDeserializer deserializer,
   );
 
@@ -1319,12 +1299,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_String(String self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_ap_handshake_keys(
-    ApHandshakeKeys self,
-    SseSerializer serializer,
-  );
 
   @protected
   void sse_encode_audio_download_event(
@@ -1828,12 +1802,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  void sse_encode_rust_ap_welcome_dto(
-    RustApWelcomeDto self,
-    SseSerializer serializer,
-  );
-
-  @protected
   void sse_encode_rust_artist_catalog_page_dto(
     RustArtistCatalogPageDto self,
     SseSerializer serializer,
@@ -1983,12 +1951,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_rust_playlist_summary_dto(
     RustPlaylistSummaryDto self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void sse_encode_rust_playplay_key_dto(
-    RustPlayplayKeyDto self,
     SseSerializer serializer,
   );
 

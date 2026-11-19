@@ -6,13 +6,10 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
 
 void rustSessionConfigure({required RustSessionConfig config}) =>
     RustLib.instance.api.crateApiBackendRustSessionConfigure(config: config);
-
-void rustSessionSetProxy({required String proxy}) =>
-    RustLib.instance.api.crateApiBackendRustSessionSetProxy(proxy: proxy);
 
 void rustSessionClear() =>
     RustLib.instance.api.crateApiBackendRustSessionClear();
@@ -24,17 +21,6 @@ Future<RustTokenResult> rustMintWebToken({
   spDc: spDc,
   proxy: proxy,
 );
-
-Future<RustTokenResult> rustEnsureWebAccessToken({
-  required bool forceRefresh,
-}) => RustLib.instance.api.crateApiBackendRustEnsureWebAccessToken(
-  forceRefresh: forceRefresh,
-);
-
-Future<RustTokenResult> rustEnsureClientToken({required bool forceRefresh}) =>
-    RustLib.instance.api.crateApiBackendRustEnsureClientToken(
-      forceRefresh: forceRefresh,
-    );
 
 Future<RustPlaylistDto?> rustFetchPlaylistFull({
   required String spclientBase,
@@ -207,24 +193,6 @@ Future<List<RustExtendedMetadataEntryDto>> rustFetchExtendedMetadata({
   proxy: proxy,
 );
 
-Future<RustApWelcomeDto> rustApConnectAndLogin({
-  String? host,
-  int? port,
-  required String proxy,
-  required String username,
-  required int authType,
-  required List<int> authData,
-  required String deviceId,
-}) => RustLib.instance.api.crateApiBackendRustApConnectAndLogin(
-  host: host,
-  port: port,
-  proxy: proxy,
-  username: username,
-  authType: authType,
-  authData: authData,
-  deviceId: deviceId,
-);
-
 Future<Uint8List> rustApRequestAudioKey({
   required BigInt sessionId,
   required List<int> fileId,
@@ -375,14 +343,6 @@ RustProtoEpisodeMetadataDto rustParseEpisodeMetadataProto({
   data: data,
 );
 
-Uint8List rustEncodePlayplayKeyRequest({required PlatformInt64 nowSec}) =>
-    RustLib.instance.api.crateApiBackendRustEncodePlayplayKeyRequest(
-      nowSec: nowSec,
-    );
-
-RustPlayplayKeyDto rustParsePlayplayKeyProto({required List<int> data}) =>
-    RustLib.instance.api.crateApiBackendRustParsePlayplayKeyProto(data: data);
-
 Future<RustSpotifyLyricsDto?> rustFetchColorLyrics({
   required String spclientBase,
   required String trackId,
@@ -511,37 +471,6 @@ class RustAlbumDto {
           totalTracks == other.totalTracks &&
           images == other.images &&
           artists == other.artists;
-}
-
-class RustApWelcomeDto {
-  final BigInt sessionId;
-  final String canonicalUsername;
-  final int reusableAuthType;
-  final Uint8List reusableAuth;
-
-  const RustApWelcomeDto({
-    required this.sessionId,
-    required this.canonicalUsername,
-    required this.reusableAuthType,
-    required this.reusableAuth,
-  });
-
-  @override
-  int get hashCode =>
-      sessionId.hashCode ^
-      canonicalUsername.hashCode ^
-      reusableAuthType.hashCode ^
-      reusableAuth.hashCode;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is RustApWelcomeDto &&
-          runtimeType == other.runtimeType &&
-          sessionId == other.sessionId &&
-          canonicalUsername == other.canonicalUsername &&
-          reusableAuthType == other.reusableAuthType &&
-          reusableAuth == other.reusableAuth;
 }
 
 class RustArtistDto {
@@ -940,24 +869,6 @@ class RustPlaylistSummaryDto {
           ownerName == other.ownerName &&
           images == other.images &&
           totalTracks == other.totalTracks;
-}
-
-class RustPlayplayKeyDto {
-  final Uint8List r1;
-  final Uint8List r2;
-
-  const RustPlayplayKeyDto({required this.r1, required this.r2});
-
-  @override
-  int get hashCode => r1.hashCode ^ r2.hashCode;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is RustPlayplayKeyDto &&
-          runtimeType == other.runtimeType &&
-          r1 == other.r1 &&
-          r2 == other.r2;
 }
 
 class RustPodcastEpisodeDto {
