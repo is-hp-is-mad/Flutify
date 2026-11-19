@@ -5,6 +5,7 @@ import 'dart:math';
 import 'package:http/http.dart' as http;
 
 import '../../core/constants/spotify_endpoints.dart';
+import '../../core/rust_core.dart';
 import '../../l10n/app_locale.dart';
 import '../../models/playlist.dart';
 import '../../models/track.dart';
@@ -17,10 +18,15 @@ import '../pathfinder/pathfinder_client.dart';
 import '../pathfinder/pathfinder_operations.dart';
 import '../pathfinder/pathfinder_parsers.dart';
 import '../protocol/access_point.dart';
+import '../../src/rust/api/backup.dart' as rust;
+import '../rust_backend_bridge.dart';
 import '../spotify_api_service.dart';
 import 'backup_models.dart';
 
 /// 读取备份账号唯一识别符（邮箱 / 用户名 ID）、已点赞歌曲与歌单曲目。
+///
+/// 生产环境由 Rust（`backup_backend`）用备份账号自己的会话完成整个拉取；
+/// 注入自定义 http.Client（测试）或需要走自建网关时用下面的 Dart 实现。
 class SpDcBackupFetcher {
   static const String _spclient = SpotifyEndpoints.defaultSpClientBase;
   static const int _pageSize = 300;
@@ -31,16 +37,73 @@ class SpDcBackupFetcher {
   final http.Client _client;
   final String _baseUrl;
   final SpotifyApiService? _apiService;
+  final bool _useRustBackend;
 
   SpDcBackupFetcher({
     http.Client? client,
     String baseUrl = SpotifyEndpoints.defaultWebApiBase,
     SpotifyApiService? apiService,
+    bool? useRustBackend,
   }) : _client = client ?? http.Client(),
        _baseUrl = baseUrl,
-       _apiService = apiService;
+       _apiService = apiService,
+       _useRustBackend = useRustBackend ?? client == null;
+
+  static const String _missingIdMessage = '无法读取备份账号的唯一识别符，请确认已在 WebView 中完成登录';
 
   Future<BackupAccountSnapshot> fetchWithSession(
+    BackupSessionCredentials session,
+  ) async {
+    if (_useRustBackend && RustCore.ready) {
+      final proxy = await RustBackendBridge.proxyForUrl('$_spclient/');
+      if (proxy != null) return _fetchWithRust(session, proxy);
+    }
+    return _fetchWithDart(session);
+  }
+
+  Future<BackupAccountSnapshot> _fetchWithRust(
+    BackupSessionCredentials session,
+    String proxy,
+  ) async {
+    final rust.RustBackupSnapshotDto dto;
+    try {
+      dto = await rust.rustBackupFetchSnapshot(
+        request: rust.RustBackupFetchRequest(
+          spDc: session.spDc.trim(),
+          accessToken: session.accessToken.trim(),
+          clientToken: session.clientToken.trim(),
+          userId: session.userId.trim(),
+          email: session.email.trim(),
+          displayName: session.displayName.trim(),
+          avatarUrl: session.avatarUrl.trim(),
+          spclientBase: _spclient,
+          webApiBase: _baseUrl,
+          profileAttributesHash: PathfinderOperation.profileAttributes.sha256Hash,
+          decorateHash: PathfinderOperation.decorateContextTracks.sha256Hash,
+          libraryTracksHash: PathfinderOperation.fetchLibraryTracks.sha256Hash,
+          useMainSession: _apiService?.isConfigured ?? false,
+          proxy: proxy,
+        ),
+      );
+    } catch (_) {
+      // Rust 只在拿不到令牌 / 唯一识别符时失败，与 Dart 实现的报错一致
+      throw StateError(_missingIdMessage);
+    }
+    return BackupAccountSnapshot(
+      id: dto.id,
+      email: dto.email,
+      displayName: dto.displayName,
+      avatarUrl: dto.avatarUrl,
+      likedTracks: [
+        for (final t in dto.likedTracks) RustBackendBridge.trackFromDto(t),
+      ],
+      playlists: [
+        for (final p in dto.playlists) RustBackendBridge.playlistFromDto(p),
+      ],
+    );
+  }
+
+  Future<BackupAccountSnapshot> _fetchWithDart(
     BackupSessionCredentials session,
   ) async {
     var token = session.accessToken.trim();
@@ -128,7 +191,7 @@ class SpDcBackupFetcher {
       id = email;
     }
     if (id.isEmpty) {
-      throw StateError('无法读取备份账号的唯一识别符，请确认已在 WebView 中完成登录');
+      throw StateError(_missingIdMessage);
     }
     if (displayName.isEmpty) {
       displayName = email.isNotEmpty ? email : id;
