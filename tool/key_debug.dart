@@ -52,7 +52,7 @@ Future<void> main(List<String> args) async {
   }
 
   // AP：登录后逐个候选请求密钥
-  final ap = await SpotifyAccessPoint.connect(client: client);
+  final ap = await SpotifyAccessPoint.connect();
   try {
     await ap.authenticate(ApCredentials.accessToken(token), deviceId: prefs['flutter.sp_device_id'] as String?);
     print('AP 登录成功 user=${ap.canonicalUsername}');

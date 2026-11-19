@@ -1,18 +1,17 @@
 import 'dart:io';
-import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:flutify_app/core/file_digest.dart';
 import 'package:flutify_app/core/rust_core.dart';
-import 'package:flutify_app/services/protocol/ap_codec.dart';
-import 'package:flutify_app/services/protocol/ap_crypto.dart';
+import 'package:flutify_app/src/rust/api/protocol.dart' as rust;
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart'
     show ExternalLibrary;
 import 'package:flutter_test/flutter_test.dart';
 
-/// 经 FFI 调用本地编译的 Rust 核心，核对与纯 Dart 实现逐字节一致（覆盖参数名 / 类型转换等接线）。
+/// 经 FFI 调用本地编译的 Rust 核心，核对 AP 协议接线（参数名 / 类型转换）与对照向量逐字节一致。
 ///
-/// 需要先 `cargo build --release`（rust/flutify_core）；没有动态库时跳过。
+/// 纯 Dart 的 AP 实现（Shannon / ApCodec / DH）已删除，对照向量与 Rust 单元测试共用
+/// `rust/flutify_core/tests/fixtures/ap_vectors.txt`。需要先 `cargo build --release`；没有动态库时跳过。
 void main() {
   final library = File(
     Platform.isWindows
@@ -23,19 +22,30 @@ void main() {
   );
   final skip = library.existsSync() ? null : '未编译 Rust 核心（cargo build --release）';
 
-  test('AP 握手、AP 包编解码、文件 SHA-256：Rust 与 Dart 结果一致', () async {
-    // 先用纯 Dart 算一遍
-    expect(RustCore.ready, isFalse);
-    final a = DhLocalKeys.random(Random(42));
-    final b = DhLocalKeys.random(Random(7));
-    final dartPubA = a.publicKey;
-    final dartShared = a.sharedSecret(b.publicKey);
-    final packets = Uint8List.fromList(List.generate(300, (i) => (i * 37 + 11) & 0xff));
-    final dartKeys = apComputeKeys(dartShared, packets);
-    final payload = Uint8List.fromList(List.generate(777, (i) => (i * 5) & 0xff));
-    final dartFrame = ApCodec(dartKeys.sendKey, dartKeys.recvKey).encode(0x4a, payload);
+  Map<String, String> vectors() => {
+    for (final line in File(
+      'rust/flutify_core/tests/fixtures/ap_vectors.txt',
+    ).readAsLinesSync())
+      if (line.contains('='))
+        line.substring(0, line.indexOf('=')).trim(): line
+            .substring(line.indexOf('=') + 1)
+            .trim(),
+  };
+
+  Uint8List hex(String s) => Uint8List.fromList([
+    for (var i = 0; i < s.length; i += 2)
+      int.parse(s.substring(i, i + 2), radix: 16),
+  ]);
+
+  String hexOf(List<int> b) =>
+      b.map((x) => x.toRadixString(16).padLeft(2, '0')).join();
+
+  test('AP 握手、AP 包编解码、文件 SHA-256：Rust FFI 与对照向量一致', () async {
+    final v = vectors();
     final file = File('${Directory.systemTemp.path}/flutify_rust_parity.bin')
-      ..writeAsBytesSync(packets);
+      ..writeAsBytesSync(hex(v['packets']!));
+    // 未加载 Rust 时 sha256OfFile 走 package:crypto
+    expect(RustCore.ready, isFalse);
     final dartDigest = await sha256OfFile(file);
 
     await RustCore.initialize(
@@ -44,34 +54,55 @@ void main() {
     );
     expect(RustCore.ready, isTrue);
 
-    // 同样的私钥（同一随机种子）经 Rust 计算
-    final ra = DhLocalKeys.random(Random(42));
-    final rb = DhLocalKeys.random(Random(7));
-    expect(ra.publicKey, dartPubA);
-    expect(ra.sharedSecret(rb.publicKey), dartShared);
-    final rustKeys = apComputeKeys(dartShared, packets);
-    expect(rustKeys.challenge, dartKeys.challenge);
-    expect(rustKeys.sendKey, dartKeys.sendKey);
-    expect(rustKeys.recvKey, dartKeys.recvKey);
+    expect(hexOf(rust.apDhPublicKey(privateLe: hex(v['privA']!))), v['pubA']);
+    final shared = rust.apDhSharedSecret(
+      privateLe: hex(v['privA']!),
+      remoteBe: hex(v['pubB']!),
+    );
+    expect(hexOf(shared), v['shared']);
+    final keys = rust.apComputeKeys(
+      sharedSecret: shared,
+      handshakePackets: hex(v['packets']!),
+    );
+    expect(hexOf(keys.challenge), v['challenge']);
+    expect(hexOf(keys.sendKey), v['sendKey']);
+    expect(hexOf(keys.recvKey), v['recvKey']);
 
-    final sender = ApCodec(rustKeys.sendKey, rustKeys.recvKey);
-    final frame = sender.encode(0x4a, payload);
-    expect(frame, dartFrame);
-
-    // 对端：收发密钥对调，分两段喂入，验证头 / 体解码与 MAC
-    final receiver = ApCodec(rustKeys.recvKey, rustKeys.sendKey);
-    receiver.addIncoming(Uint8List.sublistView(frame, 0, 2));
-    expect(receiver.nextPacket(), isNull);
-    receiver.addIncoming(Uint8List.sublistView(frame, 2));
-    final packet = receiver.nextPacket()!;
-    expect(packet.cmd, 0x4a);
-    expect(packet.payload, payload);
-
-    // MAC 被篡改：抛错
-    final bad = ApCodec(rustKeys.recvKey, rustKeys.sendKey);
+    final payload = Uint8List.fromList([1, 2, 3, 4, 5]);
+    final frame = rust.shannonEncodePacket(
+      key: keys.sendKey,
+      nonce: 1,
+      cmd: 0x41,
+      payload: payload,
+    );
+    expect(hexOf(frame), v['frame1']);
+    final header = rust.shannonDecryptHeader(
+      key: keys.sendKey,
+      nonce: 1,
+      header: frame.sublist(0, 3),
+    );
+    expect(header[0], 0x41);
+    expect(
+      rust.shannonDecodePacket(
+        key: keys.sendKey,
+        nonce: 1,
+        header: frame.sublist(0, 3),
+        body: frame.sublist(3, 8),
+        mac: frame.sublist(8),
+      ),
+      payload,
+    );
     final tampered = Uint8List.fromList(frame)..[frame.length - 1] ^= 1;
-    bad.addIncoming(tampered);
-    expect(bad.nextPacket, throwsStateError);
+    expect(
+      () => rust.shannonDecodePacket(
+        key: keys.sendKey,
+        nonce: 1,
+        header: tampered.sublist(0, 3),
+        body: tampered.sublist(3, 8),
+        mac: tampered.sublist(8),
+      ),
+      throwsA(anything),
+    );
 
     expect(await sha256OfFile(file), dartDigest);
     file.deleteSync();

@@ -1,6 +1,8 @@
+import '../../core/rust_core.dart';
+import '../../models/proxy_mode.dart';
+import '../../src/rust/api/net_config.dart' as rust;
 import 'network_proxy.dart';
 import 'proxy_endpoint.dart';
-import '../../models/proxy_mode.dart';
 
 /// Rust 网络栈（HTTP/2、音频下载、WebSocket）对一个请求应走的路线。
 class RustRoute {
@@ -62,4 +64,42 @@ String _proxyUrl(NetworkProxy p, ProxyEndpoint endpoint) {
         '${Uri.encodeComponent(p.manualUsername)}:${Uri.encodeComponent(p.manualPassword)}@';
   }
   return '$scheme://$auth$host:${endpoint.port}';
+}
+
+/// 当前网络设置对应的 Rust 全局网络配置（Spotify 主机的代理 + 自建网关）。
+///
+/// Rust 内自行选路的连接（AP 长连接、会话令牌续期）按它连接：网关启用时 AP 经
+/// `wss://网关/__tunnel/{host}:{port}` 隧道，连接网关主机用 [RustNetConfig.gatewayProxy]。
+/// 网关已启用但配置无效时抛 [StateError]（与 Dart 侧 [SpotifyGateway.route] 一致，不悄悄直连）。
+Future<rust.RustNetConfig> rustNetConfigFor({NetworkProxy? proxy}) async {
+  final p = proxy ?? NetworkProxy.instance;
+  final spotify = await p.endpointForAsync(
+    Uri.parse('https://apresolve.spotify.com/'),
+  );
+  final gateway = p.gateway;
+  var gatewayBase = '';
+  var gatewayProxy = '';
+  if (gateway.enabled) {
+    final base = gateway.base;
+    if (base == null || !gateway.isValid) {
+      throw StateError('自建网关配置无效');
+    }
+    gatewayBase = base.toString();
+    final endpoint = await p.endpointForAsync(base);
+    gatewayProxy = endpoint == null ? '' : _proxyUrl(p, endpoint);
+  }
+  return rust.RustNetConfig(
+    proxy: spotify == null ? '' : _proxyUrl(p, spotify),
+    gatewayBase: gatewayBase,
+    gatewayUsername: gateway.enabled ? gateway.username : '',
+    gatewayPassword: gateway.enabled ? gateway.password : '',
+    gatewayProxy: gatewayProxy,
+  );
+}
+
+/// 把当前网络设置推送给 Rust（Rust 核心未加载时什么都不做）。
+/// 代理可能随系统设置 / PAC 变化，每次建立 Rust 自行选路的长连接前调用一次。
+Future<void> pushRustNetConfig({NetworkProxy? proxy}) async {
+  if (!RustCore.ready) return;
+  rust.rustNetConfigure(config: await rustNetConfigFor(proxy: proxy));
 }

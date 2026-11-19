@@ -324,7 +324,7 @@ class SpotifyAuthService {
     String accessToken,
     String deviceId,
   ) async {
-    final ap = await SpotifyAccessPoint.connect(client: client);
+    final ap = await SpotifyAccessPoint.connect();
     try {
       final welcome = await ap.authenticate(
         ApCredentials.accessToken(accessToken),
