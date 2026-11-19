@@ -132,6 +132,70 @@ void main() {
     expect(page.topTracks.single.album?.id, 'al1');
   });
 
+  test('queryArtistOverview：头图、简介、月听众、最新发行、专辑 / 单曲、类似艺人', () {
+    Map<String, dynamic> release(String id, String type) => {
+      'releases': {
+        'items': [
+          {'id': id, 'uri': 'spotify:album:$id', 'name': id.toUpperCase(), 'type': type, 'date': {'year': 2024}, 'coverArt': cover},
+        ],
+      },
+    };
+    final overview = PathfinderParsers.artistOverview({
+      'artistUnion': {
+        'id': 'a1',
+        'uri': 'spotify:artist:a1',
+        'profile': {
+          'name': 'Artist One',
+          'biography': {'text': 'Born in <a href="spotify:x">Seoul</a> &amp; raised in LA.'},
+        },
+        'visuals': {
+          'avatarImage': cover,
+          'headerImage': {
+            'sources': [
+              {'url': 'https://i.scdn.co/header-small', 'width': 640, 'height': 200},
+              {'url': 'https://i.scdn.co/header-large', 'width': 2660, 'height': 1140},
+            ],
+          },
+        },
+        'stats': {'followers': 1234, 'monthlyListeners': 15852288},
+        'discography': {
+          'latest': {'id': 'new', 'uri': 'spotify:album:new', 'name': 'New', 'type': 'SINGLE', 'date': {'isoString': '2026-10-31T00:00:00Z'}, 'coverArt': cover},
+          'albums': {'items': [release('al1', 'ALBUM'), {'releases': {'items': []}}]},
+          'singles': {'items': [release('sg1', 'SINGLE')]},
+        },
+        'relatedContent': {
+          'relatedArtists': {
+            'items': [
+              {'id': 'r1', 'uri': 'spotify:artist:r1', 'profile': {'name': 'Related'}, 'visuals': {'avatarImage': cover}},
+            ],
+          },
+        },
+      },
+    });
+
+    expect(overview.headerImageUrl, 'https://i.scdn.co/header-large');
+    expect(overview.biography, 'Born in Seoul & raised in LA.');
+    expect(overview.monthlyListeners, 15852288);
+    expect(overview.latestRelease?.releaseDate, '2026-10-31');
+    expect(overview.latestRelease?.albumType, 'single');
+    expect(overview.latestRelease?.artists.single.name, 'Artist One');
+    expect(overview.albums.single.id, 'al1');
+    expect(overview.singles.single.id, 'sg1');
+    expect(overview.relatedArtists.single.name, 'Related');
+  });
+
+  test('queryArtistOverview：缺失的分区为空', () {
+    final overview = PathfinderParsers.artistOverview({
+      'artistUnion': {'uri': 'spotify:artist:a1', 'profile': {'name': 'A'}},
+    });
+    expect(overview.headerImageUrl, isEmpty);
+    expect(overview.biography, isEmpty);
+    expect(overview.monthlyListeners, isNull);
+    expect(overview.latestRelease, isNull);
+    expect(overview.albums, isEmpty);
+    expect(overview.relatedArtists, isEmpty);
+  });
+
   test('queryArtistDiscographyAll：取每个条目的首个版本，缺艺人时回填', () {
     final artist = PathfinderParsers.artist({'uri': 'spotify:artist:a1', 'profile': {'name': 'Artist One'}});
     final albums = PathfinderParsers.discography({

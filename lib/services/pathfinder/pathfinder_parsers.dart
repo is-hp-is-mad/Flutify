@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/album.dart';
 import '../../models/artist.dart';
+import '../../models/artist_overview.dart';
 import '../../models/category.dart';
 import '../../models/catalog_page.dart';
 import '../../models/image.dart';
@@ -301,6 +302,32 @@ class PathfinderParsers {
         .whereType<SpotifyTrack>()
         .toList();
     return (artist: parsed, topTracks: topTracks);
+  }
+
+  /// queryArtistOverview 里艺人页其余分区：头图、简介、月听众、最新发行、专辑 / 单曲、类似艺人。
+  /// 缺失的字段留空，对应分区不显示。
+  static ArtistOverview artistOverview(Map<String, dynamic> data) {
+    final union = _map(data['artistUnion']);
+    final parsed = artist(union);
+    final fallback = parsed == null ? null : [parsed];
+    final discography = _map(union?['discography']);
+    final stats = _map(union?['stats']);
+    List<SpotifyAlbum> releases(Object? group) => _list(_map(group)?['items'])
+        .map((i) {
+          final items = _list(_map(_map(i)?['releases'])?['items']);
+          return items.isEmpty ? null : album(items.first, fallbackArtists: fallback);
+        })
+        .whereType<SpotifyAlbum>()
+        .toList();
+    return ArtistOverview(
+      headerImages: images(_map(_map(union?['visuals'])?['headerImage'])?['sources']),
+      biography: stripHtml(_map(_map(union?['profile'])?['biography'])?['text'] as String? ?? ''),
+      monthlyListeners: _int(stats?['monthlyListeners']),
+      latestRelease: album(discography?['latest'], fallbackArtists: fallback),
+      albums: releases(discography?['albums']),
+      singles: releases(discography?['singles']),
+      relatedArtists: _artists(_map(_map(union?['relatedContent'])?['relatedArtists'])),
+    );
   }
 
   /// queryArtistDiscographyAll：每个条目的 releases 取第一个版本。

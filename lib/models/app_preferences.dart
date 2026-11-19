@@ -100,6 +100,9 @@ class AppPreferences {
   /// 歌词来源优先级，始终包含 [LyricsSource.values] 里的每一项各一次。
   final List<LyricsSource> lyricsSourceOrder;
   final bool canvasEnabled;
+
+  /// 艺人页优先播放 Apple Music 动态视频，否则保留 Spotify 原图（向 Apple 发送艺人名）。
+  final bool appleMusicArtistMedia;
   final List<String> lyricsExcludedLanguages;
   final bool lyricsExcludeInterfaceLanguage;
   final bool lyricsAutoTranslate;
@@ -169,6 +172,7 @@ class AppPreferences {
     this.lyricsFallback = true,
     this.lyricsSourceOrder = LyricsSource.defaultOrder,
     this.canvasEnabled = true,
+    this.appleMusicArtistMedia = true,
     this.lyricsExcludedLanguages = const [],
     this.lyricsExcludeInterfaceLanguage = true,
     this.lyricsAutoTranslate = true,
@@ -229,6 +233,7 @@ class AppPreferences {
     bool? lyricsFallback,
     List<LyricsSource>? lyricsSourceOrder,
     bool? canvasEnabled,
+    bool? appleMusicArtistMedia,
     List<String>? lyricsExcludedLanguages,
     bool? lyricsExcludeInterfaceLanguage,
     bool? lyricsAutoTranslate,
@@ -284,6 +289,8 @@ class AppPreferences {
               lyricsSourceOrder.map((s) => s.name).toList(),
             ),
       canvasEnabled: canvasEnabled ?? this.canvasEnabled,
+      appleMusicArtistMedia:
+          appleMusicArtistMedia ?? this.appleMusicArtistMedia,
       lyricsExcludedLanguages:
           lyricsExcludedLanguages ?? this.lyricsExcludedLanguages,
       lyricsExcludeInterfaceLanguage:
@@ -335,6 +342,7 @@ class AppPreferences {
     'lyricsFallback': lyricsFallback,
     'lyricsSourceOrder': [for (final s in lyricsSourceOrder) s.name],
     'canvasEnabled': canvasEnabled,
+    'appleMusicArtistMedia': appleMusicArtistMedia,
     'lyricsExcludedLanguages': lyricsExcludedLanguages,
     'lyricsExcludeInterfaceLanguage': lyricsExcludeInterfaceLanguage,
     'lyricsAutoTranslate': lyricsAutoTranslate,
@@ -432,6 +440,10 @@ class AppPreferences {
       lyricsFallback: flag(json['lyricsFallback'], d.lyricsFallback),
       lyricsSourceOrder: LyricsSource.parseOrder(json['lyricsSourceOrder']),
       canvasEnabled: flag(json['canvasEnabled'], d.canvasEnabled),
+      appleMusicArtistMedia: flag(
+        json['appleMusicArtistMedia'],
+        d.appleMusicArtistMedia,
+      ),
       lyricsExcludedLanguages: json['lyricsExcludedLanguages'] is List
           ? List.unmodifiable(
               (json['lyricsExcludedLanguages'] as List)
@@ -546,6 +558,7 @@ class AppPreferences {
       other.lyricsFallback == lyricsFallback &&
       listEquals(other.lyricsSourceOrder, lyricsSourceOrder) &&
       other.canvasEnabled == canvasEnabled &&
+      other.appleMusicArtistMedia == appleMusicArtistMedia &&
       listEquals(other.lyricsExcludedLanguages, lyricsExcludedLanguages) &&
       other.lyricsExcludeInterfaceLanguage == lyricsExcludeInterfaceLanguage &&
       other.lyricsAutoTranslate == lyricsAutoTranslate &&
@@ -590,6 +603,7 @@ class AppPreferences {
     lyricsFallback,
     Object.hashAll(lyricsSourceOrder),
     canvasEnabled,
+    appleMusicArtistMedia,
     Object.hashAll(lyricsExcludedLanguages),
     lyricsExcludeInterfaceLanguage,
     lyricsAutoTranslate,

@@ -469,6 +469,26 @@ class AppLocalizationsJa extends AppLocalizations {
   String get artistFollowing => 'フォロー中';
 
   @override
+  String get artistLatestRelease => '最新リリース';
+
+  @override
+  String get artistAlbums => 'アルバム';
+
+  @override
+  String get artistSingles => 'シングル & EP';
+
+  @override
+  String get artistRelated => 'ファンはこちらも';
+
+  @override
+  String get artistAbout => '概要';
+
+  @override
+  String artistMonthlyListeners(String count) {
+    return '月間リスナー $count 人';
+  }
+
+  @override
   String get playingFromPlaylist => 'プレイリストから再生中';
 
   @override
@@ -1887,6 +1907,13 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get settingsCanvasSubtitle =>
       '再生中に公式のループ動画を表示します。利用できない場合や「動きを減らす」が有効な場合は静止画を表示します。';
+
+  @override
+  String get settingsAppleMusicArtist => 'Apple Music のアーティスト動画';
+
+  @override
+  String get settingsAppleMusicArtistSubtitle =>
+      '利用可能な場合に Apple Music のアーティスト動画を再生し、それ以外は Spotify の元のアーティスト写真を表示します。アーティスト名が Apple に送信されます。';
 
   @override
   String get settingsLanguageZhHant => '繁體中文';

@@ -23,6 +23,9 @@ class PlaybackSection extends StatelessWidget {
     final canvasEnabled = context.select<PreferencesProvider, bool>(
       (p) => p.prefs.canvasEnabled,
     );
+    final appleMusicArtistMedia = context.select<PreferencesProvider, bool>(
+      (p) => p.prefs.appleMusicArtistMedia,
+    );
     final defaultRepeat = context
         .select<PreferencesProvider, SpotifyRepeatMode>(
           (p) => p.prefs.defaultRepeatMode,
@@ -46,6 +49,14 @@ class PlaybackSection extends StatelessWidget {
           value: canvasEnabled,
           onChanged: (v) =>
               preferences.update(preferences.prefs.copyWith(canvasEnabled: v)),
+        ),
+        SettingsSwitchTile(
+          title: l10n.settingsAppleMusicArtist,
+          subtitle: l10n.settingsAppleMusicArtistSubtitle,
+          value: appleMusicArtistMedia,
+          onChanged: (v) => preferences.update(
+            preferences.prefs.copyWith(appleMusicArtistMedia: v),
+          ),
         ),
         SettingsTile(
           title: l10n.settingsDefaultRepeat,

@@ -941,6 +941,42 @@ abstract class AppLocalizations {
   /// **'已关注'**
   String get artistFollowing;
 
+  /// 艺人页分区标题：最近一次发行
+  ///
+  /// In zh, this message translates to:
+  /// **'最新发行'**
+  String get artistLatestRelease;
+
+  /// No description provided for @artistAlbums.
+  ///
+  /// In zh, this message translates to:
+  /// **'专辑'**
+  String get artistAlbums;
+
+  /// 艺人页分区标题：单曲与 EP
+  ///
+  /// In zh, this message translates to:
+  /// **'单曲和 EP'**
+  String get artistSingles;
+
+  /// 艺人页分区标题：类似艺人
+  ///
+  /// In zh, this message translates to:
+  /// **'粉丝也喜欢'**
+  String get artistRelated;
+
+  /// No description provided for @artistAbout.
+  ///
+  /// In zh, this message translates to:
+  /// **'关于'**
+  String get artistAbout;
+
+  /// 月听众数，count 为已格式化的紧凑数字（如 1.2 万）
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 位月听众'**
+  String artistMonthlyListeners(String count);
+
   /// No description provided for @playingFromPlaylist.
   ///
   /// In zh, this message translates to:
@@ -3526,6 +3562,18 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'播放时显示官方短片；无 Canvas 或减少动态效果时显示静态封面。'**
   String get settingsCanvasSubtitle;
+
+  /// 设置开关：艺人页使用 Apple Music 视频，静态照片保留 Spotify 原图
+  ///
+  /// In zh, this message translates to:
+  /// **'Apple Music 艺人视频'**
+  String get settingsAppleMusicArtist;
+
+  /// No description provided for @settingsAppleMusicArtistSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'优先播放可用的 Apple Music 艺人视频；否则保留 Spotify 原有照片。会向 Apple 发送艺人名。'**
+  String get settingsAppleMusicArtistSubtitle;
 
   /// No description provided for @settingsLanguageZhHant.
   ///
