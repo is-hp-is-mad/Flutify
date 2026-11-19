@@ -8,11 +8,14 @@
 
 import 'api/audio_stream.dart';
 import 'api/backend.dart';
+import 'api/backup.dart';
 import 'api/lyrics.dart';
 import 'api/net_config.dart';
 import 'api/network.dart';
+import 'api/pathfinder.dart';
 import 'api/protocol.dart';
 import 'api/session_tokens.dart';
+import 'api/watchfeed.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'frb_generated.dart';
@@ -74,6 +77,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   RustAlbumDto dco_decode_box_autoadd_rust_album_dto(dynamic raw);
 
   @protected
+  RustArtistDto dco_decode_box_autoadd_rust_artist_dto(dynamic raw);
+
+  @protected
+  RustArtistOverviewDto dco_decode_box_autoadd_rust_artist_overview_dto(
+    dynamic raw,
+  );
+
+  @protected
+  RustBackupFetchRequest dco_decode_box_autoadd_rust_backup_fetch_request(
+    dynamic raw,
+  );
+
+  @protected
   RustCanvasMediaDto dco_decode_box_autoadd_rust_canvas_media_dto(dynamic raw);
 
   @protected
@@ -81,6 +97,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   RustPlaylistDto dco_decode_box_autoadd_rust_playlist_dto(dynamic raw);
+
+  @protected
+  RustPlaylistSummaryDto dco_decode_box_autoadd_rust_playlist_summary_dto(
+    dynamic raw,
+  );
 
   @protected
   RustSessionConfig dco_decode_box_autoadd_rust_session_config(dynamic raw);
@@ -163,7 +184,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<(String, String)> dco_decode_list_record_string_string(dynamic raw);
 
   @protected
+  List<RustAlbumDto> dco_decode_list_rust_album_dto(dynamic raw);
+
+  @protected
   List<RustArtistDto> dco_decode_list_rust_artist_dto(dynamic raw);
+
+  @protected
+  List<RustCategoryDto> dco_decode_list_rust_category_dto(dynamic raw);
 
   @protected
   List<RustCollectionEntryDto> dco_decode_list_rust_collection_entry_dto(
@@ -181,7 +208,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   dco_decode_list_rust_extended_metadata_entry_dto(dynamic raw);
 
   @protected
+  List<RustHomeChipDto> dco_decode_list_rust_home_chip_dto(dynamic raw);
+
+  @protected
+  List<RustHomeItemDto> dco_decode_list_rust_home_item_dto(dynamic raw);
+
+  @protected
+  List<RustHomeSectionDto> dco_decode_list_rust_home_section_dto(dynamic raw);
+
+  @protected
   List<RustImageDto> dco_decode_list_rust_image_dto(dynamic raw);
+
+  @protected
+  List<RustLibraryTrackDto> dco_decode_list_rust_library_track_dto(dynamic raw);
 
   @protected
   List<RustLrclibCandidateDto> dco_decode_list_rust_lrclib_candidate_dto(
@@ -190,6 +229,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<RustPlaybackFileDto> dco_decode_list_rust_playback_file_dto(dynamic raw);
+
+  @protected
+  List<RustPlaylistDto> dco_decode_list_rust_playlist_dto(dynamic raw);
 
   @protected
   List<RustPlaylistSummaryDto> dco_decode_list_rust_playlist_summary_dto(
@@ -260,12 +302,25 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   RustAlbumDto? dco_decode_opt_box_autoadd_rust_album_dto(dynamic raw);
 
   @protected
+  RustArtistDto? dco_decode_opt_box_autoadd_rust_artist_dto(dynamic raw);
+
+  @protected
+  RustArtistOverviewDto? dco_decode_opt_box_autoadd_rust_artist_overview_dto(
+    dynamic raw,
+  );
+
+  @protected
   RustCanvasMediaDto? dco_decode_opt_box_autoadd_rust_canvas_media_dto(
     dynamic raw,
   );
 
   @protected
   RustPlaylistDto? dco_decode_opt_box_autoadd_rust_playlist_dto(dynamic raw);
+
+  @protected
+  RustPlaylistSummaryDto? dco_decode_opt_box_autoadd_rust_playlist_summary_dto(
+    dynamic raw,
+  );
 
   @protected
   RustSpotifyLyricsDto? dco_decode_opt_box_autoadd_rust_spotify_lyrics_dto(
@@ -316,7 +371,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   (String, String) dco_decode_record_string_string(dynamic raw);
 
   @protected
+  RustAlbumCatalogPageDto dco_decode_rust_album_catalog_page_dto(dynamic raw);
+
+  @protected
   RustAlbumDto dco_decode_rust_album_dto(dynamic raw);
+
+  @protected
+  RustAlbumQueryDto dco_decode_rust_album_query_dto(dynamic raw);
 
   @protected
   RustApSessionDto dco_decode_rust_ap_session_dto(dynamic raw);
@@ -325,10 +386,25 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   RustApWelcomeDto dco_decode_rust_ap_welcome_dto(dynamic raw);
 
   @protected
+  RustArtistCatalogPageDto dco_decode_rust_artist_catalog_page_dto(dynamic raw);
+
+  @protected
   RustArtistDto dco_decode_rust_artist_dto(dynamic raw);
 
   @protected
+  RustArtistOverviewDto dco_decode_rust_artist_overview_dto(dynamic raw);
+
+  @protected
+  RustBackupFetchRequest dco_decode_rust_backup_fetch_request(dynamic raw);
+
+  @protected
+  RustBackupSnapshotDto dco_decode_rust_backup_snapshot_dto(dynamic raw);
+
+  @protected
   RustCanvasMediaDto dco_decode_rust_canvas_media_dto(dynamic raw);
+
+  @protected
+  RustCategoryDto dco_decode_rust_category_dto(dynamic raw);
 
   @protected
   RustCollectionEntryDto dco_decode_rust_collection_entry_dto(dynamic raw);
@@ -348,10 +424,28 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  RustHomeChipDto dco_decode_rust_home_chip_dto(dynamic raw);
+
+  @protected
+  RustHomeFeedDto dco_decode_rust_home_feed_dto(dynamic raw);
+
+  @protected
+  RustHomeItemDto dco_decode_rust_home_item_dto(dynamic raw);
+
+  @protected
+  RustHomeSectionDto dco_decode_rust_home_section_dto(dynamic raw);
+
+  @protected
   RustHttpRawDto dco_decode_rust_http_raw_dto(dynamic raw);
 
   @protected
   RustImageDto dco_decode_rust_image_dto(dynamic raw);
+
+  @protected
+  RustLibraryTrackDto dco_decode_rust_library_track_dto(dynamic raw);
+
+  @protected
+  RustLibraryTracksPageDto dco_decode_rust_library_tracks_page_dto(dynamic raw);
 
   @protected
   RustLrclibCandidateDto dco_decode_rust_lrclib_candidate_dto(dynamic raw);
@@ -364,6 +458,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   RustPlaybackFileDto dco_decode_rust_playback_file_dto(dynamic raw);
+
+  @protected
+  RustPlaylistCatalogPageDto dco_decode_rust_playlist_catalog_page_dto(
+    dynamic raw,
+  );
 
   @protected
   RustPlaylistDto dco_decode_rust_playlist_dto(dynamic raw);
@@ -394,6 +493,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  RustSearchPageDto dco_decode_rust_search_page_dto(dynamic raw);
+
+  @protected
   RustSessionConfig dco_decode_rust_session_config(dynamic raw);
 
   @protected
@@ -414,6 +516,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   RustTokenResult dco_decode_rust_token_result(dynamic raw);
 
   @protected
+  RustTrackCatalogPageDto dco_decode_rust_track_catalog_page_dto(dynamic raw);
+
+  @protected
   RustTrackCreditsDto dco_decode_rust_track_credits_dto(dynamic raw);
 
   @protected
@@ -429,6 +534,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   RustWatchFeedCreatorDto dco_decode_rust_watch_feed_creator_dto(dynamic raw);
+
+  @protected
+  RustWatchFeedEntityPageDto dco_decode_rust_watch_feed_entity_page_dto(
+    dynamic raw,
+  );
 
   @protected
   RustWatchFeedEntityRowDto dco_decode_rust_watch_feed_entity_row_dto(
@@ -530,6 +640,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  RustArtistDto sse_decode_box_autoadd_rust_artist_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustArtistOverviewDto sse_decode_box_autoadd_rust_artist_overview_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustBackupFetchRequest sse_decode_box_autoadd_rust_backup_fetch_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   RustCanvasMediaDto sse_decode_box_autoadd_rust_canvas_media_dto(
     SseDeserializer deserializer,
   );
@@ -541,6 +666,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   RustPlaylistDto sse_decode_box_autoadd_rust_playlist_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustPlaylistSummaryDto sse_decode_box_autoadd_rust_playlist_summary_dto(
     SseDeserializer deserializer,
   );
 
@@ -641,7 +771,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<RustAlbumDto> sse_decode_list_rust_album_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<RustArtistDto> sse_decode_list_rust_artist_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<RustCategoryDto> sse_decode_list_rust_category_dto(
     SseDeserializer deserializer,
   );
 
@@ -667,7 +807,27 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<RustHomeChipDto> sse_decode_list_rust_home_chip_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<RustHomeItemDto> sse_decode_list_rust_home_item_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<RustHomeSectionDto> sse_decode_list_rust_home_section_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<RustImageDto> sse_decode_list_rust_image_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<RustLibraryTrackDto> sse_decode_list_rust_library_track_dto(
     SseDeserializer deserializer,
   );
 
@@ -678,6 +838,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<RustPlaybackFileDto> sse_decode_list_rust_playback_file_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<RustPlaylistDto> sse_decode_list_rust_playlist_dto(
     SseDeserializer deserializer,
   );
 
@@ -758,12 +923,27 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  RustArtistDto? sse_decode_opt_box_autoadd_rust_artist_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustArtistOverviewDto? sse_decode_opt_box_autoadd_rust_artist_overview_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   RustCanvasMediaDto? sse_decode_opt_box_autoadd_rust_canvas_media_dto(
     SseDeserializer deserializer,
   );
 
   @protected
   RustPlaylistDto? sse_decode_opt_box_autoadd_rust_playlist_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustPlaylistSummaryDto? sse_decode_opt_box_autoadd_rust_playlist_summary_dto(
     SseDeserializer deserializer,
   );
 
@@ -826,7 +1006,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  RustAlbumCatalogPageDto sse_decode_rust_album_catalog_page_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   RustAlbumDto sse_decode_rust_album_dto(SseDeserializer deserializer);
+
+  @protected
+  RustAlbumQueryDto sse_decode_rust_album_query_dto(
+    SseDeserializer deserializer,
+  );
 
   @protected
   RustApSessionDto sse_decode_rust_ap_session_dto(SseDeserializer deserializer);
@@ -835,12 +1025,35 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   RustApWelcomeDto sse_decode_rust_ap_welcome_dto(SseDeserializer deserializer);
 
   @protected
+  RustArtistCatalogPageDto sse_decode_rust_artist_catalog_page_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   RustArtistDto sse_decode_rust_artist_dto(SseDeserializer deserializer);
+
+  @protected
+  RustArtistOverviewDto sse_decode_rust_artist_overview_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustBackupFetchRequest sse_decode_rust_backup_fetch_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustBackupSnapshotDto sse_decode_rust_backup_snapshot_dto(
+    SseDeserializer deserializer,
+  );
 
   @protected
   RustCanvasMediaDto sse_decode_rust_canvas_media_dto(
     SseDeserializer deserializer,
   );
+
+  @protected
+  RustCategoryDto sse_decode_rust_category_dto(SseDeserializer deserializer);
 
   @protected
   RustCollectionEntryDto sse_decode_rust_collection_entry_dto(
@@ -868,10 +1081,34 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  RustHomeChipDto sse_decode_rust_home_chip_dto(SseDeserializer deserializer);
+
+  @protected
+  RustHomeFeedDto sse_decode_rust_home_feed_dto(SseDeserializer deserializer);
+
+  @protected
+  RustHomeItemDto sse_decode_rust_home_item_dto(SseDeserializer deserializer);
+
+  @protected
+  RustHomeSectionDto sse_decode_rust_home_section_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   RustHttpRawDto sse_decode_rust_http_raw_dto(SseDeserializer deserializer);
 
   @protected
   RustImageDto sse_decode_rust_image_dto(SseDeserializer deserializer);
+
+  @protected
+  RustLibraryTrackDto sse_decode_rust_library_track_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustLibraryTracksPageDto sse_decode_rust_library_tracks_page_dto(
+    SseDeserializer deserializer,
+  );
 
   @protected
   RustLrclibCandidateDto sse_decode_rust_lrclib_candidate_dto(
@@ -888,6 +1125,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   RustPlaybackFileDto sse_decode_rust_playback_file_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustPlaylistCatalogPageDto sse_decode_rust_playlist_catalog_page_dto(
     SseDeserializer deserializer,
   );
 
@@ -930,6 +1172,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  RustSearchPageDto sse_decode_rust_search_page_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   RustSessionConfig sse_decode_rust_session_config(
     SseDeserializer deserializer,
   );
@@ -958,6 +1205,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   RustTokenResult sse_decode_rust_token_result(SseDeserializer deserializer);
 
   @protected
+  RustTrackCatalogPageDto sse_decode_rust_track_catalog_page_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   RustTrackCreditsDto sse_decode_rust_track_credits_dto(
     SseDeserializer deserializer,
   );
@@ -977,6 +1229,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   RustWatchFeedCreatorDto sse_decode_rust_watch_feed_creator_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustWatchFeedEntityPageDto sse_decode_rust_watch_feed_entity_page_dto(
     SseDeserializer deserializer,
   );
 
@@ -1111,6 +1368,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_rust_artist_dto(
+    RustArtistDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_rust_artist_overview_dto(
+    RustArtistOverviewDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_rust_backup_fetch_request(
+    RustBackupFetchRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_rust_canvas_media_dto(
     RustCanvasMediaDto self,
     SseSerializer serializer,
@@ -1125,6 +1400,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_rust_playlist_dto(
     RustPlaylistDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_rust_playlist_summary_dto(
+    RustPlaylistSummaryDto self,
     SseSerializer serializer,
   );
 
@@ -1246,8 +1527,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_rust_album_dto(
+    List<RustAlbumDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_rust_artist_dto(
     List<RustArtistDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_rust_category_dto(
+    List<RustCategoryDto> self,
     SseSerializer serializer,
   );
 
@@ -1276,8 +1569,32 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_rust_home_chip_dto(
+    List<RustHomeChipDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_rust_home_item_dto(
+    List<RustHomeItemDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_rust_home_section_dto(
+    List<RustHomeSectionDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_rust_image_dto(
     List<RustImageDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_rust_library_track_dto(
+    List<RustLibraryTrackDto> self,
     SseSerializer serializer,
   );
 
@@ -1290,6 +1607,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_rust_playback_file_dto(
     List<RustPlaybackFileDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_rust_playlist_dto(
+    List<RustPlaylistDto> self,
     SseSerializer serializer,
   );
 
@@ -1387,6 +1710,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_rust_artist_dto(
+    RustArtistDto? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_rust_artist_overview_dto(
+    RustArtistOverviewDto? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_rust_canvas_media_dto(
     RustCanvasMediaDto? self,
     SseSerializer serializer,
@@ -1395,6 +1730,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_rust_playlist_dto(
     RustPlaylistDto? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_rust_playlist_summary_dto(
+    RustPlaylistSummaryDto? self,
     SseSerializer serializer,
   );
 
@@ -1468,7 +1809,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_rust_album_catalog_page_dto(
+    RustAlbumCatalogPageDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_rust_album_dto(RustAlbumDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_rust_album_query_dto(
+    RustAlbumQueryDto self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_rust_ap_session_dto(
@@ -1483,11 +1836,41 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_rust_artist_catalog_page_dto(
+    RustArtistCatalogPageDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_rust_artist_dto(RustArtistDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_rust_artist_overview_dto(
+    RustArtistOverviewDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_backup_fetch_request(
+    RustBackupFetchRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_backup_snapshot_dto(
+    RustBackupSnapshotDto self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_rust_canvas_media_dto(
     RustCanvasMediaDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_category_dto(
+    RustCategoryDto self,
     SseSerializer serializer,
   );
 
@@ -1522,6 +1905,30 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_rust_home_chip_dto(
+    RustHomeChipDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_home_feed_dto(
+    RustHomeFeedDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_home_item_dto(
+    RustHomeItemDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_home_section_dto(
+    RustHomeSectionDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_rust_http_raw_dto(
     RustHttpRawDto self,
     SseSerializer serializer,
@@ -1529,6 +1936,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_rust_image_dto(RustImageDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_rust_library_track_dto(
+    RustLibraryTrackDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_library_tracks_page_dto(
+    RustLibraryTracksPageDto self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_rust_lrclib_candidate_dto(
@@ -1548,6 +1967,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_rust_playback_file_dto(
     RustPlaybackFileDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_playlist_catalog_page_dto(
+    RustPlaylistCatalogPageDto self,
     SseSerializer serializer,
   );
 
@@ -1600,6 +2025,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_rust_search_page_dto(
+    RustSearchPageDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_rust_session_config(
     RustSessionConfig self,
     SseSerializer serializer,
@@ -1636,6 +2067,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_rust_track_catalog_page_dto(
+    RustTrackCatalogPageDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_rust_track_credits_dto(
     RustTrackCreditsDto self,
     SseSerializer serializer,
@@ -1659,6 +2096,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_rust_watch_feed_creator_dto(
     RustWatchFeedCreatorDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_watch_feed_entity_page_dto(
+    RustWatchFeedEntityPageDto self,
     SseSerializer serializer,
   );
 

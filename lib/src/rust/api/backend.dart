@@ -6,7 +6,7 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
 
 void rustSessionConfigure({required RustSessionConfig config}) =>
     RustLib.instance.api.crateApiBackendRustSessionConfigure(config: config);
@@ -470,18 +470,33 @@ class RustAlbumDto {
   final String id;
   final String name;
   final String uri;
+  final String albumType;
+  final String releaseDate;
+  final int totalTracks;
   final List<RustImageDto> images;
+  final List<RustArtistDto> artists;
 
   const RustAlbumDto({
     required this.id,
     required this.name,
     required this.uri,
+    required this.albumType,
+    required this.releaseDate,
+    required this.totalTracks,
     required this.images,
+    required this.artists,
   });
 
   @override
   int get hashCode =>
-      id.hashCode ^ name.hashCode ^ uri.hashCode ^ images.hashCode;
+      id.hashCode ^
+      name.hashCode ^
+      uri.hashCode ^
+      albumType.hashCode ^
+      releaseDate.hashCode ^
+      totalTracks.hashCode ^
+      images.hashCode ^
+      artists.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -491,7 +506,11 @@ class RustAlbumDto {
           id == other.id &&
           name == other.name &&
           uri == other.uri &&
-          images == other.images;
+          albumType == other.albumType &&
+          releaseDate == other.releaseDate &&
+          totalTracks == other.totalTracks &&
+          images == other.images &&
+          artists == other.artists;
 }
 
 class RustApWelcomeDto {
