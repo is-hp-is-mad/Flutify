@@ -256,7 +256,7 @@ class EmeLoopbackServer {
     }
     try {
       final resp = await poster(body);
-      debugPrint('[eme] license 反代：请求 ${body.length}B → 响应 ${resp.length}B');
+      debugPrint('[eme] license 中转：请求 ${body.length}B → 响应 ${resp.length}B');
       request.response.headers.contentType = ContentType(
         'application',
         'octet-stream',
@@ -292,7 +292,7 @@ class EmeLoopbackServer {
     final gen = _playGen();
     final target = request.uri.queryParameters['target'];
     if (target == null || !isAllowedProvisionTarget(target)) {
-      debugPrint('[eme] provision 反代：拒绝非法 target=$target');
+      debugPrint('[eme] provision 中转：拒绝非法 target=$target');
       request.response.statusCode = 400;
       await request.response.close();
       return;
@@ -307,7 +307,7 @@ class EmeLoopbackServer {
           )
           .timeout(const Duration(seconds: 15));
       var line =
-          '[eme] provision 反代：请求 ${body.length}B → HTTP ${resp.statusCode} ${resp.bodyBytes.length}B';
+          '[eme] provision 中转：请求 ${body.length}B → HTTP ${resp.statusCode} ${resp.bodyBytes.length}B';
       if (resp.statusCode < 200 || resp.statusCode >= 300) {
         line =
             '$line | ${utf8.decode(resp.bodyBytes.take(200).toList(), allowMalformed: true)}';
@@ -332,9 +332,9 @@ class EmeLoopbackServer {
     int gen,
   ) async {
     if (gen != _playGen()) {
-      debugPrint('[eme] $name 反代失败（上一首残留，忽略）: $error');
+      debugPrint('[eme] $name 中转失败（上一首残留，忽略）: $error');
     } else {
-      debugPrint('[eme] $name 反代失败: $error');
+      debugPrint('[eme] $name 中转失败: $error');
       _onRelayError(
         name,
         error,

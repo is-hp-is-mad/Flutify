@@ -467,7 +467,9 @@ window.emePlayNativeFps = (gen, fileIdHex, autoplay = true, revision = 0, positi
       }]);
       send('log', {msg: ks + ' 可用 ' + JSON.stringify(access.getConfiguration().audioCapabilities)});
     } catch (e) {
-      send('log', {msg: ks + ' 不可用: ' + e});
+      // 其他平台本来就没有 FairPlay：探测结果不是错误，不带错误名（避免日志按错误附调用栈）
+      const unsupportedHere = label === 'fairplay' && e && e.name === 'NotSupportedError';
+      send('log', {msg: unsupportedHere ? ks + ' 本平台不支持（正常）' : ks + ' 不可用: ' + e});
       // 新版 com.apple.fps 只记日志：FairPlay 的可用性以上面的旧版 API 探测为准
       if (label !== 'fairplay') send(label + 'Unavailable', {msg: String(e)});
     }

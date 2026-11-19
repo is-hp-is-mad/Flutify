@@ -44,7 +44,7 @@ class EmePlayer {
     fairPlayMode: () => _fairPlayMode,
     onRelayError: (name, error, webSignInSuggested) {
       lastError ??= EmePlaybackException(
-        '$name 反代失败：$error',
+        '$name 中转失败：$error',
         webSignInSuggested: webSignInSuggested,
         cause: error,
       );

@@ -146,7 +146,7 @@ class WidevineLicenseClient {
         );
       });
     } catch (e) {
-      debugPrint('[eme] license 反代异常: $e');
+      debugPrint('[eme] license 中转异常: $e');
       rethrow;
     }
   }
@@ -204,7 +204,7 @@ class WidevineLicenseClient {
         );
       });
     } catch (e) {
-      debugPrint('[eme] 证书反代异常: $e');
+      debugPrint('[eme] 证书中转异常: $e');
       rethrow;
     }
   }

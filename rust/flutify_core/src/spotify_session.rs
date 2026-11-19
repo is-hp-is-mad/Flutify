@@ -452,6 +452,36 @@ async fn ensure_override_client_token(
     Ok(granted)
 }
 
+/// 鉴权请求的请求头：默认以 Web 播放器身份发出，[extra] 中的同名头（不分大小写）**覆盖**默认值。
+///
+/// 不能用 `RequestBuilder::header` 逐个追加：同名头会变成两份（如 `app-platform: WebPlayer` 与
+/// `app-platform: Android` 并存），服务端按 WebPlayer 处理，Android 身份的 Watch Feed 接口因此返回空内容。
+fn request_headers(
+    access_token: &str,
+    client_token: Option<&str>,
+    extra: &[(&str, &str)],
+) -> Result<reqwest::header::HeaderMap, String> {
+    use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
+    let mut map = HeaderMap::new();
+    let mut set = |name: &str, value: &str| -> Result<(), String> {
+        let name = HeaderName::from_bytes(name.as_bytes()).map_err(|e| format!("request:header {name}: {e}"))?;
+        let value = HeaderValue::from_str(value).map_err(|e| format!("request:header value: {e}"))?;
+        map.insert(name, value);
+        Ok(())
+    };
+    set("authorization", &format!("Bearer {access_token}"))?;
+    set("user-agent", WEB_USER_AGENT)?;
+    set("app-platform", "WebPlayer")?;
+    set("spotify-app-version", WEB_CLIENT_VERSION)?;
+    if let Some(ct) = client_token.filter(|v| !v.is_empty()) {
+        set("client-token", ct)?;
+    }
+    for (k, v) in extra {
+        set(k, v)?;
+    }
+    Ok(map)
+}
+
 /// 发送带鉴权的 HTTP 请求，自动处理 401 单飞续期与 429/503 退避重试。
 pub async fn authorized_request(
     method: reqwest::Method,
@@ -468,18 +498,8 @@ pub async fn authorized_request(
         let proxy = effective_proxy();
         let client = http_client::client_for(&proxy)?;
 
-        let mut req = client
-            .request(method.clone(), url)
-            .header("Authorization", format!("Bearer {}", access.token))
-            .header("User-Agent", WEB_USER_AGENT)
-            .header("app-platform", "WebPlayer")
-            .header("spotify-app-version", WEB_CLIENT_VERSION);
-        if let Some(ct) = client_tok.as_deref().filter(|v| !v.is_empty()) {
-            req = req.header("client-token", ct);
-        }
-        for (k, v) in extra_headers {
-            req = req.header(*k, *v);
-        }
+        let headers = request_headers(&access.token, client_tok.as_deref(), extra_headers)?;
+        let mut req = client.request(method.clone(), url).headers(headers);
         if let Some(ref bytes) = body {
             req = req.body(bytes.clone());
         }
@@ -607,6 +627,25 @@ mod tests {
         );
         // 作用域外不受影响
         assert!(outside);
+    }
+
+    #[test]
+    fn extra_headers_override_defaults_instead_of_duplicating() {
+        let h = request_headers(
+            "tok",
+            Some("ct"),
+            &[("App-Platform", "Android"), ("user-agent", "Spotify/9 Android"), ("accept", "application/protobuf")],
+        )
+        .unwrap();
+        let all = |n: &str| h.get_all(n).iter().map(|v| v.to_str().unwrap().to_string()).collect::<Vec<_>>();
+        assert_eq!(all("app-platform"), ["Android"]);
+        assert_eq!(all("user-agent"), ["Spotify/9 Android"]);
+        assert_eq!(all("spotify-app-version"), [WEB_CLIENT_VERSION]);
+        assert_eq!(all("authorization"), ["Bearer tok"]);
+        assert_eq!(all("client-token"), ["ct"]);
+        assert_eq!(all("accept"), ["application/protobuf"]);
+        let no_ct = request_headers("tok", Some(""), &[]).unwrap();
+        assert!(no_ct.get("client-token").is_none());
     }
 
     #[test]
