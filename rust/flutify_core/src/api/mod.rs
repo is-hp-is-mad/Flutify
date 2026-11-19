@@ -3,6 +3,7 @@ pub mod backend;
 pub mod lyrics;
 pub mod net_config;
 pub mod network;
+pub mod pathfinder;
 pub mod protocol;
 pub mod session_tokens;
 pub mod watchfeed;

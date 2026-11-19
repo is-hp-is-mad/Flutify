@@ -62,7 +62,11 @@ class RustBackendBridge {
     id: dto.id,
     name: dto.name,
     uri: dto.uri,
+    albumType: dto.albumType,
+    releaseDate: dto.releaseDate,
+    totalTracks: dto.totalTracks,
     images: [for (final img in dto.images) imageFromDto(img)],
+    artists: [for (final a in dto.artists) artistFromDto(a)],
   );
 
   static SpotifyTrack trackFromDto(rust.RustTrackDto dto) => SpotifyTrack(

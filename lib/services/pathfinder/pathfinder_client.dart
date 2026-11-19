@@ -98,6 +98,39 @@ class PathfinderClient {
     return data;
   }
 
+  /// Rust 直接查询并解析（`api/pathfinder.rs`）时使用的代理；null 表示交给 Dart
+  /// （未启用 Rust、Rust 核心未加载或需要走自建网关）。
+  Future<String?> rustProxy() async {
+    if (!useRustBackend || !RustCore.ready) return null;
+    return RustBackendBridge.proxyForUrl(endpoint);
+  }
+
+  /// 执行一次 Rust 类型化查询，错误按 [query] 的规则转换：`http:{status}:` → [PathfinderException]，
+  /// `format:{说明}` → [FormatException]；Rust 会话未同步（`auth:missing`）抛 [RustPathfinderUnavailable]，
+  /// 调用方改走 Dart。
+  Future<T> runRust<T>(PathfinderOperation op, Future<T> Function() call) async {
+    try {
+      return await call();
+    } catch (e) {
+      final msg = e.toString();
+      final httpMatch = RegExp(r'http:(\d{3}):').firstMatch(msg);
+      if (httpMatch != null) {
+        throw PathfinderException(op.name, int.parse(httpMatch.group(1)!), msg);
+      }
+      if (msg.contains('auth:missing')) throw const RustPathfinderUnavailable();
+      final format = RegExp(r'format:(.*)$').firstMatch(msg);
+      if (format != null) throw FormatException(format.group(1)!.trim());
+      final lower = msg.toLowerCase();
+      throw PathfinderException(
+        op.name,
+        0,
+        msg,
+        hashStale:
+            lower.contains('persistedquery') || lower.contains('persisted query'),
+      );
+    }
+  }
+
   /// 桌面客户端升级后旧的 sha256Hash 会被服务端拒绝：
   /// 返回 `PersistedQueryNotFound` 类错误（不同版本的 code / message 写法略有差异）。
   static bool _isHashStale(Object? errors) {
@@ -133,4 +166,9 @@ class PathfinderException implements Exception {
 
   @override
   String toString() => message;
+}
+
+/// Rust 会话尚未同步，这次 Pathfinder 查询交给 Dart HTTP。
+class RustPathfinderUnavailable implements Exception {
+  const RustPathfinderUnavailable();
 }

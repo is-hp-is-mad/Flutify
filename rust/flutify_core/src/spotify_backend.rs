@@ -117,45 +117,6 @@ pub struct BackendHomeFeed {
 }
 
 #[derive(Clone, Debug)]
-pub struct BackendCatalogPageTrack {
-    pub items: Vec<BackendTrack>,
-    pub offset: i32,
-    pub total: Option<i32>,
-    pub next_offset: Option<i32>,
-}
-
-#[derive(Clone, Debug)]
-pub struct BackendCatalogPageArtist {
-    pub items: Vec<BackendArtist>,
-    pub offset: i32,
-    pub total: Option<i32>,
-    pub next_offset: Option<i32>,
-}
-
-#[derive(Clone, Debug)]
-pub struct BackendCatalogPagePlaylist {
-    pub items: Vec<BackendPlaylistSummary>,
-    pub offset: i32,
-    pub total: Option<i32>,
-    pub next_offset: Option<i32>,
-}
-
-#[derive(Clone, Debug)]
-pub struct BackendCatalogPageAlbum {
-    pub items: Vec<BackendAlbum>,
-    pub offset: i32,
-    pub total: Option<i32>,
-    pub next_offset: Option<i32>,
-}
-
-#[derive(Clone, Debug)]
-pub struct BackendSearchPage {
-    pub tracks: BackendCatalogPageTrack,
-    pub artists: BackendCatalogPageArtist,
-    pub playlists: BackendCatalogPagePlaylist,
-}
-
-#[derive(Clone, Debug)]
 pub struct BackendCategory {
     pub id: String,
     pub name: String,
@@ -163,73 +124,141 @@ pub struct BackendCategory {
     pub color_hex: String,
 }
 
-#[derive(Clone, Debug)]
-pub struct BackendAlbumPage {
-    pub album: BackendAlbum,
-    pub tracks: Vec<BackendTrack>,
-}
-
-#[derive(Clone, Debug)]
-pub struct BackendArtistPage {
-    pub artist: BackendArtist,
-    pub top_tracks: Vec<BackendTrack>,
-}
-
 pub(crate) fn id_from_uri(uri: &str) -> String {
     uri.rsplit(':').next().unwrap_or("").to_string()
 }
 
-fn unwrap_wrapper(val: &Value) -> Option<&Value> {
+/// 解开 `{__typename: XxxResponseWrapper | XxxWrapper, data: {...}}` 包装；非包装对象原样返回。
+pub(crate) fn unwrap_wrapper(val: &Value) -> Option<&Value> {
     let obj = val.as_object()?;
     if let Some(typename) = obj.get("__typename").and_then(|v| v.as_str()) {
         if typename.ends_with("Wrapper") {
-            return obj.get("data");
+            return json_map(obj.get("data"));
         }
     }
     Some(val)
 }
 
-fn parse_images(sources: Option<&Value>) -> Vec<BackendImage> {
+/// Dart `x as String? ?? ''` 的对应：非字符串（含 null / 缺失）一律视为缺失。
+pub(crate) fn json_str(v: Option<&Value>) -> Option<&str> {
+    v.and_then(Value::as_str)
+}
+
+/// Dart `a ?? b` 的对应：JSON null 与缺失等价。
+fn non_null(v: Option<&Value>) -> Option<&Value> {
+    v.filter(|x| !x.is_null())
+}
+
+/// Dart `v is Map<String, dynamic> ? v : null`。
+fn json_map(v: Option<&Value>) -> Option<&Value> {
+    v.filter(|x| x.is_object())
+}
+
+/// Dart `int.tryParse`：允许首尾空白、正负号与 `0x` 前缀。
+pub(crate) fn dart_int_parse(s: &str) -> Option<i64> {
+    let t = s.trim();
+    let (neg, body) = match t.as_bytes().first() {
+        Some(b'-') => (true, &t[1..]),
+        Some(b'+') => (false, &t[1..]),
+        _ => (false, t),
+    };
+    if body.is_empty() {
+        return None;
+    }
+    let magnitude = if let Some(hex) = body.strip_prefix("0x").or_else(|| body.strip_prefix("0X")) {
+        if hex.is_empty() || !hex.bytes().all(|b| b.is_ascii_hexdigit()) {
+            return None;
+        }
+        i128::from_str_radix(hex, 16).ok()?
+    } else {
+        if !body.bytes().all(|b| b.is_ascii_digit()) {
+            return None;
+        }
+        body.parse::<i128>().ok()?
+    };
+    let value = if neg { -magnitude } else { magnitude };
+    i64::try_from(value).ok()
+}
+
+/// `PathfinderParsers._int`：数字取整，字符串按 `int.tryParse`。
+pub(crate) fn dart_int(v: Option<&Value>) -> Option<i64> {
+    match v? {
+        Value::String(s) => dart_int_parse(s),
+        other => dart_num_int(Some(other)),
+    }
+}
+
+/// `HomeParser._int`：只认数字（字符串视为缺失）。
+pub(crate) fn dart_num_int(v: Option<&Value>) -> Option<i64> {
+    match v? {
+        Value::Number(n) => n.as_i64().or_else(|| n.as_f64().map(|f| f.trunc() as i64)),
+        _ => None,
+    }
+}
+
+/// Dart 字符串插值 `'${v ?? ''}'` 的对应（只覆盖 JSON 标量）。
+fn dart_display(v: Option<&Value>) -> String {
+    match v {
+        None | Some(Value::Null) => String::new(),
+        Some(Value::String(s)) => s.clone(),
+        Some(Value::Bool(b)) => b.to_string(),
+        Some(Value::Number(n)) => {
+            if n.is_f64() {
+                let f = n.as_f64().unwrap_or_default();
+                if f.fract() == 0.0 && f.is_finite() {
+                    format!("{f:.1}")
+                } else {
+                    f.to_string()
+                }
+            } else {
+                n.to_string()
+            }
+        }
+        Some(other) => other.to_string(),
+    }
+}
+
+/// 图片 sources：[{url, width|maxWidth, height|maxHeight}]，按宽度从大到小排列。
+pub(crate) fn parse_images(sources: Option<&Value>) -> Vec<BackendImage> {
     let Some(arr) = sources.and_then(|v| v.as_array()) else {
         return Vec::new();
     };
     let mut out = Vec::with_capacity(arr.len());
     for item in arr {
-        let Some(url) = item.get("url").and_then(|v| v.as_str()).filter(|s| !s.is_empty()) else {
+        let Some(url) = json_str(item.get("url")).filter(|s| !s.is_empty()) else {
             continue;
         };
-        let width = item
-            .get("width")
-            .or_else(|| item.get("maxWidth"))
-            .and_then(|v| v.as_i64())
-            .map(|v| v as i32);
-        let height = item
-            .get("height")
-            .or_else(|| item.get("maxHeight"))
-            .and_then(|v| v.as_i64())
-            .map(|v| v as i32);
+        let width = dart_int(item.get("width")).or_else(|| dart_int(item.get("maxWidth")));
+        let height = dart_int(item.get("height")).or_else(|| dart_int(item.get("maxHeight")));
         out.push(BackendImage {
             url: url.to_string(),
-            width,
-            height,
+            width: width.map(|v| v as i32),
+            height: height.map(|v| v as i32),
         });
     }
+    // 稳定排序，与 Dart 小列表的插入排序一致
     out.sort_by_key(|a| std::cmp::Reverse(a.width.unwrap_or(0)));
     out
 }
 
-fn parse_artist(val: &Value) -> Option<BackendArtist> {
-    let m = unwrap_wrapper(val)?;
-    let uri = m.get("uri")?.as_str()?;
-    let id = m
-        .get("id")
-        .and_then(|v| v.as_str())
+fn entity_id(m: &Value, uri: &str) -> String {
+    json_str(m.get("id"))
         .map(str::to_string)
-        .unwrap_or_else(|| id_from_uri(uri));
-    let name = m
-        .get("profile")
-        .and_then(|p| p.get("name"))
-        .and_then(|v| v.as_str())
+        .unwrap_or_else(|| id_from_uri(uri))
+}
+
+fn parse_artist_list(page: Option<&Value>) -> Vec<BackendArtist> {
+    page.and_then(|p| p.get("items"))
+        .and_then(Value::as_array)
+        .map(|arr| arr.iter().filter_map(parse_artist).collect())
+        .unwrap_or_default()
+}
+
+/// Artist（精简：profile.name + uri，可带 visuals.avatarImage 与 stats）。
+pub(crate) fn parse_artist(val: &Value) -> Option<BackendArtist> {
+    let m = unwrap_wrapper(val)?;
+    let uri = json_str(m.get("uri"))?;
+    let name = json_str(m.get("profile").and_then(|p| p.get("name")))
         .unwrap_or("")
         .to_string();
     let images = parse_images(
@@ -237,12 +266,9 @@ fn parse_artist(val: &Value) -> Option<BackendArtist> {
             .and_then(|v| v.get("avatarImage"))
             .and_then(|a| a.get("sources")),
     );
-    let followers = m
-        .get("stats")
-        .and_then(|s| s.get("followers"))
-        .and_then(|v| v.as_i64());
+    let followers = dart_int(m.get("stats").and_then(|s| s.get("followers")));
     Some(BackendArtist {
-        id,
+        id: entity_id(m, uri),
         name,
         uri: uri.to_string(),
         images,
@@ -250,81 +276,43 @@ fn parse_artist(val: &Value) -> Option<BackendArtist> {
     })
 }
 
+/// 曲目所属专辑的引用（`albumOfTrack`，不解包装、uri 可缺失；只有名称、封面与艺人）。
 fn parse_album_ref(val: &Value) -> Option<BackendAlbum> {
-    let m = unwrap_wrapper(val)?;
-    let uri = m.get("uri")?.as_str()?;
-    let id = m
-        .get("id")
-        .and_then(|v| v.as_str())
-        .map(str::to_string)
-        .unwrap_or_else(|| id_from_uri(uri));
-    let name = m
-        .get("name")
-        .and_then(|v| v.as_str())
-        .unwrap_or("")
-        .to_string();
-    let images = parse_images(m.get("coverArt").and_then(|c| c.get("sources")));
-    let artists = m
-        .get("artists")
-        .and_then(|a| a.get("items"))
-        .and_then(|i| i.as_array())
-        .map(|arr| arr.iter().filter_map(parse_artist).collect())
-        .unwrap_or_default();
+    let m = json_map(Some(val))?;
+    let uri = json_str(m.get("uri")).unwrap_or("");
     Some(BackendAlbum {
-        id,
-        name,
+        id: entity_id(m, uri),
+        name: json_str(m.get("name")).unwrap_or("").to_string(),
         uri: uri.to_string(),
         album_type: "album".to_string(),
         release_date: String::new(),
         total_tracks: 0,
-        images,
-        artists,
+        images: parse_images(m.get("coverArt").and_then(|c| c.get("sources"))),
+        artists: parse_artist_list(m.get("artists")),
     })
 }
 
+/// Track（decorateContextTracks / 搜索 / 专辑曲目 / 艺人热门曲目共用）。
 pub fn parse_track(val: &Value) -> Option<BackendTrack> {
     let m = unwrap_wrapper(val)?;
-    let uri = m.get("uri")?.as_str()?;
+    let uri = json_str(m.get("uri"))?;
     if !uri.starts_with("spotify:track:") {
         return None;
     }
-    let id = m
-        .get("id")
-        .and_then(|v| v.as_str())
-        .map(str::to_string)
-        .unwrap_or_else(|| id_from_uri(uri));
-    let name = m
-        .get("name")
-        .and_then(|v| v.as_str())
-        .unwrap_or("")
-        .to_string();
-    let artists = m
-        .get("artists")
-        .and_then(|a| a.get("items"))
-        .and_then(|i| i.as_array())
-        .map(|arr| arr.iter().filter_map(parse_artist).collect())
-        .unwrap_or_default();
     let album = m.get("albumOfTrack").and_then(parse_album_ref);
-    let duration_ms = m
-        .get("duration")
-        .and_then(|d| d.get("totalMilliseconds"))
-        .and_then(|v| v.as_i64())
+    let duration_ms = dart_int(m.get("duration").and_then(|d| d.get("totalMilliseconds")))
         .unwrap_or(0) as i32;
-    let explicit = m
-        .get("contentRating")
-        .and_then(|c| c.get("label"))
-        .and_then(|v| v.as_str())
-        == Some("EXPLICIT");
+    let explicit = json_str(m.get("contentRating").and_then(|c| c.get("label"))) == Some("EXPLICIT");
     let is_playable = m
         .get("playability")
         .and_then(|p| p.get("playable"))
-        .and_then(|v| v.as_bool())
+        .and_then(Value::as_bool)
         .unwrap_or(true);
     Some(BackendTrack {
-        id,
-        name,
+        id: entity_id(m, uri),
+        name: json_str(m.get("name")).unwrap_or("").to_string(),
         uri: uri.to_string(),
-        artists,
+        artists: parse_artist_list(m.get("artists")),
         album,
         duration_ms,
         explicit,
@@ -333,26 +321,38 @@ pub fn parse_track(val: &Value) -> Option<BackendTrack> {
     })
 }
 
-fn strip_html(input: &str) -> String {
+/// 与 Dart `PathfinderParsers.stripHtml` 一致：去掉 `<...>` 标签（未闭合的 `<` 保留），
+/// 依次还原 `&amp;` `&quot;` `&#x27;` `&#39;`，再去首尾空白。
+pub(crate) fn strip_html(input: &str) -> String {
     let mut out = String::with_capacity(input.len());
-    let mut in_tag = false;
-    for ch in input.chars() {
-        match ch {
-            '<' => in_tag = true,
-            '>' => in_tag = false,
-            _ if !in_tag => out.push(ch),
-            _ => {}
+    let mut rest = input;
+    while let Some(lt) = rest.find('<') {
+        let after = &rest[lt + 1..];
+        match after.find('>') {
+            Some(gt) => {
+                out.push_str(&rest[..lt]);
+                rest = &after[gt + 1..];
+            }
+            None => break,
         }
     }
-    out.trim().to_string()
+    out.push_str(rest);
+    out.replace("&amp;", "&")
+        .replace("&quot;", "\"")
+        .replace("&#x27;", "'")
+        .replace("&#39;", "'")
+        .trim()
+        .to_string()
 }
 
-fn playlist_images_from_attributes(attributes: &Value) -> Vec<BackendImage> {
+/// 与 Dart `PlaylistCover.fromAttributes` 一致：pictureSize large → default → small，
+/// 其次 `picture`（Base64 / URL-safe Base64 图片 ID，补齐填充后解码）。
+pub(crate) fn playlist_images_from_attributes(attributes: &Value) -> Vec<BackendImage> {
     if let Some(sizes) = attributes.get("pictureSize").and_then(|v| v.as_array()) {
         for target in ["large", "default", "small"] {
-            for p in sizes {
-                if p.get("targetName").and_then(|v| v.as_str()) == Some(target) {
-                    if let Some(url) = p.get("url").and_then(|v| v.as_str()).filter(|s| !s.is_empty()) {
+            for p in sizes.iter().filter(|p| p.is_object()) {
+                if json_str(p.get("targetName")) == Some(target) {
+                    if let Some(url) = json_str(p.get("url")).filter(|s| !s.is_empty()) {
                         return vec![BackendImage {
                             url: url.to_string(),
                             width: None,
@@ -363,8 +363,15 @@ fn playlist_images_from_attributes(attributes: &Value) -> Vec<BackendImage> {
             }
         }
     }
-    if let Some(picture) = attributes.get("picture").and_then(|v| v.as_str()).filter(|s| !s.is_empty()) {
-        if let Ok(bytes) = base64::engine::general_purpose::STANDARD.decode(picture) {
+    if let Some(picture) = json_str(attributes.get("picture")).filter(|s| !s.is_empty()) {
+        let normalized = picture.replace('-', "+").replace('_', "/");
+        let engine = base64::engine::GeneralPurpose::new(
+            &base64::alphabet::STANDARD,
+            base64::engine::GeneralPurposeConfig::new()
+                .with_decode_padding_mode(base64::engine::DecodePaddingMode::Indifferent)
+                .with_decode_allow_trailing_bits(true),
+        );
+        if let Ok(bytes) = engine.decode(normalized) {
             if !bytes.is_empty() {
                 let hex: String = bytes.iter().map(|b| format!("{b:02x}")).collect();
                 return vec![BackendImage {
@@ -378,16 +385,14 @@ fn playlist_images_from_attributes(attributes: &Value) -> Vec<BackendImage> {
     Vec::new()
 }
 
+/// 毫秒时间戳（整数或字符串）；不合理的值（≤ 0）视为缺失。
 fn parse_timestamp_ms(val: Option<&Value>) -> Option<i64> {
-    let v = val?;
-    let ms = v
-        .as_i64()
-        .or_else(|| v.as_str().and_then(|s| s.parse::<i64>().ok()))?;
-    if ms <= 0 {
-        None
-    } else {
-        Some(ms)
-    }
+    let ms = match val? {
+        Value::Number(n) => n.as_i64(),
+        Value::String(s) => dart_int_parse(s),
+        _ => None,
+    }?;
+    (ms > 0).then_some(ms)
 }
 
 fn extract_page_items(page: &Value) -> (usize, Vec<String>, Vec<(String, i64)>) {
@@ -1228,125 +1233,106 @@ pub async fn fetch_track_credits(
 }
 
 // ---------------------------------------------------------------------------
-// Pathfinder 页面解析：Home / Browse / Search / Album / Artist
+// Pathfinder 页面解析：Home / Browse / Search / Album / Artist / Library
+//
+// 与 Dart 端 `PathfinderParsers` / `HomeParser` 逐字段对齐（字段缺失一律宽松处理，
+// 单个条目解析失败只跳过该条目）；分页协议错误以 `format:` 前缀返回，Dart 侧还原为 FormatException。
 // ---------------------------------------------------------------------------
 
-fn json_int(v: Option<&Value>) -> Option<i32> {
-    match v {
-        Some(Value::Number(n)) => n.as_i64().map(|x| x as i32),
-        Some(Value::String(s)) => s.parse::<i32>().ok(),
-        _ => None,
-    }
-}
-
+/// `{transformedLabel, translatedBaseText}` → 本地化后的文本（与 Dart `HomeParser._label` 一致）。
 fn label_text(v: Option<&Value>) -> String {
-    let Some(obj) = v.and_then(|x| x.as_object()) else {
+    let Some(obj) = json_map(v) else {
         return String::new();
     };
-    obj.get("transformedLabel")
-        .or_else(|| obj.get("translatedBaseText"))
-        .and_then(|s| s.as_str())
+    non_null(obj.get("transformedLabel"))
+        .or_else(|| non_null(obj.get("translatedBaseText")))
+        .and_then(Value::as_str)
         .map(|s| s.trim().to_string())
         .unwrap_or_default()
 }
 
+/// Dart `iso.substring(0, 10)`（按字符截取，避免非 ASCII 时按字节切片 panic）。
+fn first_chars(s: &str, n: usize) -> Option<String> {
+    let mut it = s.char_indices();
+    let end = match it.nth(n) {
+        Some((idx, _)) => idx,
+        None if s.chars().count() == n => s.len(),
+        None => return None,
+    };
+    Some(s[..end].to_string())
+}
+
+/// Album（getAlbum 的 albumUnion、搜索结果、唱片目录的 release 共用）。
 pub fn parse_album(val: &Value, fallback_artists: Option<&[BackendArtist]>) -> Option<BackendAlbum> {
     let m = unwrap_wrapper(val)?;
-    let uri = m.get("uri")?.as_str()?;
+    let uri = json_str(m.get("uri"))?;
     if !uri.starts_with("spotify:album:") {
         return None;
     }
-    let id = m
-        .get("id")
-        .and_then(|v| v.as_str())
-        .map(str::to_string)
-        .unwrap_or_else(|| id_from_uri(uri));
-    let name = m.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
-    let album_type = m
-        .get("type")
-        .and_then(|v| v.as_str())
-        .unwrap_or("album")
-        .to_lowercase();
-    let date = m.get("date").and_then(|v| v.as_object());
-    let release_date = match date.and_then(|d| d.get("isoString")).and_then(|v| v.as_str()) {
-        Some(iso) if iso.len() >= 10 => iso[..10].to_string(),
-        _ => date
-            .and_then(|d| d.get("year"))
-            .and_then(|v| v.as_i64())
-            .map(|y| y.to_string())
-            .unwrap_or_default(),
+    let album_type = json_str(m.get("type")).unwrap_or("album").to_lowercase();
+    let date = json_map(m.get("date"));
+    let release_date = match json_str(date.and_then(|d| d.get("isoString"))).and_then(|iso| first_chars(iso, 10)) {
+        Some(day) => day,
+        None => dart_display(date.and_then(|d| d.get("year"))),
     };
-    let total_tracks = json_int(m.get("tracksV2").and_then(|t| t.get("totalCount")))
-        .or_else(|| json_int(m.get("tracks").and_then(|t| t.get("totalCount"))))
-        .unwrap_or(0);
-    let images = parse_images(m.get("coverArt").and_then(|c| c.get("sources")));
-    let mut artists: Vec<BackendArtist> = m
-        .get("artists")
-        .and_then(|a| a.get("items"))
-        .and_then(|i| i.as_array())
-        .map(|arr| arr.iter().filter_map(parse_artist).collect())
-        .unwrap_or_default();
+    let total_tracks = dart_int(m.get("tracksV2").and_then(|t| t.get("totalCount")))
+        .or_else(|| dart_int(m.get("tracks").and_then(|t| t.get("totalCount"))))
+        .unwrap_or(0) as i32;
+    let mut artists = parse_artist_list(m.get("artists"));
     if artists.is_empty() {
         if let Some(fb) = fallback_artists {
             artists = fb.to_vec();
         }
     }
     Some(BackendAlbum {
-        id,
-        name,
+        id: entity_id(m, uri),
+        name: json_str(m.get("name")).unwrap_or("").to_string(),
         uri: uri.to_string(),
         album_type,
         release_date,
         total_tracks,
-        images,
+        images: parse_images(m.get("coverArt").and_then(|c| c.get("sources"))),
         artists,
     })
 }
 
+/// Playlist（home 卡片、搜索结果）。
 pub fn parse_playlist_summary(val: &Value) -> Option<BackendPlaylistSummary> {
     let m = unwrap_wrapper(val)?;
-    let uri = m.get("uri")?.as_str()?;
+    let uri = json_str(m.get("uri"))?;
     if !uri.starts_with("spotify:playlist:") {
         return None;
     }
-    let id = id_from_uri(uri);
-    let name = m.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
-    let description = strip_html(
-        m.get("description")
-            .and_then(|v| v.as_str())
-            .unwrap_or(""),
-    );
     let owner_name = m
         .get("ownerV2")
         .and_then(unwrap_wrapper)
-        .and_then(|o| o.get("name"))
-        .and_then(|v| v.as_str())
+        .and_then(|o| json_str(o.get("name")))
         .unwrap_or("Spotify")
         .to_string();
     let images = m
         .get("images")
         .and_then(|i| i.get("items"))
-        .and_then(|i| i.as_array())
+        .and_then(Value::as_array)
         .and_then(|arr| arr.first())
-        .map(|first| parse_images(first.get("sources")))
+        .map(|first| parse_images(json_map(Some(first)).and_then(|f| f.get("sources"))))
         .unwrap_or_default();
-    let total_tracks = json_int(m.get("content").and_then(|c| c.get("totalCount"))).unwrap_or(0);
     Some(BackendPlaylistSummary {
-        id,
-        name,
+        id: id_from_uri(uri),
+        name: json_str(m.get("name")).unwrap_or("").to_string(),
         uri: uri.to_string(),
-        description,
+        description: strip_html(json_str(m.get("description")).unwrap_or("")),
         owner_name,
         images,
-        total_tracks,
+        total_tracks: dart_int(m.get("content").and_then(|c| c.get("totalCount"))).unwrap_or(0) as i32,
     })
 }
 
+/// 曲目列表中的 `{track: {...}}` / `{item: {...}}` / 直接的 Track；[album_override] 用于专辑页回填。
 fn parse_track_item(item: &Value, album_override: Option<&BackendAlbum>) -> Option<BackendTrack> {
-    let target = item
-        .get("track")
-        .or_else(|| item.get("item"))
-        .unwrap_or(item);
+    let m = json_map(Some(item))?;
+    let target = non_null(m.get("track"))
+        .or_else(|| non_null(m.get("item")))
+        .unwrap_or(m);
     let mut track = parse_track(target)?;
     if let Some(alb) = album_override {
         track.album = Some(alb.clone());
@@ -1354,6 +1340,7 @@ fn parse_track_item(item: &Value, album_override: Option<&BackendAlbum>) -> Opti
     Some(track)
 }
 
+/// 「已点赞的歌曲」的两种写法：快捷入口 `spotify:user:{用户名}:collection`，最近播放 `spotify:collection:tracks`。
 fn is_liked_songs_uri(uri: &str) -> bool {
     uri == "spotify:collection:tracks"
         || (uri.starts_with("spotify:user:") && uri.ends_with(":collection"))
@@ -1361,14 +1348,14 @@ fn is_liked_songs_uri(uri: &str) -> bool {
 
 fn parse_home_chip(raw: &Value) -> Option<BackendHomeChip> {
     let m = raw.as_object()?;
-    let id = m.get("id").and_then(|v| v.as_str()).filter(|s| !s.is_empty())?;
+    let id = json_str(m.get("id")).filter(|s| !s.is_empty())?;
     let label = label_text(m.get("label"));
     if label.is_empty() {
         return None;
     }
     let sub_chips = m
         .get("subChips")
-        .and_then(|v| v.as_array())
+        .and_then(Value::as_array)
         .map(|arr| arr.iter().filter_map(parse_home_chip).collect())
         .unwrap_or_default();
     Some(BackendHomeChip {
@@ -1378,188 +1365,121 @@ fn parse_home_chip(raw: &Value) -> Option<BackendHomeChip> {
     })
 }
 
+fn home_item(kind: i32, uri: &str, title: String) -> BackendHomeItem {
+    BackendHomeItem {
+        kind,
+        uri: uri.to_string(),
+        title,
+        subtitle: String::new(),
+        images: Vec::new(),
+        reason: String::new(),
+        reason_artist: None,
+        playlist: None,
+        album: None,
+        artist: None,
+        parent_uri: String::new(),
+    }
+}
+
+/// 播客 / 单集卡片（与 Dart `HomeParser._media` 一致：uri 必须非空）。
+fn home_media(kind: i32, m: &Value, subtitle: Option<&str>, parent_uri: Option<&str>) -> Option<BackendHomeItem> {
+    let uri = json_str(m.get("uri")).filter(|s| !s.is_empty())?;
+    let mut item = home_item(kind, uri, json_str(m.get("name")).unwrap_or("").to_string());
+    item.subtitle = subtitle.unwrap_or("").to_string();
+    item.images = parse_images(m.get("coverArt").and_then(|c| c.get("sources")));
+    item.parent_uri = parent_uri.unwrap_or("").to_string();
+    Some(item)
+}
+
+/// 分区条目 `{uri, content: {__typename: XxxResponseWrapper | UnknownType, data}}`。
 fn parse_home_item(raw: &Value) -> Option<BackendHomeItem> {
     let m = raw.as_object()?;
-    let content = m.get("content");
-    let uri = m
-        .get("uri")
-        .and_then(|v| v.as_str())
-        .or_else(|| content.and_then(|c| c.get("uri")).and_then(|v| v.as_str()))
+    let content = json_map(m.get("content"));
+    let uri = json_str(m.get("uri"))
+        .or_else(|| json_str(content.and_then(|c| c.get("uri"))))
         .unwrap_or("");
     if is_liked_songs_uri(uri) {
-        return Some(BackendHomeItem {
-            kind: 3, // likedSongs
-            uri: uri.to_string(),
-            title: String::new(),
-            subtitle: String::new(),
-            images: Vec::new(),
-            reason: String::new(),
-            reason_artist: None,
-            playlist: None,
-            album: None,
-            artist: None,
-            parent_uri: String::new(),
-        });
+        return Some(home_item(3, uri, String::new()));
     }
     let entity = content.and_then(unwrap_wrapper)?;
-    let typename = entity.get("__typename").and_then(|v| v.as_str()).unwrap_or("");
-    match typename {
+    match json_str(entity.get("__typename")).unwrap_or("") {
         "Playlist" => {
             let p = parse_playlist_summary(entity)?;
-            let subtitle = if !p.description.is_empty() {
+            let mut item = home_item(0, &p.uri, p.name.clone());
+            item.subtitle = if !p.description.is_empty() {
                 p.description.clone()
             } else {
                 p.owner_name.clone()
             };
-            Some(BackendHomeItem {
-                kind: 0,
-                uri: p.uri.clone(),
-                title: p.name.clone(),
-                subtitle,
-                images: p.images.clone(),
-                reason: String::new(),
-                reason_artist: None,
-                playlist: Some(p),
-                album: None,
-                artist: None,
-                parent_uri: String::new(),
-            })
+            item.images = p.images.clone();
+            item.playlist = Some(p);
+            Some(item)
         }
         "Album" => {
             let a = parse_album(entity, None)?;
-            let subtitle = a
+            let mut item = home_item(1, &a.uri, a.name.clone());
+            // SpotifyAlbum.artistNames：空名字也参与拼接
+            item.subtitle = a
                 .artists
                 .iter()
                 .map(|ar| ar.name.as_str())
-                .filter(|n| !n.is_empty())
                 .collect::<Vec<_>>()
                 .join(", ");
-            Some(BackendHomeItem {
-                kind: 1,
-                uri: a.uri.clone(),
-                title: a.name.clone(),
-                subtitle,
-                images: a.images.clone(),
-                reason: String::new(),
-                reason_artist: None,
-                playlist: None,
-                album: Some(a),
-                artist: None,
-                parent_uri: String::new(),
-            })
+            item.images = a.images.clone();
+            item.album = Some(a);
+            Some(item)
         }
         "Artist" => {
             let a = parse_artist(entity)?;
-            Some(BackendHomeItem {
-                kind: 2,
-                uri: a.uri.clone(),
-                title: a.name.clone(),
-                subtitle: String::new(),
-                images: a.images.clone(),
-                reason: String::new(),
-                reason_artist: None,
-                playlist: None,
-                album: None,
-                artist: Some(a),
-                parent_uri: String::new(),
-            })
+            let mut item = home_item(2, &a.uri, a.name.clone());
+            item.images = a.images.clone();
+            item.artist = Some(a);
+            Some(item)
         }
-        "Podcast" => {
-            let e_uri = entity.get("uri").and_then(|v| v.as_str()).filter(|s| !s.is_empty())?;
-            Some(BackendHomeItem {
-                kind: 4,
-                uri: e_uri.to_string(),
-                title: entity.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-                subtitle: entity
-                    .get("publisher")
-                    .and_then(|p| p.get("name"))
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("")
-                    .to_string(),
-                images: parse_images(entity.get("coverArt").and_then(|c| c.get("sources"))),
-                reason: String::new(),
-                reason_artist: None,
-                playlist: None,
-                album: None,
-                artist: None,
-                parent_uri: String::new(),
-            })
-        }
+        "Podcast" => home_media(
+            4,
+            entity,
+            json_str(json_map(entity.get("publisher")).and_then(|p| p.get("name"))),
+            None,
+        ),
         "Episode" => {
-            let e_uri = entity.get("uri").and_then(|v| v.as_str()).filter(|s| !s.is_empty())?;
             let show = entity.get("podcastV2").and_then(unwrap_wrapper);
-            Some(BackendHomeItem {
-                kind: 5,
-                uri: e_uri.to_string(),
-                title: entity.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-                subtitle: show
-                    .and_then(|s| s.get("name"))
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("")
-                    .to_string(),
-                images: parse_images(entity.get("coverArt").and_then(|c| c.get("sources"))),
-                reason: String::new(),
-                reason_artist: None,
-                playlist: None,
-                album: None,
-                artist: None,
-                parent_uri: show
-                    .and_then(|s| s.get("uri"))
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("")
-                    .to_string(),
-            })
+            home_media(
+                5,
+                entity,
+                json_str(show.and_then(|s| s.get("name"))),
+                json_str(show.and_then(|s| s.get("uri"))),
+            )
         }
         _ => None,
     }
 }
 
-fn parse_recent_entity(entity: &Value) -> Option<BackendHomeItem> {
-    let data = entity.get("data");
-    let uri = entity
-        .get("_uri")
-        .and_then(|v| v.as_str())
-        .or_else(|| data.and_then(|d| d.get("uri")).and_then(|v| v.as_str()))
+/// 最近播放条目（trait 结构：identityTrait 名称 / 描述 / 作者，visualIdentityTrait 封面）。
+fn parse_recent_entity(entity: Option<&Value>) -> Option<BackendHomeItem> {
+    let entity = json_map(entity)?;
+    let data = json_map(entity.get("data"));
+    let uri = json_str(entity.get("_uri"))
+        .or_else(|| json_str(data.and_then(|d| d.get("uri"))))
         .unwrap_or("");
     if uri.is_empty() {
         return None;
     }
     if is_liked_songs_uri(uri) {
-        return Some(BackendHomeItem {
-            kind: 3,
-            uri: uri.to_string(),
-            title: String::new(),
-            subtitle: String::new(),
-            images: Vec::new(),
-            reason: String::new(),
-            reason_artist: None,
-            playlist: None,
-            album: None,
-            artist: None,
-            parent_uri: String::new(),
-        });
+        return Some(home_item(3, uri, String::new()));
     }
-    let identity = data.and_then(|d| d.get("identityTrait"));
-    let name = identity
-        .and_then(|i| i.get("name"))
-        .and_then(|v| v.as_str())
-        .unwrap_or("")
-        .to_string();
-    let description = strip_html(
-        identity
-            .and_then(|i| i.get("description"))
-            .and_then(|v| v.as_str())
-            .unwrap_or(""),
-    );
-    let contributors: Vec<BackendArtist> = identity
-        .and_then(|i| i.get("contributors"))
+    let identity = json_map(data.and_then(|d| d.get("identityTrait")));
+    let name = json_str(identity.and_then(|i| i.get("name"))).unwrap_or("").to_string();
+    let description = strip_html(json_str(identity.and_then(|i| i.get("description"))).unwrap_or(""));
+    let contributors: Vec<BackendArtist> = json_map(identity.and_then(|i| i.get("contributors")))
         .and_then(|c| c.get("items"))
-        .and_then(|i| i.as_array())
+        .and_then(Value::as_array)
         .map(|arr| {
             arr.iter()
+                .filter(|c| c.is_object())
                 .filter_map(|c| {
-                    let c_uri = c.get("uri").and_then(|v| v.as_str()).unwrap_or("");
-                    let c_name = c.get("name").and_then(|v| v.as_str()).unwrap_or("");
+                    let c_uri = json_str(c.get("uri")).unwrap_or("");
+                    let c_name = json_str(c.get("name")).unwrap_or("");
                     if c_name.is_empty() {
                         return None;
                     }
@@ -1574,14 +1494,13 @@ fn parse_recent_entity(entity: &Value) -> Option<BackendHomeItem> {
                 .collect()
         })
         .unwrap_or_default();
-
-    let cover_sources = data
-        .and_then(|d| d.get("visualIdentityTrait"))
-        .and_then(|v| v.get("squareCoverImage"))
-        .and_then(|s| s.get("image"))
-        .and_then(|i| i.get("data"))
-        .and_then(|d| d.get("sources"));
-    let images = parse_images(cover_sources);
+    let cover = json_map(
+        json_map(data.and_then(|d| d.get("visualIdentityTrait"))).and_then(|v| v.get("squareCoverImage")),
+    );
+    let images = parse_images(
+        json_map(json_map(cover.and_then(|c| c.get("image"))).and_then(|i| i.get("data")))
+            .and_then(|d| d.get("sources")),
+    );
     let id = id_from_uri(uri);
     let byline = contributors
         .iter()
@@ -1589,116 +1508,85 @@ fn parse_recent_entity(entity: &Value) -> Option<BackendHomeItem> {
         .collect::<Vec<_>>()
         .join(", ");
 
-    let kind_str = uri.split(':').nth(1).unwrap_or("");
-    match kind_str {
+    match uri.split(':').nth(1).unwrap_or("") {
         "playlist" => {
             let owner_name = contributors
                 .first()
                 .map(|c| c.name.clone())
                 .unwrap_or_else(|| "Spotify".to_string());
-            let playlist = BackendPlaylistSummary {
-                id,
-                name: name.clone(),
-                uri: uri.to_string(),
-                description: description.clone(),
-                owner_name,
-                images: images.clone(),
-                total_tracks: 0,
+            let mut item = home_item(0, uri, name.clone());
+            item.subtitle = if !description.is_empty() {
+                description.clone()
+            } else {
+                byline
             };
-            Some(BackendHomeItem {
-                kind: 0,
+            item.images = images.clone();
+            item.playlist = Some(BackendPlaylistSummary {
+                id,
+                name,
                 uri: uri.to_string(),
-                title: name,
-                subtitle: if !description.is_empty() { description } else { byline },
+                description,
+                owner_name,
                 images,
-                reason: String::new(),
-                reason_artist: None,
-                playlist: Some(playlist),
-                album: None,
-                artist: None,
-                parent_uri: String::new(),
-            })
+                total_tracks: 0,
+            });
+            Some(item)
         }
         "album" => {
-            let album = BackendAlbum {
+            let mut item = home_item(1, uri, name.clone());
+            item.subtitle = byline;
+            item.images = images.clone();
+            item.album = Some(BackendAlbum {
                 id,
-                name: name.clone(),
+                name,
                 uri: uri.to_string(),
                 album_type: "album".to_string(),
                 release_date: String::new(),
                 total_tracks: 0,
-                images: images.clone(),
-                artists: contributors,
-            };
-            Some(BackendHomeItem {
-                kind: 1,
-                uri: uri.to_string(),
-                title: name,
-                subtitle: byline,
                 images,
-                reason: String::new(),
-                reason_artist: None,
-                playlist: None,
-                album: Some(album),
-                artist: None,
-                parent_uri: String::new(),
-            })
+                artists: contributors,
+            });
+            Some(item)
         }
         "artist" => {
-            let artist = BackendArtist {
+            let mut item = home_item(2, uri, name.clone());
+            item.images = images.clone();
+            item.artist = Some(BackendArtist {
                 id,
-                name: name.clone(),
+                name,
                 uri: uri.to_string(),
-                images: images.clone(),
-                followers: None,
-            };
-            Some(BackendHomeItem {
-                kind: 2,
-                uri: uri.to_string(),
-                title: name,
-                subtitle: String::new(),
                 images,
-                reason: String::new(),
-                reason_artist: None,
-                playlist: None,
-                album: None,
-                artist: Some(artist),
-                parent_uri: String::new(),
-            })
+                followers: None,
+            });
+            Some(item)
         }
-        "show" => Some(BackendHomeItem {
-            kind: 4,
-            uri: uri.to_string(),
-            title: name,
-            subtitle: byline,
-            images,
-            reason: String::new(),
-            reason_artist: None,
-            playlist: None,
-            album: None,
-            artist: None,
-            parent_uri: String::new(),
-        }),
-        "episode" => Some(BackendHomeItem {
-            kind: 5,
-            uri: uri.to_string(),
-            title: name,
-            subtitle: byline,
-            images,
-            reason: String::new(),
-            reason_artist: None,
-            playlist: None,
-            album: None,
-            artist: None,
-            parent_uri: String::new(),
-        }),
+        "show" | "episode" => {
+            let kind = if uri.split(':').nth(1) == Some("show") { 4 } else { 5 };
+            let mut item = home_item(kind, uri, name);
+            item.subtitle = byline;
+            item.images = images;
+            Some(item)
+        }
         _ => None,
     }
 }
 
-/// 解析 Pathfinder `home` 响应为 `BackendHomeFeed`。
+/// 快捷入口最多显示的数量（官方：最多 8 个，不足 8 个且为奇数时去掉最后一个凑成整行）。
+const MAX_SHORTCUTS: usize = 8;
+
+fn section_items(section: &Value) -> (Option<&Value>, &[Value]) {
+    let items = json_map(section.get("sectionItems"));
+    let raw = items
+        .and_then(|si| si.get("items"))
+        .and_then(Value::as_array)
+        .map(Vec::as_slice)
+        .unwrap_or(&[]);
+    (items, raw)
+}
+
+/// 解析 Pathfinder `home` 响应（与 Dart `HomeParser.parse` 一致）。
 pub fn parse_home_feed(data: &Value) -> BackendHomeFeed {
-    let Some(home) = data.get("home").and_then(|v| v.as_object()) else {
+    let Some(home) = json_map(data.get("home")) else {
         return BackendHomeFeed {
             greeting: String::new(),
             chips: Vec::new(),
@@ -1709,154 +1597,127 @@ pub fn parse_home_feed(data: &Value) -> BackendHomeFeed {
 
     let mut shortcuts = Vec::new();
     let mut sections: Vec<BackendHomeSection> = Vec::new();
+    // 正在累积的推荐流（遇到非 FeedBaseline 分区即结束）
     let mut feed_idx: Option<usize> = None;
 
-    let raw_sections = home
-        .get("sectionContainer")
-        .and_then(|c| c.get("sections"))
+    let raw_sections = json_map(json_map(home.get("sectionContainer")).and_then(|c| c.get("sections")))
         .and_then(|s| s.get("items"))
-        .and_then(|i| i.as_array());
+        .and_then(Value::as_array)
+        .map(Vec::as_slice)
+        .unwrap_or(&[]);
 
-    if let Some(arr) = raw_sections {
-        for section in arr {
-            let Some(sec_obj) = section.as_object() else {
-                continue;
-            };
-            let sec_data = sec_obj.get("data").and_then(|v| v.as_object());
-            let typename = sec_data
-                .and_then(|d| d.get("__typename"))
-                .and_then(|v| v.as_str())
-                .unwrap_or("");
-            let uri = sec_obj
-                .get("uri")
-                .and_then(|v| v.as_str())
-                .unwrap_or("")
-                .to_string();
-            let section_items = sec_obj.get("sectionItems").and_then(|v| v.as_object());
-            let raw_items = section_items
-                .and_then(|si| si.get("items"))
-                .and_then(|i| i.as_array())
-                .map(Vec::as_slice)
-                .unwrap_or(&[]);
+    for section in raw_sections.iter().filter(|s| s.is_object()) {
+        let sec_data = json_map(section.get("data"));
+        let typename = json_str(sec_data.and_then(|d| d.get("__typename"))).unwrap_or("");
+        let uri = json_str(section.get("uri")).unwrap_or("").to_string();
+        let (items_map, raw_items) = section_items(section);
 
-            if typename == "HomeFeedBaselineSectionData" {
-                let idx = match feed_idx {
-                    Some(i) => i,
-                    None => {
-                        sections.push(BackendHomeSection {
-                            uri: uri.clone(),
-                            kind: 2, // feed
-                            title: String::new(),
-                            subtitle: String::new(),
-                            header_artist: None,
-                            items: Vec::new(),
-                            total_count: 0,
-                        });
-                        let new_idx = sections.len() - 1;
-                        feed_idx = Some(new_idx);
-                        new_idx
-                    }
-                };
-                let reason = label_text(sec_data.and_then(|d| d.get("title")));
-                let reason_artist = sec_data.and_then(|d| d.get("headerEntity")).and_then(parse_artist);
-                for raw_item in raw_items {
-                    if let Some(mut item) = parse_home_item(raw_item) {
-                        if item.kind == 2 {
-                            continue;
-                        }
-                        item.reason = reason.clone();
-                        item.reason_artist = reason_artist.clone();
-                        sections[idx].items.push(item);
-                    }
+        if typename == "HomeFeedBaselineSectionData" {
+            let idx = *feed_idx.get_or_insert_with(|| {
+                sections.push(BackendHomeSection {
+                    uri: uri.clone(),
+                    kind: 2,
+                    title: String::new(),
+                    subtitle: String::new(),
+                    header_artist: None,
+                    items: Vec::new(),
+                    total_count: 0,
+                });
+                sections.len() - 1
+            });
+            let reason = label_text(sec_data.and_then(|d| d.get("title")));
+            let reason_artist = sec_data.and_then(|d| d.get("headerEntity")).and_then(parse_artist);
+            for mut item in raw_items.iter().filter_map(parse_home_item) {
+                if item.kind == 2 {
+                    continue; // 官方推荐流只展示专辑 / 歌单 / 单集
                 }
-                continue;
+                item.reason = reason.clone();
+                item.reason_artist = reason_artist.clone();
+                sections[idx].items.push(item);
             }
-            feed_idx = None;
+            continue;
+        }
+        feed_idx = None;
 
-            match typename {
-                "HomeShortsSectionData" => {
-                    let mut list: Vec<BackendHomeItem> =
-                        raw_items.iter().filter_map(parse_home_item).take(8).collect();
-                    if list.len() < 8 && list.len() % 2 == 1 {
-                        list.pop();
-                    }
-                    shortcuts = list;
+        match typename {
+            "HomeShortsSectionData" => {
+                let mut list: Vec<BackendHomeItem> =
+                    raw_items.iter().filter_map(parse_home_item).take(MAX_SHORTCUTS).collect();
+                if list.len() < MAX_SHORTCUTS && list.len() % 2 == 1 {
+                    list.pop();
                 }
-                "HomeGenericSectionData" | "HomeRecentlyPlayedSectionData" => {
-                    let recents = typename == "HomeRecentlyPlayedSectionData";
-                    let items: Vec<BackendHomeItem> = if recents {
-                        let mut out = Vec::new();
-                        for raw_item in raw_items {
-                            if let Some(list) = raw_item.get("content").and_then(unwrap_wrapper) {
-                                if let Some(inner_arr) = list
-                                    .get("items")
-                                    .and_then(|i| i.get("items"))
-                                    .and_then(|i| i.as_array())
-                                {
-                                    for entry in inner_arr {
-                                        if let Some(ent) = entry.get("entity") {
-                                            if let Some(parsed) = parse_recent_entity(ent) {
-                                                out.push(parsed);
-                                            }
-                                        }
-                                    }
-                                }
+                shortcuts = list;
+            }
+            "HomeGenericSectionData" | "HomeRecentlyPlayedSectionData" => {
+                let recents = typename == "HomeRecentlyPlayedSectionData";
+                let items: Vec<BackendHomeItem> = if recents {
+                    let mut out = Vec::new();
+                    for raw_item in raw_items {
+                        let list = json_map(Some(raw_item))
+                            .and_then(|r| json_map(r.get("content")))
+                            .and_then(unwrap_wrapper);
+                        let entries = json_map(list.and_then(|l| l.get("items")))
+                            .and_then(|i| i.get("items"))
+                            .and_then(Value::as_array);
+                        for entry in entries.into_iter().flatten() {
+                            if let Some(parsed) =
+                                parse_recent_entity(json_map(Some(entry)).and_then(|e| e.get("entity")))
+                            {
+                                out.push(parsed);
                             }
                         }
-                        out
-                    } else {
-                        raw_items.iter().filter_map(parse_home_item).collect()
-                    };
-                    if items.is_empty() {
-                        continue;
                     }
-                    let total_count = if recents {
-                        items.len() as i32
-                    } else {
-                        json_int(section_items.and_then(|si| si.get("totalCount")))
-                            .unwrap_or(items.len() as i32)
-                    };
-                    sections.push(BackendHomeSection {
-                        uri,
-                        kind: if recents { 1 } else { 0 },
-                        title: label_text(sec_data.and_then(|d| d.get("title"))),
-                        subtitle: label_text(sec_data.and_then(|d| d.get("subtitle"))),
-                        header_artist: sec_data
-                            .and_then(|d| d.get("headerEntity"))
-                            .and_then(parse_artist),
-                        items,
-                        total_count,
-                    });
+                    out
+                } else {
+                    raw_items.iter().filter_map(parse_home_item).collect()
+                };
+                if items.is_empty() {
+                    continue;
                 }
-                _ => {}
+                let total_count = if recents {
+                    items.len() as i32
+                } else {
+                    dart_num_int(items_map.and_then(|si| si.get("totalCount")))
+                        .map(|v| v as i32)
+                        .unwrap_or(items.len() as i32)
+                };
+                sections.push(BackendHomeSection {
+                    uri,
+                    kind: if recents { 1 } else { 0 },
+                    title: label_text(sec_data.and_then(|d| d.get("title"))),
+                    subtitle: label_text(sec_data.and_then(|d| d.get("subtitle"))),
+                    header_artist: sec_data.and_then(|d| d.get("headerEntity")).and_then(parse_artist),
+                    items,
+                    total_count,
+                });
             }
+            _ => {}
         }
     }
 
+    // 推荐流若一张卡都没解析出来就去掉
     sections.retain(|s| !(s.kind == 2 && s.items.is_empty()));
 
-    let greeting = label_text(home.get("greeting"));
-    let chips = home
-        .get("homeChips")
-        .and_then(|c| c.as_array())
-        .map(|arr| arr.iter().filter_map(parse_home_chip).collect())
-        .unwrap_or_default();
-
     BackendHomeFeed {
-        greeting,
-        chips,
+        greeting: label_text(home.get("greeting")),
+        chips: home
+            .get("homeChips")
+            .and_then(Value::as_array)
+            .map(|arr| arr.iter().filter_map(parse_home_chip).collect())
+            .unwrap_or_default(),
         shortcuts,
         sections,
     }
 }
 
+/// 根字段名对不上时兜底：在响应里找第一个带 `sections` 的对象（最多下探两层）。
 fn find_first_sections_container(data: &Value, depth: usize) -> Option<&Value> {
     let map = data.as_object()?;
     for val in map.values() {
         let Some(m) = val.as_object() else {
             continue;
         };
-        if m.contains_key("sections") || m.contains_key("sectionContainer") {
+        if non_null(m.get("sections")).is_some() || non_null(m.get("sectionContainer")).is_some() {
             return Some(val);
         }
         if depth > 0 {
@@ -1868,52 +1729,36 @@ fn find_first_sections_container(data: &Value, depth: usize) -> Option<&Value> {
     None
 }
 
-/// 解析 Pathfinder `browsePage` 分类页分区列表。
+/// 解析 Pathfinder `browsePage` 分类页分区列表（与 Dart `HomeParser.browseSections` 一致）。
 pub fn parse_browse_sections(data: &Value) -> Vec<BackendHomeSection> {
-    let root = data
-        .get("browse")
-        .or_else(|| data.get("browsePage"))
+    let root = json_map(data.get("browse"))
+        .or_else(|| json_map(data.get("browsePage")))
         .or_else(|| find_first_sections_container(data, 2));
     let Some(root) = root else {
         return Vec::new();
     };
-    let sections_map = root
-        .get("sectionContainer")
-        .and_then(|c| c.get("sections"))
-        .or_else(|| root.get("sections"));
-    let Some(arr) = sections_map
-        .and_then(|s| s.get("items"))
-        .and_then(|i| i.as_array())
-    else {
+    let sections_map = json_map(json_map(root.get("sectionContainer")).and_then(|c| c.get("sections")))
+        .or_else(|| json_map(root.get("sections")));
+    let Some(arr) = sections_map.and_then(|s| s.get("items")).and_then(Value::as_array) else {
         return Vec::new();
     };
 
     let mut sections = Vec::new();
-    for raw in arr {
-        let Some(sec_obj) = raw.as_object() else {
-            continue;
-        };
-        let section_items = sec_obj.get("sectionItems");
-        let items: Vec<BackendHomeItem> = section_items
-            .and_then(|si| si.get("items"))
-            .and_then(|i| i.as_array())
-            .map(|a| a.iter().filter_map(parse_home_item).collect())
-            .unwrap_or_default();
+    for raw in arr.iter().filter(|s| s.is_object()) {
+        let (items_map, raw_items) = section_items(raw);
+        let items: Vec<BackendHomeItem> = raw_items.iter().filter_map(parse_home_item).collect();
         if items.is_empty() {
             continue;
         }
-        let meta = sec_obj.get("data");
+        let meta = json_map(raw.get("data"));
         sections.push(BackendHomeSection {
-            uri: sec_obj
-                .get("uri")
-                .and_then(|v| v.as_str())
-                .unwrap_or("")
-                .to_string(),
+            uri: json_str(raw.get("uri")).unwrap_or("").to_string(),
             kind: 0,
             title: label_text(meta.and_then(|m| m.get("title"))),
             subtitle: label_text(meta.and_then(|m| m.get("subtitle"))),
             header_artist: None,
-            total_count: json_int(section_items.and_then(|si| si.get("totalCount")))
+            total_count: dart_num_int(items_map.and_then(|si| si.get("totalCount")))
+                .map(|v| v as i32)
                 .unwrap_or(items.len() as i32),
             items,
         });
@@ -1921,52 +1766,35 @@ pub fn parse_browse_sections(data: &Value) -> Vec<BackendHomeSection> {
     sections
 }
 
-/// 解析 Pathfinder `browseAll` 分类列表。
+/// 解析 Pathfinder `browseAll` 分类列表；颜色保留原始 hex，由 Dart 转换（缺失 / 非法时回落默认色）。
 pub fn parse_categories(data: &Value) -> Vec<BackendCategory> {
     let mut result = Vec::new();
-    let Some(sections) = data
-        .get("browseStart")
-        .and_then(|b| b.get("sections"))
+    let sections = json_map(json_map(data.get("browseStart")).and_then(|b| b.get("sections")))
         .and_then(|s| s.get("items"))
-        .and_then(|i| i.as_array())
-    else {
-        return result;
-    };
-    for section in sections {
-        let Some(items) = section
-            .get("sectionItems")
+        .and_then(Value::as_array);
+    for section in sections.into_iter().flatten() {
+        let items = json_map(json_map(Some(section)).and_then(|s| s.get("sectionItems")))
             .and_then(|si| si.get("items"))
-            .and_then(|i| i.as_array())
-        else {
-            continue;
-        };
-        for item in items {
-            let Some(m) = item.as_object() else {
+            .and_then(Value::as_array);
+        for item in items.into_iter().flatten() {
+            let Some(m) = json_map(Some(item)) else {
                 continue;
             };
-            let card = m
-                .get("content")
+            let card = json_map(m.get("content"))
                 .and_then(unwrap_wrapper)
-                .and_then(|d| d.get("data"))
-                .and_then(|d| d.get("cardRepresentation"))
-                .and_then(|c| c.as_object());
+                .and_then(|d| json_map(d.get("data")))
+                .and_then(|d| json_map(d.get("cardRepresentation")));
             let Some(card) = card else {
                 continue;
             };
-            let artwork = parse_images(card.get("artwork").and_then(|a| a.get("sources")));
+            let artwork = parse_images(json_map(card.get("artwork")).and_then(|a| a.get("sources")));
             result.push(BackendCategory {
-                id: m.get("uri").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-                name: card
-                    .get("title")
-                    .and_then(|t| t.get("transformedLabel"))
-                    .and_then(|v| v.as_str())
+                id: json_str(m.get("uri")).unwrap_or("").to_string(),
+                name: json_str(json_map(card.get("title")).and_then(|t| t.get("transformedLabel")))
                     .unwrap_or("")
                     .to_string(),
                 icon_url: artwork.first().map(|i| i.url.clone()).unwrap_or_default(),
-                color_hex: card
-                    .get("backgroundColor")
-                    .and_then(|b| b.get("hex"))
-                    .and_then(|v| v.as_str())
+                color_hex: json_str(json_map(card.get("backgroundColor")).and_then(|b| b.get("hex")))
                     .unwrap_or("")
                     .to_string(),
             });
@@ -1975,332 +1803,224 @@ pub fn parse_categories(data: &Value) -> Vec<BackendCategory> {
     result
 }
 
-type PagedItems<T> = (Vec<T>, Option<i32>, Option<i32>);
+/// 一页目录结果（items 已过滤；offset / total / next_offset 按原始条目推导，见 Dart `CatalogPage.fromSlice`）。
+#[derive(Clone, Debug)]
+pub struct BackendCatalogPage<T> {
+    pub items: Vec<T>,
+    pub offset: i32,
+    pub total: Option<i32>,
+    pub next_offset: Option<i32>,
+}
 
-fn parse_paging<T>(
-    value: Option<&Value>,
-    offset: i32,
-    limit: i32,
-    mut parse_item: impl FnMut(&Value) -> Option<T>,
-) -> Result<PagedItems<T>, String> {
-    let page = value
-        .and_then(|v| v.as_object())
-        .ok_or_else(|| "Missing catalog items".to_string())?;
-    let raw_items = page
-        .get("items")
-        .and_then(|v| v.as_array())
-        .ok_or_else(|| "Missing catalog items".to_string())?;
-    let raw_count = raw_items.len() as i32;
-    let total = json_int(page.get("totalCount"));
-    let paging = page
-        .get("pagingInfo")
-        .or_else(|| page.get("pageInfo"))
-        .and_then(|v| v.as_object());
-    let next_from_server = json_int(paging.and_then(|p| p.get("nextOffset")));
+/// 分页元数据（与 Dart `PathfinderParsers._catalogPage` + `CatalogPage.fromSlice` 一致）。
+fn page_meta(page: &Value, offset: i32, limit: i32, raw_count: i32) -> Result<(Option<i32>, Option<i32>), String> {
+    let total = dart_int(page.get("totalCount"));
+    let paging = json_map(page.get("pagingInfo")).or_else(|| json_map(page.get("pageInfo")));
+    let next_from_server = dart_int(paging.and_then(|p| p.get("nextOffset")));
     if total.is_some_and(|t| t < 0) || next_from_server.is_some_and(|n| n < 0) {
-        return Err("Invalid catalog pagination".to_string());
+        return Err("format:Invalid catalog pagination".to_string());
     }
-    let has_next_page = paging
-        .and_then(|p| p.get("hasNextPage"))
-        .and_then(|v| v.as_bool());
+    let has_next_page = paging.and_then(|p| p.get("hasNextPage")).and_then(Value::as_bool);
+    let (offset64, raw64) = (i64::from(offset), i64::from(raw_count));
     let more = has_next_page.unwrap_or_else(|| {
         next_from_server.is_some()
-            || total.map_or(raw_count >= limit, |t| offset + raw_count < t)
+            || total.map_or(raw_count >= limit, |t| offset64 + raw64 < t)
     });
     let next_offset = if more {
-        let n = next_from_server.unwrap_or(offset + raw_count);
-        if n <= offset {
-            return Err("Catalog page did not advance".to_string());
+        let n = next_from_server.unwrap_or(offset64 + raw64);
+        if n <= offset64 {
+            return Err("format:Catalog page did not advance".to_string());
         }
-        Some(n)
+        Some(n as i32)
     } else {
         None
     };
-    let items = raw_items.iter().filter_map(&mut parse_item).collect();
-    Ok((items, total, next_offset))
+    Ok((total.map(|t| t as i32), next_offset))
 }
 
-/// 解析 Pathfinder `searchDesktop` 分页结果。
-pub fn parse_search_page(
-    data: &Value,
+fn parse_catalog_page<T>(
+    value: Option<&Value>,
     offset: i32,
     limit: i32,
-) -> Result<BackendSearchPage, String> {
-    let search = data
-        .get("searchV2")
-        .and_then(|v| v.as_object())
-        .ok_or_else(|| "Missing search results".to_string())?;
-    let (tracks, t_total, t_next) = parse_paging(search.get("tracksV2"), offset, limit, |i| {
-        parse_track_item(i, None)
-    })?;
-    let (artists, a_total, a_next) =
-        parse_paging(search.get("artists"), offset, limit, parse_artist)?;
-    let (playlists, p_total, p_next) = parse_paging(
-        search.get("playlists"),
-        offset,
-        limit,
-        parse_playlist_summary,
-    )?;
-    Ok(BackendSearchPage {
-        tracks: BackendCatalogPageTrack {
-            items: tracks,
-            offset,
-            total: t_total,
-            next_offset: t_next,
-        },
-        artists: BackendCatalogPageArtist {
-            items: artists,
-            offset,
-            total: a_total,
-            next_offset: a_next,
-        },
-        playlists: BackendCatalogPagePlaylist {
-            items: playlists,
-            offset,
-            total: p_total,
-            next_offset: p_next,
-        },
-    })
-}
-
-/// 解析 Pathfinder `getAlbum` 专辑信息与曲目列表。
-pub fn parse_album_page(data: &Value) -> Option<BackendAlbumPage> {
-    let union = data.get("albumUnion")?;
-    let parsed_album = parse_album(union, None)?;
-    let tracks = union
-        .get("tracksV2")
-        .and_then(|t| t.get("items"))
-        .and_then(|i| i.as_array())
-        .map(|arr| {
-            arr.iter()
-                .filter_map(|i| parse_track_item(i, Some(&parsed_album)))
-                .collect()
-        })
-        .unwrap_or_default();
-    Some(BackendAlbumPage {
-        album: parsed_album,
-        tracks,
-    })
-}
-
-/// 解析 Pathfinder `getAlbum` 分页曲目。
-pub fn parse_album_tracks_page(
-    data: &Value,
-    offset: i32,
-    limit: i32,
-) -> Result<BackendCatalogPageTrack, String> {
-    let union = data
-        .get("albumUnion")
-        .ok_or_else(|| "Missing album".to_string())?;
-    let parsed_album =
-        parse_album(union, None).ok_or_else(|| "Missing album".to_string())?;
-    let (items, total, next_offset) = parse_paging(union.get("tracksV2"), offset, limit, |i| {
-        parse_track_item(i, Some(&parsed_album))
-    })?;
-    Ok(BackendCatalogPageTrack {
-        items,
+    parse_item: impl FnMut(&Value) -> Option<T>,
+) -> Result<BackendCatalogPage<T>, String> {
+    let page = json_map(value).ok_or_else(|| "format:Missing catalog items".to_string())?;
+    let raw_items = page
+        .get("items")
+        .and_then(Value::as_array)
+        .ok_or_else(|| "format:Missing catalog items".to_string())?;
+    let (total, next_offset) = page_meta(page, offset, limit, raw_items.len() as i32)?;
+    Ok(BackendCatalogPage {
+        items: raw_items.iter().filter_map(parse_item).collect(),
         offset,
         total,
         next_offset,
     })
 }
 
-/// 解析 Pathfinder `queryArtistOverview`。
+#[derive(Clone, Debug)]
+pub struct BackendSearchPage {
+    pub tracks: BackendCatalogPage<BackendTrack>,
+    pub artists: BackendCatalogPage<BackendArtist>,
+    pub playlists: BackendCatalogPage<BackendPlaylistSummary>,
+}
+
+/// 解析 Pathfinder `searchDesktop` 分页结果。缺少集合是协议错误，不是「空结果 / 到底」。
+pub fn parse_search_page(data: &Value, offset: i32, limit: i32) -> Result<BackendSearchPage, String> {
+    let search = json_map(data.get("searchV2")).ok_or_else(|| "format:Missing search results".to_string())?;
+    Ok(BackendSearchPage {
+        tracks: parse_catalog_page(search.get("tracksV2"), offset, limit, |i| parse_track_item(i, None))?,
+        artists: parse_catalog_page(search.get("artists"), offset, limit, parse_artist)?,
+        playlists: parse_catalog_page(search.get("playlists"), offset, limit, parse_playlist_summary)?,
+    })
+}
+
+/// `getAlbum` 一次响应同时服务专辑页（[album] + [tracks]）与分页曲目（[page_error] 为空时的分页信息）。
+#[derive(Clone, Debug)]
+pub struct BackendAlbumQuery {
+    pub album: Option<BackendAlbum>,
+    pub tracks: Vec<BackendTrack>,
+    pub total: Option<i32>,
+    pub next_offset: Option<i32>,
+    /// 分页解析失败的原因（`format:` 前缀）；专辑缺失时为 `format:Missing album`。
+    pub page_error: Option<String>,
+}
+
+/// 解析 Pathfinder `getAlbum`：专辑信息与曲目（曲目回填专辑，保证封面可用）。
+pub fn parse_album_query(data: &Value, offset: i32, limit: i32) -> BackendAlbumQuery {
+    let union = json_map(data.get("albumUnion"));
+    let Some(album) = union.and_then(|u| parse_album(u, None)) else {
+        return BackendAlbumQuery {
+            album: None,
+            tracks: Vec::new(),
+            total: None,
+            next_offset: None,
+            page_error: Some("format:Missing album".to_string()),
+        };
+    };
+    let tracks_v2 = union.and_then(|u| json_map(u.get("tracksV2")));
+    let raw_items = tracks_v2.and_then(|t| t.get("items")).and_then(Value::as_array);
+    let tracks: Vec<BackendTrack> = raw_items
+        .map(|arr| arr.iter().filter_map(|i| parse_track_item(i, Some(&album))).collect())
+        .unwrap_or_default();
+    let meta = match (tracks_v2, raw_items) {
+        (Some(page), Some(arr)) => page_meta(page, offset, limit, arr.len() as i32),
+        _ => Err("format:Missing catalog items".to_string()),
+    };
+    let (total, next_offset, page_error) = match meta {
+        Ok((total, next)) => (total, next, None),
+        Err(e) => (None, None, Some(e)),
+    };
+    BackendAlbumQuery {
+        album: Some(album),
+        tracks,
+        total,
+        next_offset,
+        page_error,
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct BackendArtistPage {
+    pub artist: BackendArtist,
+    pub top_tracks: Vec<BackendTrack>,
+}
+
+/// 解析 Pathfinder `queryArtistOverview`：艺人信息与热门曲目。
 pub fn parse_artist_overview(data: &Value) -> Option<BackendArtistPage> {
-    let union = data.get("artistUnion")?;
+    let union = json_map(data.get("artistUnion"))?;
     let artist = parse_artist(union)?;
-    let top_tracks = union
-        .get("discography")
-        .and_then(|d| d.get("topTracks"))
+    let top_tracks = json_map(json_map(union.get("discography")).and_then(|d| d.get("topTracks")))
         .and_then(|t| t.get("items"))
-        .and_then(|i| i.as_array())
-        .map(|arr| {
-            arr.iter()
-                .filter_map(|i| parse_track_item(i, None))
-                .collect()
-        })
+        .and_then(Value::as_array)
+        .map(|arr| arr.iter().filter_map(|i| parse_track_item(i, None)).collect())
         .unwrap_or_default();
     Some(BackendArtistPage { artist, top_tracks })
 }
 
-/// 解析 Pathfinder `queryArtistDiscographyAll` 分页结果。
+/// 解析 Pathfinder `queryArtistDiscographyAll`：每个条目取 releases 的首个版本，缺艺人时回填。
 pub fn parse_artist_discography_page(
     data: &Value,
     fallback_artist: Option<BackendArtist>,
     offset: i32,
     limit: i32,
-) -> Result<BackendCatalogPageAlbum, String> {
-    let all = data
-        .get("artistUnion")
-        .and_then(|u| u.get("discography"))
+) -> Result<BackendCatalogPage<BackendAlbum>, String> {
+    let all = json_map(data.get("artistUnion"))
+        .and_then(|u| json_map(u.get("discography")))
         .and_then(|d| d.get("all"));
     let fb_slice = fallback_artist.as_ref().map(std::slice::from_ref);
-    let (items, total, next_offset) = parse_paging(all, offset, limit, |item| {
-        let releases = item
-            .get("releases")
+    parse_catalog_page(all, offset, limit, |item| {
+        let releases = json_map(json_map(Some(item)).and_then(|i| i.get("releases")))
             .and_then(|r| r.get("items"))
-            .and_then(|i| i.as_array())?;
-        let first = releases.first()?;
-        parse_album(first, fb_slice)
-    })?;
-    Ok(BackendCatalogPageAlbum {
-        items,
-        offset,
-        total,
-        next_offset,
+            .and_then(Value::as_array)?;
+        parse_album(releases.first()?, fb_slice)
     })
 }
 
-pub async fn fetch_home_feed(
-    hash: &str,
-    timezone: &str,
-    facet: &str,
-    section_items_limit: i32,
-) -> Result<BackendHomeFeed, String> {
-    let mut vars = json!({
-        "timeZone": timezone,
-        "sp_t": "",
-        "facet": facet,
-        "sectionItemsLimit": section_items_limit,
-    });
-    if facet.is_empty() {
-        vars.as_object_mut().unwrap().remove("facet");
+/// decorateContextTracks：按 URI 批量补全的曲目（服务端顺序，解析失败的条目跳过）。
+pub fn parse_decorated_tracks(data: &Value) -> Vec<BackendTrack> {
+    data.get("tracks")
+        .and_then(Value::as_array)
+        .map(|arr| arr.iter().filter_map(parse_track).collect())
+        .unwrap_or_default()
+}
+
+#[derive(Clone, Debug)]
+pub struct BackendLibraryTrack {
+    pub track: BackendTrack,
+    /// `addedAt.isoString`（或直接的字符串）；原样交给 Dart `DateTime.tryParse`，保留时区语义。
+    pub added_at_iso: Option<String>,
+}
+
+#[derive(Clone, Debug)]
+pub struct BackendLibraryTracksPage {
+    pub items: Vec<BackendLibraryTrack>,
+    pub total_count: i32,
+}
+
+/// fetchLibraryTracks：open.spotify.com「已点赞的歌曲」单页。
+pub fn parse_library_tracks_page(data: &Value) -> BackendLibraryTracksPage {
+    let page = json_map(data.get("me"))
+        .and_then(|m| json_map(m.get("library")))
+        .and_then(|l| json_map(l.get("tracks")));
+    let Some(page) = page else {
+        return BackendLibraryTracksPage {
+            items: Vec::new(),
+            total_count: 0,
+        };
+    };
+    let total_count = dart_int(page.get("totalCount")).unwrap_or(0) as i32;
+    let mut items = Vec::new();
+    for item in page.get("items").and_then(Value::as_array).into_iter().flatten() {
+        let Some(item) = json_map(Some(item)) else {
+            continue;
+        };
+        let Some(wrapper) = json_map(item.get("track")) else {
+            continue;
+        };
+        let inner = json_map(wrapper.get("data")).unwrap_or(wrapper);
+        let uri = json_str(inner.get("uri")).or_else(|| json_str(wrapper.get("_uri")));
+        let parsed = match uri {
+            Some(uri) if non_null(inner.get("uri")).is_none() => {
+                let mut normalized = inner.clone();
+                if let Some(obj) = normalized.as_object_mut() {
+                    obj.insert("uri".to_string(), Value::String(uri.to_string()));
+                }
+                parse_track(&normalized)
+            }
+            _ => parse_track(inner),
+        };
+        let Some(track) = parsed else {
+            continue;
+        };
+        let added = item.get("addedAt");
+        let added_raw = non_null(json_map(added).and_then(|a| a.get("isoString"))).or(added);
+        items.push(BackendLibraryTrack {
+            track,
+            added_at_iso: json_str(added_raw).map(str::to_string),
+        });
     }
-    let data = spotify_session::pathfinder_query("home", hash, vars).await?;
-    Ok(parse_home_feed(&data))
-}
-
-pub async fn fetch_browse_categories(hash: &str, timezone: &str) -> Result<Vec<BackendCategory>, String> {
-    let data = spotify_session::pathfinder_query(
-        "browseAll",
-        hash,
-        json!({ "timeZone": timezone }),
-    )
-    .await?;
-    Ok(parse_categories(&data))
-}
-
-pub async fn fetch_browse_sections(
-    hash: &str,
-    uri: &str,
-    timezone: &str,
-) -> Result<Vec<BackendHomeSection>, String> {
-    let data = spotify_session::pathfinder_query(
-        "browsePage",
-        hash,
-        json!({
-            "uri": uri,
-            "timeZone": timezone,
-            "sp_t": "",
-            "facet": "",
-        }),
-    )
-    .await?;
-    Ok(parse_browse_sections(&data))
-}
-
-pub async fn fetch_search_page(
-    hash: &str,
-    term: &str,
-    offset: i32,
-    limit: i32,
-) -> Result<BackendSearchPage, String> {
-    let data = spotify_session::pathfinder_query(
-        "searchDesktop",
-        hash,
-        json!({
-            "searchTerm": term,
-            "offset": offset,
-            "limit": limit,
-            "numberOfTopResults": 5,
-            "includeAudiobooks": false,
-            "includeArtistHasConcertsField": false,
-            "includePreReleases": false,
-            "includeLocalConcertsField": false,
-            "includeAuthors": false,
-        }),
-    )
-    .await?;
-    parse_search_page(&data, offset, limit)
-}
-
-pub async fn fetch_album_page(
-    hash: &str,
-    album_uri: &str,
-    offset: i32,
-    limit: i32,
-) -> Result<Option<BackendAlbumPage>, String> {
-    let data = spotify_session::pathfinder_query(
-        "getAlbum",
-        hash,
-        json!({
-            "uri": album_uri,
-            "locale": "",
-            "offset": offset,
-            "limit": limit,
-        }),
-    )
-    .await?;
-    Ok(parse_album_page(&data))
-}
-
-pub async fn fetch_album_tracks_page(
-    hash: &str,
-    album_uri: &str,
-    offset: i32,
-    limit: i32,
-) -> Result<BackendCatalogPageTrack, String> {
-    let data = spotify_session::pathfinder_query(
-        "getAlbum",
-        hash,
-        json!({
-            "uri": album_uri,
-            "locale": "",
-            "offset": offset,
-            "limit": limit,
-        }),
-    )
-    .await?;
-    parse_album_tracks_page(&data, offset, limit)
-}
-
-pub async fn fetch_artist_overview(
-    hash: &str,
-    artist_uri: &str,
-    locale: &str,
-) -> Result<Option<BackendArtistPage>, String> {
-    let data = spotify_session::pathfinder_query(
-        "queryArtistOverview",
-        hash,
-        json!({
-            "uri": artist_uri,
-            "locale": locale,
-            "includePrerelease": true,
-        }),
-    )
-    .await?;
-    Ok(parse_artist_overview(&data))
-}
-
-pub async fn fetch_artist_discography_page(
-    hash: &str,
-    artist_uri: &str,
-    fallback_artist: Option<BackendArtist>,
-    offset: i32,
-    limit: i32,
-) -> Result<BackendCatalogPageAlbum, String> {
-    let data = spotify_session::pathfinder_query(
-        "queryArtistDiscographyAll",
-        hash,
-        json!({
-            "uri": artist_uri,
-            "offset": offset,
-            "limit": limit,
-            "order": "DATE_DESC",
-        }),
-    )
-    .await?;
-    parse_artist_discography_page(&data, fallback_artist, offset, limit)
+    BackendLibraryTracksPage { items, total_count }
 }
 
 #[cfg(test)]
@@ -2365,104 +2085,579 @@ mod tests {
         assert_eq!(track.album.as_ref().unwrap().name, "Album 1");
     }
 
-    #[test]
-    fn parse_home_feed_handles_shorts_shelves_and_feed_baseline() {
-        let data = json!({
-            "home": {
-                "greeting": { "transformedLabel": "Good morning" },
-                "homeChips": [
-                    { "id": "music-chip", "label": { "transformedLabel": "Music" }, "subChips": [] }
-                ],
-                "sectionContainer": {
-                    "sections": {
-                        "items": [
-                            {
-                                "uri": "spotify:section:shorts",
-                                "data": { "__typename": "HomeShortsSectionData" },
-                                "sectionItems": {
-                                    "items": [
-                                        { "uri": "spotify:user:me:collection" },
-                                        {
-                                            "uri": "spotify:playlist:pl1",
-                                            "content": {
-                                                "__typename": "PlaylistResponseWrapper",
-                                                "data": {
-                                                    "__typename": "Playlist",
-                                                    "uri": "spotify:playlist:pl1",
-                                                    "name": "Liked Mix"
-                                                }
-                                            }
-                                        }
-                                    ]
-                                }
-                            },
-                            {
-                                "uri": "spotify:section:feed1",
-                                "data": {
-                                    "__typename": "HomeFeedBaselineSectionData",
-                                    "title": { "transformedLabel": "For you" }
-                                },
-                                "sectionItems": {
-                                    "items": [
-                                        {
-                                            "uri": "spotify:album:al1",
-                                            "content": {
-                                                "__typename": "AlbumResponseWrapper",
-                                                "data": {
-                                                    "__typename": "Album",
-                                                    "uri": "spotify:album:al1",
-                                                    "name": "Album 1"
-                                                }
-                                            }
-                                        }
-                                    ]
-                                }
-                            }
-                        ]
-                    }
-                }
-            }
+    // -----------------------------------------------------------------------
+    // 以下移植自 Dart test/pathfinder_parsers_test.dart、home_parser_test.dart、
+    // browse_page_parser_test.dart、desktop_catalog_pagination_test.dart（同一组合成夹具）。
+    // -----------------------------------------------------------------------
+
+    fn pf_track(id: &str, album_of_track: Option<Value>) -> Value {
+        let mut t = json!({
+            "uri": format!("spotify:track:{id}"),
+            "name": format!("Song {id}"),
+            "artists": { "items": [{ "uri": "spotify:artist:a1", "profile": { "name": "Artist One" } }] },
+            "duration": { "totalMilliseconds": 201000 },
+            "contentRating": { "label": "EXPLICIT" },
+            "playability": { "playable": true },
         });
-        let feed = parse_home_feed(&data);
-        assert_eq!(feed.greeting, "Good morning");
-        assert_eq!(feed.chips.len(), 1);
-        assert_eq!(feed.shortcuts.len(), 2);
-        assert_eq!(feed.shortcuts[0].kind, 3); // likedSongs
-        assert_eq!(feed.sections.len(), 1);
-        assert_eq!(feed.sections[0].kind, 2); // feed
-        assert_eq!(feed.sections[0].items[0].reason, "For you");
+        if let Some(a) = album_of_track {
+            t["albumOfTrack"] = a;
+        }
+        t
+    }
+
+    fn pf_cover() -> Value {
+        json!({ "sources": [
+            { "url": "https://i.scdn.co/image/small", "width": 64, "height": 64 },
+            { "url": "https://i.scdn.co/image/large", "width": 640, "height": 640 },
+        ]})
     }
 
     #[test]
-    fn parse_search_page_and_album_page_works() {
-        let search_data = json!({
-            "searchV2": {
-                "tracksV2": { "totalCount": 1, "items": [{ "item": { "uri": "spotify:track:t1", "name": "T1" } }] },
-                "artists": { "totalCount": 0, "items": [] },
-                "playlists": { "totalCount": 0, "items": [] }
-            }
-        });
-        let page = parse_search_page(&search_data, 0, 20).unwrap();
-        assert_eq!(page.tracks.items.len(), 1);
-        assert_eq!(page.tracks.items[0].id, "t1");
-        assert_eq!(page.tracks.next_offset, None);
+    fn pf_common_helpers() {
+        assert_eq!(id_from_uri("spotify:album:abc"), "abc");
+        assert_eq!(id_from_uri(""), "");
+        let list = parse_images(Some(&json!([
+            { "url": "a", "maxWidth": 300 },
+            { "url": "https://i.scdn.co/image/small", "width": 64, "height": 64 },
+            { "url": "https://i.scdn.co/image/large", "width": 640, "height": 640 },
+            { "url": "" },
+        ])));
+        let urls: Vec<_> = list.iter().map(|i| i.url.as_str()).collect();
+        assert_eq!(urls, ["https://i.scdn.co/image/large", "a", "https://i.scdn.co/image/small"]);
+        assert_eq!(strip_html("Hi <a href=\"x\">there</a> &amp; you"), "Hi there & you");
+        assert_eq!(strip_html("a < b"), "a < b", "未闭合的 < 保留");
+        assert_eq!(dart_int(Some(&json!(" 12 "))), Some(12));
+        assert_eq!(dart_int(Some(&json!(3.9))), Some(3));
+        assert_eq!(dart_int(Some(&json!("x"))), None);
+        assert_eq!(dart_num_int(Some(&json!("12"))), None);
+    }
 
-        let album_data = json!({
-            "albumUnion": {
-                "uri": "spotify:album:a1",
-                "name": "Album One",
-                "type": "ALBUM",
-                "date": { "isoString": "2026-05-01T00:00:00Z" },
-                "tracksV2": {
-                    "totalCount": 1,
-                    "items": [{ "track": { "uri": "spotify:track:t2", "name": "T2" } }]
-                }
-            }
+    #[test]
+    fn pf_album_page_backfills_album_into_tracks() {
+        let q = parse_album_query(
+            &json!({ "albumUnion": {
+                "uri": "spotify:album:al1",
+                "name": "Album",
+                "type": "SINGLE",
+                "date": { "isoString": "2024-05-01T00:00:00Z" },
+                "coverArt": pf_cover(),
+                "artists": { "items": [{ "id": "a1", "uri": "spotify:artist:a1", "profile": { "name": "Artist One" } }] },
+                "tracksV2": { "totalCount": 2, "items": [
+                    { "track": pf_track("t1", None), "uid": "u1" },
+                    { "track": { "uri": "spotify:episode:x" }, "uid": "u2" },
+                ]},
+            }}),
+            0,
+            50,
+        );
+        let album = q.album.expect("album");
+        assert_eq!(album.album_type, "single");
+        assert_eq!(album.release_date, "2024-05-01");
+        assert_eq!(album.total_tracks, 2);
+        assert_eq!(q.tracks.len(), 1);
+        assert!(q.tracks[0].explicit);
+        assert_eq!(q.tracks[0].duration_ms, 201000);
+        assert_eq!(
+            q.tracks[0].album.as_ref().unwrap().images[0].url,
+            "https://i.scdn.co/image/large"
+        );
+        assert_eq!(q.page_error, None);
+        assert_eq!(q.next_offset, None, "2 条原始条目已到 totalCount");
+    }
+
+    #[test]
+    fn pf_artist_overview_and_top_tracks() {
+        let page = parse_artist_overview(&json!({ "artistUnion": {
+            "id": "a1",
+            "uri": "spotify:artist:a1",
+            "profile": { "name": "Artist One" },
+            "visuals": { "avatarImage": pf_cover() },
+            "stats": { "followers": 1234 },
+            "discography": { "topTracks": { "items": [
+                { "track": pf_track("t1", Some(json!({ "uri": "spotify:album:al1", "coverArt": pf_cover() }))) },
+            ]}},
+        }}))
+        .expect("artist");
+        assert_eq!(page.artist.name, "Artist One");
+        assert_eq!(page.artist.followers, Some(1234));
+        assert_eq!(page.top_tracks[0].album.as_ref().unwrap().id, "al1");
+    }
+
+    #[test]
+    fn pf_track_album_ref_without_uri_is_kept() {
+        let t = parse_track(&pf_track("t1", Some(json!({ "name": "No uri" })))).unwrap();
+        let album = t.album.expect("Dart _albumRef 不要求 uri");
+        assert_eq!(album.uri, "");
+        assert_eq!(album.name, "No uri");
+    }
+
+    #[test]
+    fn pf_discography_takes_first_release_and_backfills_artist() {
+        let artist = parse_artist(&json!({ "uri": "spotify:artist:a1", "profile": { "name": "Artist One" } }));
+        let page = parse_artist_discography_page(
+            &json!({ "artistUnion": { "discography": { "all": { "items": [
+                { "releases": { "items": [{
+                    "id": "al2",
+                    "uri": "spotify:album:al2",
+                    "name": "Second",
+                    "type": "ALBUM",
+                    "date": { "year": 2020 },
+                    "coverArt": pf_cover(),
+                    "tracks": { "totalCount": 9 },
+                }]}},
+                { "releases": { "items": [] } },
+            ]}}}}),
+            artist,
+            0,
+            20,
+        )
+        .unwrap();
+        assert_eq!(page.items.len(), 1);
+        assert_eq!(page.items[0].release_date, "2020");
+        assert_eq!(page.items[0].total_tracks, 9);
+        assert_eq!(page.items[0].artists[0].name, "Artist One");
+    }
+
+    #[test]
+    fn pf_search_unwraps_response_wrappers() {
+        let page = parse_search_page(
+            &json!({ "searchV2": {
+                "tracksV2": { "items": [{ "item": { "__typename": "TrackResponseWrapper", "data": pf_track("t1", None) } }] },
+                "artists": { "items": [{ "__typename": "ArtistResponseWrapper", "data": { "uri": "spotify:artist:a1", "profile": { "name": "A" } } }] },
+                "playlists": { "items": [{
+                    "__typename": "PlaylistResponseWrapper",
+                    "data": {
+                        "uri": "spotify:playlist:p1",
+                        "name": "Mix",
+                        "description": "<b>Best</b>",
+                        "images": { "items": [pf_cover()] },
+                        "ownerV2": { "__typename": "UserResponseWrapper", "data": { "name": "Someone" } },
+                    },
+                }]},
+            }}),
+            0,
+            10,
+        )
+        .unwrap();
+        assert_eq!(page.tracks.items[0].id, "t1");
+        assert_eq!(page.artists.items[0].name, "A");
+        assert_eq!(page.playlists.items[0].description, "Best");
+        assert_eq!(page.playlists.items[0].owner_name, "Someone");
+    }
+
+    #[test]
+    fn pf_browse_all_categories() {
+        let cats = parse_categories(&json!({ "browseStart": { "sections": { "items": [
+            { "sectionItems": { "items": [{
+                "uri": "spotify:page:0JQ5DAqbMKFQ00XGBls6ym",
+                "content": {
+                    "__typename": "BrowseSectionContainerWrapper",
+                    "data": {
+                        "__typename": "BrowseSectionContainer",
+                        "data": { "cardRepresentation": {
+                            "artwork": pf_cover(),
+                            "backgroundColor": { "hex": "#8D67AB" },
+                            "title": { "transformedLabel": "Pop" },
+                        }},
+                    },
+                },
+            }]}},
+        ]}}}));
+        assert_eq!(cats.len(), 1);
+        assert_eq!(cats[0].name, "Pop");
+        assert_eq!(cats[0].id, "spotify:page:0JQ5DAqbMKFQ00XGBls6ym");
+        assert_eq!(cats[0].color_hex, "#8D67AB");
+        assert_eq!(cats[0].icon_url, "https://i.scdn.co/image/large");
+    }
+
+    #[test]
+    fn pf_playlist_attributes_cover_and_description() {
+        let attrs = json!({
+            "description": "Fresh &amp; new",
+            "pictureSize": [
+                { "targetName": "default", "url": "https://img/default" },
+                { "targetName": "large", "url": "https://img/large" },
+            ],
         });
-        let alb = parse_album_page(&album_data).unwrap();
-        assert_eq!(alb.album.name, "Album One");
-        assert_eq!(alb.album.release_date, "2026-05-01");
-        assert_eq!(alb.tracks.len(), 1);
-        assert_eq!(alb.tracks[0].album.as_ref().unwrap().id, "a1");
+        assert_eq!(playlist_images_from_attributes(&attrs)[0].url, "https://img/large");
+        assert_eq!(strip_html(attrs["description"].as_str().unwrap()), "Fresh & new");
+        // URL-safe、无填充的 picture 也能解码
+        let pic = playlist_images_from_attributes(&json!({ "picture": "q83_" }));
+        assert_eq!(pic[0].url, "https://i.scdn.co/image/abcdff");
+        let (_, uris, ts) = extract_page_items(&json!({ "contents": { "items": [
+            { "uri": "spotify:track:t1", "attributes": { "timestamp": "1700000000000" } },
+            { "uri": "spotify:episode:e1" },
+            { "uri": "spotify:track:t2", "attributes": {} },
+        ]}}));
+        assert_eq!(uris, ["spotify:track:t1", "spotify:track:t2"]);
+        assert_eq!(ts, vec![("spotify:track:t1".to_string(), 1_700_000_000_000)]);
+    }
+
+    #[test]
+    fn pf_decorated_tracks_skip_nulls() {
+        let tracks = parse_decorated_tracks(&json!({ "tracks": [pf_track("t1", None), null, pf_track("t2", None)] }));
+        let ids: Vec<_> = tracks.iter().map(|t| t.id.as_str()).collect();
+        assert_eq!(ids, ["t1", "t2"]);
+    }
+
+    #[test]
+    fn pf_library_tracks_page_reads_wrappers_and_added_at() {
+        let page = parse_library_tracks_page(&json!({ "me": { "library": { "tracks": {
+            "totalCount": 3,
+            "items": [
+                { "addedAt": { "isoString": "2024-01-02T03:04:05Z" },
+                  "track": { "_uri": "spotify:track:t1", "data": { "__typename": "Track", "name": "One" } } },
+                { "addedAt": "2023-12-31T00:00:00Z", "track": { "data": pf_track("t2", None) } },
+                { "track": { "_uri": "spotify:episode:e1", "data": {} } },
+                null,
+            ],
+        }}}}));
+        assert_eq!(page.total_count, 3);
+        assert_eq!(page.items.len(), 2);
+        assert_eq!(page.items[0].track.uri, "spotify:track:t1");
+        assert_eq!(page.items[0].track.name, "One");
+        assert_eq!(page.items[0].added_at_iso.as_deref(), Some("2024-01-02T03:04:05Z"));
+        assert_eq!(page.items[1].added_at_iso.as_deref(), Some("2023-12-31T00:00:00Z"));
+        assert_eq!(parse_library_tracks_page(&json!({})).items.len(), 0);
+    }
+
+    fn label(text: &str) -> Value {
+        json!({ "transformedLabel": text, "translatedBaseText": text })
+    }
+
+    fn home_playlist_item(id: &str, name: &str, description: &str) -> Value {
+        json!({
+            "uri": format!("spotify:playlist:{id}"),
+            "data": null,
+            "content": {
+                "__typename": "PlaylistResponseWrapper",
+                "data": {
+                    "__typename": "Playlist",
+                    "uri": format!("spotify:playlist:{id}"),
+                    "name": name,
+                    "description": description,
+                    "images": { "items": [{ "sources": [{ "url": format!("https://example.invalid/{id}.jpg"), "width": 640, "height": 640 }] }] },
+                    "ownerV2": { "data": { "__typename": "User", "name": "Owner" } },
+                    "content": { "totalCount": 30 },
+                },
+            },
+        })
+    }
+
+    fn home_artist_entity(id: &str, name: &str) -> Value {
+        json!({
+            "__typename": "ArtistResponseWrapper",
+            "_uri": format!("spotify:artist:{id}"),
+            "data": {
+                "__typename": "Artist",
+                "uri": format!("spotify:artist:{id}"),
+                "profile": { "name": name },
+                "visuals": { "avatarImage": { "sources": [{ "url": format!("https://example.invalid/{id}.jpg"), "width": 160, "height": 160 }] } },
+            },
+        })
+    }
+
+    fn home_section(typename: &str, uri: &str, items: Vec<Value>, extra: Value, total: Option<usize>) -> Value {
+        let mut data = json!({ "__typename": typename });
+        if let Some(obj) = extra.as_object() {
+            for (k, v) in obj {
+                data[k] = v.clone();
+            }
+        }
+        let count = total.unwrap_or(items.len());
+        json!({ "uri": uri, "data": data, "sectionItems": { "items": items, "totalCount": count } })
+    }
+
+    fn home_response() -> Value {
+        let liked = json!({
+            "uri": "spotify:user:@:collection",
+            "data": null,
+            "content": { "__typename": "UnknownType", "uri": "spotify:user:@:collection" },
+        });
+        let recents = json!({
+            "uri": "spotify:list:recents",
+            "content": { "__typename": "ListResponseWrapper", "data": { "__typename": "List", "items": { "items": [
+                { "uid": "u1", "entity": { "_uri": "spotify:playlist:r1", "data": {
+                    "identityTrait": {
+                        "name": "Recent Mix",
+                        "description": "A &amp; B",
+                        "contributors": { "items": [{ "name": "Spotify", "uri": "spotify:user:spotify" }] },
+                    },
+                    "visualIdentityTrait": { "squareCoverImage": { "image": { "data": { "sources": [
+                        { "url": "https://example.invalid/r1.jpg", "maxWidth": 640, "maxHeight": 640 },
+                    ]}}}},
+                    "entityTypeTrait": { "type": "ENTITY_TYPE_PLAYLIST" },
+                }}},
+                { "uid": "u2", "entity": { "_uri": "spotify:collection:tracks", "data": {} } },
+                { "uid": "u3", "entity": { "_uri": "spotify:album:r3", "data": { "identityTrait": {
+                    "name": "Recent Album",
+                    "contributors": { "items": [{ "name": "Artist X", "uri": "spotify:artist:x" }] },
+                }}}},
+            ]}}},
+        });
+        let mut shorts = vec![liked];
+        for i in 0..6 {
+            shorts.push(home_playlist_item(&format!("s{i}"), "P", ""));
+        }
+        json!({ "home": {
+            "greeting": label("早上好"),
+            "homeChips": [
+                { "id": "music-chip", "label": label("音乐"), "subChips": [{ "id": "sub-a", "label": label("关注中") }] },
+                { "id": "podcasts-chip", "label": label("播客"), "subChips": [] },
+            ],
+            "sectionContainer": { "sections": { "items": [
+                home_section("HomeShortsSectionData", "spotify:section:shorts", shorts, json!({}), None),
+                home_section(
+                    "HomeGenericSectionData",
+                    "spotify:section:generic",
+                    vec![home_playlist_item("g1", "Mix", "<a href=\"x\">Desc</a>"), home_playlist_item("g2", "P", "")],
+                    json!({ "title": label("与 Artist Y 相似"), "subtitle": label(""), "headerEntity": home_artist_entity("y", "Artist Y") }),
+                    Some(25),
+                ),
+                home_section("HomeRecentlyPlayedSectionData", "spotify:section:recents", vec![recents], json!({ "title": label("最近播放") }), None),
+                home_section("HomeFeedBaselineSectionData", "spotify:section:f1", vec![home_playlist_item("f1", "P", "")], json!({ "title": label("为你推荐"), "iconName": "" }), None),
+                home_section(
+                    "HomeFeedBaselineSectionData",
+                    "spotify:section:f2",
+                    vec![json!({ "uri": "spotify:artist:z", "content": { "__typename": "ArtistResponseWrapper", "data": home_artist_entity("z", "Z")["data"] } })],
+                    json!({ "title": label("ignored") }),
+                    None,
+                ),
+                home_section(
+                    "HomeFeedBaselineSectionData",
+                    "spotify:section:f3",
+                    vec![home_playlist_item("f3", "P", "")],
+                    json!({ "title": label("与 Artist Y 相似"), "headerEntity": home_artist_entity("y", "Artist Y") }),
+                    None,
+                ),
+                home_section("HomeNativeAdsSectionData", "spotify:section:ads", vec![home_playlist_item("ad", "P", "")], json!({}), None),
+                home_section(
+                    "HomeGenericSectionData",
+                    "spotify:section:podcasts",
+                    vec![json!({ "uri": "spotify:show:p1", "content": { "__typename": "PodcastOrAudiobookResponseWrapper", "data": {
+                        "__typename": "Podcast",
+                        "uri": "spotify:show:p1",
+                        "name": "Show",
+                        "publisher": { "name": "Publisher" },
+                        "coverArt": { "sources": [{ "url": "https://example.invalid/p1.jpg", "width": 300, "height": 300 }] },
+                    }}})],
+                    json!({ "title": label("播客") }),
+                    None,
+                ),
+            ]}},
+        }})
+    }
+
+    #[test]
+    fn home_greeting_chips_and_shortcuts() {
+        let feed = parse_home_feed(&home_response());
+        assert_eq!(feed.greeting, "早上好");
+        let chip_ids: Vec<_> = feed.chips.iter().map(|c| c.id.as_str()).collect();
+        assert_eq!(chip_ids, ["music-chip", "podcasts-chip"]);
+        assert_eq!(feed.chips[0].sub_chips[0].label, "关注中");
+        assert_eq!(feed.shortcuts.len(), 6, "7 个（奇数）去掉最后一个");
+        assert_eq!(feed.shortcuts[0].kind, 3);
+        assert_eq!(feed.shortcuts[1].kind, 0);
+    }
+
+    #[test]
+    fn home_sections_keep_order_and_merge_feed() {
+        let feed = parse_home_feed(&home_response());
+        let kinds: Vec<_> = feed.sections.iter().map(|s| s.kind).collect();
+        assert_eq!(kinds, [0, 1, 2, 0]);
+        let generic = &feed.sections[0];
+        assert_eq!(generic.title, "与 Artist Y 相似");
+        assert_eq!(generic.header_artist.as_ref().unwrap().name, "Artist Y");
+        assert!(generic.total_count > generic.items.len() as i32);
+        assert_eq!(generic.items[0].subtitle, "Desc");
+        assert_eq!(generic.items[0].images[0].url, "https://example.invalid/g1.jpg");
+        assert_eq!(generic.items[1].subtitle, "Spotify", "ownerV2 无包装类型时取不到名字");
+
+        let grid = &feed.sections[2];
+        let uris: Vec<_> = grid.items.iter().map(|i| i.uri.as_str()).collect();
+        assert_eq!(uris, ["spotify:playlist:f1", "spotify:playlist:f3"]);
+        assert_eq!(grid.items[0].reason, "为你推荐");
+        assert_eq!(grid.items[1].reason_artist.as_ref().unwrap().name, "Artist Y");
+
+        let podcast = &feed.sections[3].items[0];
+        assert_eq!(podcast.kind, 4);
+        assert_eq!(podcast.subtitle, "Publisher");
+    }
+
+    #[test]
+    fn home_recently_played_reads_trait_entities() {
+        let feed = parse_home_feed(&home_response());
+        let recents = &feed.sections[1];
+        assert_eq!(recents.title, "最近播放");
+        let kinds: Vec<_> = recents.items.iter().map(|i| i.kind).collect();
+        assert_eq!(kinds, [0, 3, 1]);
+        let mix = &recents.items[0];
+        assert_eq!(mix.title, "Recent Mix");
+        assert_eq!(mix.subtitle, "A & B");
+        assert_eq!(mix.images[0].url, "https://example.invalid/r1.jpg");
+        assert_eq!(mix.playlist.as_ref().unwrap().id, "r1");
+        assert_eq!(recents.items[2].album.as_ref().unwrap().artists[0].name, "Artist X");
+        assert_eq!(recents.total_count, 3);
+    }
+
+    #[test]
+    fn home_empty_and_liked_uris() {
+        assert!(parse_home_feed(&json!({})).sections.is_empty());
+        assert!(is_liked_songs_uri("spotify:user:someone:collection"));
+        assert!(is_liked_songs_uri("spotify:collection:tracks"));
+        assert!(!is_liked_songs_uri("spotify:user:someone"));
+    }
+
+    fn browse_section(uri: &str, title: &str, items: Vec<Value>) -> Value {
+        let n = items.len();
+        json!({
+            "uri": uri,
+            "data": { "__typename": "BrowseGenericSectionData", "title": label(title), "subtitle": label("") },
+            "sectionItems": { "items": items, "totalCount": n },
+        })
+    }
+
+    #[test]
+    fn browse_sections_roots_and_fallbacks() {
+        let sections = parse_browse_sections(&json!({ "browse": { "uri": "spotify:page:mood", "sections": { "items": [
+            browse_section("spotify:section:mood-1", "热门歌单", vec![home_playlist_item("p1", "歌单一", ""), home_playlist_item("p2", "P", "")]),
+            browse_section("spotify:section:mood-2", "为你推荐", vec![home_playlist_item("p3", "P", "")]),
+        ]}}}));
+        assert_eq!(sections.len(), 2);
+        assert_eq!(sections[0].title, "热门歌单");
+        let titles: Vec<_> = sections[0].items.iter().map(|i| i.title.as_str()).collect();
+        assert_eq!(titles, ["歌单一", "P"]);
+        assert_eq!(sections[0].kind, 0);
+        assert_eq!(sections[0].total_count, 2);
+
+        let alt = json!({ "browsePage": { "sections": { "items": [
+            browse_section("spotify:section:s", "标题", vec![home_playlist_item("p1", "P", "")]),
+        ]}}});
+        assert_eq!(parse_browse_sections(&alt).len(), 1);
+
+        let nested = json!({ "data": { "unknownRoot": { "sections": { "items": [
+            browse_section("spotify:section:empty", "空分区", vec![json!({ "uri": "spotify:unknown:x", "content": null })]),
+            browse_section("spotify:section:ok", "正常", vec![home_playlist_item("p1", "P", "")]),
+        ]}}}});
+        let found = parse_browse_sections(&nested);
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].title, "正常");
+
+        assert!(parse_browse_sections(&json!({})).is_empty());
+        assert!(parse_browse_sections(&json!({ "browse": null })).is_empty());
+        assert!(parse_browse_sections(&json!({ "browse": { "sections": { "items": [] } } })).is_empty());
+    }
+
+    fn wrapped_track(id: usize) -> Value {
+        json!({ "item": { "__typename": "TrackResponseWrapper", "data": { "uri": format!("spotify:track:{id}"), "name": format!("Track {id}") } } })
+    }
+
+    fn search_with_tracks(tracks: Value) -> Value {
+        json!({ "searchV2": {
+            "tracksV2": tracks,
+            "artists": { "totalCount": 0, "items": [] },
+            "playlists": { "totalCount": 0, "items": [] },
+        }})
+    }
+
+    #[test]
+    fn catalog_search_follows_raw_offsets() {
+        let items: Vec<Value> = (0..10)
+            .map(|i| if i == 2 { json!({ "item": null }) } else { wrapped_track(i) })
+            .collect();
+        let first = parse_search_page(&search_with_tracks(json!({ "totalCount": 23, "items": items })), 0, 10).unwrap();
+        assert_eq!(first.tracks.items.len(), 9);
+        assert_eq!(first.tracks.total, Some(23));
+        assert_eq!(first.tracks.next_offset, Some(10));
+        assert_eq!(first.artists.next_offset, None);
+        let last_items: Vec<Value> = (20..23).map(wrapped_track).collect();
+        let last = parse_search_page(&search_with_tracks(json!({ "totalCount": 23, "items": last_items })), 20, 10).unwrap();
+        assert_eq!(last.tracks.items.last().unwrap().id, "22");
+        assert_eq!(last.tracks.next_offset, None);
+    }
+
+    #[test]
+    fn catalog_metadata_keeps_filtered_pages_traversable() {
+        let page = parse_search_page(
+            &search_with_tracks(json!({ "totalCount": 6, "items": [null, null], "pagingInfo": { "nextOffset": 4 } })),
+            0,
+            20,
+        )
+        .unwrap();
+        assert!(page.tracks.items.is_empty());
+        assert_eq!(page.tracks.next_offset, Some(4));
+    }
+
+    #[test]
+    fn catalog_discography_beyond_twenty() {
+        let artist = parse_artist(&json!({ "uri": "spotify:artist:artist", "profile": { "name": "Artist" } }));
+        let page_at = |offset: usize| {
+            let items: Vec<Value> = (offset..(offset + 20).min(25))
+                .map(|i| {
+                    if i == 3 {
+                        json!({ "releases": { "items": [] } })
+                    } else {
+                        json!({ "releases": { "items": [{ "uri": format!("spotify:album:{i}"), "name": format!("Album {i}"), "date": { "year": 2026 } }] } })
+                    }
+                })
+                .collect();
+            json!({ "artistUnion": { "discography": { "all": { "totalCount": 25, "items": items } } } })
+        };
+        let first = parse_artist_discography_page(&page_at(0), artist.clone(), 0, 20).unwrap();
+        assert_eq!(first.items.len(), 19);
+        assert_eq!(first.next_offset, Some(20));
+        let last = parse_artist_discography_page(&page_at(20), artist, 20, 20).unwrap();
+        assert_eq!(last.items.last().unwrap().id, "24");
+        assert_eq!(last.items.last().unwrap().artists[0].name, "Artist");
+        assert_eq!(last.next_offset, None);
+    }
+
+    #[test]
+    fn catalog_album_tracks_beyond_fifty() {
+        let page_at = |offset: usize| {
+            let items: Vec<Value> = (offset..(offset + 50).min(53))
+                .map(|i| json!({ "track": { "uri": format!("spotify:track:{i}") } }))
+                .collect();
+            json!({ "albumUnion": {
+                "uri": "spotify:album:album",
+                "name": "Large album",
+                "date": { "year": 2024 },
+                "coverArt": { "sources": [{ "url": "https://example.test/cover.jpg" }] },
+                "tracksV2": { "totalCount": 53, "items": items },
+            }})
+        };
+        let first = parse_album_query(&page_at(0), 0, 50);
+        assert_eq!(first.tracks.len(), 50);
+        assert_eq!(first.next_offset, Some(50));
+        let last = parse_album_query(&page_at(50), 50, 50);
+        assert_eq!(last.tracks.len(), 3);
+        let album = last.tracks.last().unwrap().album.as_ref().unwrap();
+        assert_eq!(album.release_date, "2024");
+        assert_eq!(album.images[0].url, "https://example.test/cover.jpg");
+        assert_eq!(last.next_offset, None);
+    }
+
+    #[test]
+    fn catalog_protocol_errors() {
+        assert_eq!(
+            parse_search_page(&json!({}), 0, 20).err().as_deref(),
+            Some("format:Missing search results")
+        );
+        let malformed = parse_album_query(&json!({ "albumUnion": { "uri": "spotify:album:album" } }), 0, 50);
+        assert!(malformed.album.is_some());
+        assert_eq!(malformed.page_error.as_deref(), Some("format:Missing catalog items"));
+        assert_eq!(
+            parse_album_query(&json!({}), 0, 50).page_error.as_deref(),
+            Some("format:Missing album")
+        );
+        let stuck = json!({ "searchV2": {
+            "tracksV2": { "totalCount": 10, "items": [wrapped_track(3)], "pagingInfo": { "nextOffset": 3 } },
+            "artists": { "items": [] },
+            "playlists": { "items": [] },
+        }});
+        assert_eq!(
+            parse_search_page(&stuck, 3, 20).err().as_deref(),
+            Some("format:Catalog page did not advance")
+        );
     }
 }

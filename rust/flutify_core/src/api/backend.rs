@@ -62,7 +62,11 @@ pub struct RustAlbumDto {
     pub id: String,
     pub name: String,
     pub uri: String,
+    pub album_type: String,
+    pub release_date: String,
+    pub total_tracks: i32,
     pub images: Vec<RustImageDto>,
+    pub artists: Vec<RustArtistDto>,
 }
 
 pub struct RustTrackDto {
@@ -271,7 +275,33 @@ impl From<BackendAlbum> for RustAlbumDto {
             id: v.id,
             name: v.name,
             uri: v.uri,
+            album_type: v.album_type,
+            release_date: v.release_date,
+            total_tracks: v.total_tracks,
             images: v.images.into_iter().map(Into::into).collect(),
+            artists: v.artists.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+impl From<RustImageDto> for BackendImage {
+    fn from(v: RustImageDto) -> Self {
+        Self {
+            url: v.url,
+            width: v.width,
+            height: v.height,
+        }
+    }
+}
+
+impl From<RustArtistDto> for BackendArtist {
+    fn from(v: RustArtistDto) -> Self {
+        Self {
+            id: v.id,
+            name: v.name,
+            uri: v.uri,
+            images: v.images.into_iter().map(Into::into).collect(),
+            followers: v.followers,
         }
     }
 }
