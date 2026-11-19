@@ -652,9 +652,16 @@ class _RenderGlass extends RenderBox {
     final boundary = _scene._boundary.currentContext?.findRenderObject();
     if (r == null || backdrop == null || boundary is! RenderBox || size.isEmpty) return;
     final dpr = _scene._dpr;
-    final origin = (localToGlobal(Offset.zero, ancestor: boundary) - _scene._region.topLeft) * dpr;
-    final w = (size.width * dpr).round(), h = (size.height * dpr).round();
-    if (w < 2 || h < 2) return;
+    // The surface as it actually lands on the backdrop, after any scale above it (Pressable, page transitions).
+    // The glass is rendered at that size and drawn back into [size]; the transform above shrinks it again, so one
+    // shader pixel stays one screen pixel and the backdrop under the card is the one it samples. Without a
+    // transform this is localToGlobal & size, as before.
+    final onBackdrop = MatrixUtils.transformRect(getTransformTo(boundary), Offset.zero & size);
+    final k = onBackdrop.width / size.width;
+    final origin = (onBackdrop.topLeft - _scene._region.topLeft) * dpr;
+    final w = (onBackdrop.width * dpr).round(), h = (onBackdrop.height * dpr).round();
+    if (w < 2 || h < 2 || !k.isFinite || k <= 0) return;
+    final radius = this.radius * k;
     final surface = origin & Size(w.toDouble(), h.toDouble());
     final m = material;
     final canvas = context.canvas;
@@ -720,7 +727,7 @@ class _RenderGlass extends RenderBox {
       canvas.restore();
       HyperGlassRenderer.deferDispose(shader: _lastShader); // kept until the next paint so the recorded frame can still use it
       _lastShader = shader;
-      _paintOverlays(canvas, r, offset, dpr, w, h);
+      _paintOverlays(canvas, r, offset, dpr, w, h, k);
       return;
     }
     final ui.Image img;
@@ -754,11 +761,13 @@ class _RenderGlass extends RenderBox {
     );
     HyperGlassRenderer.deferDispose(image: _lastImage);
     _lastImage = img;
-    _paintOverlays(canvas, r, offset, dpr, w, h);
+    _paintOverlays(canvas, r, offset, dpr, w, h, k);
   }
 
   /// Bloom stroke and press light, both drawn over the finished surface in physical-pixel local units.
-  void _paintOverlays(Canvas canvas, HyperGlassRenderer r, Offset offset, double dpr, int w, int h) {
+  ///
+  /// [k] is the scale above this surface (see [paint]): shader pixels are screen pixels, so local lengths are scaled by it.
+  void _paintOverlays(Canvas canvas, HyperGlassRenderer r, Offset offset, double dpr, int w, int h, double k) {
     for (final s in _overlayShaders) {
       HyperGlassRenderer.deferDispose(shader: s);
     }
@@ -768,11 +777,11 @@ class _RenderGlass extends RenderBox {
     }
     _overlayImages.clear();
     final fw = w.toDouble(), fh = h.toDouble();
-    final rad = math.min(radius * dpr, math.min(fw, fh) / 2);
+    final rad = math.min(radius * k * dpr, math.min(fw, fh) / 2);
     final layers = [
       if (bloom != null) (r.bloomShader(bloom!, fw, fh, rad, dpr, opacity), BlendMode.plus),
       if (press != null && pressOpacity > 0.001)
-        (r.pressShader(press!, pressAt * dpr, fw, fh, rad, dpr, pressOpacity * opacity), BlendMode.srcOver),
+        (r.pressShader(press!, pressAt * k * dpr, fw, fh, rad, dpr, pressOpacity * opacity), BlendMode.srcOver),
     ];
     if (layers.isEmpty) return;
     canvas

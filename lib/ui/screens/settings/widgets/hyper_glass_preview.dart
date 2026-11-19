@@ -17,6 +17,13 @@ class HyperGlassPreview extends StatefulWidget {
 
   static const double height = 246;
 
+  /// 背景在可见区域外每边多画的宽度（logical px）。
+  ///
+  /// 玻璃的折射 / 反射会读卡片外约 37 logical px（reflectOffsetPx 110 物理像素 × dpr/3）的背景，
+  /// 而场景只截取自己范围内的背景。卡片离可见边只有 14，没有这圈余量时四边会读到截图外，
+  /// 被拉伸成一圈错位的折射。余量由外层 ClipRRect 裁掉，布局不变。
+  static const double bleed = 48;
+
   @override
   State<HyperGlassPreview> createState() => _HyperGlassPreviewState();
 }
@@ -106,6 +113,7 @@ class _HyperGlassPreviewState extends State<HyperGlassPreview>
           base: dark ? const Color(0xFF14141A) : const Color(0xFFEDEFF4),
           blobs: blobs,
           t: _drift.value * 2 * math.pi,
+          inset: HyperGlassPreview.bleed,
         ),
       ),
     );
@@ -123,9 +131,16 @@ class _HyperGlassPreviewState extends State<HyperGlassPreview>
                 final anchor = _anchor();
                 return ListenableBuilder(
                   listenable: hyperRenderController,
-                  builder: (context, _) => HyperGlassScene(
+                  builder: (context, _) => OverflowBox(
+                    minWidth: size.width + 2 * HyperGlassPreview.bleed,
+                    maxWidth: size.width + 2 * HyperGlassPreview.bleed,
+                    minHeight: size.height + 2 * HyperGlassPreview.bleed,
+                    maxHeight: size.height + 2 * HyperGlassPreview.bleed,
+                    child: HyperGlassScene(
                     animate: _drift.isAnimating || _menu.active || _pressed,
                     background: background,
+                    child: Padding(
+                    padding: const EdgeInsets.all(HyperGlassPreview.bleed),
                     child: Stack(
                       key: _stackKey,
                       children: [
@@ -316,6 +331,8 @@ class _HyperGlassPreviewState extends State<HyperGlassPreview>
                           ),
                       ],
                     ),
+                    ),
+                  ),
                   ),
                 );
               },
@@ -387,27 +404,33 @@ class _BlurButton extends StatelessWidget {
 }
 
 /// 三团沿椭圆轨迹缓慢漂移的柔边光斑。
+///
+/// 底色铺满整个画布；光斑按去掉四边 [inset] 后的可见区域定位，加了余量也不改变看到的样子。
 class _BlobPainter extends CustomPainter {
   final Color base;
   final List<({Color color, double size, double phase})> blobs;
   final double t;
+  final double inset;
 
   const _BlobPainter({
     required this.base,
     required this.blobs,
     required this.t,
+    this.inset = 0,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
     canvas.drawRect(Offset.zero & size, Paint()..color = base);
+    final visible = (Offset.zero & size).deflate(inset);
     for (final (i, b) in blobs.indexed) {
       final a = t + b.phase;
-      final center = Offset(
-        size.width * (0.2 + 0.3 * i + 0.18 * math.cos(a)),
-        size.height * (0.5 + 0.32 * math.sin(a * (i.isEven ? 1 : -1))),
-      );
-      final radius = b.size * size.height / HyperGlassPreview.height;
+      final center = visible.topLeft +
+          Offset(
+            visible.width * (0.2 + 0.3 * i + 0.18 * math.cos(a)),
+            visible.height * (0.5 + 0.32 * math.sin(a * (i.isEven ? 1 : -1))),
+          );
+      final radius = b.size * visible.height / HyperGlassPreview.height;
       canvas.drawCircle(
         center,
         radius,
@@ -421,5 +444,5 @@ class _BlobPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_BlobPainter old) =>
-      old.t != t || old.base != base || old.blobs != blobs;
+      old.t != t || old.base != base || old.blobs != blobs || old.inset != inset;
 }
