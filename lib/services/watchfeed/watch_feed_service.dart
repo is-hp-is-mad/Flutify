@@ -11,7 +11,8 @@ import '../auth/proto_codec.dart';
 import '../pathfinder/pathfinder_client.dart';
 import '../pathfinder/pathfinder_operations.dart';
 import '../rust_backend_bridge.dart';
-import 'watch_feed_parser.dart';
+import 'watch_feed_decoder.dart';
+import 'watch_feed_request_spec.dart';
 
 /// Watch Feed 接口失败（含未登录）。
 class WatchFeedException implements Exception {
@@ -34,11 +35,15 @@ class WatchFeedService {
   final Future<Map<String, String>> Function() _headers;
   final bool useRustBackend;
 
+  /// 响应解析（生产为 Rust，测试可注入替身）。
+  final WatchFeedDecoder _decoder;
+
   WatchFeedService(
     this._client, {
     required this._headers,
     this.useRustBackend = false,
-  });
+    WatchFeedDecoder decoder = const RustWatchFeedDecoder(),
+  }) : _decoder = decoder;
 
   /// 桌面版实体 feed 走 Pathfinder（Web 播放器身份，用会话原本的头，不改平台）。
   late final PathfinderClient _pathfinder = PathfinderClient(
@@ -58,7 +63,7 @@ class WatchFeedService {
         PathfinderOperation.watchFeedEntity,
         {'watchFeedUri': feedUri, 'limit': limit, 'offset': offset},
       );
-      return WatchFeedParser.parseEntityFeed(data);
+      return await _decoder.entityFeed(data);
     } on PathfinderException catch (e) {
       throw WatchFeedException(e.message, e.statusCode);
     }
@@ -125,7 +130,7 @@ class WatchFeedService {
       }
     }
     final body = await _get('browsita/v1/browse', {'timezone': ?timezone});
-    return body == null ? null : WatchFeedParser.parseBrowseShelf(body);
+    return body == null ? null : _decoder.browseShelf(body);
   }
 
   /// 以曲目为种子的入口卡片（「Explore 某艺人」）；服务端无内容时返回 null。
@@ -155,7 +160,7 @@ class WatchFeedService {
       'contextUri': contextUri,
       'isTablet': 'false',
     });
-    return body == null ? null : WatchFeedParser.parseSeedShelf(body);
+    return body == null ? null : _decoder.seedShelf(body);
   }
 
   /// open.spotify.com Web 端 `watchFeedView`：拉一页发现流（#标签）。
@@ -179,7 +184,7 @@ class WatchFeedService {
         'limit': limit,
         'previousItems': previousItems,
       });
-      return WatchFeedParser.parseDiscoveryFeedView(
+      return await _decoder.discoveryFeedView(
         data,
         previousItems: previousItems,
       );
@@ -259,7 +264,7 @@ class WatchFeedService {
     if (res.statusCode != 200) {
       throw WatchFeedException('请求失败', res.statusCode);
     }
-    return WatchFeedParser.parseFeed(res.bodyBytes);
+    return _decoder.feed(res.bodyBytes);
   }
 
   /// WatchFeedRequest{1 feed_id, 2 entity_id, 99 map parameters, 101 pagination{1 token}}。

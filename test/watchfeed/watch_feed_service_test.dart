@@ -1,11 +1,12 @@
 import 'dart:convert';
 
-import 'package:flutify_app/services/watchfeed/proto_tree.dart';
 import 'package:flutify_app/services/watchfeed/watch_feed_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
+import 'support/dart_watch_feed_parser.dart';
+import 'support/proto_tree.dart';
 import 'watch_feed_fixtures.dart';
 
 /// 会话头（Web 播放器身份）→ 请求时换成 Android 身份；其余鉴权头原样保留。
@@ -33,6 +34,7 @@ void main() {
         );
       }),
       headers: _webSession,
+      decoder: const DartWatchFeedDecoder(),
     );
     final page = await service.fetchFeed(
       'spotify:watch-feed:discovery-feed:ID?firstItemUris=spotify:track:t',
@@ -75,6 +77,7 @@ void main() {
         return http.Response.bytes(seedResponse(), 200);
       }),
       headers: _webSession,
+      decoder: const DartWatchFeedDecoder(),
     );
     final browse = await service.fetchBrowseShelf();
     expect(browse?.entries, hasLength(2));
@@ -107,6 +110,7 @@ void main() {
     final failing = WatchFeedService(
       MockClient((_) async => http.Response('', 503)),
       headers: _webSession,
+      decoder: const DartWatchFeedDecoder(),
     );
     await expectLater(
       failing.fetchFeed('spotify:watch-feed:tab-feed'),
@@ -122,6 +126,7 @@ void main() {
     final signedOut = WatchFeedService(
       MockClient((_) async => http.Response('', 200)),
       headers: () async => {'Accept': 'application/json'},
+      decoder: const DartWatchFeedDecoder(),
     );
     await expectLater(
       signedOut.fetchBrowseShelf(),
@@ -187,6 +192,7 @@ void main() {
         );
       }),
       headers: () async => {'Authorization': 'Bearer tok'},
+      decoder: const DartWatchFeedDecoder(),
     );
 
     final page1 = await service.fetchFeed(

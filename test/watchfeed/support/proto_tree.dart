@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import '../auth/proto_codec.dart';
+import 'package:flutify_app/services/auth/proto_codec.dart';
 
 /// 只读的 protobuf 消息树：一次性拆出所有字段，按字段号取值。
 ///
