@@ -18,15 +18,57 @@ env:
   FLUTTER_VERSION: '3.44.0'
 
 jobs:
+  # 先跑 flutter_rust_bridge 代码生成，后面两个 job 用生成结果编译测试，
+  # 避免与 frb-codegen 并发时拿到过期的 frb_generated.rs / lib/src/rust。
+  codegen:
+    name: FRB codegen
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/cache@v4
+        id: frb-bin
+        with:
+          path: ~/.cargo/bin/flutter_rust_bridge_codegen
+          key: frb-codegen-2.13.0-${{ runner.os }}
+      - if: steps.frb-bin.outputs.cache-hit != 'true'
+        run: cargo install flutter_rust_bridge_codegen --version 2.13.0 --locked
+      - run: flutter pub get
+      - run: flutter_rust_bridge_codegen generate
+      - name: Report stale committed bindings
+        run: |
+          if ! git diff --quiet -- lib/src/rust rust/flutify_core/src; then
+            echo "::warning::committed FRB bindings are stale; run frb-codegen on this branch"
+            git diff --stat -- lib/src/rust rust/flutify_core/src
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frb-generated
+          path: |
+            lib/src/rust
+            rust/flutify_core/src/frb_generated.rs
+          retention-days: 1
+
   rust:
     name: Rust test & clippy
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    needs: codegen
     defaults:
       run:
         working-directory: rust/flutify_core
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: frb-generated
+          path: .
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
@@ -40,8 +82,13 @@ jobs:
     name: Dart analyze & test
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    needs: codegen
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: frb-generated
+          path: .
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
