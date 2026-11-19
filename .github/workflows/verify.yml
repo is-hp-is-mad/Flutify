@@ -1,7 +1,10 @@
-# 手动验证：Rust 单测 + clippy、Dart 静态检查（只在 error 时失败）+ flutter test。不打包、不发布。
+# 工作分支验证：Rust 单测 + clippy、Dart 静态检查（只在 error 时失败）+ flutter test。不打包、不发布。
 name: Verify
 
 on:
+  # workflow_dispatch 需要文件在默认分支上，这里改为只在指定工作分支推送时运行
+  push:
+    branches: ['fix/hyper-glass-preview-edges', 'rustify/**']
   workflow_dispatch:
 
 permissions:
