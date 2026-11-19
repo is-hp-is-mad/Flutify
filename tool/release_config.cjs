@@ -134,7 +134,11 @@ function releaseConfig(env, deps) {
 
 if (require.main === module) {
   const repo = process.env.GITHUB_REPOSITORY;
-  const gh = (args) => execFileSync('gh', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] });
+  const gh = (args) => execFileSync('gh', args, {
+    encoding: 'utf8',
+    maxBuffer: 16 * 1024 * 1024,
+    stdio: ['ignore', 'pipe', 'inherit'],
+  });
   let releases;
   const appInfo = readFileSync(join(__dirname, '../lib/core/constants/app_info.dart'), 'utf8');
   const config = releaseConfig(
@@ -154,7 +158,9 @@ if (require.main === module) {
           }).trim());
         } catch { return null; }
       },
-      listReleases: () => releases ??= JSON.parse(gh(['api', `repos/${repo}/releases?per_page=100`]))
+      listReleases: () => releases ??= JSON.parse(gh([
+        'api', `repos/${repo}/releases?per_page=100`, '--jq', '[.[] | {tag_name, draft, published_at}]',
+      ]))
         .map((r) => ({ tag: r.tag_name, draft: r.draft, publishedAt: r.published_at })),
       issuesCreatedSince: (time) => Number(gh([
         'api', '-X', 'GET', 'search/issues', '-f', `q=repo:${repo} is:issue created:>${time}`, '--jq', '.total_count',
