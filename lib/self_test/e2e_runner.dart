@@ -1106,7 +1106,9 @@ class E2ERunner {
         }
       }
     }
-    if (updateService.channel != UpdateChannel.selfTest) {
+    // 如实记录渠道是经界面切换的，还是界面没切成、由代码兜底设置的
+    final channelViaUi = updateService.channel == UpdateChannel.selfTest;
+    if (!channelViaUi) {
       await updateService.setChannel(UpdateChannel.selfTest);
     }
 
@@ -1119,7 +1121,8 @@ class E2ERunner {
     await _pumpFrames(8);
     await _closeRootOverlays();
 
-    return 'Settings sections, AnimationDebugSection, UpdateChannel (${updateService.channel.name}), ShortcutsDialog ok';
+    final channelNote = channelViaUi ? 'via UI' : 'UI switch failed, set directly';
+    return 'Settings sections, UpdateChannel (${updateService.channel.name}, $channelNote), ShortcutsDialog ok';
   }
 
   Future<String> _checkZeroErrors() async {

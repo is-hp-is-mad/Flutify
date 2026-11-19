@@ -1,13 +1,11 @@
-// 曲目 → 音频文件清单 + playplay 密钥探针。
+// 曲目 → 音频文件清单探针。
 //
 // 用法：dart run tool/track_key_probe.dart <trackId或URL>
-// 输出：曲名、各格式 file_id（含 OGG 的 playplay R1/R2 是否可取）。
-// 仅打印 file_id 与可用性，不打印密钥本身。
+// 输出：曲名、各格式 file_id。
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutify_app/services/protocol/extended_metadata.dart';
-import 'package:flutify_app/services/protocol/playplay_key.dart';
 import 'package:flutify_app/services/protocol/track_metadata.dart';
 import 'package:http/http.dart' as http;
 
@@ -64,16 +62,6 @@ Future<void> main(List<String> args) async {
     stdout.writeln('文件数: ${meta.files.length}（备选版本 ${meta.alternatives.length} 个）');
     for (final f in meta.files) {
       stdout.writeln('  ${f.format.name.padRight(14)} ${f.fileIdHex}');
-    }
-    // OGG 文件试取 playplay 密钥（只报成功与否）
-    for (final f in meta.files) {
-      if (!f.format.name.startsWith('ogg')) continue;
-      try {
-        final k = await fetchPlayplayKey(fileIdHex: f.fileIdHex, headers: headers);
-        stdout.writeln('  playplay ${f.fileIdHex.substring(0, 8)}: R1=${k.r1.length}B R2=${k.r2.length}B OK');
-      } catch (e) {
-        stdout.writeln('  playplay ${f.fileIdHex.substring(0, 8)}: 失败 $e');
-      }
     }
   } finally {
     client.close();

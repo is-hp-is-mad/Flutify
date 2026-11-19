@@ -1,13 +1,13 @@
 //! Rust 后端会话、令牌刷新与高并发媒体库接口（通过 flutter_rust_bridge 暴露给 Dart）。
 
-use crate::ap_client::{self, BackendApWelcome, BackendStorageResolveResult};
+use crate::ap_client::{self, BackendStorageResolveResult};
 use crate::audio_cache;
 use crate::catalog_backend::{
     self, BackendCanvasMedia, BackendPodcastEpisode, BackendPodcastShow,
 };
 use crate::connect_backend;
 use crate::drm_backend::{
-    self, BackendDrmRelayResult, BackendPlaybackFile, BackendPlayplayKey, BackendProtoAudioFile,
+    self, BackendDrmRelayResult, BackendPlaybackFile, BackendProtoAudioFile,
     BackendProtoEpisodeMetadata, BackendProtoTrackMetadata, BackendTrackPlaybackMedia,
 };
 use crate::frb_generated::StreamSink;
@@ -219,13 +219,6 @@ pub struct RustExtendedMetadataEntryDto {
     pub data: Vec<u8>,
 }
 
-pub struct RustApWelcomeDto {
-    pub session_id: u64,
-    pub canonical_username: String,
-    pub reusable_auth_type: i32,
-    pub reusable_auth: Vec<u8>,
-}
-
 pub struct RustHttpRawDto {
     pub status: u16,
     pub body: Vec<u8>,
@@ -362,11 +355,6 @@ pub fn rust_session_configure(config: RustSessionConfig) {
 }
 
 #[flutter_rust_bridge::frb(sync)]
-pub fn rust_session_set_proxy(proxy: String) {
-    spotify_session::set_proxy(proxy);
-}
-
-#[flutter_rust_bridge::frb(sync)]
 pub fn rust_session_clear() {
     spotify_session::clear_session();
 }
@@ -378,32 +366,6 @@ pub async fn rust_mint_web_token(sp_dc: String, proxy: String) -> Result<RustTok
             Ok(RustTokenResult {
                 token: minted.token,
                 expiry_ms: minted.expiry_ms,
-            })
-        })
-        .await
-        .map_err(|e| format!("join:{e}"))?
-}
-
-pub async fn rust_ensure_web_access_token(force_refresh: bool) -> Result<RustTokenResult, String> {
-    http_client::runtime()
-        .spawn(async move {
-            let minted = spotify_session::ensure_web_access_token(force_refresh).await?;
-            Ok(RustTokenResult {
-                token: minted.token,
-                expiry_ms: minted.expiry_ms,
-            })
-        })
-        .await
-        .map_err(|e| format!("join:{e}"))?
-}
-
-pub async fn rust_ensure_client_token(force_refresh: bool) -> Result<RustTokenResult, String> {
-    http_client::runtime()
-        .spawn(async move {
-            let granted = spotify_session::ensure_client_token(force_refresh).await?;
-            Ok(RustTokenResult {
-                token: granted.token,
-                expiry_ms: granted.expiry_ms,
             })
         })
         .await
@@ -642,17 +604,6 @@ impl From<BackendStorageResolveResult> for RustStorageResolveDto {
     }
 }
 
-impl From<BackendApWelcome> for RustApWelcomeDto {
-    fn from(v: BackendApWelcome) -> Self {
-        Self {
-            session_id: v.session_id,
-            canonical_username: v.canonical_username,
-            reusable_auth_type: v.reusable_auth_type,
-            reusable_auth: v.reusable_auth,
-        }
-    }
-}
-
 impl From<BackendLrclibCandidate> for RustLrclibCandidateDto {
     fn from(v: BackendLrclibCandidate) -> Self {
         Self {
@@ -860,33 +811,6 @@ pub async fn rust_fetch_extended_metadata(
         .map_err(|e| format!("join:{e}"))?
 }
 
-pub async fn rust_ap_connect_and_login(
-    host: Option<String>,
-    port: Option<u16>,
-    proxy: String,
-    username: String,
-    auth_type: i32,
-    auth_data: Vec<u8>,
-    device_id: String,
-) -> Result<RustApWelcomeDto, String> {
-    http_client::runtime()
-        .spawn(async move {
-            let w = ap_client::ap_connect_and_login(
-                host,
-                port,
-                &proxy,
-                &username,
-                auth_type,
-                &auth_data,
-                &device_id,
-            )
-            .await?;
-            Ok(w.into())
-        })
-        .await
-        .map_err(|e| format!("join:{e}"))?
-}
-
 pub async fn rust_ap_request_audio_key(
     session_id: u64,
     file_id: Vec<u8>,
@@ -1025,11 +949,6 @@ pub struct RustProtoEpisodeMetadataDto {
     pub files: Vec<RustProtoAudioFileDto>,
 }
 
-pub struct RustPlayplayKeyDto {
-    pub r1: Vec<u8>,
-    pub r2: Vec<u8>,
-}
-
 pub struct RustSpotifyLyricLineDto {
     pub start_time_ms: i32,
     pub words: String,
@@ -1147,12 +1066,6 @@ impl From<BackendProtoEpisodeMetadata> for RustProtoEpisodeMetadataDto {
             description: v.description,
             files: v.files.into_iter().map(Into::into).collect(),
         }
-    }
-}
-
-impl From<BackendPlayplayKey> for RustPlayplayKeyDto {
-    fn from(v: BackendPlayplayKey) -> Self {
-        Self { r1: v.r1, r2: v.r2 }
     }
 }
 
@@ -1320,16 +1233,6 @@ pub fn rust_parse_track_metadata_proto(data: Vec<u8>) -> RustProtoTrackMetadataD
 #[flutter_rust_bridge::frb(sync)]
 pub fn rust_parse_episode_metadata_proto(data: Vec<u8>) -> RustProtoEpisodeMetadataDto {
     drm_backend::parse_episode_metadata_proto(&data).into()
-}
-
-#[flutter_rust_bridge::frb(sync)]
-pub fn rust_encode_playplay_key_request(now_sec: i64) -> Vec<u8> {
-    drm_backend::encode_playplay_key_request(now_sec)
-}
-
-#[flutter_rust_bridge::frb(sync)]
-pub fn rust_parse_playplay_key_proto(data: Vec<u8>) -> Result<RustPlayplayKeyDto, String> {
-    drm_backend::parse_playplay_key_proto(&data).map(Into::into)
 }
 
 pub async fn rust_fetch_color_lyrics(

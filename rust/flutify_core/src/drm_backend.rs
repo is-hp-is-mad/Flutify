@@ -4,18 +4,13 @@ use std::time::Duration;
 
 use serde_json::Value;
 
-use crate::proto_lite::{self, ProtoMsg};
+use crate::proto_lite::ProtoMsg;
 use crate::spotify_session;
 
 const WIDEVINE_KEY_FORMAT_UUID: &str = "urn:uuid:edef8ba9-79d6-4ace-a3c8-27dcd51d21ed";
 const FAIRPLAY_KEY_FORMAT: &str = "com.apple.streamingkeydelivery";
 const WEB_USER_AGENT: &str =
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36";
-
-/// PlayPlay 固定请求常量（桌面端 `Spotify.dll` 硬编码）。
-const PLAYPLAY_REQK: [u8; 16] = [
-    0x02, 0x5e, 0xe5, 0x0f, 0x4d, 0x14, 0x89, 0xd0, 0x24, 0x01, 0x28, 0x6d, 0xf8, 0x3f, 0x03, 0x32,
-];
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BackendPlaybackFile {
@@ -67,12 +62,6 @@ pub struct BackendProtoEpisodeMetadata {
     pub duration_ms: i32,
     pub description: String,
     pub files: Vec<BackendProtoAudioFile>,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct BackendPlayplayKey {
-    pub r1: Vec<u8>,
-    pub r2: Vec<u8>,
 }
 
 fn to_i32_loose(v: Option<&Value>) -> i32 {
@@ -485,43 +474,10 @@ pub fn parse_episode_metadata_proto(data: &[u8]) -> BackendProtoEpisodeMetadata 
     }
 }
 
-/// 构造 PlayPlay 密钥请求体。
-pub fn encode_playplay_key_request(now_sec: i64) -> Vec<u8> {
-    let mut w = Vec::with_capacity(64);
-    proto_lite::write_varint(&mut w, 1 << 3);
-    proto_lite::write_varint(&mut w, 5);
-    proto_lite::write_bytes(&mut w, 2, &PLAYPLAY_REQK);
-    proto_lite::write_varint(&mut w, 4 << 3);
-    proto_lite::write_varint(&mut w, 1);
-    proto_lite::write_varint(&mut w, 5 << 3);
-    proto_lite::write_varint(&mut w, 1);
-    proto_lite::write_varint(&mut w, 6 << 3);
-    proto_lite::write_varint(&mut w, now_sec as u64);
-    w
-}
-
-/// 解析 PlayPlay 密钥响应体（`0a10 <R1:16B> 1204 <R2:4B>`）。
-pub fn parse_playplay_key_proto(data: &[u8]) -> Result<BackendPlayplayKey, String> {
-    let msg = ProtoMsg::parse(data);
-    let r1 = msg
-        .all_bytes(1)
-        .into_iter()
-        .rfind(|b| b.len() == 16)
-        .map(|b| b.to_vec());
-    let r2 = msg
-        .all_bytes(2)
-        .into_iter()
-        .rfind(|b| b.len() == 4)
-        .map(|b| b.to_vec());
-    match (r1, r2) {
-        (Some(r1), Some(r2)) => Ok(BackendPlayplayKey { r1, r2 }),
-        _ => Err(format!("playplay 响应缺 R1/R2（{}B）", data.len())),
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::proto_lite;
 
     #[test]
     fn parses_track_playback_media_and_relinked_item() {
@@ -568,7 +524,7 @@ mod tests {
     }
 
     #[test]
-    fn parses_track_and_playplay_protobuf() {
+    fn parses_track_protobuf() {
         let mut w = Vec::new();
         proto_lite::write_bytes(&mut w, 1, &[1u8; 16]);
         proto_lite::write_string(&mut w, 2, "Track Title");
@@ -588,12 +544,5 @@ mod tests {
         assert!(parsed.explicit);
         assert_eq!(parsed.files.len(), 1);
         assert_eq!(parsed.files[0].format, 1);
-
-        let mut pp = Vec::new();
-        proto_lite::write_bytes(&mut pp, 1, &[0x11; 16]);
-        proto_lite::write_bytes(&mut pp, 2, &[0x22; 4]);
-        let key = parse_playplay_key_proto(&pp).unwrap();
-        assert_eq!(key.r1, vec![0x11; 16]);
-        assert_eq!(key.r2, vec![0x22; 4]);
     }
 }

@@ -63,7 +63,7 @@ class SkeletonBox extends StatelessWidget {
   }
 }
 
-/// 横向卡架的骨架（与 ShelfSection + ExpressiveCard 尺寸一致，加载完成时不跳动）。
+/// 横向卡架的骨架（与主页卡架 + ExpressiveCard 尺寸一致，加载完成时不跳动）。
 class SkeletonShelf extends StatelessWidget {
   final int count;
   final bool circular;
