@@ -1458,6 +1458,7 @@ class RustWatchFeedCreatorDto {
   final String name;
   final String subtitle;
   final String imageUrl;
+  final PlatformInt64? monthlyListeners;
   final String followUri;
   final String followText;
   final String followingText;
@@ -1467,6 +1468,7 @@ class RustWatchFeedCreatorDto {
     required this.name,
     required this.subtitle,
     required this.imageUrl,
+    this.monthlyListeners,
     required this.followUri,
     required this.followText,
     required this.followingText,
@@ -1478,6 +1480,7 @@ class RustWatchFeedCreatorDto {
       name.hashCode ^
       subtitle.hashCode ^
       imageUrl.hashCode ^
+      monthlyListeners.hashCode ^
       followUri.hashCode ^
       followText.hashCode ^
       followingText.hashCode;
@@ -1491,6 +1494,7 @@ class RustWatchFeedCreatorDto {
           name == other.name &&
           subtitle == other.subtitle &&
           imageUrl == other.imageUrl &&
+          monthlyListeners == other.monthlyListeners &&
           followUri == other.followUri &&
           followText == other.followText &&
           followingText == other.followingText;
@@ -1623,6 +1627,7 @@ class RustWatchFeedItemDto {
   final RustWatchFeedEntityRowDto? entityRow;
   final List<String> texts;
   final RustTrackDto? track;
+  final PlatformInt64? backgroundColor;
   final bool canShare;
   final bool hasMenu;
   final bool canSave;
@@ -1638,6 +1643,7 @@ class RustWatchFeedItemDto {
     this.entityRow,
     required this.texts,
     this.track,
+    this.backgroundColor,
     required this.canShare,
     required this.hasMenu,
     required this.canSave,
@@ -1655,6 +1661,7 @@ class RustWatchFeedItemDto {
       entityRow.hashCode ^
       texts.hashCode ^
       track.hashCode ^
+      backgroundColor.hashCode ^
       canShare.hashCode ^
       hasMenu.hashCode ^
       canSave.hashCode ^
@@ -1674,6 +1681,7 @@ class RustWatchFeedItemDto {
           entityRow == other.entityRow &&
           texts == other.texts &&
           track == other.track &&
+          backgroundColor == other.backgroundColor &&
           canShare == other.canShare &&
           hasMenu == other.hasMenu &&
           canSave == other.canSave &&

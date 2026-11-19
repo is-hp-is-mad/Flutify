@@ -7,6 +7,7 @@ import 'api/backend.dart';
 import 'api/lyrics.dart';
 import 'api/network.dart';
 import 'api/protocol.dart';
+import 'api/watchfeed.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:ffi' as ffi;
@@ -409,6 +410,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   RustWatchFeedCreatorDto dco_decode_rust_watch_feed_creator_dto(dynamic raw);
+
+  @protected
+  RustWatchFeedEntityPageDto dco_decode_rust_watch_feed_entity_page_dto(
+    dynamic raw,
+  );
 
   @protected
   RustWatchFeedEntityRowDto dco_decode_rust_watch_feed_entity_row_dto(
@@ -936,6 +942,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   RustWatchFeedCreatorDto sse_decode_rust_watch_feed_creator_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustWatchFeedEntityPageDto sse_decode_rust_watch_feed_entity_page_dto(
     SseDeserializer deserializer,
   );
 
@@ -1591,6 +1602,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_rust_watch_feed_creator_dto(
     RustWatchFeedCreatorDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_watch_feed_entity_page_dto(
+    RustWatchFeedEntityPageDto self,
     SseSerializer serializer,
   );
 
