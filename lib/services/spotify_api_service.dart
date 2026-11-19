@@ -86,7 +86,10 @@ class SpotifyApiService {
   late final LyricsService lyrics = LyricsService(_client, headers: _headers);
 
   /// 播客节目页数据（open.spotify.com 的服务端渲染状态，无需鉴权、不限流）。
-  late final PodcastService _podcast = PodcastService(_client);
+  late final PodcastService _podcast = PodcastService(
+    _client,
+    !_hasCustomClient,
+  );
 
   /// Spotify Connect 遥控服务（dealer 长连接 + connect-state）；懒创建，调用 `start()` 才会联网。
   /// 只有桌面版会话可用，见 [supportsConnect]。

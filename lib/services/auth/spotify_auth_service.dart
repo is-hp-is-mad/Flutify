@@ -13,6 +13,7 @@ import 'client_profile.dart';
 import 'client_token_service.dart';
 import 'session_expired_exception.dart';
 import 'session_http_client.dart';
+import 'session_token_source.dart';
 import 'web_token_exception.dart';
 import 'web_token_service.dart';
 
@@ -20,7 +21,8 @@ import 'web_token_service.dart';
 ///
 /// 在应用内 WebView（Linux 为系统 Chrome）登录 open.spotify.com，取得 Web 会话凭据 `sp_dc`，
 /// 再用 `sp_dc + TOTP` 铸造 access_token；过期时用同一个 `sp_dc` 重新铸造。App 不接触密码。
-/// client-token 以桌面端身份申请。
+/// client-token 以 Web 播放器身份申请。令牌续期优先交给 Rust 会话核心（[SessionTokenSource]），
+/// 结果按会话 epoch 写回 [AuthSessionStore]；Rust 不处理时（网关 / 测试）走 Dart HTTP。
 ///
 /// 说明：以官方客户端身份访问违反 Spotify 服务条款，存在账号风控风险，建议用小号测试。
 class SpotifyAuthService {
@@ -34,6 +36,9 @@ class SpotifyAuthService {
   final http.Client _client;
   final ClientTokenService _clientTokenService;
   final AccountProfileService _profiles;
+
+  /// 令牌续期来源（生产为 Rust 会话核心）；为 null 时只用 Dart HTTP。
+  final SessionTokenSource? _tokens;
 
   /// 按 access_token 查询 canonical username（默认登录 AP 读 APWelcome；测试注入替身）。
   final Future<String> Function(String accessToken, String deviceId)
@@ -51,6 +56,7 @@ class SpotifyAuthService {
     this._storage,
     this._client,
     this._usernameResolver,
+    this._tokens,
   ) : _clientTokenService = ClientTokenService(_client),
       _profiles = AccountProfileService(_client) {
     _storage.sessionInvalidated.addListener(() {
@@ -65,6 +71,7 @@ class SpotifyAuthService {
     http.Client? client,
     Future<String> Function(String accessToken, String deviceId)?
     usernameResolver,
+    SessionTokenSource? tokens,
   ]) {
     final http.Client effectiveClient = SessionHttpClient(
       storage,
@@ -76,6 +83,8 @@ class SpotifyAuthService {
       usernameResolver ??
           (token, deviceId) =>
               _usernameFromAccessPoint(effectiveClient, token, deviceId),
+      // 与其他服务一致：注入自定义 http.Client（测试）时不走 Rust
+      tokens ?? (client == null ? const RustSessionTokenSource() : null),
     );
   }
 
@@ -134,18 +143,37 @@ class SpotifyAuthService {
 
   Future<String> _requestClientToken() async {
     final epoch = _storage.sessionEpoch;
-    final granted = await _clientTokenService.request(
-      await _deviceId(),
-      _profile,
-    );
+    final deviceId = await _deviceId();
+    _storage.checkSession(epoch);
+    final SessionToken granted =
+        await _tokens?.refreshClientToken(_storage) ??
+        await _requestClientTokenDart(deviceId);
     await _storage.writeSession(epoch, [
       () => _storage.setClientToken(granted.token),
-      () =>
-          _storage.setClientTokenExpiry(granted.expiryEpochMs(DateTime.now())),
+      () => _storage.setClientTokenExpiry(granted.expiryMs),
       () => _storage.setClientTokenProfile(_profile.name),
     ]);
     RustBackendBridge.syncSession(_storage);
     return granted.token;
+  }
+
+  Future<SessionToken> _requestClientTokenDart(String deviceId) async {
+    final granted = await _clientTokenService.request(deviceId);
+    return (
+      token: granted.token,
+      expiryMs: granted.expiryEpochMs(DateTime.now()),
+    );
+  }
+
+  /// 用 `sp_dc` 重新铸造 Web access_token：优先 Rust 会话核心，不处理时走 Dart HTTP。
+  Future<SessionToken> _mintWebToken() async =>
+      await _webTokenViaSource() ??
+      await WebTokenService.mintTokenForSpDc(_storage.spDc, client: _client);
+
+  Future<SessionToken?> _webTokenViaSource() {
+    final tokens = _tokens;
+    if (tokens == null) return Future.value();
+    return refreshWebTokenVia(tokens, _storage);
   }
 
   // ---------------------------------------------------------------------------
@@ -159,10 +187,7 @@ class SpotifyAuthService {
     var token = _storage.webAccessToken;
     var expiryMs = _storage.webAccessTokenExpiry;
     if (token.isEmpty || !_isFresh(expiryMs)) {
-      final minted = await WebTokenService.mintTokenForSpDc(
-        _storage.spDc,
-        client: _client,
-      );
+      final minted = await _mintWebToken();
       token = minted.token;
       expiryMs = minted.expiryMs;
     }
@@ -231,10 +256,7 @@ class SpotifyAuthService {
       throw const SessionExpiredException();
     }
     try {
-      final minted = await WebTokenService.mintTokenForSpDc(
-        _storage.spDc,
-        client: _client,
-      );
+      final minted = await _mintWebToken();
       await _storage.writeSession(epoch, [
         _storage.markDesktopSession,
         () => _storage.setWebAccessToken(minted.token, minted.expiryMs),
