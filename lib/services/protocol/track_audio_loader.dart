@@ -787,10 +787,7 @@ class TrackAudioLoader implements TrackAudioSource, AudioCacheStore {
   /// 复用 AP 会话（登录失效时重建一次）。
   Future<SpotifyAccessPoint> _ensureAccessPoint() async {
     Future<SpotifyAccessPoint> create() async {
-      final ap = await SpotifyAccessPoint.connect(
-        client: _client,
-        useRustBackend: !_hasCustomClient,
-      );
+      final ap = await SpotifyAccessPoint.connect();
       await ap.authenticate(
         ApCredentials.accessToken(await accessToken()),
         deviceId: deviceId,
