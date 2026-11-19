@@ -58,8 +58,7 @@ Future<PlaybackProvider> _open(
       storageService: storage,
       audioEngine: FakeAudioPlayerService(),
       emePlayer: EmePlayer(),
-      spotifyApiService: FakeSpotifyApiService(
-        storage,
+      spotifyApiService: FakeSpotifyApiService(storage.auth,
         lyricsById: {
           _track.id: SpotifyLyrics(
             language: 'en',

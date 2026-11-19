@@ -178,9 +178,9 @@ Flutify 是一个采用 **Google Material 3 Expressive (MD3E)** 设计语言打�
   （AES-CTR 从任意偏移解密，`AesCtr.atOffset`），并轮换 CDN 地址，最多 4 次；仍失败时已缓冲部分播完并提示网络错误。
   下载完成后才写入缓存（先写 `.part` 再改名）；预取的下一首若还没下完就被点播，直接接着这份下载边下边播。
   边下边播时等当前曲目下完再预取下一首，不抢起播带宽。AES 逐块加密改为原地运算，解密整首不再产生几十万个临时数组。
-* **后台解密**（`services/protocol/decrypt/`）：解密在启动时预热的常驻后台 Isolate 里进行（`IsolateDecryptBackend`），
-  数据块用 `TransferableTypedData` 零拷贝往返，界面线程不再参与解密。解密方法与执行位置分离：`DecryptSpec` 描述怎么解
-  （当前 `AesCtrDecryptSpec`），新增解密方法只需实现一个 `DecryptSpec` + `AudioDecryptor`，下载 / 续传 / 后台线程无需改动。
+* **下载与解密在 Rust**（`rust/flutify_core/src/downloads.rs` 的 `download_progressive`，Dart 接口
+  `api/audio_stream.rs`）：CDN 下载、AES-128-CTR 解密、Range 续传、CDN 轮换与重试都在 Rust 里完成，明文块带文件偏移经
+  frb Stream 推给 Dart；`ProgressiveDownload` 只把数据放进播放缓冲区、管理 ready / 取消 / 进度（取消订阅即停止下载）。
 * **音频缓存**：下载完成时把 Spotify 私有头里的响度数据另存为同名 `.norm` 旁路文件（私有头会被剥掉，标准解码器不认识）；
   缓存命中时刷新文件修改时间，淘汰按修改时间从旧到新。功能上线前下载的旧缓存没有 `.norm`，按原音量播放。
 * **图片解码降采样**：`CoverImage` 按显示尺寸 × DPR 设置 `memCacheWidth`，避免大图全尺寸解码。
@@ -260,8 +260,7 @@ d:/Flutify/app/
 │   │   │   ├── pathfinder_parsers.dart   # 响应 → App 数据模型（宽松解析、解包 Wrapper）
 │   │   │   └── desktop_data_source.dart  # 页面级数据：主页/分类/搜索/专辑/艺人/歌单，5 分钟查询缓存
 │   │   ├── protocol/                     # 完整曲目播放链路（AP 握手、音频密钥、CDN 解密、TrackAudioSource）
-│   │   │   ├── progressive_download.dart # 边下边播：流式解密到内存、Range 续传、按区间读取
-│   │   │   └── decrypt/                  # 可插拔解密：DecryptSpec（解法）+ DecryptBackend（内联 / 常驻后台 Isolate）
+│   │   │   └── progressive_download.dart # 边下边播：Rust 下载解密推送明文到内存缓冲区，按区间读取
 │   │   ├── network/                      # 网络代理：系统代理读取、全局选路（HttpOverrides）、CONNECT 隧道、测试连接
 │   │   ├── media_controls/               # 系统媒体控制：Windows SMTC（原生通道）/ audio_service（Android、iOS）+ 播放状态同步
 │   │   │                                 #   multi_media_controls.dart：多个控制端合一（SMTC + 任务栏歌词）

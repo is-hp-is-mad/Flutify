@@ -6,7 +6,7 @@ import 'package:flutify_app/models/appearance.dart';
 import 'package:flutify_app/models/playback_context.dart';
 import 'package:flutify_app/providers/playback_provider.dart';
 import 'package:flutify_app/services/eme/eme_player.dart';
-import 'package:flutify_app/services/protocol/track_playback_exception.dart';
+import 'package:flutify_app/models/track_playback_exception.dart';
 import 'package:flutify_app/services/storage_service.dart';
 import 'package:flutify_app/ui/screens/main_shell.dart';
 import 'package:flutter/material.dart';
@@ -64,7 +64,7 @@ void main() {
 
           SharedPreferences.setMockInitialValues({});
           final storage = await StorageService.init();
-          await storage.setAppearanceJson(
+          await storage.preferences.setAppearanceJson(
             jsonEncode(AppearanceSettings.defaults.copyWith(fontScale: fontScale).toJson()),
           );
 
@@ -80,7 +80,7 @@ void main() {
               storageService: storage,
               audioEngine: FakeAudioPlayerService(),
               emePlayer: EmePlayer(),
-              spotifyApiService: FakeSpotifyApiService(storage),
+              spotifyApiService: FakeSpotifyApiService(storage.auth),
               trackAudioLoader: loader,
             ),
           );

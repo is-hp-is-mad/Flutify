@@ -95,7 +95,7 @@ _open(
   final storage = await StorageService.init();
   final audio = FakeAudioPlayerService();
   final api = _ArtistApi(
-    storage,
+    storage.auth,
     details: artistDetails,
     lyricsById: {
       track.id: SpotifyLyrics(

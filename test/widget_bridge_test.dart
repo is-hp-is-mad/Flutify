@@ -285,8 +285,7 @@ void main() {
           });
       audio = FakeAudioPlayerService();
       playback = PlaybackProvider(
-        audio,
-        await StorageService.init(),
+        audio, (await StorageService.init()).playback,
         random: Random(1),
         audioLoader: FakeTrackAudioSource(),
       );
@@ -407,9 +406,7 @@ void main() {
   group('PlaybackProvider.upcomingTracks', () {
     test('用户队列在前、上下文在后，只取前 limit 首', () async {
       SharedPreferences.setMockInitialValues({});
-      final playback = PlaybackProvider(
-        FakeAudioPlayerService(),
-        await StorageService.init(),
+      final playback = PlaybackProvider(FakeAudioPlayerService(), (await StorageService.init()).playback,
         random: Random(1),
         audioLoader: FakeTrackAudioSource(),
       );

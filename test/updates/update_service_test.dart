@@ -6,7 +6,7 @@ import 'package:crypto/crypto.dart';
 import 'package:flutify_app/services/storage_service.dart';
 import 'package:flutify_app/services/updates/update_downloader.dart';
 import 'package:flutify_app/services/updates/update_installer.dart';
-import 'package:flutify_app/services/updates/update_release.dart';
+import 'package:flutify_app/models/update_release.dart';
 import 'package:flutify_app/services/updates/update_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -89,7 +89,7 @@ void main() {
 
   UpdateService service({MockClient? client}) {
     final result = UpdateService(
-      storage: storage,
+      storage: storage.updates,
       installer: installer,
       currentTag: 'v0.06-beta',
       client: client ?? MockClient(respond),
@@ -123,7 +123,7 @@ void main() {
   );
 
   test('automatic download also waits for explicit installation', () async {
-    await storage.setUpdateMode('automatic');
+    await storage.updates.setUpdateMode('automatic');
     final updates = service();
     await updates.check();
     expect(updates.error, isNull);
@@ -138,8 +138,8 @@ void main() {
       final updates = service();
       await updates.check(manual: true);
       await updates.skip();
-      expect(storage.skippedUpdate, 'v0.07-beta');
-      await storage.setLastUpdateCheck('');
+      expect(storage.updates.skippedUpdate, 'v0.07-beta');
+      await storage.updates.setLastUpdateCheck('');
       final restarted = service();
       await restarted.check();
       expect(restarted.release, isNull);
@@ -164,6 +164,6 @@ void main() {
     await check;
     expect(updates.status, UpdateStatus.idle);
     expect(updates.release, isNull);
-    expect(storage.updateMode, 'disabled');
+    expect(storage.updates.updateMode, 'disabled');
   });
 }

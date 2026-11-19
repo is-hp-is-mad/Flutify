@@ -14,7 +14,7 @@ import 'package:flutify_app/services/auth/auth_constants.dart';
 import 'package:flutify_app/services/auth/client_token_service.dart';
 import 'package:flutify_app/services/protocol/access_point.dart';
 import 'package:flutify_app/services/protocol/aes.dart';
-import 'package:flutify_app/services/protocol/spotify_id.dart';
+import 'package:flutify_app/core/utils/spotify_id.dart';
 import 'package:flutify_app/services/protocol/storage_resolver.dart';
 import 'package:flutify_app/services/protocol/track_audio_loader.dart';
 import 'package:flutify_app/services/protocol/track_metadata.dart';
@@ -95,7 +95,7 @@ Future<void> main(List<String> args) async {
 
     // ---- 4) AP 握手 + 登录 + 音频密钥 ----
     stdout.writeln('[4/6] AP 握手（DH + Shannon）+ RequestKey ...');
-    final ap = await SpotifyAccessPoint.connect(client: client);
+    final ap = await SpotifyAccessPoint.connect();
     try {
       final welcome = await ap.authenticate(
         ApCredentials.accessToken(accessToken),
@@ -196,11 +196,9 @@ Future<void> _apCheck(String token) async {
   final client = http.Client();
   try {
     stdout.writeln('[ap-check] 解析接入点 ...');
-    final endpoint = await SpotifyAccessPoint.resolveAccessPoint(client: client);
-    stdout.writeln('[ap-check] 连接 ${endpoint.host}:${endpoint.port} 并握手（ClientHello → APResponse → ClientResponsePlaintext）...');
-    final ap = await SpotifyAccessPoint.connect(client: client);
+    // AP 连接、握手与登录由 Rust 核心完成（需已加载 Rust 核心）
+    final ap = await SpotifyAccessPoint.connect();
     try {
-      stdout.writeln('[ap-check] 握手成功（RSA 签名验证 + Shannon 密钥推导均通过）');
       stdout.writeln('[ap-check] 用 token 登录验证加密通道（预期：服务端回 AuthFailure）...');
       final welcome = await ap.authenticate(
         ApCredentials.accessToken(token),

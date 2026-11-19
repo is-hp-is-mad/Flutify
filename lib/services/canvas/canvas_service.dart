@@ -3,8 +3,11 @@ import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
+import '../../core/rust_core.dart';
+import '../../src/rust/api/backend.dart' as rust;
 import '../pathfinder/pathfinder_client.dart';
 import '../pathfinder/pathfinder_operations.dart';
+import '../rust_backend_bridge.dart';
 
 class SpotifyCanvas {
   final Uri url;
@@ -57,32 +60,57 @@ class CanvasService {
     return _pending.putIfAbsent(uri, () async {
       CanvasMedia? media;
       try {
-        final data = await pathfinder
-            .query(PathfinderOperation.canvas, {'trackUri': uri})
-            .timeout(const Duration(seconds: 12));
-        final canvas = SpotifyCanvas.fromData(data);
-        if (canvas != null) {
-          final response = await client
-              .send(http.Request('GET', canvas.url))
+        if (RustCore.ready) {
+          final proxy = await RustBackendBridge.proxyForUrl(
+            'https://api-partner.spotify.com/pathfinder/v2/query',
+          );
+          if (proxy != null) {
+            try {
+              final dto = await rust.rustFetchCanvas(
+                hash: PathfinderOperation.canvas.sha256Hash,
+                trackUri: uri,
+                proxy: proxy,
+              );
+              if (dto != null) {
+                final parsed = Uri.tryParse(dto.url);
+                if (parsed != null) {
+                  media = CanvasMedia(
+                    SpotifyCanvas(parsed, isVideo: dto.isVideo),
+                    dto.bytes,
+                  );
+                }
+              }
+            } catch (_) {}
+          }
+        }
+        if (media == null) {
+          final data = await pathfinder
+              .query(PathfinderOperation.canvas, {'trackUri': uri})
               .timeout(const Duration(seconds: 12));
-          if (response.statusCode != 200) {
-            await response.stream.listen(null).cancel();
-            throw StateError('Canvas HTTP ${response.statusCode}');
-          }
-          const limit = 12 * 1024 * 1024;
-          if ((response.contentLength ?? 0) > limit) {
-            await response.stream.listen(null).cancel();
-            throw StateError('Canvas exceeds size limit');
-          }
-          final bytes = BytesBuilder(copy: false);
-          await for (final chunk in response.stream.timeout(
-            const Duration(seconds: 12),
-          )) {
-            if (bytes.length + chunk.length > limit)
+          final canvas = SpotifyCanvas.fromData(data);
+          if (canvas != null) {
+            final response = await client
+                .send(http.Request('GET', canvas.url))
+                .timeout(const Duration(seconds: 12));
+            if (response.statusCode != 200) {
+              await response.stream.listen(null).cancel();
+              throw StateError('Canvas HTTP ${response.statusCode}');
+            }
+            const limit = 12 * 1024 * 1024;
+            if ((response.contentLength ?? 0) > limit) {
+              await response.stream.listen(null).cancel();
               throw StateError('Canvas exceeds size limit');
-            bytes.add(chunk);
+            }
+            final bytes = BytesBuilder(copy: false);
+            await for (final chunk in response.stream.timeout(
+              const Duration(seconds: 12),
+            )) {
+              if (bytes.length + chunk.length > limit)
+                throw StateError('Canvas exceeds size limit');
+              bytes.add(chunk);
+            }
+            if (bytes.isNotEmpty) media = CanvasMedia(canvas, bytes.takeBytes());
           }
-          if (bytes.isNotEmpty) media = CanvasMedia(canvas, bytes.takeBytes());
         }
       } catch (_) {
         // Canvas is optional: a failed request must not affect audio playback.

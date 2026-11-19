@@ -15,8 +15,8 @@ void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     final storage = await StorageService.init();
-    api = ControlledHomeApi(storage);
-    provider = SpotifyProvider(api, storage);
+    api = ControlledHomeApi(storage.auth);
+    provider = SpotifyProvider(api, storage.library);
     api.requests.single.result.complete(SampleHome.feed);
     await Future<void>.delayed(Duration.zero);
   });
@@ -87,7 +87,7 @@ void main() {
   );
 
   test('refresh completion after dispose does not notify', () async {
-    final disposed = SpotifyProvider(api, await StorageService.init());
+    final disposed = SpotifyProvider(api, (await StorageService.init()).library);
     api.requests.last.result.complete(HomeFeed.empty);
     await Future<void>.delayed(Duration.zero);
     final refresh = disposed.refreshHome();

@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../l10n/l10n.dart';
-import '../../services/updates/update_release.dart';
+import '../../models/update_release.dart';
 import '../../services/updates/update_service.dart';
 import 'package:material_3_expressive/material_3_expressive.dart' show M3EButtonStyle;
 import 'flutify_dialog.dart';
@@ -78,6 +78,10 @@ Future<void> showUpdateDialog(BuildContext context, UpdateService service) => sh
 );
 
 Future<void> openUpdatePage(BuildContext context, UpdateService service) async {
+  // 手动更新（macOS / Linux 等）：同样记下「更新后续播」，新版本启动后自动接着放
+  try {
+    await service.beforeInstall?.call();
+  } catch (_) {}
   try {
     final opened = await launchUrl(service.release?.page ?? Uri.parse('https://github.com/is-hp-is-mad/Flutify/releases'),
         mode: LaunchMode.externalApplication);

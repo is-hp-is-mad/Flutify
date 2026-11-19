@@ -14,6 +14,7 @@ import 'package:flutify_app/ui/shell/mobile/mobile_bottom_bar.dart';
 import 'package:flutify_app/ui/widgets/mini_player.dart';
 import 'package:flutify_app/ui/widgets/player_controls.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hyper_glass/hyper_ui.dart' show HyperBottomBar;
@@ -23,7 +24,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../fakes/fake_audio_player_service.dart';
 import '../fakes/fake_track_audio_source.dart';
 
-/// Android 柔光玻璃的悬浮底栏：尺寸、随滚动收放、切换 Tab；其他平台保持原底栏。
+/// Android 与桌面窄窗口柔光玻璃的悬浮底栏：尺寸、随滚动收放、切换 Tab；iOS 保持原底栏。
 void main() {
   const tracks = [
     SpotifyTrack(id: 'synthetic-1', name: 'Synthetic One', durationMs: 180000),
@@ -67,7 +68,7 @@ void main() {
         storageService: storage,
         audioEngine: FakeAudioPlayerService(),
         emePlayer: EmePlayer(),
-        spotifyApiService: SpotifyApiService(storage),
+        spotifyApiService: SpotifyApiService(storage.auth),
         trackAudioLoader: FakeTrackAudioSource(),
       ),
     );
@@ -267,6 +268,73 @@ void main() {
     await pumpShell(tester, platform: TargetPlatform.iOS);
     expect(find.byType(AndroidFloatingBar), findsNothing);
     expect(find.byType(HyperBottomBar), findsOneWidget);
+  });
+
+  for (final platform in [
+    TargetPlatform.windows,
+    TargetPlatform.macOS,
+    TargetPlatform.linux,
+  ]) {
+    shellTest('$platform 窄窗口与 Android 对齐：使用悬浮底栏、滚动收放与 Tab 动画', (tester) async {
+      await pumpShell(tester, platform: platform);
+      expect(find.byType(AndroidFloatingBar), findsOneWidget);
+      expect(find.byType(HyperBottomBar), findsNothing);
+
+      final openNav = rectOf(tester, 'floating-bar-nav');
+      fold(tester).value = true;
+      await settle(tester);
+      expectRect(
+        rectOf(tester, 'floating-bar-nav'),
+        const Rect.fromLTWH(16, 844 - 46 - 56, 56, 56),
+      );
+      expect(find.byKey(const ValueKey('floating-bar-search')), findsOneWidget);
+
+      fold(tester).value = false;
+      await settle(tester);
+      expectRect(rectOf(tester, 'floating-bar-nav'), openNav);
+
+      await tester.tap(find.byKey(const ValueKey('floating-bar-tab-2')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 60));
+      expect(find.byKey(const ValueKey('floating-bar-lens')), findsOneWidget);
+      await settle(tester);
+      expect(find.byKey(const ValueKey('floating-bar-lens')), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets('桌面鼠标滚轮多次小步向下滚动也能累积触发收起，回到顶部展开', (tester) async {
+    final fold = FloatingBarFold();
+    addTearDown(fold.dispose);
+    final controller = ScrollController();
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NotificationListener<ScrollNotification>(
+          onNotification: fold.handle,
+          child: ListView.builder(
+            controller: controller,
+            itemCount: 100,
+            itemBuilder: (_, i) => SizedBox(height: 60, child: Text('$i')),
+          ),
+        ),
+      ),
+    );
+    final center = tester.getCenter(find.byType(ListView));
+    for (var i = 0; i < 3; i++) {
+      tester.binding.handlePointerEvent(
+        PointerScrollEvent(
+          position: center,
+          scrollDelta: const Offset(0, 15),
+        ),
+      );
+      await tester.pump();
+    }
+    expect(fold.value, isTrue);
+
+    controller.jumpTo(0);
+    await tester.pump();
+    expect(fold.value, isFalse);
   });
 
   testWidgets('滚动驱动收放：往下读收起，往回滚保持收起，回到顶部才展开', (tester) async {

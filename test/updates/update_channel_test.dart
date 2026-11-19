@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:flutify_app/services/storage_service.dart';
 import 'package:flutify_app/services/updates/update_installer.dart';
-import 'package:flutify_app/services/updates/update_release.dart';
+import 'package:flutify_app/models/update_release.dart';
 import 'package:flutify_app/services/updates/update_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -36,7 +36,7 @@ void main() {
 
   UpdateService service(String current, List<String> tags) {
     final result = UpdateService(
-      storage: storage,
+      storage: storage.updates,
       installer: _Installer(temporary),
       currentTag: current,
       client: MockClient(
@@ -120,7 +120,7 @@ void main() {
       await updates.setChannel(UpdateChannel.selfTest);
       await settle(updates);
       expect(updates.release?.tag, 'v0.18.160-selftest');
-      expect(storage.updateChannel, 'selfTest');
+      expect(storage.updates.updateChannel, 'selfTest');
     });
 
     test('切回正式版不会降级：更高的自测版留在原地，找到的自测版更新被丢弃', () async {

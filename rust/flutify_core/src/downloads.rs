@@ -1,10 +1,11 @@
 //! 音频下载（边下边播）：
 //! - [download_to_file]：EME 主链路。多连接分段 Range 下载直接写文件，按「从 0 起连续可用字节」汇报进度，
 //!   语义与 `lib/services/eme/segmented_download.dart` 一致；CDN 支持 HTTP/2 时多段共用一条连接。
-//! - [download_decrypt]：AP 链路。下载同时 AES-128-CTR 解密，解密块逐个交给调用方（不再经 Dart 解密 Isolate 往返）。
+//! - [download_progressive]：AP 链路。下载同时 AES-128-CTR 解密，断线续传 / CDN 轮换 / 重试也在这里，
+//!   明文块按文件偏移逐个交给调用方（Dart 只负责放进播放缓冲区）。
 //!
 //! 结果通过回调逐个上报（api 层把它接到 frb 的 StreamSink）；回调返回 false 表示调用方已取消，立即停止下载。
-//! 只处理直连的 CDN 请求，网关 / 代理由 Dart 侧判断后不走这里。
+//! 代理 / 网关路线由 Dart 侧按网络设置选好后传入。
 
 use std::fs::{File, OpenOptions};
 use std::io::{Seek, SeekFrom, Write};
@@ -75,73 +76,161 @@ fn total_from_content_range(response: &reqwest::Response) -> Option<u64> {
 }
 
 // ---------------------------------------------------------------------------
-// 下载 + 解密（AP 链路）
+// 边下边播 + 解密（AP 链路）
 // ---------------------------------------------------------------------------
 
-/// 从 [offset] 起下载 [url] 到结尾，[key] 非空时按 AES-128-CTR（文件坐标）解密后逐块上报。
-/// 先报一次元信息（status 与总长度），再逐块报数据，最后报完成或失败。
-/// 服务器忽略 Range（回 200）时从文件开头解密，调用方据 status 判断写入位置。
-pub async fn download_decrypt(
-    proxy: String,
-    url: String,
-    headers: Vec<(String, String)>,
-    offset: u64,
-    key: Vec<u8>,
-    iv: Vec<u8>,
-    emit: Emit,
-) {
-    let result = run_decrypt(&proxy, &url, &headers, offset, &key, &iv, &emit).await;
-    match result {
-        Ok(()) => {}
-        Err(message) => {
-            emit(DownloadEvent { kind: EVENT_ERROR, message, ..Default::default() });
-        }
-    }
+/// 一个 CDN 地址及其路线（代理 / 额外请求头由 Dart 侧按网络设置选好）。
+#[derive(Debug, Clone, Default)]
+pub struct DownloadTarget {
+    pub proxy: String,
+    pub url: String,
+    pub headers: Vec<(String, String)>,
 }
 
-async fn run_decrypt(
-    proxy: &str,
-    url: &str,
-    headers: &[(String, String)],
-    offset: u64,
+/// 单个音频文件的长度上限：Dart 侧按声明长度预分配播放缓冲区，不接受离谱的声明。
+const MAX_PROGRESSIVE_BYTES: u64 = 1024 * 1024 * 1024;
+
+/// 跨重试保留的下载状态（文件坐标）。
+#[derive(Debug, Default)]
+struct Progressive {
+    /// 文件总长（第一次拿到有效声明后固定）；未知时无法续传，每次都从头下载。
+    total: Option<u64>,
+    /// 从 0 起已连续收到的字节数。
+    received: u64,
+}
+
+enum Attempt {
+    Done,
+    Cancelled,
+}
+
+/// 去掉 `connect:` / `request:` 前缀，得到给用户看的原因。
+fn detail(message: &str) -> &str {
+    message
+        .strip_prefix("connect:")
+        .or_else(|| message.strip_prefix("request:"))
+        .unwrap_or(message)
+}
+
+/// 下载 + AES-128-CTR 解密（[key] 为空时不解密）整个文件，供边下边播：
+/// - 每次请求先报元信息（`status`、`total` = 文件总长或 0 = 未知、`bytes` = 本次数据的起始偏移），
+///   随后逐块报数据（`bytes` = 该块在文件中的偏移，`data` = 明文），最后报完成（`total`）或失败；
+/// - 中途断线时用 HTTP Range 从已收到的位置续传，依次轮换 [targets]，累计失败 [max_attempts] 次才放弃；
+///   服务器忽略 Range（回 200）时从头重新下载（内容相同，调用方按偏移覆盖写即可）；
+/// - 总长未知（无 Content-Length）时无法续传，重试从头开始（元信息的 `bytes` 为 0，调用方丢弃已收数据）。
+///
+/// 回调返回 false（Dart 取消订阅）时立即停止并关闭连接，不再上报任何事件。
+pub async fn download_progressive(
+    targets: Vec<DownloadTarget>,
+    key: Vec<u8>,
+    iv: Vec<u8>,
+    max_attempts: u32,
+    emit: Emit,
+) {
+    if targets.is_empty() {
+        emit(DownloadEvent {
+            kind: EVENT_ERROR,
+            message: "request:没有可用的 CDN 地址".into(),
+            ..Default::default()
+        });
+        return;
+    }
+    let mut state = Progressive::default();
+    let mut last = String::from("request:下载失败");
+    for attempt in 0..max_attempts.max(1) as usize {
+        let target = &targets[attempt % targets.len()];
+        match progressive_attempt(target, &key, &iv, &mut state, &emit).await {
+            Ok(Attempt::Done) => {
+                let total = state.total.unwrap_or(state.received);
+                emit(DownloadEvent { kind: EVENT_DONE, total, ..Default::default() });
+                return;
+            }
+            Ok(Attempt::Cancelled) => return,
+            Err(e) => last = e,
+        }
+    }
+    emit(DownloadEvent {
+        kind: EVENT_ERROR,
+        message: format!("request:所有 CDN 地址下载失败：{}", detail(&last)),
+        ..Default::default()
+    });
+}
+
+/// 一次请求：从 `state.received` 处（总长已知时）续传到结尾。
+async fn progressive_attempt(
+    target: &DownloadTarget,
     key: &[u8],
     iv: &[u8],
+    state: &mut Progressive,
     emit: &Emit,
-) -> Result<(), String> {
+) -> Result<Attempt, String> {
+    let offset = if state.total.is_some() { state.received } else { 0 };
     let range = (offset > 0).then_some((offset, None));
-    let response = request(proxy, url, headers, range)?.send().await.map_err(|e| error_text(&e))?;
+    let response = request(&target.proxy, &target.url, &target.headers, range)?
+        .send()
+        .await
+        .map_err(|e| error_text(&e))?;
     let status = response.status().as_u16();
     if status != 200 && status != 206 {
         return Err(format!("request:CDN 返回 HTTP {status}"));
     }
-    let total = if status == 206 {
-        total_from_content_range(&response).unwrap_or(0)
+    let declared = if status == 206 {
+        total_from_content_range(&response)
     } else {
-        response.content_length().unwrap_or(0)
+        response.content_length()
     };
-    if !emit(DownloadEvent { kind: EVENT_META, status, total, ..Default::default() }) {
-        return Ok(());
+    if let Some(t) = declared.filter(|t| *t > 0) {
+        if t > MAX_PROGRESSIVE_BYTES {
+            return Err("request:CDN 声明的文件长度超出上限".into());
+        }
+        state.total.get_or_insert(t);
     }
-    let start = if status == 206 { offset } else { 0 };
+    // 206 才从续传位置开始；200（含忽略 Range）从头写
+    let mut pos = if status == 206 { offset } else { 0 };
+    if state.total.is_none() {
+        state.received = 0;
+    }
+    if !emit(DownloadEvent {
+        kind: EVENT_META,
+        status,
+        total: state.total.unwrap_or(0),
+        bytes: pos,
+        ..Default::default()
+    }) {
+        return Ok(Attempt::Cancelled);
+    }
     let mut ctr = if key.is_empty() {
         None
     } else {
-        Some(AesCtr::at_offset(key, iv, start as usize).map_err(|e| format!("request:{e}"))?)
+        Some(AesCtr::at_offset(key, iv, pos as usize).map_err(|e| format!("request:{e}"))?)
     };
+    let limit = state.total.unwrap_or(MAX_PROGRESSIVE_BYTES);
     let mut stream = response.bytes_stream();
-    let mut received = start;
     while let Some(chunk) = stream.next().await {
         let mut data = chunk.map_err(|e| format!("request:{e}"))?.to_vec();
+        if data.is_empty() {
+            continue;
+        }
+        let end = pos + data.len() as u64;
+        if end > limit {
+            return Err("request:CDN 返回的数据超出声明长度".into());
+        }
         if let Some(ctr) = ctr.as_mut() {
             ctr.process(&mut data);
         }
-        received += data.len() as u64;
-        if !emit(DownloadEvent { kind: EVENT_DATA, data, ..Default::default() }) {
-            return Ok(()); // 已取消：丢弃响应即关闭连接
+        if !emit(DownloadEvent { kind: EVENT_DATA, bytes: pos, data, ..Default::default() }) {
+            return Ok(Attempt::Cancelled); // 丢弃响应即关闭连接
         }
+        pos = end;
+        state.received = state.received.max(pos);
     }
-    emit(DownloadEvent { kind: EVENT_DONE, total: received, ..Default::default() });
-    Ok(())
+    match state.total {
+        Some(total) if state.received < total => {
+            Err(format!("request:下载中断（{}/{total}）", state.received))
+        }
+        None if pos == 0 => Err("request:CDN 返回空文件".into()),
+        _ => Ok(Attempt::Done),
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -323,10 +412,16 @@ async fn run_file(options: FileDownloadOptions, emit: Emit) -> Result<(), String
     if status != 206 {
         return Err(format!("request:CDN 返回 HTTP {status}"));
     }
+    const MAX_DOWNLOAD_BYTES: u64 = 4 * 1024 * 1024 * 1024;
+    const MAX_SEGMENTS: u64 = 65_536;
     let total = total_from_content_range(&first)
-        .filter(|t| *t > 0)
-        .ok_or_else(|| "request:CDN 未返回 Content-Range 总长".to_string())?;
-    let count = total.div_ceil(segment_bytes) as usize;
+        .filter(|t| *t > 0 && *t <= MAX_DOWNLOAD_BYTES)
+        .ok_or_else(|| "request:CDN 返回无效的 Content-Range 总长".to_string())?;
+    let raw_count = total.div_ceil(segment_bytes);
+    if raw_count == 0 || raw_count > MAX_SEGMENTS {
+        return Err("request:CDN 分片数量超出上限".to_string());
+    }
+    let count = raw_count as usize;
     *shared.segments.lock().unwrap() = Segments {
         got: vec![0; count],
         len: (0..count)
@@ -507,49 +602,247 @@ mod tests {
         assert_eq!(events.lock().unwrap().last().unwrap().kind, EVENT_DONE);
     }
 
-    #[test]
-    fn decrypting_download_matches_aes_ctr_and_resumes_at_offset() {
-        let plain = body(4000);
-        let key = vec![7u8; 16];
-        let iv = vec![9u8; 16];
-        let mut encrypted = plain.clone();
-        AesCtr::at_offset(&key, &iv, 0).unwrap().process(&mut encrypted);
-        let url = serve(encrypted, true, Arc::new(AtomicUsize::new(0)));
+    /// 可编程的测试服务器：每个请求交给 [respond]（请求序号、Range 起点），返回要写回的原始 HTTP 响应，写完即断开。
+    /// 返回地址与记录下来的各请求 Range 起点。
+    #[allow(clippy::type_complexity)]
+    fn serve_with(
+        respond: impl Fn(usize, Option<usize>) -> Vec<u8> + Send + Sync + 'static,
+    ) -> (String, Arc<Mutex<Vec<Option<usize>>>>) {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr = listener.local_addr().unwrap();
+        let ranges = Arc::new(Mutex::new(Vec::new()));
+        let seen = ranges.clone();
+        let respond = Arc::new(respond);
+        std::thread::spawn(move || {
+            for stream in listener.incoming() {
+                let mut stream = match stream { Ok(s) => s, Err(_) => break };
+                let respond = respond.clone();
+                let seen = seen.clone();
+                std::thread::spawn(move || {
+                    let mut buf = [0u8; 4096];
+                    let n = stream.read(&mut buf).unwrap_or(0);
+                    let text = String::from_utf8_lossy(&buf[..n]).to_lowercase();
+                    let start = text
+                        .lines()
+                        .find_map(|l| l.strip_prefix("range: bytes="))
+                        .and_then(|r| r.trim().split_once('-'))
+                        .and_then(|(a, _)| a.parse::<usize>().ok());
+                    let index = {
+                        let mut seen = seen.lock().unwrap();
+                        seen.push(start);
+                        seen.len() - 1
+                    };
+                    let _ = stream.write_all(&respond(index, start));
+                    let _ = stream.flush();
+                });
+            }
+        });
+        (format!("http://{addr}/audio"), ranges)
+    }
 
-        for offset in [0u64, 1234] {
-            let (emit, events) = collect();
-            block(download_decrypt(String::new(), url.clone(), vec![], offset, key.clone(), iv.clone(), emit));
-            let events = events.lock().unwrap();
-            assert_eq!(events[0].kind, EVENT_META);
-            assert_eq!(events[0].total, 4000);
-            let out: Vec<u8> = events.iter().filter(|e| e.kind == EVENT_DATA).flat_map(|e| e.data.clone()).collect();
-            assert_eq!(out, plain[offset as usize..]);
-            assert_eq!(events.last().unwrap().kind, EVENT_DONE);
+    fn ok_full(body: &[u8]) -> Vec<u8> {
+        let mut r = format!("HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", body.len()).into_bytes();
+        r.extend_from_slice(body);
+        r
+    }
+
+    fn partial_from(body: &[u8], start: usize) -> Vec<u8> {
+        let mut r = format!(
+            "HTTP/1.1 206 Partial Content\r\nContent-Length: {}\r\nContent-Range: bytes {start}-{}/{}\r\nConnection: close\r\n\r\n",
+            body.len() - start,
+            body.len() - 1,
+            body.len()
+        )
+        .into_bytes();
+        r.extend_from_slice(&body[start..]);
+        r
+    }
+
+    /// 声明完整长度但只发前 [cut] 字节就断开（模拟中途断线）。
+    fn broken_full(body: &[u8], cut: usize) -> Vec<u8> {
+        let mut r = format!("HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", body.len()).into_bytes();
+        r.extend_from_slice(&body[..cut]);
+        r
+    }
+
+    fn targets(urls: &[&str]) -> Vec<DownloadTarget> {
+        urls.iter().map(|u| DownloadTarget { url: u.to_string(), ..Default::default() }).collect()
+    }
+
+    /// 按数据块的文件偏移拼回整个文件（与 Dart 侧写播放缓冲区的方式一致）。
+    fn assemble(events: &[DownloadEvent]) -> Vec<u8> {
+        let mut out = Vec::new();
+        for e in events.iter().filter(|e| e.kind == EVENT_DATA) {
+            let start = e.bytes as usize;
+            let end = start + e.data.len();
+            if out.len() < end {
+                out.resize(end, 0);
+            }
+            out[start..end].copy_from_slice(&e.data);
         }
+        out
+    }
+
+    fn encrypted(plain: &[u8], key: &[u8], iv: &[u8]) -> Vec<u8> {
+        let mut data = plain.to_vec();
+        AesCtr::at_offset(key, iv, 0).unwrap().process(&mut data);
+        data
+    }
+
+    const KEY: [u8; 16] = [7u8; 16];
+    const IV: [u8; 16] = [9u8; 16];
+
+    #[test]
+    fn progressive_download_decrypts_whole_file_in_order() {
+        let plain = body(40_000);
+        let cipher = encrypted(&plain, &KEY, &IV);
+        let (url, ranges) = serve_with(move |_, _| ok_full(&cipher));
+        let (emit, events) = collect();
+        block(download_progressive(targets(&[&url]), KEY.to_vec(), IV.to_vec(), 3, emit));
+        let events = events.lock().unwrap();
+        assert_eq!(events[0].kind, EVENT_META);
+        assert_eq!((events[0].status, events[0].total, events[0].bytes), (200, 40_000, 0));
+        // 数据块首尾相接
+        let mut next = 0;
+        for e in events.iter().filter(|e| e.kind == EVENT_DATA) {
+            assert_eq!(e.bytes, next);
+            next += e.data.len() as u64;
+        }
+        assert_eq!(assemble(&events), plain);
+        let last = events.last().unwrap();
+        assert_eq!((last.kind, last.total), (EVENT_DONE, 40_000));
+        assert_eq!(ranges.lock().unwrap().as_slice(), &[None]);
+    }
+
+    #[test]
+    fn progressive_download_resumes_with_range_on_next_cdn() {
+        let plain = body(60_000);
+        let cipher = Arc::new(encrypted(&plain, &KEY, &IV));
+        let first = cipher.clone();
+        let (url1, ranges1) = serve_with(move |_, _| broken_full(&first, 20_000));
+        let second = cipher.clone();
+        let (url2, ranges2) = serve_with(move |_, start| partial_from(&second, start.unwrap_or(0)));
+        let (emit, events) = collect();
+        block(download_progressive(targets(&[&url1, &url2]), KEY.to_vec(), IV.to_vec(), 4, emit));
+        let events = events.lock().unwrap();
+        assert_eq!(events.last().unwrap().kind, EVENT_DONE, "{:?}", events.last());
+        assert_eq!(assemble(&events), plain);
+        assert_eq!(ranges1.lock().unwrap().as_slice(), &[None]);
+        // 第二次请求从第一次已收到的位置续传
+        let resumed = ranges2.lock().unwrap()[0].expect("续传请求应带 Range");
+        assert!(resumed > 0 && resumed <= 20_000, "{resumed}");
+        let meta: Vec<_> = events.iter().filter(|e| e.kind == EVENT_META).collect();
+        assert_eq!(meta.len(), 2);
+        assert_eq!((meta[1].status, meta[1].bytes, meta[1].total), (206, resumed as u64, 60_000));
+    }
+
+    #[test]
+    fn progressive_download_restarts_when_server_ignores_range() {
+        let plain = body(30_000);
+        let cipher = encrypted(&plain, &KEY, &IV);
+        let (url, ranges) = serve_with(move |i, _| if i == 0 { broken_full(&cipher, 9_000) } else { ok_full(&cipher) });
+        let (emit, events) = collect();
+        block(download_progressive(targets(&[&url]), KEY.to_vec(), IV.to_vec(), 3, emit));
+        let events = events.lock().unwrap();
+        assert_eq!(events.last().unwrap().kind, EVENT_DONE);
+        assert_eq!(assemble(&events), plain);
+        let ranges = ranges.lock().unwrap();
+        assert_eq!(ranges.len(), 2);
+        assert!(ranges[1].is_some(), "第二次应请求续传");
+        let meta: Vec<_> = events.iter().filter(|e| e.kind == EVENT_META).collect();
+        assert_eq!((meta[1].status, meta[1].bytes), (200, 0), "忽略 Range 时从头写");
+    }
+
+    #[test]
+    fn progressive_download_without_length_restarts_from_zero() {
+        let plain = body(12_000);
+        // 第一次回 500，第二次给出没有 Content-Length 的完整内容（读到连接关闭为止）
+        let no_length = move |i: usize, _: Option<usize>| {
+            if i == 0 {
+                return b"HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".to_vec();
+            }
+            let mut r = b"HTTP/1.1 200 OK\r\nConnection: close\r\n\r\n".to_vec();
+            r.extend_from_slice(&plain);
+            r
+        };
+        let expected = body(12_000);
+        let (url, ranges) = serve_with(no_length);
+        let (emit, events) = collect();
+        block(download_progressive(targets(&[&url]), vec![], vec![], 3, emit));
+        let events = events.lock().unwrap();
+        let last = events.last().unwrap();
+        assert_eq!((last.kind, last.total), (EVENT_DONE, 12_000), "{last:?}");
+        assert_eq!(assemble(&events), expected);
+        let meta: Vec<_> = events.iter().filter(|e| e.kind == EVENT_META).collect();
+        assert_eq!((meta[0].total, meta[0].bytes), (0, 0), "总长未知");
+        assert_eq!(ranges.lock().unwrap().as_slice(), &[None, None], "总长未知时不续传");
+    }
+
+    #[test]
+    fn progressive_download_gives_up_after_max_attempts() {
+        let (url, ranges) = serve_with(|_, _| b"HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".to_vec());
+        let (emit, events) = collect();
+        block(download_progressive(targets(&[&url]), KEY.to_vec(), IV.to_vec(), 2, emit));
+        let events = events.lock().unwrap();
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0].kind, EVENT_ERROR);
+        assert!(events[0].message.starts_with("request:所有 CDN 地址下载失败"), "{}", events[0].message);
+        assert!(events[0].message.contains("HTTP 403"));
+        assert_eq!(ranges.lock().unwrap().len(), 2);
+    }
+
+    #[test]
+    fn progressive_download_without_targets_fails() {
+        let (emit, events) = collect();
+        block(download_progressive(vec![], vec![], vec![], 3, emit));
+        let events = events.lock().unwrap();
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0].kind, EVENT_ERROR);
+    }
+
+    #[test]
+    fn progressive_download_rejects_data_beyond_declared_length() {
+        // 声明 1000 字节却发了 2000：每次都失败
+        let (url, _) = serve_with(|_, _| {
+            let mut r = b"HTTP/1.1 206 Partial Content\r\nContent-Range: bytes 0-999/1000\r\nConnection: close\r\n\r\n".to_vec();
+            r.extend_from_slice(&body(2000));
+            r
+        });
+        let (emit, events) = collect();
+        block(download_progressive(targets(&[&url]), vec![], vec![], 1, emit));
+        let last = events.lock().unwrap().last().unwrap().clone();
+        assert_eq!(last.kind, EVENT_ERROR);
+        assert!(last.message.contains("超出声明长度"), "{}", last.message);
     }
 
     #[test]
     fn cancelling_stops_the_download() {
-        let url = serve(body(200_000), true, Arc::new(AtomicUsize::new(0)));
+        let (url, ranges) = serve_with(|_, _| ok_full(&body(200_000)));
         let count = Arc::new(AtomicUsize::new(0));
         let seen = count.clone();
         let emit: Emit = Arc::new(move |e| {
-            if e.kind == EVENT_DATA {
-                seen.fetch_add(1, Ordering::SeqCst);
-                return false; // 第一块数据后取消
-            }
-            true
+            seen.fetch_add(1, Ordering::SeqCst);
+            e.kind != EVENT_DATA // 第一块数据后取消
         });
-        block(download_decrypt(String::new(), url, vec![], 0, vec![], vec![], emit));
-        assert_eq!(count.load(Ordering::SeqCst), 1);
+        block(download_progressive(targets(&[&url]), vec![], vec![], 4, emit));
+        assert_eq!(count.load(Ordering::SeqCst), 2, "元信息 + 一块数据之后不再上报");
+        assert_eq!(ranges.lock().unwrap().len(), 1, "取消后不重试");
     }
 
     #[test]
-    fn unreachable_cdn_is_a_connect_error() {
+    fn unreachable_cdn_reports_the_reason() {
         let (emit, events) = collect();
-        block(download_decrypt(String::new(), "http://127.0.0.1:1/x".into(), vec![], 0, vec![], vec![], emit));
+        block(download_progressive(targets(&["http://127.0.0.1:1/x"]), vec![], vec![], 2, emit));
         let events = events.lock().unwrap();
-        assert_eq!(events.last().unwrap().kind, EVENT_ERROR);
-        assert!(events.last().unwrap().message.starts_with("connect:"));
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0].kind, EVENT_ERROR);
+        assert!(events[0].message.starts_with("request:所有 CDN 地址下载失败："), "{}", events[0].message);
+    }
+
+    #[test]
+    fn detail_strips_known_prefixes_only() {
+        assert_eq!(detail("connect:refused"), "refused");
+        assert_eq!(detail("request:HTTP 403"), "HTTP 403");
+        assert_eq!(detail("other:x"), "other:x");
     }
 }

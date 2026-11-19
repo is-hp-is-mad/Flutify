@@ -8,6 +8,7 @@ import '../models/image.dart';
 import '../models/track.dart';
 import '../services/connect/connect_play_request.dart';
 import '../services/connect/connect_service.dart';
+import '../services/playback/playback_port.dart';
 
 /// Spotify Connect 遥控：同账号其他设备的列表、播放状态与远程控制。
 ///
@@ -15,7 +16,7 @@ import '../services/connect/connect_service.dart';
 /// - 只有桌面版会话可用（[available]）；其他会话所有操作都是空操作；
 /// - 远程曲目的艺人名等信息由 [resolveTrack] 补全（按 URI 缓存）；
 /// - 命令失败时抛出 [ConnectException]，由 UI 决定如何提示（免费账号部分操作会被服务端拒绝）。
-class ConnectProvider extends ChangeNotifier {
+class ConnectProvider extends ChangeNotifier implements RemoteConnectMediaPort {
   final ConnectService? _service;
   final bool Function() _available;
   final Future<SpotifyTrack?> Function(String uri) _resolveTrack;
@@ -105,21 +106,26 @@ class ConnectProvider extends ChangeNotifier {
     bool paused = false,
     bool? repeatingContext,
     bool? repeatingTrack,
-  }) => _withTarget(
-    receiverDeviceId!,
-    () => _service!.play(
-      receiverDeviceId!,
-      contextUri: request.contextUri,
-      trackUris: request.trackUris,
-      trackUri: request.trackUri,
-      trackIndex: request.trackIndex,
-      seekToMs: seekToMs,
-      paused: paused,
-      repeatingContext: repeatingContext,
-      repeatingTrack: repeatingTrack,
-      confirm: true,
-    ),
-  );
+  }) {
+    final id = receiverDeviceId;
+    final service = _service;
+    if (id == null || service == null) return Future.value();
+    return _withTarget(
+      id,
+      () => service.play(
+        id,
+        contextUri: request.contextUri,
+        trackUris: request.trackUris,
+        trackUri: request.trackUri,
+        trackIndex: request.trackIndex,
+        seekToMs: seekToMs,
+        paused: paused,
+        repeatingContext: repeatingContext,
+        repeatingTrack: repeatingTrack,
+        confirm: true,
+      ),
+    );
+  }
 
   /// 本机播放端上改随机 / 循环：发给服务端，其他设备随之更新。
   Future<bool> setReceiverOptions({
@@ -148,10 +154,15 @@ class ConnectProvider extends ChangeNotifier {
   }
 
   /// 把远程设备上的播放转到本机播放端（同一首、同一进度）。
-  Future<void> transferToReceiver() => _receiverTransfer ??= _withTarget(
-    receiverDeviceId!,
-    () => _service!.transfer(receiverDeviceId!, confirm: true),
-  ).whenComplete(() => _receiverTransfer = null);
+  Future<void> transferToReceiver() {
+    final id = receiverDeviceId;
+    final service = _service;
+    if (id == null || service == null) return Future.value();
+    return _receiverTransfer ??= _withTarget(
+      id,
+      () => service.transfer(id, confirm: true),
+    ).whenComplete(() => _receiverTransfer = null);
+  }
 
   /// 正在使用的（远程）设备；没有活动设备时为 null。
 
@@ -225,6 +236,10 @@ class ConnectProvider extends ChangeNotifier {
         // 连接失败由 status 体现（offline），服务内部会自动重连
       }
     } else {
+      _volumeTimer?.cancel();
+      _volumeTimer = null;
+      _pendingVolume = null;
+      _pendingTarget = null;
       await service.stop();
       _cluster = ConnectCluster.empty;
       _remoteInControl = false;

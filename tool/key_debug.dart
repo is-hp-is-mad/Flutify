@@ -12,7 +12,7 @@ import 'package:http/http.dart' as http;
 
 import 'package:flutify_app/services/protocol/access_point.dart';
 import 'package:flutify_app/services/protocol/extended_metadata.dart';
-import 'package:flutify_app/services/protocol/spotify_id.dart';
+import 'package:flutify_app/core/utils/spotify_id.dart';
 import 'package:flutify_app/services/protocol/track_metadata.dart';
 
 Future<void> main(List<String> args) async {
@@ -52,7 +52,7 @@ Future<void> main(List<String> args) async {
   }
 
   // AP：登录后逐个候选请求密钥
-  final ap = await SpotifyAccessPoint.connect(client: client);
+  final ap = await SpotifyAccessPoint.connect();
   try {
     await ap.authenticate(ApCredentials.accessToken(token), deviceId: prefs['flutter.sp_device_id'] as String?);
     print('AP 登录成功 user=${ap.canonicalUsername}');

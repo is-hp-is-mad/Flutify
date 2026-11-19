@@ -12,7 +12,7 @@ import '../../../../services/cache/cache_location.dart';
 import '../../../../providers/spotify_provider.dart';
 import '../../../../services/eme/eme_player.dart';
 import '../../../../core/utils/artwork_palette.dart';
-import '../../../../services/storage_service.dart';
+import '../../../../services/storage/cache_prefs_store.dart';
 import '../widgets/settings_menu_field.dart';
 import '../widgets/settings_section.dart';
 import '../widgets/settings_segmented.dart';
@@ -148,7 +148,7 @@ class _StorageSectionState extends State<StorageSection> {
   void initState() {
     super.initState();
     _store = Provider.of<AudioCacheStore?>(context, listen: false);
-    final saved = context.read<StorageService>().audioCacheLimitMb;
+    final saved = context.read<CachePrefsStore>().audioCacheLimitMb;
     // 存储里的值不在可选档位中（旧版本 / 手改）时取最接近的一档
     _limitMb = StorageSection.limitsMb.reduce(
       (a, b) => (a - saved).abs() <= (b - saved).abs() ? a : b,
@@ -165,7 +165,7 @@ class _StorageSectionState extends State<StorageSection> {
 
   void _setLimit(int mb) {
     setState(() => _limitMb = mb);
-    context.read<StorageService>().setAudioCacheLimitMb(mb);
+    context.read<CachePrefsStore>().setAudioCacheLimitMb(mb);
     _store?.maxCacheBytes = mb * ByteSize.mb;
     _refreshUsage();
   }

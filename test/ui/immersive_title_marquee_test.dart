@@ -55,14 +55,14 @@ Future<PlaybackProvider> _pumpScreen(
     MultiProvider(
       providers: [
         Provider<StorageService>.value(value: storage),
+        Provider<PreferencesStore>.value(value: storage.preferences),
+        Provider<CachePrefsStore>.value(value: storage.cache),
         ChangeNotifierProvider(
-          create: (_) => SpotifyProvider(SpotifyApiService(storage), storage),
+          create: (_) => SpotifyProvider(SpotifyApiService(storage.auth), storage.library),
         ),
-        ChangeNotifierProvider(create: (_) => LibraryProvider(storage)),
+        ChangeNotifierProvider(create: (_) => LibraryProvider(storage.library)),
         ChangeNotifierProvider(
-          create: (_) => playback = PlaybackProvider(
-            FakeAudioPlayerService(),
-            storage,
+          create: (_) => playback = PlaybackProvider(FakeAudioPlayerService(), storage.playback,
             audioLoader: FakeTrackAudioSource(),
           ),
         ),

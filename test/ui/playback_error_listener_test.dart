@@ -3,7 +3,7 @@ import 'package:flutify_app/models/playback_context.dart';
 import 'package:flutify_app/providers/playback_provider.dart';
 import 'package:flutify_app/services/auth/login_region_check.dart';
 import 'package:flutify_app/services/playback/playback_region_gate.dart';
-import 'package:flutify_app/services/protocol/track_playback_exception.dart';
+import 'package:flutify_app/models/track_playback_exception.dart';
 import 'package:flutify_app/services/storage_service.dart';
 import 'package:flutify_app/ui/navigation/app_routes.dart';
 import 'package:flutify_app/ui/widgets/playback_error_listener.dart';
@@ -34,9 +34,7 @@ void main() {
     final storage = await StorageService.init();
     code = 'CN';
     loader = FakeTrackAudioSource();
-    playback = PlaybackProvider(
-      FakeAudioPlayerService(),
-      storage,
+    playback = PlaybackProvider(FakeAudioPlayerService(), storage.playback,
       audioLoader: loader,
       regionGate: PlaybackRegionGate(probe: () async => LoginRegion(code)),
     );

@@ -36,8 +36,8 @@ void main() {
       'sp_display_name': 'Local User',
     });
     storage = await StorageService.init();
-    library = LibraryProvider(storage);
-    preferences = PreferencesProvider(storage);
+    library = LibraryProvider(storage.library);
+    preferences = PreferencesProvider(storage.preferences);
     tempDir = Directory.systemTemp.createTempSync('flutify_backup_test_');
     diskFile = File('${tempDir.path}/playlist_backups.json');
   });
@@ -59,8 +59,7 @@ void main() {
     final decoded = AppPreferences.fromJson(const {'backupIntervalMinutes': 5});
     expect(decoded.backupIntervalMinutes, 20);
 
-    final service = PlaylistBackupService(
-      storage,
+    final service = PlaylistBackupService(storage.auth, storage.preferences, storage.library,
       library: library,
       preferences: preferences,
       diskFile: diskFile,
@@ -73,8 +72,7 @@ void main() {
   });
 
   test('本机已登录账号自动备份，且收藏更改立即落盘（不等轮询）', () async {
-    final service = PlaylistBackupService(
-      storage,
+    final service = PlaylistBackupService(storage.auth, storage.preferences, storage.library,
       library: library,
       preferences: preferences,
       diskFile: diskFile,
@@ -110,8 +108,7 @@ void main() {
 
     // 重新实例化的服务直接从磁盘恢复备份，不发任何网络请求
     var remoteCalls = 0;
-    final reloaded = PlaylistBackupService(
-      storage,
+    final reloaded = PlaylistBackupService(storage.auth, storage.preferences, storage.library,
       diskFile: diskFile,
       remoteFetcher: (_) async {
         remoteCalls++;
@@ -169,8 +166,7 @@ void main() {
       ),
     };
 
-    final service = PlaylistBackupService(
-      storage,
+    final service = PlaylistBackupService(storage.auth, storage.preferences, storage.library,
       library: library,
       preferences: preferences,
       diskFile: diskFile,
@@ -253,8 +249,7 @@ void main() {
   testWidgets('BackupSection 支持开关、添加多账号、展示各账号已点赞歌曲与部分勾选导入', (
     tester,
   ) async {
-    final service = PlaylistBackupService(
-      storage,
+    final service = PlaylistBackupService(storage.auth, storage.preferences, storage.library,
       library: library,
       preferences: preferences,
       diskFile: diskFile,
@@ -336,8 +331,7 @@ void main() {
 
   group('当前账号备份的边界情况', () {
     PlaylistBackupService autoService() {
-      final service = PlaylistBackupService(
-        storage,
+      final service = PlaylistBackupService(storage.auth, storage.preferences, storage.library,
         library: library,
         preferences: preferences,
         diskFile: diskFile,
@@ -352,8 +346,8 @@ void main() {
     }
 
     Future<void> switchTo(String user) async {
-      await storage.setUsername(user);
-      await storage.setLibraryAccount(user);
+      await storage.auth.setUsername(user);
+      await storage.library.setLibraryAccount(user);
     }
 
     test('换号后旧账号备份保留为「以前登录的账号」并在设置里显示，当前账号隐藏', () async {
@@ -392,7 +386,7 @@ void main() {
       addTearDown(service.dispose);
       library.toggleLike(track1);
 
-      await storage.setUsername('other_user'); // 媒体库仍是 local_user 的数据
+      await storage.auth.setUsername('other_user'); // 媒体库仍是 local_user 的数据
       library.toggleLike(track2);
 
       expect(service.accounts.map((a) => a.id), ['local_user']);
@@ -418,7 +412,7 @@ void main() {
       tmp.writeAsStringSync(
         '[{"id":"tmp_user","displayName":"Tmp","likedTracks":[],"playlists":[]}]',
       );
-      final service = PlaylistBackupService(storage, diskFile: diskFile);
+      final service = PlaylistBackupService(storage.auth, storage.preferences, storage.library, diskFile: diskFile);
       addTearDown(service.dispose);
       expect(service.accounts.map((a) => a.id), ['tmp_user']);
       await service.pendingPersist;
@@ -427,7 +421,7 @@ void main() {
 
     test('主文件损坏时保留一份 .corrupt 副本', () async {
       diskFile.writeAsStringSync('{broken');
-      final service = PlaylistBackupService(storage, diskFile: diskFile);
+      final service = PlaylistBackupService(storage.auth, storage.preferences, storage.library, diskFile: diskFile);
       addTearDown(service.dispose);
       expect(File('${diskFile.path}.corrupt').readAsStringSync(), '{broken');
     });

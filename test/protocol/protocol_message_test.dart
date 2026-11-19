@@ -3,7 +3,6 @@ import 'dart:typed_data';
 import 'package:flutify_app/services/auth/proto_codec.dart';
 import 'package:flutify_app/services/auth/auth_constants.dart';
 import 'package:flutify_app/services/auth/client_profile.dart';
-import 'package:flutify_app/services/protocol/ap_login_request.dart';
 import 'package:flutify_app/services/protocol/storage_resolver.dart';
 import 'package:flutify_app/services/protocol/track_metadata.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -125,51 +124,7 @@ void main() {
         SpotifyAuthConstants.desktopBuildNumber,
       );
     });
-
-    test('LoginCredentials + SystemInfo 编码后可按字段号读回', () {
-      final packet = encodeApLoginRequest(
-        username: 'alice',
-        authType: 3,
-        authData: Uint8List.fromList([1, 2]),
-        deviceId: 'device-id',
-      );
-
-      final seen = <int, ProtoField>{};
-      ProtoReader(packet).forEach((f) {
-        if (f.number == 10) {
-          final inner = <int, ProtoField>{};
-          f.asMessage.forEach((x) => inner[x.number] = x);
-          expect(inner[10]!.asString, 'alice');
-          expect(inner[20]!.varintValue, 3);
-          expect(inner[30]!.bytesValue, [1, 2]);
-        }
-        if (f.number == 50) {
-          final inner = <int, ProtoField>{};
-          f.asMessage.forEach((x) => inner[x.number] = x);
-          expect(inner[10]!.varintValue, 2);
-          expect(inner[60]!.varintValue, 1);
-          expect(inner.containsKey(90), isFalse);
-          expect(inner[100]!.asString, 'device-id');
-        }
-        seen[f.number] = f;
-      });
-      expect(seen[70]!.asString, SpotifyAuthConstants.desktopVersion);
-    });
-
-    test('password login retains required zero auth type', () {
-      final packet = encodeApLoginRequest(
-        username: 'alice',
-        authType: 0,
-        authData: Uint8List.fromList([1, 2]),
-      );
-      final fields = <int, ProtoField>{};
-      ProtoReader(packet).forEach((f) => fields[f.number] = f);
-      final credentials = <int, ProtoField>{};
-      fields[10]!.asMessage.forEach((f) => credentials[f.number] = f);
-      expect(credentials[20]!.varintValue, 0);
-      final system = <int, ProtoField>{};
-      fields[50]!.asMessage.forEach((f) => system[f.number] = f);
-      expect(system.keys, unorderedEquals([10, 60]));
-    });
+    // 登录包（LoginCredentials + SystemInfo）的字段号锚定已迁到 Rust：
+    // rust/flutify_core/src/ap_client.rs `login_request_fields_are_anchored`。
   });
 }

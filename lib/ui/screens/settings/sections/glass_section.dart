@@ -8,6 +8,7 @@ import '../../../../models/appearance.dart';
 import '../../../../providers/appearance_provider.dart';
 import '../widgets/glass_preview.dart';
 import '../widgets/hyper_glass_preview.dart';
+import '../widgets/settings_menu_field.dart';
 import '../widgets/settings_section.dart';
 import '../widgets/settings_segmented.dart';
 import '../widgets/settings_slider_tile.dart';
@@ -58,14 +59,15 @@ class _GlassSectionState extends State<GlassSection> {
           if (defaultTargetPlatform == TargetPlatform.android) ...[
             SettingsTile(
               title: l10n.settingsHyperRenderMode,
-              below: SettingsSegmented<HyperRenderMode>(
-                values: HyperRenderMode.values,
-                selected: settings.hyperRenderMode,
-                labelOf: (m) => switch (m) {
-                  HyperRenderMode.xiaomiNative => l10n.settingsHyperRenderXiaomiNative,
-                  HyperRenderMode.xiaomiPort => l10n.settingsHyperRenderXiaomiPort,
-                  HyperRenderMode.flutterPort => l10n.settingsHyperRenderFlutterPort,
-                },
+              below: SettingsMenuField<HyperRenderMode>(
+                semanticLabel: l10n.settingsHyperRenderMode,
+                icon: Icons.layers_rounded,
+                value: settings.hyperRenderMode,
+                options: [
+                  SettingsMenuOption(value: HyperRenderMode.xiaomiNative, label: l10n.settingsHyperRenderXiaomiNative),
+                  SettingsMenuOption(value: HyperRenderMode.xiaomiPort, label: l10n.settingsHyperRenderXiaomiPort),
+                  SettingsMenuOption(value: HyperRenderMode.flutterPort, label: l10n.settingsHyperRenderFlutterPort),
+                ],
                 onChanged: (m) => provider.update(settings.copyWith(hyperRenderMode: m)),
               ),
             ),

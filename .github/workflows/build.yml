@@ -10,6 +10,7 @@ name: Build
 
 on:
   push:
+    branches: [main]
     # 只改文档时不构建
     paths-ignore: ['**.md', 'docs/**', 'LICENSE']
   pull_request:
@@ -97,6 +98,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+          cache: gradle
 
       - uses: subosito/flutter-action@v2
         with:
@@ -104,12 +106,38 @@ jobs:
           channel: stable
           cache: true
 
+      - uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-android-pub-${{ hashFiles('pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-android-pub-
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: android-rust
+          workspaces: rust/flutify_core
+
+      # Rust 编译缓存：cargokit 把产物放在各平台不同的构建目录，rust-cache 的 target 缓存对不上；
+      # sccache 按编译单元缓存，与目录无关。安装失败时不设 RUSTC_WRAPPER，照常编译。
+      - name: Set up sccache
+        id: sccache
+        continue-on-error: true
+        uses: mozilla-actions/sccache-action@v0.0.9
+
+      - name: Use sccache for Rust
+        if: steps.sccache.outcome == 'success'
+        shell: bash
+        run: |
+          echo "SCCACHE_GHA_ENABLED=true" >> "$GITHUB_ENV"
+          echo "RUSTC_WRAPPER=sccache" >> "$GITHUB_ENV"
+
       - run: flutter pub get
 
-      - name: Test playback recovery and authorization
+      # flutter test 与 Linux x64 job 在同一种 runner 上跑同一套测试，这里只保留工具脚本测试
+      - name: Test tool scripts
         if: needs.prepare.outputs.run_tests == 'true'
         run: |
-          flutter test
           node --test tool/test_consent_auto_approve.cjs
           python3 -m unittest discover -s tool -p test_verify_android_apks.py
 
@@ -223,6 +251,32 @@ jobs:
           if ($dartVersion -notmatch 'windows_arm64') { throw "Expected ARM64 Dart: $dartVersion" }
           "$sdk/bin" >> $env:GITHUB_PATH
 
+      - uses: actions/cache@v4
+        with:
+          path: ~/AppData/Local/Pub/Cache
+          key: windows-${{ matrix.arch }}-pub-${{ hashFiles('pubspec.lock') }}
+          restore-keys: |
+            windows-${{ matrix.arch }}-pub-
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: windows-${{ matrix.arch }}-rust
+          workspaces: rust/flutify_core
+
+      # Rust 编译缓存：cargokit 把产物放在各平台不同的构建目录，rust-cache 的 target 缓存对不上；
+      # sccache 按编译单元缓存，与目录无关。安装失败时不设 RUSTC_WRAPPER，照常编译。
+      - name: Set up sccache
+        id: sccache
+        continue-on-error: true
+        uses: mozilla-actions/sccache-action@v0.0.9
+
+      - name: Use sccache for Rust
+        if: steps.sccache.outcome == 'success'
+        shell: bash
+        run: |
+          echo "SCCACHE_GHA_ENABLED=true" >> "$GITHUB_ENV"
+          echo "RUSTC_WRAPPER=sccache" >> "$GITHUB_ENV"
+
       - run: flutter pub get
 
       - name: Test Windows PowerShell 5.1 update handoff
@@ -284,10 +338,42 @@ jobs:
           channel: stable
           cache: true
 
-      - run: flutter pub get
+      - uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: macos-pub-${{ hashFiles('pubspec.lock') }}
+          restore-keys: |
+            macos-pub-
 
-      - if: needs.prepare.outputs.run_tests == 'true'
-        run: flutter test
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/CocoaPods
+            macos/Pods
+          key: macos-pods-${{ hashFiles('macos/Podfile.lock') }}
+          restore-keys: |
+            macos-pods-
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: macos-rust
+          workspaces: rust/flutify_core
+
+      # Rust 编译缓存：cargokit 把产物放在各平台不同的构建目录，rust-cache 的 target 缓存对不上；
+      # sccache 按编译单元缓存，与目录无关。安装失败时不设 RUSTC_WRAPPER，照常编译。
+      - name: Set up sccache
+        id: sccache
+        continue-on-error: true
+        uses: mozilla-actions/sccache-action@v0.0.9
+
+      - name: Use sccache for Rust
+        if: steps.sccache.outcome == 'success'
+        shell: bash
+        run: |
+          echo "SCCACHE_GHA_ENABLED=true" >> "$GITHUB_ENV"
+          echo "RUSTC_WRAPPER=sccache" >> "$GITHUB_ENV"
+
+      - run: flutter pub get
 
       - name: Check native button hit regions and Flutter content access
         if: needs.prepare.outputs.run_tests == 'true'
@@ -309,6 +395,45 @@ jobs:
           name: macos
           path: ${{ env.ZIP_NAME }}
 
+  macos-tests:
+    # macOS runner 跑全套测试约 13 分钟，原先和 macOS 打包串行、处于关键路径上；拆成两片与打包并行。
+    # 不跑测试时 job 仍然成功（只跳过步骤），以免 Publish 因依赖被跳过而跟着跳过。
+    name: macOS tests (${{ matrix.shard }}/2)
+    needs: prepare
+    if: needs.prepare.outputs.build == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        if: needs.prepare.outputs.run_tests == 'true'
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          persist-credentials: false
+
+      - uses: subosito/flutter-action@v2
+        if: needs.prepare.outputs.run_tests == 'true'
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION_MACOS }}
+          channel: stable
+          cache: true
+
+      - uses: actions/cache@v4
+        if: needs.prepare.outputs.run_tests == 'true'
+        with:
+          path: ~/.pub-cache
+          key: macos-pub-${{ hashFiles('pubspec.lock') }}
+          restore-keys: |
+            macos-pub-
+
+      - if: needs.prepare.outputs.run_tests == 'true'
+        run: flutter pub get
+
+      - if: needs.prepare.outputs.run_tests == 'true'
+        run: flutter test --total-shards 2 --shard-index $(( ${{ matrix.shard }} - 1 ))
+
   linux:
     name: Linux x64
     needs: prepare
@@ -328,10 +453,41 @@ jobs:
           channel: stable
           cache: true
 
+      - uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            rust/flutify_core -> build/linux/x64/release/cargokit_build
+
+      # Rust 编译缓存：cargokit 把产物放在各平台不同的构建目录，rust-cache 的 target 缓存对不上；
+      # sccache 按编译单元缓存，与目录无关。安装失败时不设 RUSTC_WRAPPER，照常编译。
+      - name: Set up sccache
+        id: sccache
+        continue-on-error: true
+        uses: mozilla-actions/sccache-action@v0.0.9
+
+      - name: Use sccache for Rust
+        if: steps.sccache.outcome == 'success'
+        shell: bash
+        run: |
+          echo "SCCACHE_GHA_ENABLED=true" >> "$GITHUB_ENV"
+          echo "RUSTC_WRAPPER=sccache" >> "$GITHUB_ENV"
+
+      - uses: hendrikmuhs/ccache-action@v1
+        with:
+          key: ${{ runner.os }}-ccache
+
       - name: Install Linux build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build libgtk-3-dev liblzma-dev libblkid-dev
+          sudo apt-get install -y --no-install-recommends ninja-build libgtk-3-dev liblzma-dev libblkid-dev ccache
+          echo "/usr/lib/ccache" >> "$GITHUB_PATH"
 
       - run: flutter pub get
 
@@ -355,7 +511,7 @@ jobs:
   release:
     name: Publish release
     if: needs.prepare.outputs.publish == 'true'
-    needs: [prepare, android, windows, macos, linux]
+    needs: [prepare, android, windows, macos, macos-tests, linux]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -364,6 +520,8 @@ jobs:
         with:
           ref: ${{ needs.prepare.outputs.sha }}
           persist-credentials: false
+          # 自测版说明要列出相对上一个自测标签的提交，需要完整历史和标签
+          fetch-depth: 0
 
       - uses: actions/download-artifact@v4
         with:
@@ -387,6 +545,7 @@ jobs:
           RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
           CHANNEL: ${{ needs.prepare.outputs.channel }}
           SOURCE_TAG: ${{ needs.prepare.outputs.source }}
+          SHA: ${{ needs.prepare.outputs.sha }}
         run: |
           out="$RUNNER_TEMP/release-notes.md"
           case "$CHANNEL" in
@@ -394,6 +553,28 @@ jobs:
             beta) printf '%s\n\n' "> **beta 测试版**：由 ${SOURCE_TAG} 经人工确认后提升。" > "$out" ;;
             *) printf '%s\n\n' "> **正式版**：由 ${SOURCE_TAG} 提升。" > "$out" ;;
           esac
+          # 自测版：如实列出相对上一个自测标签（必须是本次提交的祖先）的提交，不套用整个版本系列共用的说明文件
+          if [ "$CHANNEL" = self-test ]; then
+            short=$(git rev-parse --short "$SHA")
+            prev=$(git tag --list 'v*-selftest' --merged "$SHA" --sort=-v:refname | grep -vxF "$RELEASE_TAG" | head -n 1 || true)
+            {
+              printf '## 本次改动\n\n'
+              if [ -n "$prev" ]; then
+                count=$(git rev-list --count --no-merges "$prev..$SHA")
+                printf '基于提交 `%s`，相对上一个自测版 %s 共 %s 个提交：\n\n' "$short" "$prev" "$count"
+                if [ "$count" -gt 0 ]; then
+                  git log --no-merges --format='- %s（%h）' "$prev..$SHA"
+                else
+                  printf '%s\n' '- 没有新提交（与上一个自测版代码相同，仅重新构建）。'
+                fi
+              else
+                printf '基于提交 `%s`，找不到更早的自测版标签，列出最近 20 个提交：\n\n' "$short"
+                git log --no-merges -n 20 --format='- %s（%h）' "$SHA"
+              fi
+              printf '\n%s\n' '构建产物：Windows x64 / ARM64 安装版和便携版，Android 三种 ABI 与通用 APK，macOS 未签名测试 ZIP，Linux x64 .deb 与 tar.gz；校验和见 SHA256SUMS.txt。构建通过不代表已完成实机验证。'
+            } >> "$out"
+            exit 0
+          fi
           # 说明文件按基础版本号取：v0.18.151-beta → docs/releases/v0.18.md
           notes="docs/releases/$(printf '%s' "$RELEASE_TAG" | sed -E 's/^(v[0-9]+\.[0-9]+).*/\1/').md"
           if [ -f "$notes" ]; then

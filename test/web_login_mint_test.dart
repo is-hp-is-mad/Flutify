@@ -17,14 +17,13 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     storage = await StorageService.init();
     cookieClears = 0;
-    storage.clearWebViewCookies = () async => cookieClears++;
-    await storage.setSpDc('fresh-cookie');
+    storage.auth.clearWebViewCookies = () async => cookieClears++;
+    await storage.auth.setSpDc('fresh-cookie');
   });
 
   WebTokenService service(List<int> statuses) {
     var i = 0;
-    return WebTokenService(
-      storage,
+    return WebTokenService(storage.auth,
       MockClient((request) async {
         if (request.url.path == '/api/server-time') {
           return http.Response('{"serverTime": 1}', 200);
@@ -41,8 +40,8 @@ void main() {
   test('第一次被拒绝时重试，成功后不动登录态', () async {
     final minted = await service([401, 200]).mintForLogin();
     expect(minted.token, 'web-token');
-    expect(storage.spDc, 'fresh-cookie');
-    expect(storage.webAccessToken, 'web-token');
+    expect(storage.auth.spDc, 'fresh-cookie');
+    expect(storage.auth.webAccessToken, 'web-token');
     expect(cookieClears, 0);
   });
 
@@ -57,7 +56,7 @@ void main() {
     expect(minted.token, 'page-token');
     expect(asked?.path, '/api/token');
     expect(asked?.queryParameters['totp'], isNotEmpty);
-    expect(storage.webAccessToken, 'page-token');
+    expect(storage.auth.webAccessToken, 'page-token');
     expect(cookieClears, 0);
   });
 
@@ -72,7 +71,7 @@ void main() {
         ),
       ),
     );
-    expect(storage.spDc, 'fresh-cookie');
+    expect(storage.auth.spDc, 'fresh-cookie');
     expect(cookieClears, 0);
   });
 
@@ -89,7 +88,7 @@ void main() {
   test('rejectSession 才真正清除登录态和 cookie', () async {
     await service([401]).rejectSession();
     await pumpEventQueue();
-    expect(storage.spDc, isEmpty);
+    expect(storage.auth.spDc, isEmpty);
     expect(cookieClears, 1);
   });
 }

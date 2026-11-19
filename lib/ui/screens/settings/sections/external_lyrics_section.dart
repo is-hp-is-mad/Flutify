@@ -8,8 +8,8 @@ import '../../../../models/app_preferences.dart';
 import '../../../../providers/preferences_provider.dart';
 import '../../../../services/lyric_bridge/lyric_bridge_channel.dart';
 import '../../../../services/lyric_bridge/lyric_metadata_controls.dart';
+import '../widgets/settings_menu_field.dart';
 import '../widgets/settings_section.dart';
-import '../widgets/settings_segmented.dart';
 import '../../../widgets/app_button.dart';
 
 /// 车机与状态栏歌词（Android）：蓝牙歌词（车机屏幕显示当前歌词行）与 Flyme 状态栏歌词。
@@ -80,14 +80,15 @@ class _ExternalLyricsSectionState extends State<ExternalLyricsSection>
         SettingsTile(
           title: l10n.settingsBluetoothLyrics,
           subtitle: l10n.settingsBluetoothLyricsSubtitle,
-          below: SettingsSegmented<BluetoothLyricsMode>(
-            values: BluetoothLyricsMode.values,
-            labelOf: (v) => switch (v) {
-              BluetoothLyricsMode.off => l10n.bluetoothLyricsOff,
-              BluetoothLyricsMode.car => l10n.bluetoothLyricsCar,
-              BluetoothLyricsMode.all => l10n.bluetoothLyricsAll,
-            },
-            selected: prefs.bluetoothLyrics,
+          below: SettingsMenuField<BluetoothLyricsMode>(
+            semanticLabel: l10n.settingsBluetoothLyrics,
+            icon: Icons.bluetooth_audio_rounded,
+            value: prefs.bluetoothLyrics,
+            options: [
+              SettingsMenuOption(value: BluetoothLyricsMode.off, label: l10n.bluetoothLyricsOff),
+              SettingsMenuOption(value: BluetoothLyricsMode.car, label: l10n.bluetoothLyricsCar),
+              SettingsMenuOption(value: BluetoothLyricsMode.all, label: l10n.bluetoothLyricsAll),
+            ],
             onChanged: (v) => update((p) => p.copyWith(bluetoothLyrics: v)),
           ),
         ),

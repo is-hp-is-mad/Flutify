@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'auth_constants.dart';
 import 'proto_codec.dart';
 
@@ -46,14 +44,17 @@ enum SpotifyClientProfile {
   };
 
   /// Web 播放器 client-token 请求里的 js_sdk_data（对齐 web-player 前端：未定义的字段不发送）。
-  Map<String, String> jsSdkData(String deviceId) => {
-    'device_brand': 'unknown',
-    'device_model': 'unknown',
-    'os': 'windows',
-    'os_version': 'NT 10.0',
-    'device_id': deviceId,
-    'device_type': 'computer',
-  };
+  Map<String, String> jsSdkData(String deviceId) {
+    final platform = SpotifyAuthConstants.jsSdkPlatform;
+    return {
+      'device_brand': 'unknown',
+      'device_model': 'unknown',
+      'os': platform.os,
+      'os_version': platform.osVersion,
+      'device_id': deviceId,
+      'device_type': platform.deviceType,
+    };
+  }
 
   /// AP keyexchange.proto BuildInfo，与桌面 HTTP 配置共用版本。
   ProtoWriter apBuildInfo() => ProtoWriter()
@@ -68,28 +69,4 @@ enum SpotifyClientProfile {
     ..varintAlways(10, 2) // CPU_X86_64
     ..varintAlways(60, 1) // OS_WINDOWS
     ..string(100, deviceId ?? '');
-
-  /// 写入 ConnectivitySdkData.platform_specific_data 的 desktop_windows=4（NativeDesktopWindowsData），
-  /// 字段取值对齐 librespot（x64 进程）。
-  ProtoWriter platformData() => ProtoWriter()
-    ..message(
-      4,
-      ProtoWriter()
-        ..int32(1, 10) // os_version：Windows 10/11 均报告 10
-        ..int32(3, _windowsBuild()) // os_build
-        ..int32(4, 2) // platform_id：VER_PLATFORM_WIN32_NT
-        ..int32(6, 9) // unknown_value_6
-        ..int32(7, 332) // image_file_machine：IMAGE_FILE_MACHINE_I386
-        ..int32(8, 34404) // pe_machine：IMAGE_FILE_MACHINE_AMD64
-        ..boolValue(10, true), // unknown_value_10
-    );
-
-  /// 本机 Windows 构建号（如 26200）；非 Windows 或解析失败时用 Windows 10 22H2 的 19045。
-  static int _windowsBuild() {
-    if (!Platform.isWindows) return 19045;
-    final match = RegExp(
-      r'Build (\d+)',
-    ).firstMatch(Platform.operatingSystemVersion);
-    return int.tryParse(match?.group(1) ?? '') ?? 19045;
-  }
 }

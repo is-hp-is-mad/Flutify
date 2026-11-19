@@ -96,8 +96,7 @@ void main() {
     final storage = await StorageService.init();
     audio = FakeAudioPlayerService();
     playback = PlaybackProvider(
-      audio,
-      storage,
+      audio, storage.playback,
       random: Random(1),
       audioLoader: FakeTrackAudioSource(),
     );

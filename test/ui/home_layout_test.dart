@@ -45,7 +45,7 @@ void main() {
   Future<StorageService> storageWith(double fontScale) async {
     SharedPreferences.setMockInitialValues({});
     final storage = await StorageService.init();
-    await storage.setAppearanceJson(
+    await storage.preferences.setAppearanceJson(
       jsonEncode(
         AppearanceSettings.defaults.copyWith(fontScale: fontScale).toJson(),
       ),
@@ -66,8 +66,7 @@ void main() {
         storageService: storage,
         audioEngine: FakeAudioPlayerService(),
         emePlayer: EmePlayer(),
-        spotifyApiService: FakeSpotifyApiService(
-          storage,
+        spotifyApiService: FakeSpotifyApiService(storage.auth,
           homeFeed: SampleHome.feed,
         ),
         trackAudioLoader: FakeTrackAudioSource(),

@@ -25,7 +25,7 @@ Future<LibraryProvider> _pumpMenu(
   double width = 390,
 }) async {
   SharedPreferences.setMockInitialValues({});
-  final library = LibraryProvider(await StorageService.init());
+  final library = LibraryProvider((await StorageService.init()).library);
   tester.view.physicalSize = Size(width, 844) * tester.view.devicePixelRatio;
   addTearDown(tester.view.reset);
   await tester.pumpWidget(

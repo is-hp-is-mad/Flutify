@@ -9,7 +9,7 @@ import '../../../l10n/l10n.dart';
 import '../../../providers/appearance_provider.dart';
 import '../../../providers/connect_provider.dart';
 import '../../../providers/playback_provider.dart';
-import '../../../services/storage_service.dart';
+import '../../../services/storage/preferences_store.dart';
 import '../../navigation/app_routes.dart';
 import '../../shell/desktop/desktop_window.dart';
 import '../../shell/desktop/window_caption_buttons.dart';
@@ -116,12 +116,12 @@ class _ImmersiveLyricsScreenState extends State<ImmersiveLyricsScreen> {
   /// true：系统全屏（铺满整个屏幕）；false：只铺满窗口（保留窗口外框与窗口按钮）。
   late bool _screen;
   late bool _pinned;
-  StorageService? _storage;
+  PreferencesStore? _storage;
 
   @override
   void initState() {
     super.initState();
-    _storage = context.read<StorageService?>();
+    _storage = context.read<PreferencesStore?>();
     _screen = _storage?.immersiveScreenFullscreen ?? false;
     _pinned = _storage?.immersivePinned ?? false;
     _applyMode();

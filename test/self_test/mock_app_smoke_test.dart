@@ -1,4 +1,4 @@
-import 'package:flutify_app/core/self_test/mock_services.dart';
+import 'package:flutify_app/self_test/mock_services.dart';
 import 'package:flutify_app/core/utils/artwork_palette.dart';
 import 'package:flutify_app/main.dart';
 import 'package:flutify_app/models/playback_context.dart';
@@ -47,7 +47,7 @@ void main() {
           spotifyApiService: mock.spotifyApiService,
           authService: mock.authService,
           webTokenService: WebTokenService(
-            mock.storageService,
+            mock.storageService.auth,
             MockOfflineHttpClient(),
           ),
           trackAudioLoader: mock.trackAudioLoader,

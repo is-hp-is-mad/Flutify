@@ -16,20 +16,20 @@ void main() {
   group('本机行为（无账号来源）', () {
     test('liked songs persist across provider instances, newest first', () async {
       final storage = await StorageService.init();
-      final library = LibraryProvider(storage);
+      final library = LibraryProvider(storage.library);
       const track = SampleCatalog.track4;
 
       library.toggleLike(track);
       expect(library.likedTracks.first.id, track.id);
 
-      final reloaded = LibraryProvider(storage);
+      final reloaded = LibraryProvider(storage.library);
       expect(reloaded.isLiked(track.id), isTrue);
       expect(reloaded.likedTracks.first.id, track.id);
       expect(reloaded.likedTracks.first.album?.coverUrl, track.album?.coverUrl);
     });
 
     test('初始状态是空的：没有任何示例歌单 / 艺人 / 专辑', () async {
-      final library = LibraryProvider(await StorageService.init());
+      final library = LibraryProvider((await StorageService.init()).library);
 
       expect(library.likedTracks, isEmpty);
       expect(library.playlists, isEmpty);
@@ -38,7 +38,7 @@ void main() {
     });
 
     test('lists keep identity until they change (safe for context.select)', () async {
-      final library = LibraryProvider(await StorageService.init());
+      final library = LibraryProvider((await StorageService.init()).library);
       final before = library.playlists;
       final likedBefore = library.likedSongsPlaylist;
 
@@ -51,7 +51,7 @@ void main() {
     });
 
     test('own playlists accept tracks once and adopt the first cover', () async {
-      final library = LibraryProvider(await StorageService.init());
+      final library = LibraryProvider((await StorageService.init()).library);
       final created = library.createPlaylist('Focus');
       const track = SampleCatalog.track2;
 
@@ -68,7 +68,7 @@ void main() {
   group('账号媒体库', () {
     test('未登录：媒体库为空，不发任何读取请求', () async {
       final source = FakeLibrarySource(isSignedIn: false, likedTracks: [SampleCatalog.track1]);
-      final library = LibraryProvider(await StorageService.init(), source: source);
+      final library = LibraryProvider((await StorageService.init()).library, source: source);
 
       await library.refresh();
 
@@ -84,7 +84,7 @@ void main() {
         albums: [SampleCatalog.albumA],
         artists: [SampleCatalog.artistA],
       );
-      final library = LibraryProvider(await StorageService.init(), source: source);
+      final library = LibraryProvider((await StorageService.init()).library, source: source);
 
       final pending = library.refresh();
       expect(library.isLoading, isTrue);
@@ -104,7 +104,7 @@ void main() {
         likedTracks: [SampleCatalog.track1],
         artists: [SampleCatalog.artistA],
       )..playlistsError = const LibrarySourceException('歌单读取失败', 500);
-      final library = LibraryProvider(await StorageService.init(), source: source);
+      final library = LibraryProvider((await StorageService.init()).library, source: source);
 
       await library.refresh();
 
@@ -116,7 +116,7 @@ void main() {
 
     test('点赞 / 收藏 / 关注乐观更新，并同步到账号', () async {
       final source = FakeLibrarySource();
-      final library = LibraryProvider(await StorageService.init(), source: source);
+      final library = LibraryProvider((await StorageService.init()).library, source: source);
       await library.refresh();
 
       library.toggleLike(SampleCatalog.track1);
@@ -137,7 +137,7 @@ void main() {
 
     test('同步失败：本地修改保留，错误记入 syncError 且可清除', () async {
       final source = FakeLibrarySource()..writeError = const LibrarySourceException('写入被拒绝', 403);
-      final library = LibraryProvider(await StorageService.init(), source: source);
+      final library = LibraryProvider((await StorageService.init()).library, source: source);
       await library.refresh();
 
       library.toggleLike(SampleCatalog.track1);
@@ -152,7 +152,7 @@ void main() {
 
     test('登出后清空账号数据，但保留本机歌单', () async {
       final source = FakeLibrarySource(likedTracks: [SampleCatalog.track1]);
-      final library = LibraryProvider(await StorageService.init(), source: source);
+      final library = LibraryProvider((await StorageService.init()).library, source: source);
       await library.refresh();
       final local = library.createPlaylist('Mine');
 
@@ -166,25 +166,25 @@ void main() {
     test('账号缓存按账号隔离：换号后不会短暂显示上一个账号的数据', () async {
       final storage = await StorageService.init();
       final first = FakeLibrarySource(accountId: 'alice', likedTracks: [SampleCatalog.track1]);
-      final libraryA = LibraryProvider(storage, source: first);
+      final libraryA = LibraryProvider(storage.library, source: first);
       await libraryA.refresh();
       expect(libraryA.likedTracks, hasLength(1));
 
       // 同一账号重新打开：先用缓存
-      final again = LibraryProvider(storage, source: FakeLibrarySource(accountId: 'alice'));
+      final again = LibraryProvider(storage.library, source: FakeLibrarySource(accountId: 'alice'));
       expect(again.likedTracks, hasLength(1));
 
       // 换成另一个账号：缓存作废
-      final other = LibraryProvider(storage, source: FakeLibrarySource(accountId: 'bob'));
+      final other = LibraryProvider(storage.library, source: FakeLibrarySource(accountId: 'bob'));
       expect(other.likedTracks, isEmpty);
     });
 
     test('未登录时启动不会读到旧缓存', () async {
       final storage = await StorageService.init();
-      final signedIn = LibraryProvider(storage, source: FakeLibrarySource(likedTracks: [SampleCatalog.track1]));
+      final signedIn = LibraryProvider(storage.library, source: FakeLibrarySource(likedTracks: [SampleCatalog.track1]));
       await signedIn.refresh();
 
-      final signedOut = LibraryProvider(storage, source: FakeLibrarySource(isSignedIn: false));
+      final signedOut = LibraryProvider(storage.library, source: FakeLibrarySource(isSignedIn: false));
       expect(signedOut.likedTracks, isEmpty);
     });
   });
@@ -195,11 +195,11 @@ void main() {
       const userMade = SpotifyPlaylist(id: 'local_123', name: '我的歌单');
       SharedPreferences.setMockInitialValues({
         // 没有 schema 标记 = 旧版写入的缓存（StringList，每项一个 JSON）
-        StorageService.keyLibraryPlaylists: [jsonEncode(legacySample.toJson()), jsonEncode(userMade.toJson())],
-        StorageService.keyLibraryLikedTracks: [jsonEncode(SampleCatalog.track1.toJson())],
+        LibraryCacheStore.keyLibraryPlaylists: [jsonEncode(legacySample.toJson()), jsonEncode(userMade.toJson())],
+        LibraryCacheStore.keyLibraryLikedTracks: [jsonEncode(SampleCatalog.track1.toJson())],
       });
 
-      final library = LibraryProvider(await StorageService.init());
+      final library = LibraryProvider((await StorageService.init()).library);
 
       expect(library.likedTracks, isEmpty);
       expect(library.playlists.map((p) => p.id), ['local_123']);

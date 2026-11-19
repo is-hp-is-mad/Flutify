@@ -23,12 +23,14 @@ import 'library/desktop_library_source.dart';
 import 'library/library_source.dart';
 import 'library/session_library_source.dart';
 import 'library/web_api_library_source.dart';
+import 'rust_backend_bridge.dart';
 import 'lyrics_service.dart';
 import 'canvas/canvas_service.dart';
 import 'pathfinder/desktop_data_source.dart';
 import 'pathfinder/pathfinder_client.dart';
 import 'podcast/podcast_service.dart';
-import 'storage_service.dart';
+import 'storage/auth_session_store.dart';
+import 'watchfeed/watch_feed_decoder.dart';
 import 'watchfeed/watch_feed_service.dart';
 
 /// 取数据失败（未登录、网络错误、接口返回异常）。[message] 为简体中文说明，可直接展示。
@@ -59,7 +61,7 @@ class SpotifyDataException implements Exception {
 /// - 列表类方法在请求失败时同样抛 [SpotifyDataException]，由 Provider 决定如何展示错误；
 ///   曲目 / 唱片列表这类「附属列表」失败时返回空列表，不阻塞详情页主体。
 class SpotifyApiService {
-  final StorageService _storage;
+  final AuthSessionStore _storage;
   final http.Client _client;
   late final CanvasService canvas = CanvasService(_client, headers: _headers);
 
@@ -67,22 +69,30 @@ class SpotifyApiService {
   late final WatchFeedService watchFeed = WatchFeedService(
     _client,
     headers: _headers,
+    useRustBackend: !_hasCustomClient,
+    decoder: _watchFeedDecoder ?? const RustWatchFeedDecoder(),
   );
+  final WatchFeedDecoder? _watchFeedDecoder;
 
   /// 鉴权服务；接入后每次请求前自动续期 access_token。未接入时仅使用手动填写的 Token。
   SpotifyAuthService? _auth;
+  final bool _hasCustomClient;
 
   late final DesktopDataSource _desktop = DesktopDataSource(
     _client,
     headers: _headers,
     language: () => AppLocale.spotifyLanguage,
+    useRustBackend: !_hasCustomClient,
   );
 
   /// 歌词服务（color-lyrics）。
   late final LyricsService lyrics = LyricsService(_client, headers: _headers);
 
   /// 播客节目页数据（open.spotify.com 的服务端渲染状态，无需鉴权、不限流）。
-  late final PodcastService _podcast = PodcastService(_client);
+  late final PodcastService _podcast = PodcastService(
+    _client,
+    !_hasCustomClient,
+  );
 
   /// Spotify Connect 遥控服务（dealer 长连接 + connect-state）；懒创建，调用 `start()` 才会联网。
   /// 只有桌面版会话可用，见 [supportsConnect]。
@@ -101,6 +111,7 @@ class SpotifyApiService {
       data: _desktop,
       username: () => _storage.username,
       signedIn: () => isConfigured,
+      useRustBackend: !_hasCustomClient,
     ),
     web: WebApiLibrarySource(
       client: _client,
@@ -111,10 +122,19 @@ class SpotifyApiService {
     ),
   );
 
-  SpotifyApiService(this._storage, [http.Client? client])
-    : _client = SessionHttpClient(_storage, client ?? http.Client());
+  /// [watchFeedDecoder] 只供测试注入（单测不加载 Rust 核心）。
+  SpotifyApiService(
+    this._storage, [
+    http.Client? client,
+    WatchFeedDecoder? watchFeedDecoder,
+  ]) : _watchFeedDecoder = watchFeedDecoder,
+      _hasCustomClient = client != null,
+      _client = SessionHttpClient(_storage, client ?? http.Client());
 
-  void attachAuth(SpotifyAuthService auth) => _auth = auth;
+  void attachAuth(SpotifyAuthService auth) {
+    _auth = auth;
+    RustBackendBridge.syncSession(_storage);
+  }
 
   /// 当前是否走桌面端内部接口。
   bool get _useDesktop => isConfigured && _auth?.isLoggedIn == true;
@@ -394,6 +414,31 @@ class SpotifyApiService {
     if (!isConfigured) throw SpotifyDataException.notSignedIn;
     if (_useDesktop) return _desktopLoad(() => _desktop.playlist(id));
     return SpotifyPlaylist.fromJson(await _getJson('/playlists/$id'));
+  }
+
+  /// 懒加载/流式拉取歌单：先返回首 100 首供页面立刻渲染，后续分页在后台增量补齐。
+  Stream<SpotifyPlaylist> watchPlaylist(String id) async* {
+    if (!isConfigured) throw SpotifyDataException.notSignedIn;
+    if (_useDesktop) {
+      var emitted = false;
+      try {
+        await for (final snap in _desktop.watchPlaylist(id)) {
+          emitted = true;
+          yield snap;
+        }
+      } on SpotifyDataException {
+        rethrow;
+      } on PathfinderException catch (e) {
+        throw SpotifyDataException(e.message);
+      } catch (e) {
+        throw SpotifyDataException('加载失败：$e');
+      }
+      if (!emitted) {
+        throw const SpotifyDataException('未找到歌单', 404);
+      }
+      return;
+    }
+    yield SpotifyPlaylist.fromJson(await _getJson('/playlists/$id'));
   }
 
   Future<SpotifyAlbum> getAlbum(String id) async {

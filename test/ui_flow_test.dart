@@ -63,8 +63,7 @@ void main() {
         storageService: storage,
         audioEngine: FakeAudioPlayerService(),
         emePlayer: EmePlayer(),
-        spotifyApiService: FakeSpotifyApiService(
-          storage,
+        spotifyApiService: FakeSpotifyApiService(storage.auth,
           librarySource: library,
           lyricsById: lyrics,
           albumTracks: albumTracks,

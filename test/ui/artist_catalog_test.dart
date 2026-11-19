@@ -88,7 +88,7 @@ Future<ArtistCatalogApi> pumpArtistApp(
   ArtworkPalette.enabled = false;
   SharedPreferences.setMockInitialValues({});
   final storage = await StorageService.init();
-  final api = ArtistCatalogApi(storage);
+  final api = ArtistCatalogApi(storage.auth);
   configure?.call(api);
   await tester.pumpWidget(
     FlutifyApp(

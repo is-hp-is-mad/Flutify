@@ -1,5 +1,5 @@
 import 'package:flutify_app/core/constants/app_info.dart';
-import 'package:flutify_app/core/self_test/launch_args.dart';
+import 'package:flutify_app/self_test/launch_args.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

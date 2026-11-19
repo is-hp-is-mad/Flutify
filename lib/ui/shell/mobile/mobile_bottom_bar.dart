@@ -16,7 +16,7 @@ import 'android_floating_bar.dart';
 /// 配合 `Scaffold(extendBody: true)` 使用：内容滚动到导航药丸下方时透过模糊可见；
 /// 渐变遮罩放在导航区域，避免迷你播放器下缘出现一条矩形白边。
 /// 整体高度通过 MediaQuery 底部 padding 传给页面（见 ContentBottomSpacer）。
-/// Android 的柔光玻璃换成随滚动收放的 [AndroidFloatingBar]，其他平台与材质不变。
+/// Android 与桌面窄窗口的柔光玻璃换成随滚动收放的 [AndroidFloatingBar]，其他平台与材质不变。
 class MobileBottomBar extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onSelected;

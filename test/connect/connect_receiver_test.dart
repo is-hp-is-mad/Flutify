@@ -106,8 +106,7 @@ void main() {
     audio = _DelayedAudio();
     loader = _DelayedLoader();
     playback = PlaybackProvider(
-      audio,
-      await StorageService.init(),
+      audio, (await StorageService.init()).playback,
       audioLoader: loader,
     );
     host = PlaybackReceiverHost(

@@ -42,8 +42,7 @@ void main() {
 
   test('Web search paginates individual types after the initial ten', () async {
     final offsets = <int>[];
-    final api = SpotifyApiService(
-      storage,
+    final api = SpotifyApiService(storage.auth,
       MockClient((request) async {
         final query = request.url.queryParameters;
         expect(query['type'], 'track');
@@ -82,8 +81,7 @@ void main() {
   test(
     'Web discography includes compilation and appearance groups and follows short pages',
     () async {
-      final api = SpotifyApiService(
-        storage,
+      final api = SpotifyApiService(storage.auth,
         MockClient((request) async {
           expect(
             request.url.queryParameters['include_groups'],
@@ -110,8 +108,7 @@ void main() {
   test(
     'Web search respects its ten-item limit and maximum supported offset',
     () async {
-      final api = SpotifyApiService(
-        storage,
+      final api = SpotifyApiService(storage.auth,
         MockClient((request) async {
           expect(request.url.queryParameters['limit'], '10');
           expect(request.url.queryParameters['offset'], '1000');
@@ -133,8 +130,7 @@ void main() {
     'search tolerates omitted optional sections but rejects an absent result',
     () async {
       var missing = false;
-      final api = SpotifyApiService(
-        storage,
+      final api = SpotifyApiService(storage.auth,
         MockClient(
           (_) async => _json(
             missing
@@ -162,8 +158,7 @@ void main() {
   test(
     'missing song credits are retained only for an artist-owned non-compilation',
     () async {
-      final api = SpotifyApiService(
-        storage,
+      final api = SpotifyApiService(storage.auth,
         MockClient(
           (_) async => _json({
             'total': 2,
@@ -212,8 +207,7 @@ void main() {
     'song catalog performs bounded requests and exhausts albums over fifty tracks',
     () async {
       final requests = <String>[];
-      final api = SpotifyApiService(
-        storage,
+      final api = SpotifyApiService(storage.auth,
         MockClient((request) async {
           requests.add(request.url.path);
           final offset = int.parse(request.url.queryParameters['offset']!);
@@ -269,8 +263,7 @@ void main() {
     'song catalog reaches the next discography page rather than stopping at first batch',
     () async {
       final offsets = <int>[];
-      final api = SpotifyApiService(
-        storage,
+      final api = SpotifyApiService(storage.auth,
         MockClient((request) async {
           if (request.url.path.endsWith('/artists/artist/albums')) {
             final offset = int.parse(request.url.queryParameters['offset']!);
@@ -300,8 +293,7 @@ void main() {
 
   test('song catalog failure preserves the cursor for retry', () async {
     var attempts = 0;
-    final api = SpotifyApiService(
-      storage,
+    final api = SpotifyApiService(storage.auth,
       MockClient((request) async {
         attempts++;
         if (attempts == 1) return http.Response('', 503);
@@ -331,8 +323,7 @@ void main() {
     'pagination failures and malformed pages are not empty catalogues',
     () async {
       var fail = true;
-      final api = SpotifyApiService(
-        storage,
+      final api = SpotifyApiService(storage.auth,
         MockClient((_) async {
           if (fail) return http.Response('secret body must not surface', 500);
           return _json({'wrong': []});

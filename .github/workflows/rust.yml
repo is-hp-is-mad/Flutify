@@ -18,5 +18,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust/flutify_core
       - run: cargo test --locked
       - run: cargo clippy --all-targets -- -D warnings

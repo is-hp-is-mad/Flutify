@@ -213,15 +213,15 @@ void main() {
       MultiProvider(
         providers: [
           Provider<StorageService>.value(value: storage),
+          Provider<PreferencesStore>.value(value: storage.preferences),
+          Provider<CachePrefsStore>.value(value: storage.cache),
           // 未登录：歌词请求直接返回空，不联网
           ChangeNotifierProvider(
-            create: (_) => SpotifyProvider(SpotifyApiService(storage), storage),
+            create: (_) => SpotifyProvider(SpotifyApiService(storage.auth), storage.library),
           ),
-          ChangeNotifierProvider(create: (_) => LibraryProvider(storage)),
+          ChangeNotifierProvider(create: (_) => LibraryProvider(storage.library)),
           ChangeNotifierProvider(
-            create: (_) => PlaybackProvider(
-              FakeAudioPlayerService(),
-              storage,
+            create: (_) => PlaybackProvider(FakeAudioPlayerService(), storage.playback,
               audioLoader: FakeTrackAudioSource(),
             ),
           ),
@@ -926,12 +926,12 @@ void main() {
           findsWidgets,
         );
         expect(DesktopWindow.immersiveWindow.value, isTrue);
-        expect(storage.immersiveScreenFullscreen, isFalse);
+        expect(storage.preferences.immersiveScreenFullscreen, isFalse);
 
         await tester.sendKeyEvent(LogicalKeyboardKey.f11);
         await tester.pump();
         expect(DesktopWindow.immersiveWindow.value, isFalse);
-        expect(storage.immersiveScreenFullscreen, isTrue);
+        expect(storage.preferences.immersiveScreenFullscreen, isTrue);
 
         await tester.sendKeyEvent(LogicalKeyboardKey.escape);
         await tester.pump();

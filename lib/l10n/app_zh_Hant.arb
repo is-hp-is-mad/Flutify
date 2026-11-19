@@ -121,6 +121,14 @@
       }
     }
   },
+  "songCountLoaded": "已載入 {count} 首",
+  "@songCountLoaded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "followerCount": "{count} 位粉絲",
   "@followerCount": {
     "description": "粉丝数，count 为已格式化的紧凑数字（如 1.2 万）",
@@ -604,6 +612,11 @@
   "settingsCopyLogSubtitle": "反饋問題時粘貼給開發者；日志只含運行記錄，不含密碼",
   "settingsCopyLogDone": "日志已復制到剪貼簿",
   "settingsCopyLogEmpty": "暫無日志",
+  "settingsExportLog": "匯出診斷日誌",
+  "settingsExportLogSubtitle": "將完整執行日誌儲存為 .log 或 .txt 檔案",
+  "settingsExportLogFormat": "選擇匯出格式",
+  "settingsExportLogDone": "日誌已匯出：{path}",
+  "settingsExportLogFailed": "匯出日誌失敗",
   "taskbarLyricsColorAuto": "自動",
   "taskbarLyricsColorWhite": "白色",
   "taskbarLyricsColorBlack": "黑色",

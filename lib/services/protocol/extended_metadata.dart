@@ -2,7 +2,10 @@ import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
+import '../../core/rust_core.dart';
+import '../../src/rust/api/backend.dart' as rust;
 import '../auth/proto_codec.dart';
+import '../rust_backend_bridge.dart';
 
 /// extended-metadata 扩展类型（`extension_kind.proto` 中本 App 用到的部分）。
 class ExtensionKind {
@@ -35,13 +38,46 @@ class ExtendedMetadataClient {
 
   final http.Client _client;
   final Future<Map<String, String>> Function() _headers;
+  final bool useRustBackend;
 
-  ExtendedMetadataClient(this._client, {required this._headers});
+  ExtendedMetadataClient(
+    this._client, {
+    required this._headers,
+    this.useRustBackend = false,
+  });
 
   /// 取单个实体的某个扩展载荷（Any.value 原始字节）；实体不存在或无该扩展时返回 null。
   ///
   /// HTTP 非 200 抛 [ExtendedMetadataHttpException]，由调用方区分 401 / 其他。
   Future<Uint8List?> fetch(String entityUri, int kind) async {
+    if (useRustBackend && RustCore.ready) {
+      final proxy = await RustBackendBridge.proxyForUrl(_endpoint);
+      if (proxy != null) {
+        try {
+          final entries = await rust.rustFetchExtendedMetadata(
+            spclientBase: 'https://spclient.wg.spotify.com',
+            entityUris: [entityUri],
+            kind: kind,
+            proxy: proxy,
+          );
+          for (final e in entries) {
+            if (e.uri == entityUri) {
+              return e.data;
+            }
+          }
+          return null;
+        } catch (e) {
+          final msg = e.toString();
+          final httpMatch = RegExp(r'http:(\d{3}):').firstMatch(msg);
+          if (httpMatch != null) {
+            throw ExtendedMetadataHttpException(
+              int.parse(httpMatch.group(1)!),
+            );
+          }
+          if (!msg.contains('auth:missing')) rethrow;
+        }
+      }
+    }
     final res = await _client.post(
       Uri.parse(_endpoint),
       headers: {

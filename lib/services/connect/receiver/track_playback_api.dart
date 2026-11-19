@@ -1,7 +1,13 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
-import '../../../models/audio_playback_info.dart';
+import '../../../../core/rust_core.dart';
+import '../../../../models/audio_playback_info.dart';
+import '../../../../src/rust/api/backend.dart' as rust;
+import '../../auth/auth_constants.dart';
+import '../../auth/client_profile.dart';
+import '../../rust_backend_bridge.dart';
 
 /// track-playback 设备接口（`{spclient}/track-playback/v1/devices…`）。
 ///
@@ -15,8 +21,7 @@ import '../../../models/audio_playback_info.dart';
 class TrackPlaybackApi {
   static const String webClientId = 'd8a5ed958d274c2e8ee717e6a4b0971d';
   static const String webClientVersion = '1.3.5.31.ga27a71fef885';
-  static const String userAgent =
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36';
+  static String get userAgent => SpotifyAuthConstants.webUserAgent;
 
   final http.Client _client;
   final Future<String> Function() _webToken;
@@ -95,14 +100,7 @@ class TrackPlaybackApi {
             'client_data': {
               'client_version': webClientVersion,
               'client_id': webClientId,
-              'js_sdk_data': {
-                'device_brand': 'unknown',
-                'device_model': 'unknown',
-                'os': 'windows',
-                'os_version': 'NT 10.0',
-                'device_id': deviceId,
-                'device_type': 'computer',
-              },
+              'js_sdk_data': SpotifyClientProfile.web.jsSdkData(deviceId),
             },
           }),
         )
@@ -132,6 +130,44 @@ class TrackPlaybackApi {
   Uri _uri(String path) =>
       Uri.https(spclientHost, '/track-playback/v1/devices$path');
 
+  Future<({int statusCode, Uint8List bodyBytes})> _send(
+    String method,
+    String path,
+    String body,
+  ) async {
+    if (RustCore.ready) {
+      final proxy = await RustBackendBridge.proxyForUrl(
+        'https://$spclientHost',
+      );
+      if (proxy != null) {
+        try {
+          final bearerToken = await _webToken().timeout(
+            const Duration(seconds: 10),
+          );
+          final clientToken = await _ensureClientToken();
+          final raw = await rust.rustTrackPlaybackRequest(
+            spclientHost: spclientHost,
+            method: method,
+            path: '/track-playback/v1/devices$path',
+            bearerToken: bearerToken,
+            clientToken: clientToken,
+            appVersion: webClientVersion,
+            proxy: proxy,
+            bodyJson: body,
+          );
+          return (statusCode: raw.status, bodyBytes: raw.body);
+        } catch (_) {}
+      }
+    }
+    final uri = _uri(path);
+    final req = http.Request(method, uri)
+      ..headers.addAll(await headers())
+      ..body = body;
+    final streamed = await _client.send(req).timeout(const Duration(seconds: 10));
+    final res = await http.Response.fromStream(streamed);
+    return (statusCode: res.statusCode, bodyBytes: res.bodyBytes);
+  }
+
   /// 注册为播放端；[connectionId] 来自同一 Web token 建立的 dealer 连接。
   Future<void> register({
     required String connectionId,
@@ -139,45 +175,39 @@ class TrackPlaybackApi {
     required int volume,
     bool Function()? isCurrent,
   }) async {
-    final res = await _client
-        .post(
-          _uri(''),
-          headers: await headers(),
-          body: jsonEncode({
-            'device': {
-              'brand': 'spotify',
-              'capabilities': {
-                'change_volume': true,
-                'enable_play_token': true,
-                'supports_file_media_type': true,
-                'play_token_lost_behavior': 'pause',
-                'disable_connect': false,
-                'audio_podcasts': true,
-                'video_playback': false,
-                'manifest_formats': [
-                  'file_ids_mp3',
-                  'file_urls_mp3',
-                  'file_urls_external',
-                  'file_ids_mp4',
-                  'file_ids_mp4_dual',
-                ],
-              },
-              'device_id': deviceId,
-              'device_type': 'computer',
-              'metadata': {},
-              'model': 'web_player',
-              'name': name,
-              'platform_identifier':
-                  'web_player windows 10;chrome 154.0.0.0;desktop',
-              'is_group': false,
-            },
-            'outro_endcontent_snooping': false,
-            'connection_id': connectionId,
-            'client_version': 'harmony:4.62.0',
-            'volume': volume,
-          }),
-        )
-        .timeout(const Duration(seconds: 10));
+    final payload = jsonEncode({
+      'device': {
+        'brand': 'spotify',
+        'capabilities': {
+          'change_volume': true,
+          'enable_play_token': true,
+          'supports_file_media_type': true,
+          'play_token_lost_behavior': 'pause',
+          'disable_connect': false,
+          'audio_podcasts': true,
+          'video_playback': false,
+          'manifest_formats': [
+            'file_ids_mp3',
+            'file_urls_mp3',
+            'file_urls_external',
+            'file_ids_mp4',
+            'file_ids_mp4_dual',
+          ],
+        },
+        'device_id': deviceId,
+        'device_type': SpotifyAuthConstants.jsSdkPlatform.deviceType,
+        'metadata': {},
+        'model': 'web_player',
+        'name': name,
+        'platform_identifier': SpotifyAuthConstants.webPlatformIdentifier,
+        'is_group': false,
+      },
+      'outro_endcontent_snooping': false,
+      'connection_id': connectionId,
+      'client_version': 'harmony:4.62.0',
+      'volume': volume,
+    });
+    final res = await _send('POST', '', payload);
     if (isCurrent != null && !isCurrent()) return;
     _check(res, '注册');
     _seq =
@@ -200,34 +230,29 @@ class TrackPlaybackApi {
     int? previousPositionMs,
     AudioPlaybackInfo audio = const AudioPlaybackInfo(),
   }) async {
-    final res = await _client
-        .put(
-          _uri('/$deviceId/state'),
-          headers: await headers(),
-          body: jsonEncode({
-            'seq_num': ++_seq,
-            'state_ref': stateMachineId == null
-                ? null
-                : {
-                    'state_machine_id': stateMachineId,
-                    'state_id': stateId,
-                    'paused': paused,
-                  },
-            'sub_state': {
-              'playback_speed': paused ? 0 : 1,
-              'position': positionMs,
-              'duration': durationMs,
-              'media_type': 'AUDIO',
-              'bitrate': ?audio.bitrate,
-              'format': ?audio.format,
+    final payload = jsonEncode({
+      'seq_num': ++_seq,
+      'state_ref': stateMachineId == null
+          ? null
+          : {
+              'state_machine_id': stateMachineId,
+              'state_id': stateId,
+              'paused': paused,
             },
-            'previous_position': ?previousPositionMs,
-            'debug_source': debugSource,
-          }),
-        )
-        .timeout(const Duration(seconds: 10));
+      'sub_state': {
+        'playback_speed': paused ? 0 : 1,
+        'position': positionMs,
+        'duration': durationMs,
+        'media_type': 'AUDIO',
+        'bitrate': ?audio.bitrate,
+        'format': ?audio.format,
+      },
+      'previous_position': ?previousPositionMs,
+      'debug_source': debugSource,
+    });
+    final res = await _send('PUT', '/$deviceId/state', payload);
     _check(res, '汇报 $debugSource');
-    if (res.body.isEmpty) return null;
+    if (res.bodyBytes.isEmpty) return null;
     final json = jsonDecode(utf8.decode(res.bodyBytes));
     return json is Map<String, dynamic> ? json : null;
   }
@@ -243,32 +268,27 @@ class TrackPlaybackApi {
     int durationMs = 0,
     required List<Map<String, dynamic>> rejected,
   }) async {
-    final res = await _client
-        .post(
-          _uri('/$deviceId/state_conflict'),
-          headers: await headers(),
-          body: jsonEncode({
-            'seq_nums': [for (var i = 0; i < rejected.length; i++) ++_seq],
-            'state_ref': stateMachineId == null
-                ? null
-                : {
-                    'state_machine_id': stateMachineId,
-                    'state_id': stateId,
-                    'paused': paused,
-                  },
-            'sub_state': {
-              'playback_speed': paused ? 0 : 1,
-              'position': positionMs,
-              'duration': durationMs,
-              'media_type': 'AUDIO',
+    final payload = jsonEncode({
+      'seq_nums': [for (var i = 0; i < rejected.length; i++) ++_seq],
+      'state_ref': stateMachineId == null
+          ? null
+          : {
+              'state_machine_id': stateMachineId,
+              'state_id': stateId,
+              'paused': paused,
             },
-            'rejected_state_refs': rejected,
-            'debug_source': 'state_conflict',
-          }),
-        )
-        .timeout(const Duration(seconds: 10));
+      'sub_state': {
+        'playback_speed': paused ? 0 : 1,
+        'position': positionMs,
+        'duration': durationMs,
+        'media_type': 'AUDIO',
+      },
+      'rejected_state_refs': rejected,
+      'debug_source': 'state_conflict',
+    });
+    final res = await _send('POST', '/$deviceId/state_conflict', payload);
     _check(res, '状态冲突');
-    if (res.body.isEmpty) return const [];
+    if (res.bodyBytes.isEmpty) return const [];
     final json = jsonDecode(utf8.decode(res.bodyBytes));
     final commands = json is Map ? json['commands'] : null;
     return commands is List
@@ -280,41 +300,32 @@ class TrackPlaybackApi {
   }
 
   Future<void> putVolume(int volume) async {
-    final res = await _client
-        .put(
-          _uri('/$deviceId/volume'),
-          headers: await headers(),
-          body: jsonEncode({
-            'seq_num': ++_seq,
-            'command_id': '',
-            'volume': volume,
-          }),
-        )
-        .timeout(const Duration(seconds: 10));
+    final payload = jsonEncode({
+      'seq_num': ++_seq,
+      'command_id': '',
+      'volume': volume,
+    });
+    final res = await _send('PUT', '/$deviceId/volume', payload);
     _check(res, '音量');
   }
 
   Future<void> deregister() async {
-    final res = await _client
-        .delete(
-          _uri('/$deviceId'),
-          headers: await headers(),
-          body: jsonEncode({
-            'seq_num': ++_seq,
-            'state_ref': null,
-            'sub_state': {'playback_speed': 0, 'position': 0, 'duration': 0},
-            'debug_source': 'deregister',
-          }),
-        )
-        .timeout(const Duration(seconds: 10));
+    final payload = jsonEncode({
+      'seq_num': ++_seq,
+      'state_ref': null,
+      'sub_state': {'playback_speed': 0, 'position': 0, 'duration': 0},
+      'debug_source': 'deregister',
+    });
+    final res = await _send('DELETE', '/$deviceId', payload);
     _check(res, '注销');
   }
 
-  void _check(http.Response res, String what) {
+  void _check(({int statusCode, Uint8List bodyBytes}) res, String what) {
     if (res.statusCode == 401) invalidate();
     if (res.statusCode >= 300) {
+      final bodyStr = utf8.decode(res.bodyBytes, allowMalformed: true);
       throw StateError(
-        'track-playback $what 失败：HTTP ${res.statusCode} ${res.body}',
+        'track-playback $what 失败：HTTP ${res.statusCode} $bodyStr',
       );
     }
   }

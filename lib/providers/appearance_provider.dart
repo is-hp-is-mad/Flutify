@@ -8,21 +8,21 @@ import 'package:hyper_glass/hyper_glass.dart';
 import '../core/theme/accent_colors.dart';
 import '../core/theme/md3e_theme.dart';
 import '../models/appearance.dart';
-import '../services/storage_service.dart';
+import '../services/storage/preferences_store.dart';
 
 /// 外观设置：主题模式、强调色、动态取色、液态玻璃、纯黑、字号、圆角、减弱动效。
 ///
 /// - 修改立即通知（界面实时预览），写入存储做 300ms 防抖（拖动滑杆时不会每帧写盘）；
 /// - 动态取色的封面色由 `DynamicAccentSync` 写入 [setArtworkColor]，关闭动态取色时忽略。
 class AppearanceProvider extends ChangeNotifier {
-  final StorageService _storage;
+  final PreferencesStore _prefs;
 
   AppearanceSettings _settings = AppearanceSettings.defaults;
   Color? _artworkAccent;
   Timer? _saveTimer;
 
-  AppearanceProvider(this._storage) {
-    final raw = _storage.appearanceJson;
+  AppearanceProvider(this._prefs) {
+    final raw = _prefs.appearanceJson;
     if (raw.isNotEmpty) {
       try {
         final json = jsonDecode(raw);
@@ -70,7 +70,7 @@ class AppearanceProvider extends ChangeNotifier {
     if (_settings.dynamicAccent) notifyListeners();
   }
 
-  void _save() => _storage.setAppearanceJson(jsonEncode(_settings.toJson()));
+  void _save() => _prefs.setAppearanceJson(jsonEncode(_settings.toJson()));
 
   @override
   void dispose() {

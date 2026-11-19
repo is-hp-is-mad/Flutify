@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutify_app/services/network/network_proxy.dart';
-import 'package:flutify_app/services/network/proxy_mode.dart';
+import 'package:flutify_app/models/proxy_mode.dart';
 import 'package:flutify_app/services/network/windows_trust_store.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';

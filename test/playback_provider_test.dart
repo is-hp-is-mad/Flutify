@@ -8,7 +8,7 @@ import 'package:flutify_app/models/playback_state.dart';
 import 'package:flutify_app/providers/playback_provider.dart';
 import 'package:flutify_app/services/auth/login_region_check.dart';
 import 'package:flutify_app/services/playback/playback_region_gate.dart';
-import 'package:flutify_app/services/protocol/track_playback_exception.dart';
+import 'package:flutify_app/models/track_playback_exception.dart';
 import 'package:flutify_app/services/storage_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:just_audio/just_audio.dart';
@@ -35,8 +35,7 @@ void main() {
     audio = FakeAudioPlayerService();
     loader = FakeTrackAudioSource();
     playback = PlaybackProvider(
-      audio,
-      storage,
+      audio, storage.playback,
       random: Random(42),
       audioLoader: loader,
     );
@@ -311,7 +310,7 @@ void main() {
 
     test('关闭后停在最后一首，且设置持久化', () async {
       playback.setAutoplay(false);
-      expect((await StorageService.init()).autoplay, isFalse);
+      expect((await StorageService.init()).playback.autoplay, isFalse);
       await playback.playTrack(c, contextQueue: [a, b, c], context: ctx);
 
       await playback.nextTrack();
@@ -623,8 +622,7 @@ void main() {
       expect(playback.currentTrack?.id, x.id);
       expect(audio.playedFiles, hasLength(1));
       final reloaded = PlaybackProvider(
-        audio,
-        await StorageService.init(),
+        audio, (await StorageService.init()).playback,
         audioLoader: loader,
       );
       addTearDown(reloaded.dispose);
@@ -633,7 +631,7 @@ void main() {
 
     test('未登录（无加载器）：提示请先登录，不跳歌', () async {
       SharedPreferences.setMockInitialValues({});
-      final bare = PlaybackProvider(audio, await StorageService.init());
+      final bare = PlaybackProvider(audio, (await StorageService.init()).playback);
       addTearDown(bare.dispose);
 
       await bare.playTrack(a, contextQueue: [a, b], context: ctx);
@@ -706,8 +704,7 @@ void main() {
         probe: () async => LoginRegion(code),
       );
       final gated = PlaybackProvider(
-        audio,
-        await StorageService.init(),
+        audio, (await StorageService.init()).playback,
         audioLoader: loader,
         regionGate: gate,
       );

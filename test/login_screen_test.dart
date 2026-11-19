@@ -40,7 +40,7 @@ void main() {
     maximized = false;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
-          windowCalls.add(call.method);
+          if (call.method != 'isFullScreen') windowCalls.add(call.method);
           if (call.method == 'isMaximized') return maximized;
           if (call.method == 'isFullScreen') return false;
           if (call.method == 'maximize') maximized = true;
@@ -129,7 +129,7 @@ void main() {
         storageService: storage,
         audioEngine: FakeAudioPlayerService(),
         emePlayer: EmePlayer(),
-        spotifyApiService: SpotifyApiService(storage),
+        spotifyApiService: SpotifyApiService(storage.auth),
       ),
     );
     await tester.pump(const Duration(milliseconds: 300));

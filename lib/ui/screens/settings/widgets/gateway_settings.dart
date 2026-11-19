@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../../../l10n/l10n.dart';
 import '../../../../providers/preferences_provider.dart';
-import '../../../../services/network/spotify_gateway.dart';
+import '../../../../models/spotify_gateway.dart';
 import '../../../../services/network/network_proxy.dart';
 import 'settings_section.dart';
 import '../../../widgets/flutify_dialog.dart';

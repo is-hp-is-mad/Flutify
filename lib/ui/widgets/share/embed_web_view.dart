@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../l10n/l10n.dart';
 import '../../../models/share_target.dart';
+import '../../../services/auth/auth_constants.dart';
 import '../../../services/eme/eme_player.dart';
 import '../flutify_progress.dart';
 import '../app_button.dart';
@@ -159,6 +160,7 @@ class _EmbedWebViewState extends State<EmbedWebView> {
                         supportZoom: false,
                         useShouldOverrideUrlLoading: true,
                         mediaPlaybackRequiresUserGesture: true,
+                        userAgent: SpotifyAuthConstants.webUserAgent,
                       ),
                       onLoadStop: (_, _) {
                         if (!mounted || attempt != _attempt) return;

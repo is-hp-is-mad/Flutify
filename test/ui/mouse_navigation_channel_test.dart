@@ -21,7 +21,10 @@ void main() {
       AppRoutes.navigateBack = null;
       AppRoutes.navigateForward = null;
     });
-    installMacOSMouseNavigation();
+    installMacOSMouseNavigation(
+      onBack: () => AppRoutes.navigateBack?.call(),
+      onForward: () => AppRoutes.navigateForward?.call(),
+    );
 
     Future<void> fromNative(String method) =>
         tester.binding.defaultBinaryMessenger.handlePlatformMessage(

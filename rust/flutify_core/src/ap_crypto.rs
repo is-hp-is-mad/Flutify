@@ -135,6 +135,18 @@ mod tests {
         assert_eq!(keys.recv_key, hex(&vector("recvKey")));
     }
 
+    /// 黄金向量（Python hmac 独立计算，原 Dart ap_crypto_test 迁移过来）。
+    #[test]
+    fn handshake_keys_golden_vector() {
+        let shared = hex(&"c3a5".repeat(24));
+        let packets = hex(&format!("0004{}", "11".repeat(38)));
+        let keys = compute_keys(&shared, &packets);
+        let hex_of = |b: &[u8]| b.iter().map(|x| format!("{x:02x}")).collect::<String>();
+        assert_eq!(hex_of(&keys.challenge), "0fee68ecd08aa430a621123f6f0aa18a8afdf7aa");
+        assert_eq!(hex_of(&keys.send_key), "d8947260e647236b706bd310e01b69c72f91efcbf44056ff5ca445e0836fad99");
+        assert_eq!(hex_of(&keys.recv_key), "8503147c08360c29aec41443f6e0edfbb34853e3cacc6ae5935aad0a946953d3");
+    }
+
     #[test]
     fn rsa_accepts_valid_and_rejects_tampered() {
         let n = hex(&vector("rsaN"));

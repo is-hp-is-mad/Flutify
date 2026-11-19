@@ -521,6 +521,12 @@ abstract class AppLocalizations {
   /// **'{count, plural, other{{count} 首歌曲}}'**
   String songCount(int count);
 
+  /// 分页加载的长歌单尚未加载完时，跟在总曲目数后面显示已加载多少首，如「1200 首歌曲 · 已加载 300 首」
+  ///
+  /// In zh, this message translates to:
+  /// **'已加载 {count} 首'**
+  String songCountLoaded(int count);
+
   /// 粉丝数，count 为已格式化的紧凑数字（如 1.2 万）
   ///
   /// In zh, this message translates to:
@@ -2368,6 +2374,36 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'暂无日志'**
   String get settingsCopyLogEmpty;
+
+  /// No description provided for @settingsExportLog.
+  ///
+  /// In zh, this message translates to:
+  /// **'导出诊断日志'**
+  String get settingsExportLog;
+
+  /// No description provided for @settingsExportLogSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'保存完整运行日志为 .log 或 .txt 文件'**
+  String get settingsExportLogSubtitle;
+
+  /// No description provided for @settingsExportLogFormat.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择导出格式'**
+  String get settingsExportLogFormat;
+
+  /// No description provided for @settingsExportLogDone.
+  ///
+  /// In zh, this message translates to:
+  /// **'日志已导出：{path}'**
+  String settingsExportLogDone(String path);
+
+  /// No description provided for @settingsExportLogFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'导出日志失败'**
+  String get settingsExportLogFailed;
 
   /// No description provided for @taskbarLyricsColorAuto.
   ///

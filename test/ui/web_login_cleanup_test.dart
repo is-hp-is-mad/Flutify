@@ -18,13 +18,13 @@ void main() {
     final storage = await StorageService.init();
     var cleanup = Completer<void>();
     var calls = 0;
-    storage.clearWebViewCookies = () {
+    storage.auth.clearWebViewCookies = () {
       calls++;
       return cleanup.future;
     };
     await tester.pumpWidget(
       Provider<WebTokenService>.value(
-        value: WebTokenService(storage),
+        value: WebTokenService(storage.auth),
         child: MaterialApp(
           locale: const Locale('zh'),
           supportedLocales: AppLocale.supportedLocales,

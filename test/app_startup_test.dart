@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutify_app/core/widgets/app_startup.dart';
+import 'package:flutify_app/ui/widgets/app_startup.dart';
 import 'package:flutify_app/ui/widgets/flutify_progress.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

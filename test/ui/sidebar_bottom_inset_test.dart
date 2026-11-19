@@ -31,17 +31,16 @@ void main() {
     ArtworkPalette.enabled = false;
     SharedPreferences.setMockInitialValues({});
     final storage = await StorageService.init();
-    await storage.markDesktopSession();
-    await storage.setRefreshToken('synthetic-refresh');
-    await storage.setUsername('synthetic-user');
-    await storage.setDisplayName('Synthetic User');
+    await storage.auth.markDesktopSession();
+    await storage.auth.setRefreshToken('synthetic-refresh');
+    await storage.auth.setUsername('synthetic-user');
+    await storage.auth.setDisplayName('Synthetic User');
     await tester.pumpWidget(
       FlutifyApp(
         storageService: storage,
         audioEngine: FakeAudioPlayerService(),
         emePlayer: EmePlayer(),
-        spotifyApiService: FakeSpotifyApiService(
-          storage,
+        spotifyApiService: FakeSpotifyApiService(storage.auth,
           homeFeed: SampleHome.feed,
           librarySource: FakeLibrarySource(
             playlists: [

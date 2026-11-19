@@ -5,21 +5,22 @@ import 'package:provider/provider.dart';
 
 import '../../../../l10n/l10n.dart';
 import '../../../../models/app_preferences.dart';
+import '../../../../models/proxy_mode.dart';
 import '../../../../providers/preferences_provider.dart';
 import '../../../../services/network/network_proxy.dart';
 import '../../../../services/network/proxy_probe.dart';
-import '../../../../services/storage_service.dart';
+import '../../../../services/storage/preferences_store.dart';
 import '../widgets/proxy_auth_fields.dart';
 import '../widgets/proxy_server_fields.dart';
 import '../widgets/gateway_settings.dart';
+import '../widgets/settings_menu_field.dart';
 import '../widgets/settings_section.dart';
-import '../widgets/settings_segmented.dart';
 import '../../../widgets/flutify_progress.dart';
 
 /// 网络：代理模式（系统代理 / 不使用 / 手动）+ 手动代理的地址与认证 + 测试连接。
 ///
 /// - 改动即时生效：main 里监听偏好，重配全局 [NetworkProxy]，之后的新连接都按新策略走；
-///   代理密码不进偏好（在 StorageService），由认证字段提交后直接重配；
+///   代理密码不进偏好（在 [PreferencesStore]），由认证字段提交后直接重配；
 /// - 「系统代理」下显示当前读到的系统代理，进入设置页时重读一次；
 /// - 没有注入 [NetworkProxy]（测试）时只显示模式与手动地址，不探测系统、不提供测试。
 class NetworkSection extends StatefulWidget {
@@ -33,7 +34,7 @@ enum _ProbeState { idle, running, ok, failed }
 
 class _NetworkSectionState extends State<NetworkSection> {
   NetworkProxy? _proxy;
-  StorageService? _storage;
+  PreferencesStore? _storage;
   late final PreferencesProvider _prefs;
   _ProbeState _probe = _ProbeState.idle;
   String _probeDetail = '';
@@ -45,7 +46,7 @@ class _NetworkSectionState extends State<NetworkSection> {
   void initState() {
     super.initState();
     _proxy = Provider.of<NetworkProxy?>(context, listen: false);
-    _storage = Provider.of<StorageService?>(context, listen: false);
+    _storage = Provider.of<PreferencesStore?>(context, listen: false);
     _prefs = context.read<PreferencesProvider>();
     if (context.read<PreferencesProvider>().prefs.proxyMode == ProxyMode.system)
       _refreshSystem();
@@ -187,14 +188,16 @@ class _NetworkSectionState extends State<NetworkSection> {
         SettingsTile(
           title: l10n.settingsProxy,
           subtitle: subtitle,
-          below: SettingsSegmented<ProxyMode>(
-            values: ProxyMode.values,
-            labelOf: (m) => switch (m) {
-              ProxyMode.system => l10n.settingsProxySystem,
-              ProxyMode.none => l10n.settingsProxyNone,
-              ProxyMode.manual => l10n.settingsProxyManual,
-            },
-            selected: mode,
+          below: SettingsMenuField<ProxyMode>(
+            buttonKey: const ValueKey('proxy-mode'),
+            semanticLabel: l10n.settingsProxy,
+            icon: Icons.lan_rounded,
+            value: mode,
+            options: [
+              SettingsMenuOption(value: ProxyMode.system, label: l10n.settingsProxySystem),
+              SettingsMenuOption(value: ProxyMode.none, label: l10n.settingsProxyNone),
+              SettingsMenuOption(value: ProxyMode.manual, label: l10n.settingsProxyManual),
+            ],
             onChanged: _setMode,
           ),
         ),

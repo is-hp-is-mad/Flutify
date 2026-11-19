@@ -5,6 +5,7 @@ import 'package:flutify_app/core/utils/artwork_palette.dart';
 import 'package:flutify_app/core/utils/byte_size.dart';
 import 'package:flutify_app/main.dart';
 import 'package:flutify_app/models/app_preferences.dart';
+import 'package:flutify_app/models/proxy_mode.dart';
 import 'package:flutify_app/models/appearance.dart';
 import 'package:flutify_app/services/eme/eme_player.dart';
 import 'package:flutify_app/services/protocol/audio_cache_store.dart';
@@ -87,7 +88,7 @@ void main() {
         storageService: storage,
         audioEngine: FakeAudioPlayerService(),
         emePlayer: EmePlayer(),
-        spotifyApiService: FakeSpotifyApiService(storage),
+        spotifyApiService: FakeSpotifyApiService(storage.auth),
         trackAudioLoader: loader ?? FakeTrackAudioSource(),
       ),
     );
@@ -109,7 +110,7 @@ void main() {
     await settle(tester);
   }
 
-  AppPreferences savedPrefs() => AppPreferences.decode(storage.preferencesJson);
+  AppPreferences savedPrefs() => AppPreferences.decode(storage.preferences.preferencesJson);
 
   /// 在语言菜单里选中 [label]。
   ///
@@ -179,7 +180,7 @@ void main() {
     await pumpApp(
       tester,
       size: const Size(320, 1800),
-      seed: (s) => s.setAppearanceJson(
+      seed: (s) => s.preferences.setAppearanceJson(
         jsonEncode(
           AppearanceSettings.defaults.copyWith(fontScale: 1.3).toJson(),
         ),
@@ -252,7 +253,7 @@ void main() {
     expect(savedPrefs().lyricsAlign, LyricsAlign.center);
 
     await tapText(tester, '音量均衡');
-    expect(storage.normalizeVolume, isTrue);
+    expect(storage.playback.normalizeVolume, isTrue);
 
     // 关闭 Connect：提前量滑杆随之隐藏
     expect(find.text('远程歌词提前'), findsOneWidget);
@@ -269,7 +270,7 @@ void main() {
     expect(find.text('已用 3 MB，上限 512 MB'), findsOneWidget);
 
     await tapText(tester, '1 GB');
-    expect(storage.audioCacheLimitMb, 1024);
+    expect(storage.cache.audioCacheLimitMb, 1024);
     expect(loader.maxCacheBytes, ByteSize.gb);
     expect(find.text('已用 3 MB，上限 1 GB'), findsOneWidget);
 
@@ -287,10 +288,17 @@ void main() {
     await openSettings(tester);
 
     expect(savedPrefs().proxyMode, ProxyMode.system);
+    final proxyDropdown = find.byKey(const ValueKey('proxy-mode'));
+    await tester.ensureVisible(proxyDropdown);
+    await settle(tester);
+    await tester.tap(proxyDropdown);
+    await settle(tester);
     await tapText(tester, '不使用');
     expect(savedPrefs().proxyMode, ProxyMode.none);
     expect(find.byKey(const ValueKey('proxy-host')), findsNothing);
 
+    await tester.tap(proxyDropdown);
+    await settle(tester);
     await tapText(tester, '手动');
     expect(savedPrefs().proxyMode, ProxyMode.manual);
 
@@ -313,11 +321,11 @@ void main() {
   });
 
   testWidgets('privacy: clearing search history empties it', (tester) async {
-    await pumpApp(tester, seed: (s) => s.addRecentSearch('lofi'));
+    await pumpApp(tester, seed: (s) => s.library.addRecentSearch('lofi'));
     await openSettings(tester);
 
     await tapText(tester, '清除搜索记录');
-    expect(storage.recentSearches, isEmpty);
+    expect(storage.library.recentSearches, isEmpty);
     expect(find.text('没有搜索记录'), findsOneWidget);
     expect(find.text('已清除'), findsOneWidget);
   });
@@ -325,7 +333,7 @@ void main() {
   testWidgets('start page: library and last position', (tester) async {
     await pumpApp(
       tester,
-      seed: (s) => s.setPreferencesJson(
+      seed: (s) => s.preferences.setPreferencesJson(
         const AppPreferences(startPage: StartPage.library).encode(),
       ),
     );
@@ -334,10 +342,10 @@ void main() {
     await pumpApp(
       tester,
       seed: (s) async {
-        await s.setPreferencesJson(
+        await s.preferences.setPreferencesJson(
           const AppPreferences(startPage: StartPage.last).encode(),
         );
-        await s.setLastTab(1);
+        await s.preferences.setLastTab(1);
       },
     );
     expect(currentTab(tester), 1);

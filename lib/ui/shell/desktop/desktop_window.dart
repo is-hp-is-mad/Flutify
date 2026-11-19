@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../../../models/app_preferences.dart';
-import '../../../services/storage_service.dart';
+import '../../../services/storage/preferences_store.dart';
 import 'window_bounds_memory.dart';
 
 /// 桌面窗口外观：隐藏系统标题栏，由顶栏自绘（拖动区 + 最小化 / 最大化 / 关闭）。
@@ -60,7 +60,7 @@ class DesktopWindow {
   static final ValueNotifier<bool> immersiveWindow = ValueNotifier(false);
 
   /// 在 runApp 之前调用。开启「记住窗口大小和位置」时，在窗口显示前就放到上次的位置（不闪一下再跳）。
-  static Future<void> init(StorageService storage) async {
+  static Future<void> init(PreferencesStore storage) async {
     if (kIsWeb ||
         !(Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
       return;

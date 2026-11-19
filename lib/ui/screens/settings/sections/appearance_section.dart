@@ -4,8 +4,8 @@ import 'package:provider/provider.dart';
 import '../../../../l10n/l10n.dart';
 import '../../../../models/appearance.dart';
 import '../../../../providers/appearance_provider.dart';
+import '../widgets/settings_menu_field.dart';
 import '../widgets/settings_section.dart';
-import '../widgets/settings_segmented.dart';
 
 /// 外观：主题模式（跟随系统 / 浅色 / 深色）+ 纯黑背景。
 class AppearanceSection extends StatelessWidget {
@@ -22,14 +22,16 @@ class AppearanceSection extends StatelessWidget {
       children: [
         SettingsTile(
           title: l10n.settingsThemeMode,
-          below: SettingsSegmented<ThemeMode>(
-            values: const [ThemeMode.system, ThemeMode.light, ThemeMode.dark],
-            selected: settings.themeMode,
-            labelOf: (mode) => switch (mode) {
-              ThemeMode.system => l10n.settingsThemeSystem,
-              ThemeMode.light => l10n.settingsThemeLight,
-              ThemeMode.dark => l10n.settingsThemeDark,
-            },
+          below: SettingsMenuField<ThemeMode>(
+            buttonKey: const ValueKey('theme-mode'),
+            semanticLabel: l10n.settingsThemeMode,
+            icon: Icons.brightness_6_rounded,
+            value: settings.themeMode,
+            options: [
+              SettingsMenuOption(value: ThemeMode.system, label: l10n.settingsThemeSystem, icon: Icons.brightness_auto_rounded),
+              SettingsMenuOption(value: ThemeMode.light, label: l10n.settingsThemeLight, icon: Icons.light_mode_rounded),
+              SettingsMenuOption(value: ThemeMode.dark, label: l10n.settingsThemeDark, icon: Icons.dark_mode_rounded),
+            ],
             onChanged: (mode) => provider.update(settings.copyWith(themeMode: mode)),
           ),
         ),

@@ -4,8 +4,8 @@ import 'package:provider/provider.dart';
 import '../../../../l10n/l10n.dart';
 import '../../../../models/appearance.dart';
 import '../../../../providers/appearance_provider.dart';
+import '../widgets/settings_menu_field.dart';
 import '../widgets/settings_section.dart';
-import '../widgets/settings_segmented.dart';
 import '../widgets/settings_slider_tile.dart';
 
 /// 文字与形状：字号（带示例文字）+ 圆角风格。
@@ -63,14 +63,16 @@ class _TextShapeSectionState extends State<TextShapeSection> {
         Padding(padding: const EdgeInsets.fromLTRB(16, 4, 16, 14), child: preview),
         SettingsTile(
           title: l10n.settingsCornerStyle,
-          below: SettingsSegmented<CornerStyle>(
-            values: CornerStyle.values,
-            selected: settings.cornerStyle,
-            labelOf: (style) => switch (style) {
-              CornerStyle.rounded => l10n.settingsCornerRounded,
-              CornerStyle.standard => l10n.settingsCornerStandard,
-              CornerStyle.square => l10n.settingsCornerSquare,
-            },
+          below: SettingsMenuField<CornerStyle>(
+            buttonKey: const ValueKey('corner-style'),
+            semanticLabel: l10n.settingsCornerStyle,
+            icon: Icons.rounded_corner_rounded,
+            value: settings.cornerStyle,
+            options: [
+              SettingsMenuOption(value: CornerStyle.rounded, label: l10n.settingsCornerRounded),
+              SettingsMenuOption(value: CornerStyle.standard, label: l10n.settingsCornerStandard),
+              SettingsMenuOption(value: CornerStyle.square, label: l10n.settingsCornerSquare),
+            ],
             onChanged: (style) => provider.update(settings.copyWith(cornerStyle: style)),
           ),
         ),

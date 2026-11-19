@@ -97,4 +97,61 @@ void main() {
       expect(await temporary.list().isEmpty, isTrue);
     },
   );
+
+  test('resumes a truncated range chunk from the received offset', () async {
+    final requestedRanges = <String>[];
+    var truncatedOnce = false;
+    final downloader = UpdateDownloader(
+      rangeThreshold: 1,
+      parallelism: 2,
+      clientFactory: () => MockClient.streaming((request, _) async {
+        final range = request.headers['Range']!;
+        requestedRanges.add(range);
+        final match = RegExp(r'^bytes=(\d+)-(\d+)$').firstMatch(range)!;
+        final start = int.parse(match[1]!);
+        final end = int.parse(match[2]!);
+        final chunk = bytes.sublist(start, end + 1);
+        if (start == 0 && !truncatedOnce) {
+          truncatedOnce = true;
+          final half = chunk.length ~/ 2;
+          return http.StreamedResponse(
+            Stream.value(chunk.sublist(0, half)),
+            206,
+            contentLength: chunk.length,
+            headers: {'content-range': 'bytes $start-$end/${bytes.length}'},
+          );
+        }
+        return http.StreamedResponse(
+          Stream.value(chunk),
+          206,
+          contentLength: chunk.length,
+          headers: {'content-range': 'bytes $start-$end/${bytes.length}'},
+        );
+      }),
+    );
+
+    await download(downloader);
+    expect(await destination.readAsBytes(), bytes);
+    // First chunk truncated at half; retry must resume from half, not 0.
+    expect(requestedRanges.where((r) => r.startsWith('bytes=0-')).length, 1);
+    expect(requestedRanges.any((r) => r.startsWith('bytes=${(bytes.length ~/ 2) ~/ 2}-')), isTrue);
+  });
+
+  test('falls back to single-stream download when parallel range fails', () async {
+    var singleStreamRequests = 0;
+    final downloader = UpdateDownloader(
+      rangeThreshold: 1,
+      clientFactory: () => MockClient((request) async {
+        if (request.headers.containsKey('Range')) {
+          return http.Response('Service Unavailable', 503);
+        }
+        singleStreamRequests++;
+        return http.Response.bytes(bytes, 200);
+      }),
+    );
+
+    await download(downloader);
+    expect(singleStreamRequests, 1);
+    expect(await destination.readAsBytes(), bytes);
+  });
 }

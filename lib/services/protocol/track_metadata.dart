@@ -1,7 +1,9 @@
 import 'dart:typed_data';
 
+import '../../core/rust_core.dart';
+import '../../core/utils/spotify_id.dart';
+import '../../src/rust/api/backend.dart' as rust;
 import '../auth/proto_codec.dart';
-import 'spotify_id.dart';
 
 /// 曲目音频文件格式（`metadata.proto` AudioFile.Format）。
 enum AudioFileFormat {
@@ -145,7 +147,34 @@ class TrackMetadata {
   }
 
   /// 解析 protobuf `Track`（宽松：未知字段跳过）。
-  factory TrackMetadata.parse(Uint8List data) => _parseTrack(ProtoReader(data));
+  factory TrackMetadata.parse(Uint8List data) {
+    if (RustCore.ready) {
+      try {
+        final dto = rust.rustParseTrackMetadataProto(data: data);
+        return _fromProtoDto(dto);
+      } catch (_) {}
+    }
+    return _parseTrack(ProtoReader(data));
+  }
+
+  static TrackMetadata _fromProtoDto(rust.RustProtoTrackMetadataDto dto) =>
+      TrackMetadata(
+        gid: dto.gid,
+        name: dto.name,
+        albumName: dto.albumName,
+        artistNames: dto.artistNames,
+        durationMs: dto.durationMs,
+        explicit: dto.explicit,
+        files: [
+          for (final f in dto.files)
+            if (AudioFileFormat.fromWire(f.format) != null)
+              TrackAudioFile(
+                fileId: f.fileId,
+                format: AudioFileFormat.fromWire(f.format)!,
+              ),
+        ],
+        alternatives: [for (final a in dto.alternatives) _fromProtoDto(a)],
+      );
 
   static TrackMetadata _parseTrack(ProtoReader reader) {
     final gid = Uint8List(16);

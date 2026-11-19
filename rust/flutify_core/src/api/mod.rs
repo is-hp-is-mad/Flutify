@@ -1,3 +1,10 @@
+pub mod audio_stream;
+pub mod backend;
+pub mod backup;
 pub mod lyrics;
+pub mod net_config;
 pub mod network;
+pub mod pathfinder;
 pub mod protocol;
+pub mod session_tokens;
+pub mod watchfeed;

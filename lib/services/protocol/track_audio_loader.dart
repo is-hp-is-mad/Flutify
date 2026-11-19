@@ -3,26 +3,25 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
+import '../../core/rust_core.dart';
 import '../../models/audio_playback_info.dart';
+import '../../src/rust/api/backend.dart' as rust;
 
 import 'access_point.dart';
 import 'audio_cache_store.dart';
 import 'audio_normalization.dart';
-import 'decrypt/decrypt_backend.dart';
 import 'episode_metadata.dart';
 import 'extended_metadata.dart';
 import 'progressive_download.dart';
-import 'spotify_id.dart';
+import '../../core/utils/spotify_id.dart';
 import 'storage_resolver.dart';
 import 'track_metadata.dart';
-import 'track_playback_exception.dart';
+import '../../models/track_playback_exception.dart';
 import '../audio/audio_engine.dart';
 
 export 'audio_normalization.dart';
-export 'decrypt/decrypt_backend.dart'
-    show DecryptBackend, InlineDecryptBackend, IsolateDecryptBackend;
 export 'progressive_download.dart' show ProgressiveAudio;
-export 'track_playback_exception.dart';
+export '../../models/track_playback_exception.dart';
 
 /// 音频解密 IV（协议固定常量，对应 librespot `audio/src/decrypt.rs` 的 AUDIO_AESIV）。
 final Uint8List kAudioAesIv = Uint8List.fromList([
@@ -154,11 +153,9 @@ class TrackAudioLoader implements TrackAudioSource, AudioCacheStore {
   String get cacheDirectory =>
       cacheDirectoryProvider?.call() ?? _cacheDirectory;
   final http.Client _client;
+  final bool _hasCustomClient;
   final List<AudioFileFormat> formatPreference;
   final String? deviceId;
-
-  /// 解密执行位置：App 中为常驻后台 Isolate（不占 UI 线程），默认在当前线程（探针脚本 / 测试）。
-  final DecryptBackend decryptBackend;
 
   int _maxCacheBytes;
 
@@ -182,10 +179,10 @@ class TrackAudioLoader implements TrackAudioSource, AudioCacheStore {
     this.cacheDirectoryProvider,
     this.formatPreference = kPlayableFormatPreference,
     this.deviceId,
-    this.decryptBackend = const InlineDecryptBackend(),
     this._maxCacheBytes = 512 * 1024 * 1024,
     http.Client? client,
   }) : _cacheDirectory = cacheDirectory,
+       _hasCustomClient = client != null,
        _client = client ?? http.Client();
 
   // ---------------------------------------------------------------------------
@@ -238,6 +235,9 @@ class TrackAudioLoader implements TrackAudioSource, AudioCacheStore {
     try {
       final dir = _audioDir;
       if (!dir.existsSync()) return 0;
+      if (RustCore.ready) {
+        return (await rust.rustAudioCacheSizeBytes(dirPath: dir.path)).toInt();
+      }
       var total = 0;
       await for (final entity in dir.list()) {
         if (entity is File) total += await entity.length();
@@ -252,6 +252,12 @@ class TrackAudioLoader implements TrackAudioSource, AudioCacheStore {
   Future<int> clear() async {
     var freed = 0;
     try {
+      if (RustCore.ready) {
+        return (await rust.rustAudioCacheClear(
+          dirPath: _audioDir.path,
+          protectedPaths: List.of(_recentPaths),
+        )).toInt();
+      }
       for (final f in _audioFiles()) {
         if (_isProtected(f)) continue;
         freed += _deleteAudio(f);
@@ -522,10 +528,9 @@ class TrackAudioLoader implements TrackAudioSource, AudioCacheStore {
     final destination = _cacheFile(file);
     final download = ProgressiveDownload(
       urls: cdnUrls,
-      decrypt: AesCtrDecryptSpec(key: key, iv: kAudioAesIv),
-      backend: decryptBackend,
+      key: key,
+      iv: kAudioAesIv,
       format: file.format,
-      client: _client,
     )..start();
     final session = _AudioSession.downloading(
       id: id,
@@ -629,6 +634,14 @@ class TrackAudioLoader implements TrackAudioSource, AudioCacheStore {
     try {
       final dir = _audioDir;
       if (!await dir.exists()) return;
+      if (RustCore.ready) {
+        await rust.rustAudioCacheTrim(
+          dirPath: dir.path,
+          maxBytes: BigInt.from(_maxCacheBytes < 0 ? 0 : _maxCacheBytes),
+          protectedPaths: List.of(_recentPaths),
+        );
+        return;
+      }
       final files = <({File file, int size, DateTime used})>[];
       var total = 0;
       await for (final entry in dir.list(followLinks: false)) {
@@ -682,6 +695,7 @@ class TrackAudioLoader implements TrackAudioSource, AudioCacheStore {
       final payload = await ExtendedMetadataClient(
         _client,
         headers: _headers,
+        useRustBackend: !_hasCustomClient,
       ).fetch('spotify:track:${id.toBase62()}', ExtensionKind.trackV4);
       if (payload != null) {
         final meta = TrackMetadata.parse(payload);
@@ -773,7 +787,7 @@ class TrackAudioLoader implements TrackAudioSource, AudioCacheStore {
   /// 复用 AP 会话（登录失效时重建一次）。
   Future<SpotifyAccessPoint> _ensureAccessPoint() async {
     Future<SpotifyAccessPoint> create() async {
-      final ap = await SpotifyAccessPoint.connect(client: _client);
+      final ap = await SpotifyAccessPoint.connect();
       await ap.authenticate(
         ApCredentials.accessToken(await accessToken()),
         deviceId: deviceId,

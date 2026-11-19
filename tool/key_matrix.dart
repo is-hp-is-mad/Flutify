@@ -8,7 +8,7 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 
 import 'package:flutify_app/services/protocol/access_point.dart';
-import 'package:flutify_app/services/protocol/spotify_id.dart';
+import 'package:flutify_app/core/utils/spotify_id.dart';
 
 Future<void> main() async {
   final prefs = jsonDecode(
@@ -48,7 +48,7 @@ Future<void> main() async {
     'aac24': _hex('d7a2810572092a42f7b287e29212c88a6ed0348c'),
   };
 
-  final ap = await SpotifyAccessPoint.connect(client: client);
+  final ap = await SpotifyAccessPoint.connect();
   try {
     await ap.authenticate(ApCredentials.accessToken(token), deviceId: prefs['flutter.sp_device_id'] as String?);
     print('AP 登录成功 user=${ap.canonicalUsername}');

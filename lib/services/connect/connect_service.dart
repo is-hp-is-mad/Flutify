@@ -92,6 +92,7 @@ class ConnectService {
       spclientHost: () =>
           _dealer.spclientHost ?? DealerClient.defaultSpclientHost,
       connectionId: () => _dealer.connectionId,
+      useRustBackend: dealer == null && apresolve == null,
     );
     _subscriptions
       ..add(_dealer.messages.listen(_onDealerMessage))

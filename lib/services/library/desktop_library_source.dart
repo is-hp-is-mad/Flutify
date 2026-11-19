@@ -4,6 +4,9 @@ import 'dart:math';
 import 'package:http/http.dart' as http;
 
 import '../../core/constants/spotify_endpoints.dart';
+import '../../core/rust_core.dart';
+import '../../src/rust/api/backend.dart' as rust;
+import '../rust_backend_bridge.dart';
 import '../../models/album.dart';
 import '../../models/artist.dart';
 import '../../models/editable_playlist.dart';
@@ -39,6 +42,7 @@ class DesktopLibrarySource implements LibrarySource {
   final int albumLimit;
   final int artistLimit;
   final int playlistLimit;
+  final bool useRustBackend;
 
   DesktopLibrarySource({
     required this._client,
@@ -50,6 +54,7 @@ class DesktopLibrarySource implements LibrarySource {
     this.albumLimit = 100,
     this.artistLimit = 60,
     this.playlistLimit = 300,
+    this.useRustBackend = false,
   });
 
   @override
@@ -115,20 +120,43 @@ class DesktopLibrarySource implements LibrarySource {
   Future<List<SpotifyPlaylist>> fetchPlaylists() async {
     if (!_hasUsername) return const [];
     final user = _username();
-    final res = await _client.get(
-      Uri.parse('$_spclient/playlist/v2/user/${Uri.encodeComponent(user)}/rootlist'
-          '?decorate=revision,attributes,length,owner&from=0&length=$playlistLimit'),
-      headers: await _headers(),
-    );
-    if (res.statusCode != 200) throw LibrarySourceException('读取歌单失败', res.statusCode);
-
-    final Map<String, dynamic> json;
-    try {
-      json = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
-    } catch (e) {
-      throw LibrarySourceException('歌单数据格式异常：$e');
+    List<SpotifyPlaylist>? playlists;
+    if (useRustBackend && RustCore.ready) {
+      final url =
+          '$_spclient/playlist/v2/user/${Uri.encodeComponent(user)}/rootlist'
+          '?decorate=revision,attributes,length,owner&from=0&length=$playlistLimit';
+      final proxy = await RustBackendBridge.proxyForUrl(url);
+      if (proxy != null) {
+        final dtos = await rust.rustFetchRootlist(
+          spclientBase: _spclient,
+          username: Uri.encodeComponent(user),
+          proxy: proxy,
+        );
+        playlists = [
+          for (final d in dtos) RustBackendBridge.playlistSummaryFromDto(d),
+        ];
+      }
     }
-    final playlists = RootlistParser.parse(json);
+    if (playlists == null) {
+      final res = await _client.get(
+        Uri.parse(
+          '$_spclient/playlist/v2/user/${Uri.encodeComponent(user)}/rootlist'
+          '?decorate=revision,attributes,length,owner&from=0&length=$playlistLimit',
+        ),
+        headers: await _headers(),
+      );
+      if (res.statusCode != 200) {
+        throw LibrarySourceException('读取歌单失败', res.statusCode);
+      }
+
+      final Map<String, dynamic> json;
+      try {
+        json = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+      } catch (e) {
+        throw LibrarySourceException('歌单数据格式异常：$e');
+      }
+      playlists = RootlistParser.parse(json);
+    }
 
     // rootlist 未带元数据（名称为空）的条目补查概要；仍无封面（未设置封面的自建歌单）
     // 用前几首曲目的专辑封面拼四宫格。任一步失败都保留原条目，UI 显示「未命名」/ 占位图标
@@ -150,6 +178,30 @@ class DesktopLibrarySource implements LibrarySource {
   /// 分页读取集合 [set]，只保留 [kind] 类型条目，按加入时间从新到旧排序。
   Future<List<CollectionEntry>> _collection(String set, String kind) async {
     final user = _username();
+    if (useRustBackend && RustCore.ready) {
+      try {
+        final proxy = await RustBackendBridge.proxyForUrl(
+          '$_spclient/collection/v2/paging',
+        );
+        if (proxy != null) {
+          final dtos = await rust.rustFetchCollectionEntries(
+            spclientBase: _spclient,
+            username: user,
+            setName: set,
+            kind: kind,
+            maxPages: _maxPages,
+            pageSize: _pageSize,
+            proxy: proxy,
+          );
+          return [
+            for (final dto in dtos)
+              RustBackendBridge.collectionEntryFromDto(dto),
+          ];
+        }
+      } catch (_) {
+        // 回退到 Dart 实现（例如需要 Dart 网关/会话钩子的环境）
+      }
+    }
     final all = <CollectionEntry>[];
     var token = '';
     for (var page = 0; page < _maxPages; page++) {

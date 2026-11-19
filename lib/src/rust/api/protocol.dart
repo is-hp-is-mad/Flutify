@@ -18,10 +18,6 @@ Uint8List spotifyIdFromBase62({required String src}) =>
 Uint8List spotifyIdFromBase16({required String src}) =>
     RustLib.instance.api.crateApiProtocolSpotifyIdFromBase16(src: src);
 
-/// 从 `spotify:track:xxx` / `track:xxx` / `xxx` 提取 16 字节原始 GID。
-Uint8List spotifyIdFromUri({required String uri}) =>
-    RustLib.instance.api.crateApiProtocolSpotifyIdFromUri(uri: uri);
-
 /// 16 字节原始 GID 转 22 位 base62。
 String spotifyIdToBase62({required List<int> raw}) =>
     RustLib.instance.api.crateApiProtocolSpotifyIdToBase62(raw: raw);
@@ -63,115 +59,11 @@ Uint8List aesCtrProcessAtOffset({
   data: data,
 );
 
-/// 还原混淆的 Web 播放器 TOTP secret。
-Uint8List deobfuscateTotpSecret({required String obfuscated}) => RustLib
-    .instance
-    .api
-    .crateApiProtocolDeobfuscateTotpSecret(obfuscated: obfuscated);
-
-/// 生成标准 HMAC-SHA1 TOTP 口令。
-String generateTotp({
-  required List<int> secret,
-  required PlatformInt64 timestampMs,
-  required PlatformInt64 period,
-  required int digits,
-}) => RustLib.instance.api.crateApiProtocolGenerateTotp(
-  secret: secret,
-  timestampMs: timestampMs,
-  period: period,
-  digits: digits,
-);
-
 /// 使用内置 V61 密钥直接生成指定毫秒时间戳的 6 位 Web 播放器 TOTP。
 String generateWebPlayerTotpV61({required PlatformInt64 timestampMs}) => RustLib
     .instance
     .api
     .crateApiProtocolGenerateWebPlayerTotpV61(timestampMs: timestampMs);
-
-/// 求解 Spotify Hashcash SHA-1 工作量证明，返回 16 字节 suffix。
-Uint8List solveHashcash({
-  required List<int> ctx,
-  required List<int> prefix,
-  required int length,
-  required PlatformInt64 timeoutMs,
-}) => RustLib.instance.api.crateApiProtocolSolveHashcash(
-  ctx: ctx,
-  prefix: prefix,
-  length: length,
-  timeoutMs: timeoutMs,
-);
-
-/// 使用 Shannon 流密码编码单帧 AP 数据包。
-Uint8List shannonEncodePacket({
-  required List<int> key,
-  required int nonce,
-  required int cmd,
-  required List<int> payload,
-}) => RustLib.instance.api.crateApiProtocolShannonEncodePacket(
-  key: key,
-  nonce: nonce,
-  cmd: cmd,
-  payload: payload,
-);
-
-/// 解密 AP 包的 3 字节头（`cmd + len(BE)`），用来得知包体长度。
-Uint8List shannonDecryptHeader({
-  required List<int> key,
-  required int nonce,
-  required List<int> header,
-}) => RustLib.instance.api.crateApiProtocolShannonDecryptHeader(
-  key: key,
-  nonce: nonce,
-  header: header,
-);
-
-/// 解密并校验完整 AP 包，返回包体明文；MAC 不符返回错误。
-Uint8List shannonDecodePacket({
-  required List<int> key,
-  required int nonce,
-  required List<int> header,
-  required List<int> body,
-  required List<int> mac,
-}) => RustLib.instance.api.crateApiProtocolShannonDecodePacket(
-  key: key,
-  nonce: nonce,
-  header: header,
-  body: body,
-  mac: mac,
-);
-
-/// AP 握手 DH：95 字节小端私钥 → 96 字节大端公钥。
-Uint8List apDhPublicKey({required List<int> privateLe}) =>
-    RustLib.instance.api.crateApiProtocolApDhPublicKey(privateLe: privateLe);
-
-/// AP 握手 DH：共享密钥（最小大端字节）。
-Uint8List apDhSharedSecret({
-  required List<int> privateLe,
-  required List<int> remoteBe,
-}) => RustLib.instance.api.crateApiProtocolApDhSharedSecret(
-  privateLe: privateLe,
-  remoteBe: remoteBe,
-);
-
-/// 由共享密钥与握手报文推导 challenge / send_key / recv_key。
-ApHandshakeKeys apComputeKeys({
-  required List<int> sharedSecret,
-  required List<int> handshakePackets,
-}) => RustLib.instance.api.crateApiProtocolApComputeKeys(
-  sharedSecret: sharedSecret,
-  handshakePackets: handshakePackets,
-);
-
-/// 服务端 DH 公钥签名验证（RSA PKCS#1 v1.5 + SHA-1，e = 65537）。
-bool apRsaVerifyPkcs1Sha1({
-  required List<int> modulus,
-  required List<int> signature,
-  required List<int> message,
-}) => RustLib.instance.api.crateApiProtocolApRsaVerifyPkcs1Sha1(
-  modulus: modulus,
-  signature: signature,
-  message: message,
-);
 
 /// 文件 SHA-256（小写十六进制）。大文件耗时，在后台线程执行（非 sync），不阻塞 Dart。
 Future<String> sha256File({required String path}) =>
@@ -195,31 +87,6 @@ Future<HttpResponseData> httpSend({
   body: body,
   timeoutMs: timeoutMs,
 );
-
-/// AP 握手推导出的 challenge 与收发密钥。
-class ApHandshakeKeys {
-  final Uint8List challenge;
-  final Uint8List sendKey;
-  final Uint8List recvKey;
-
-  const ApHandshakeKeys({
-    required this.challenge,
-    required this.sendKey,
-    required this.recvKey,
-  });
-
-  @override
-  int get hashCode => challenge.hashCode ^ sendKey.hashCode ^ recvKey.hashCode;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is ApHandshakeKeys &&
-          runtimeType == other.runtimeType &&
-          challenge == other.challenge &&
-          sendKey == other.sendKey &&
-          recvKey == other.recvKey;
-}
 
 /// HTTP 头（名称 / 值）。
 class HttpHeaderEntry {

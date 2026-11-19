@@ -3,7 +3,10 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../../core/rust_core.dart';
+import '../../src/rust/api/backend.dart' as rust;
 import '../network/retry_after_cooldown.dart';
+import '../rust_backend_bridge.dart';
 import 'lrclib_candidate.dart';
 
 /// 一次 LRCLIB 请求的结果。[networkError] 表示因断网 / 超时 / 限流 / 服务端错误没拿到结果，
@@ -31,24 +34,57 @@ class LrclibClient {
 
   /// 重试前的等待；测试注入零延迟。
   final Future<void> Function(Duration) _sleep;
+  final bool useRustBackend;
 
-  LrclibClient(this._client, {Future<void> Function(Duration)? sleep, DateTime Function()? now})
-      : _sleep = sleep ?? Future.delayed,
-        _cooldown = RetryAfterCooldown(now: now);
+  LrclibClient(
+    this._client, {
+    Future<void> Function(Duration)? sleep,
+    DateTime Function()? now,
+    this.useRustBackend = false,
+  }) : _sleep = sleep ?? Future.delayed,
+       _cooldown = RetryAfterCooldown(now: now);
 
-  Future<LrclibResponse> get({required String track, required String artist, String album = '', int durationSec = 0}) =>
-      _request('/get', {
-        'track_name': track,
-        'artist_name': artist,
-        if (album.isNotEmpty) 'album_name': album,
-        if (durationSec > 0) 'duration': '$durationSec',
-      });
+  Future<LrclibResponse> get({required String track, required String artist, String album = '', int durationSec = 0}) async {
+    if (useRustBackend && RustCore.ready) {
+      final proxy = await RustBackendBridge.proxyForUrl('$baseUrl/get');
+      if (proxy != null) {
+        final dto = await rust.rustLrclibGet(
+          track: track,
+          artist: artist,
+          album: album,
+          durationSec: durationSec,
+          proxy: proxy,
+        );
+        return RustBackendBridge.lrclibResponseFromDto(dto);
+      }
+    }
+    return _request('/get', {
+      'track_name': track,
+      'artist_name': artist,
+      if (album.isNotEmpty) 'album_name': album,
+      if (durationSec > 0) 'duration': '$durationSec',
+    });
+  }
 
-  Future<LrclibResponse> search({String? track, String? artist, String? q}) => _request('/search', {
-    'track_name': ?track,
-    if (artist != null && artist.isNotEmpty) 'artist_name': artist,
-    'q': ?q,
-  });
+  Future<LrclibResponse> search({String? track, String? artist, String? q}) async {
+    if (useRustBackend && RustCore.ready) {
+      final proxy = await RustBackendBridge.proxyForUrl('$baseUrl/search');
+      if (proxy != null) {
+        final dto = await rust.rustLrclibSearch(
+          track: track ?? '',
+          artist: artist ?? '',
+          q: q ?? '',
+          proxy: proxy,
+        );
+        return RustBackendBridge.lrclibResponseFromDto(dto);
+      }
+    }
+    return _request('/search', {
+      'track_name': ?track,
+      if (artist != null && artist.isNotEmpty) 'artist_name': artist,
+      'q': ?q,
+    });
+  }
 
   Future<LrclibResponse> _request(String path, Map<String, String> query) async {
     final uri = Uri.parse('$baseUrl$path').replace(queryParameters: query);

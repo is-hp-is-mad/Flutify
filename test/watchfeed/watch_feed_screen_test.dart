@@ -20,6 +20,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../fakes/fake_audio_player_service.dart';
+import 'support/dart_watch_feed_parser.dart';
 import 'watch_feed_fixtures.dart';
 
 /// 记录调用的试听播放器替身（测试环境没有音频平台实现）。
@@ -133,8 +134,7 @@ void main() {
     });
     final storage = await StorageService.init();
     final feeds = <String>[];
-    final api = SpotifyApiService(
-      storage,
+    final api = SpotifyApiService(storage.auth,
       MockClient((request) async {
         final spec = request.bodyBytes;
         final body = String.fromCharCodes(spec);
@@ -156,12 +156,13 @@ void main() {
         }
         return http.Response.bytes(bytes, 200);
       }),
+      const DartWatchFeedDecoder(),
     );
-    final prefs = PreferencesProvider(storage);
-    final library = LibraryProvider(storage);
+    final prefs = PreferencesProvider(storage.preferences);
+    final library = LibraryProvider(storage.library);
     final player = FakePreviewPlayer();
     final audio = FakeAudioPlayerService();
-    final playback = _MainPlayback(audio, storage);
+    final playback = _MainPlayback(audio, storage.playback);
     addTearDown(() {
       prefs.dispose();
       library.dispose();
@@ -264,7 +265,7 @@ void main() {
     await tester.tap(hint);
     await tester.pump();
     expect(hint, findsNothing);
-    expect(env.storage.watchFeedOnboardingShown, isTrue);
+    expect(env.storage.preferences.watchFeedOnboardingShown, isTrue);
   });
 
   testWidgets('切到后台暂停试听，回到前台继续', (tester) async {

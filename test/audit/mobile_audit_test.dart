@@ -92,8 +92,7 @@ void main() {
         storageService: storage,
         audioEngine: FakeAudioPlayerService(),
         emePlayer: EmePlayer(),
-        spotifyApiService: FakeSpotifyApiService(
-          storage,
+        spotifyApiService: FakeSpotifyApiService(storage.auth,
           librarySource: library,
           lyricsById: {
             SampleCatalog.track1.id: const SpotifyLyrics(lines: [
@@ -194,7 +193,7 @@ void main() {
       storageService: storage,
       audioEngine: FakeAudioPlayerService(),
       emePlayer: EmePlayer(),
-      spotifyApiService: FakeSpotifyApiService(storage, lyricsById: {
+      spotifyApiService: FakeSpotifyApiService(storage.auth, lyricsById: {
         SampleCatalog.track1.id: const SpotifyLyrics(lines: [
           LyricLine(startTimeMs: 0, words: '夜空中最亮的星'),
           LyricLine(startTimeMs: 4000, words: '能否听清那仰望的人心底的孤独和叹息'),
@@ -244,7 +243,7 @@ void main() {
         storageService: storage,
         audioEngine: FakeAudioPlayerService(),
         emePlayer: EmePlayer(),
-        spotifyApiService: FakeSpotifyApiService(storage),
+        spotifyApiService: FakeSpotifyApiService(storage.auth),
         trackAudioLoader: FakeTrackAudioSource(),
       ));
       await settle(tester);

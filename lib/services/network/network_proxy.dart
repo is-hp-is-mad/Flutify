@@ -2,12 +2,15 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart' show debugPrint;
+
+import '../../models/proxy_mode.dart';
+import '../../models/spotify_gateway.dart';
+import '../auth/auth_constants.dart';
+import 'gateway_http_client.dart';
 import 'proxy_endpoint.dart';
-import 'proxy_mode.dart';
 import 'proxy_tunnel.dart';
 import 'system_proxy.dart';
-import 'spotify_gateway.dart';
-import 'gateway_http_client.dart';
 
 /// 全局网络代理策略（设置 →「网络」）：所有 HTTP / WebSocket 请求与接入点的 TCP 连接都按它选路。
 ///
@@ -171,7 +174,8 @@ class NetworkProxy {
       gatewayCountry = country;
       gatewayLookupFailed = false;
       gateway = _gatewaySettings.copyWith(enabled: enabled);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[Proxy] 地区检测失败: $e');
       if (generation == _generation) gatewayLookupFailed = true;
     } finally {
       if (generation == _generation) {
@@ -195,7 +199,9 @@ class NetworkProxy {
 
   Future<String> _readCountry() async {
     // Bypass the Spotify gateway while honoring the selected forward proxy.
-    final client = HttpClient()..findProxy = findProxy;
+    final client = HttpClient()
+      ..findProxy = findProxy
+      ..userAgent = SpotifyAuthConstants.webUserAgent;
     client.connectionTimeout = const Duration(seconds: 8);
     try {
       return await (() async {
@@ -235,6 +241,7 @@ class NetworkProxy {
     if (_mode == ProxyMode.system) await refreshSystem();
     final client = HttpClient()
       ..findProxy = findProxy
+      ..userAgent = SpotifyAuthConstants.webUserAgent
       ..idleTimeout = Duration.zero
       ..connectionTimeout = const Duration(seconds: 3);
     const urls = [
@@ -468,6 +475,8 @@ class ProxyHttpOverrides extends HttpOverrides {
   @override
   HttpClient createHttpClient(SecurityContext? context) {
     final client = super.createHttpClient(context);
+    // 统一默认 UA 为当前平台的浏览器 UA，避免 dart:io 泄漏 "Dart/3.x (dart:io)"。
+    client.userAgent = SpotifyAuthConstants.webUserAgent;
     // 只记录、不改变结论：证书依旧被拒绝，日志能指出是哪个 CA 在拦截。
     // 自建 TLS 的连接（直连 / 自建隧道）由下面各自传入同一回调，不经这里。
     client.badCertificateCallback = _logRejectedCertificate;
@@ -535,7 +544,8 @@ class ProxyHttpOverrides extends HttpOverrides {
     }
     final host = uri.host;
     final port = uri.hasPort ? uri.port : 443;
-    Socket? tunnelSocket;
+    TunnelSocket? tunnelSocket;
+    Socket? bridgeClient;
     var cancelled = false;
     final socket = () async {
       final tunnel = await ProxyTunnel.connect(
@@ -546,19 +556,45 @@ class ProxyHttpOverrides extends HttpOverrides {
         endpoint: endpoint,
         useGateway: false,
       );
-      final tcpSocket = tunnel.socket.tcpSocket;
-      if (tcpSocket == null) {
-        tunnel.socket.destroy();
-        throw const ProxyTunnelException('Expected a TCP proxy tunnel');
-      }
-      tunnelSocket = tcpSocket;
+      tunnelSocket = tunnel.socket;
       if (cancelled) {
         tunnel.socket.destroy();
         throw const SocketException('连接已取消');
       }
-      // 隧道建立后目标服务器在 ClientHello 之前不会发数据，ProxyTunnel 没有缓冲任何属于 TLS 的字节
+      // ProxyTunnel 已对底层 Socket 调用 listen() 完成握手，不能再直接交给 SecureSocket.secure；
+      // 通过本地回环对端转发一层，让 SecureSocket 获得未监听过的原生 Socket。
+      final bridge = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+      final acceptedFuture = bridge.first.whenComplete(bridge.close);
+      final clientSocket = await Socket.connect(
+        InternetAddress.loopbackIPv4,
+        bridge.port,
+      );
+      bridgeClient = clientSocket;
+      final accepted = await acceptedFuture;
+      if (cancelled) {
+        clientSocket.destroy();
+        accepted.destroy();
+        tunnel.socket.destroy();
+        throw const SocketException('连接已取消');
+      }
+      tunnel.input.listen(
+        accepted.add,
+        onError: (_) => accepted.destroy(),
+        onDone: () => unawaited(accepted.close().catchError((_) {})),
+        cancelOnError: true,
+      );
+      accepted.listen(
+        tunnel.socket.add,
+        onError: (_) => tunnel.socket.destroy(),
+        onDone: () => unawaited(
+          (tunnel.socket.tcpSocket?.close() ??
+                  Future<void>.sync(tunnel.socket.destroy))
+              .catchError((_) {}),
+        ),
+        cancelOnError: true,
+      );
       return SecureSocket.secure(
-        tcpSocket,
+        clientSocket,
         host: host,
         context: context,
         onBadCertificate: (cert) => _logRejectedCertificate(cert, host, port),
@@ -566,6 +602,7 @@ class ProxyHttpOverrides extends HttpOverrides {
     }();
     return ConnectionTask.fromSocket(socket, () {
       cancelled = true;
+      bridgeClient?.destroy();
       tunnelSocket?.destroy();
     });
   }

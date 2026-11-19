@@ -1,4 +1,5 @@
 import 'package:flutify_app/models/app_preferences.dart';
+import 'package:flutify_app/models/proxy_mode.dart';
 import 'package:flutify_app/models/playback_state.dart'
     show SpotifyRepeatMode;
 import 'package:flutter_test/flutter_test.dart';

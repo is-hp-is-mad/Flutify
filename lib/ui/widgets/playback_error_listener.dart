@@ -9,7 +9,7 @@ import '../../providers/playback_provider.dart';
 import '../../services/audio/audio_engine.dart';
 import '../../services/auth/login_region_check.dart';
 import '../../services/eme/fairplay.dart';
-import '../../services/protocol/track_playback_exception.dart';
+import '../../models/track_playback_exception.dart';
 import '../navigation/app_routes.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/web_login_screen.dart';

@@ -8,7 +8,7 @@ import 'dart:typed_data';
 
 import 'package:flutify_app/services/auth/proto_codec.dart';
 import 'package:flutify_app/services/protocol/access_point.dart';
-import 'package:flutify_app/services/protocol/spotify_id.dart';
+import 'package:flutify_app/core/utils/spotify_id.dart';
 
 Future<void> main(List<String> args) async {
   if (args.isEmpty) {
@@ -34,25 +34,8 @@ Future<void> main(List<String> args) async {
           as Map<String, dynamic>;
   final token = prefs['flutter.sp_access_token'] as String;
 
-  SpotifyAccessPoint.onAbort = (e) => stdout.writeln('  [abort] $e');
-  // 直连可能受网络环境限制：解析全部接入点逐个尝试
-  final candidates = await SpotifyAccessPoint.resolveAccessPoints();
-  SpotifyAccessPoint? ap;
-  Object? lastError;
-  for (final c in candidates.take(8)) {
-    try {
-      stdout.writeln('尝试 ${c.host}:${c.port} …');
-      ap = await SpotifyAccessPoint.connectDirect(c.host, c.port);
-      break;
-    } catch (e) {
-      lastError = e;
-      stdout.writeln('  失败：$e');
-    }
-  }
-  if (ap == null) {
-    stderr.writeln('所有接入点均不可达：$lastError');
-    exit(1);
-  }
+  // AP 连接、握手与登录由 Rust 核心完成（需已加载 Rust 核心）
+  final ap = await SpotifyAccessPoint.connect();
   try {
     await ap.authenticate(ApCredentials.accessToken(token));
     stdout.writeln('AP 登录成功：${ap.canonicalUsername}, closed=${ap.isClosed}');

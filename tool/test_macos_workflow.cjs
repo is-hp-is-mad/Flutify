@@ -13,11 +13,18 @@ function job(name) {
   return next === -1 ? content : content.slice(0, next + 1);
 }
 
-test('macOS tests and builds using the validated build label', () => {
+test('macOS builds using the validated build label; its tests run as a parallel sharded job', () => {
   const macos = job('macos');
   assert.match(macos, /needs: prepare/);
   assert.match(macos, /BUILD_LABEL: \$\{\{ needs\.prepare\.outputs\.label \}\}/);
-  assert.match(macos, /flutter test/);
+  // flutter test 不在打包 job 的关键路径上，见 macos-tests
+  assert.doesNotMatch(macos, /flutter test/);
+  const tests = job('macos-tests');
+  assert.match(tests, /needs: prepare/);
+  assert.match(tests, /runs-on: macos-latest/);
+  assert.match(tests, /shard: \[1, 2\]/);
+  assert.match(tests, /flutter test --total-shards 2 --shard-index/);
+  assert.match(tests, /if: needs\.prepare\.outputs\.run_tests == 'true'/);
   assert.match(macos, /flutter build macos --release/);
   assert.match(macos, /Flutify-\$\{BUILD_LABEL\}-macos\.zip/);
   assert.match(macos, /--keepParent build\/macos\/Build\/Products\/Release\/Flutify\.app/);
@@ -37,7 +44,7 @@ test('Linux tests, builds and packages a .deb and a portable tarball using the v
 
 test('release waits for all platforms and includes their packages in checksums', () => {
   const release = job('release');
-  assert.match(release, /needs: \[prepare, android, windows, macos, linux\]/);
+  assert.match(release, /needs: \[prepare, android, windows, macos, macos-tests, linux\]/);
   assert.match(release, /pattern: '\{android,windows-\*,macos,linux\}'/);
   assert.match(release, /merge-multiple: true/);
   assert.match(release, /android-universal\.apk macos\.zip linux-x64\.deb linux-x64\.tar\.gz; do/);

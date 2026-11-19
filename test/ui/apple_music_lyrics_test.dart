@@ -22,14 +22,11 @@ void main() {
   }) async {
     SharedPreferences.setMockInitialValues({});
     final storage = await StorageService.init();
-    final playback = PlaybackProvider(
-      FakeAudioPlayerService(),
-      storage,
+    final playback = PlaybackProvider(FakeAudioPlayerService(), storage.playback,
       audioLoader: FakeTrackAudioSource(),
     );
     final spotify = SpotifyProvider(
-      FakeSpotifyApiService(
-        storage,
+      FakeSpotifyApiService(storage.auth,
         lyricsById: {
           'apple':
               lyrics ??
@@ -41,7 +38,7 @@ void main() {
               ),
         },
       ),
-      storage,
+      storage.library,
     );
     addTearDown(playback.dispose);
     addTearDown(spotify.dispose);

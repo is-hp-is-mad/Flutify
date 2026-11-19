@@ -119,11 +119,11 @@ void main() {
   testWidgets('SearchScreen in hyperMaterial mode uses HySegmented controller', (tester) async {
     SharedPreferences.setMockInitialValues({});
     final storage = await StorageService.init();
-    final api = ControlledSearchApi(storage, signedIn: true);
-    final spotify = SpotifyProvider(api, storage);
+    final api = ControlledSearchApi(storage.auth, signedIn: true);
+    final spotify = SpotifyProvider(api, storage.library);
     final audio = FakeAudioPlayerService();
-    final playback = PlaybackProvider(audio, storage);
-    final library = LibraryProvider(storage);
+    final playback = PlaybackProvider(audio, storage.playback);
+    final library = LibraryProvider(storage.library);
     final controller = TextEditingController(text: 'test');
 
     addTearDown(() {
@@ -177,7 +177,7 @@ void main() {
   testWidgets('HomeSectionScreen intercepts server dynamic title in AppBar', (tester) async {
     SharedPreferences.setMockInitialValues({});
     final storage = await StorageService.init();
-    final api = ControlledSearchApi(storage, signedIn: true);
+    final api = ControlledSearchApi(storage.auth, signedIn: true);
 
     const section = HomeSection(
       uri: 'spotify:section:recently_played',

@@ -1,5 +1,8 @@
 import 'dart:async';
+import 'dart:collection';
+import 'dart:io' show Platform;
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:provider/provider.dart';
@@ -8,10 +11,12 @@ import '../../../l10n/l10n.dart';
 
 import '../../../core/platform/flutify_platform.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../services/auth/auth_constants.dart';
 import '../../../services/auth/login_region_check.dart';
 import '../../../services/auth/web_login_flow.dart';
 import '../../../services/auth/web_token_exception.dart';
 import '../../../services/auth/web_token_service.dart';
+import '../../../services/auth/webview_error_logger.dart';
 import '../../../services/eme/eme_player.dart';
 import '../../shell/desktop/desktop_window.dart';
 import 'linux_web_login_screen.dart';
@@ -33,6 +38,34 @@ export '../../../services/auth/web_login_flow.dart' show WebLoginStage;
 ///
 /// 性能说明：这是**用户主动打开的一次性登录页**，不是后台常驻渲染 open.spotify.com；
 /// 登录完成即销毁 WebView。
+/// 仅在 accounts.spotify.com 上捕获 >=400 的 fetch 响应体（Android WebView 的
+/// onReceivedHttpError 拿不到响应体），脱敏后通过 console.error 写入日志便于定位 400 原因。
+const String _kAccountsFetchErrorLogScript = r'''
+(() => {
+  if (window.__flutifyFetchErrHooked) return;
+  window.__flutifyFetchErrHooked = true;
+  if (location.hostname !== 'accounts.spotify.com' || typeof window.fetch !== 'function') return;
+  const origFetch = window.fetch.bind(window);
+  window.fetch = async function(input, init) {
+    const res = await origFetch(input, init);
+    try {
+      if (res && res.status >= 400) {
+        const rawUrl = typeof input === 'string' ? input : (input && input.url) || '';
+        const u = new URL(rawUrl, location.href);
+        if (u.hostname === 'accounts.spotify.com') {
+          const method = ((init && init.method) || (input && input.method) || 'GET').toUpperCase();
+          res.clone().text().then((txt) => {
+            const clean = String(txt || '').replace(/\s+/g, ' ').slice(0, 300);
+            console.error('[fetch-err] ' + method + ' ' + u.pathname + ' status=' + res.status + ' body=' + clean);
+          }).catch(() => {});
+        }
+      }
+    } catch (_) {}
+    return res;
+  };
+})();
+''';
+
 class WebLoginScreen extends StatefulWidget {
   const WebLoginScreen({super.key, this.regionProbe});
 
@@ -102,6 +135,10 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
 
   /// 最近一次页面地址（同意页自动点击的判定依据）。
   String? _currentUrl;
+
+  /// 当前平台的 WebView UA：Android 使用清洗后的系统 WebView 手机 UA（避免 Client Hints 冲突），
+  /// 其他平台按 OS 使用对应的桌面 Chrome UA。
+  String _webViewUserAgent = SpotifyAuthConstants.webUserAgent;
 
   @override
   void initState() {
@@ -215,6 +252,10 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
       if (!mounted || _done || revision != _pageRevision) return;
       await EmePlayer.ensureEnvironment();
       if (!mounted || _done || revision != _pageRevision) return;
+      if (!kIsWeb && Platform.isAndroid) {
+        await _resolveAndroidUserAgent();
+        if (!mounted || _done || revision != _pageRevision) return;
+      }
       // 加载登录页之前先确认出口地区；大陆出口时不创建 WebView，等用户选择
       if (!_regionSkipped && !await _checkRegion(revision)) return;
       setState(() {
@@ -225,7 +266,8 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
       if (retry) await _flow.retry();
       if (!mounted || _done || revision != _pageRevision) return;
       await _flow.poll();
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('[WebLogin] 准备登录页失败: $e\n$st');
       if (mounted && !_done && revision == _pageRevision) {
         setState(() {
           _webViewReady = false;
@@ -244,7 +286,8 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
     LoginRegion region;
     try {
       region = await _probeRegion();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[WebLogin] 地区检测异常: $e');
       region = const LoginRegion.unknown();
     }
     if (!mounted || _done) return false;
@@ -277,7 +320,8 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
     LoginRegion region;
     try {
       region = await _probeRegion();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[WebLogin] 地区复查异常: $e');
       return;
     }
     if (!mounted ||
@@ -397,6 +441,16 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
     _tryAutoApprove();
   }
 
+  Future<void> _resolveAndroidUserAgent() async {
+    String? raw;
+    try {
+      raw = await InAppWebViewController.getDefaultUserAgent();
+    } catch (_) {
+      raw = null;
+    }
+    _webViewUserAgent = SpotifyAuthConstants.cleanAndroidWebViewUserAgent(raw);
+  }
+
   // ---------------------------------------------------------------------------
   // 界面
   // ---------------------------------------------------------------------------
@@ -449,15 +503,36 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                         'https://accounts.spotify.com/login?continue=https%3A%2F%2Fopen.spotify.com%2F',
                       ),
                     ),
+                    initialUserScripts: UnmodifiableListView<UserScript>([
+                      UserScript(
+                        source: _kAccountsFetchErrorLogScript,
+                        injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START,
+                      ),
+                    ]),
                     initialSettings: InAppWebViewSettings(
                       disableContextMenu: true,
                       supportZoom: false,
-                      // 伪装成纯 Chrome（去掉 WebView2 的 Edg 标识）：Google 按 UA 封嵌入
-                      // WebView（disallowed_useragent），伪装后有概率直接放行 Google 登录
-                      userAgent:
-                          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36',
+                      thirdPartyCookiesEnabled: true,
+                      userAgent: _webViewUserAgent,
                     ),
                     onWebViewCreated: (controller) => _controller = controller,
+                    onReceivedError: (_, request, error) =>
+                        WebViewErrorLogger.logResourceError(
+                          scope: 'WebLogin',
+                          request: request,
+                          error: error,
+                        ),
+                    onReceivedHttpError: (_, request, errorResponse) =>
+                        WebViewErrorLogger.logHttpError(
+                          scope: 'WebLogin',
+                          request: request,
+                          errorResponse: errorResponse,
+                        ),
+                    onConsoleMessage: (_, message) =>
+                        WebViewErrorLogger.logConsoleError(
+                          scope: 'WebLogin',
+                          message: message,
+                        ),
                     onUpdateVisitedHistory: (_, url, _) =>
                         _onNav(url?.toString()),
                     onLoadStop: (_, url) => _onNav(url?.toString()),

@@ -6,24 +6,36 @@ mod frb_generated; /* AUTO INJECTED BY flutter_rust_bridge. This line may not be
 // RSA 验签）、Hashcash、Web TOTP、大文件 SHA-256 等后端模块。
 
 pub mod aes;
+pub mod ap_client;
 pub mod ap_crypto;
 pub mod api;
 pub mod artist_match;
+pub mod backup_backend;
+pub mod audio_cache;
 pub mod audio_normalization;
+pub mod catalog_backend;
+pub mod connect_backend;
 pub mod downloads;
+pub mod drm_backend;
 pub mod file_hash;
 pub mod hashcash;
 pub mod http_client;
 pub mod lrc;
 pub mod lyric_script;
+pub mod lyrics_backend;
 pub mod lyrics_title;
+pub mod net_config;
+pub mod proto_lite;
 pub mod shannon;
+pub mod spotify_backend;
 pub mod spotify_id;
 pub mod spotify_link;
+pub mod spotify_session;
 #[cfg(test)]
 mod test_vectors;
 pub mod translation_markers;
 pub mod translation_merge;
+pub mod watchfeed_backend;
 pub mod web_totp;
 pub mod ws;
 pub mod zh_script;

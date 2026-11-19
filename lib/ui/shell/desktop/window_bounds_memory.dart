@@ -4,7 +4,7 @@ import 'dart:ui';
 import 'package:screen_retriever/screen_retriever.dart';
 import 'package:window_manager/window_manager.dart';
 
-import '../../../services/storage_service.dart';
+import '../../../services/storage/preferences_store.dart';
 import 'saved_window_bounds.dart';
 
 /// 桌面窗口位置 / 大小记忆（设置页「启动」分组的「记住窗口大小和位置」）。
@@ -13,7 +13,7 @@ import 'saved_window_bounds.dart';
 /// - 运行中监听移动 / 缩放 / 最大化，停止变化 500ms 后写盘（拖动过程中不反复写）；
 /// - 系统全屏（沉浸式歌词）与最小化时不记录，避免把全屏尺寸当成窗口尺寸。
 class WindowBoundsMemory with WindowListener {
-  final StorageService _storage;
+  final PreferencesStore _storage;
   final Size _minimumSize;
 
   /// 当前是否开启记忆（每次写盘前读取，设置页关掉后立即停止记录）。
@@ -33,7 +33,7 @@ class WindowBoundsMemory with WindowListener {
 
   /// 读取可恢复的位置；没有记录、数据损坏或窗口会落在所有显示器之外时返回 null。
   static Future<SavedWindowBounds?> restorable(
-    StorageService storage, {
+    PreferencesStore storage, {
     required Size minimumSize,
   }) async {
     final saved = SavedWindowBounds.decode(

@@ -133,6 +133,15 @@
       }
     }
   },
+  "songCountLoaded": "已加载 {count} 首",
+  "@songCountLoaded": {
+    "description": "分页加载的长歌单尚未加载完时，跟在总曲目数后面显示已加载多少首，如「1200 首歌曲 · 已加载 300 首」",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "followerCount": "{count} 位粉丝",
   "@followerCount": {
     "description": "粉丝数，count 为已格式化的紧凑数字（如 1.2 万）",
@@ -660,6 +669,18 @@
   "settingsCopyLogSubtitle": "反馈问题时粘贴给开发者；日志只含运行记录，不含密码",
   "settingsCopyLogDone": "日志已复制到剪贴板",
   "settingsCopyLogEmpty": "暂无日志",
+  "settingsExportLog": "导出诊断日志",
+  "settingsExportLogSubtitle": "保存完整运行日志为 .log 或 .txt 文件",
+  "settingsExportLogFormat": "选择导出格式",
+  "settingsExportLogDone": "日志已导出：{path}",
+  "@settingsExportLogDone": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsExportLogFailed": "导出日志失败",
   "taskbarLyricsColorAuto": "自动",
   "taskbarLyricsColorWhite": "白色",
   "taskbarLyricsColorBlack": "黑色",

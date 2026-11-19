@@ -74,13 +74,12 @@ Future<void> main() async {
   );
   final audio = PlayerPreviewAudio();
   final playback = PlaybackProvider(
-    audio,
-    storage,
+    audio, storage.playback,
     audioLoader: FakeTrackAudioSource(),
   );
   final spotify = SpotifyProvider(
-    FakeSpotifyApiService(storage, lyricsById: {track.id: lyrics}),
-    storage,
+    FakeSpotifyApiService(storage.auth, lyricsById: {track.id: lyrics}),
+    storage.library,
   );
   await playback.playTrack(
     track,
@@ -104,8 +103,8 @@ Future<void> main() async {
       providers: [
         ChangeNotifierProvider.value(value: playback),
         ChangeNotifierProvider.value(value: spotify),
-        ChangeNotifierProvider(create: (_) => PreferencesProvider(storage)),
-        ChangeNotifierProvider(create: (_) => LibraryProvider(storage)),
+        ChangeNotifierProvider(create: (_) => PreferencesProvider(storage.preferences)),
+        ChangeNotifierProvider(create: (_) => LibraryProvider(storage.library)),
       ],
       child: MaterialApp(
         theme: MD3ETheme.dark,

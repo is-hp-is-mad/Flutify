@@ -5,11 +5,15 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../../core/rust_core.dart';
+import '../../src/rust/api/backend.dart' as rust_backend;
 import '../../src/rust/api/protocol.dart' as rust;
 import '../network/http2_client.dart';
-import '../storage_service.dart';
+import '../rust_backend_bridge.dart';
+import '../storage/auth_session_store.dart';
+import 'auth_constants.dart';
 import 'web_token_exception.dart';
 import 'session_http_client.dart';
+import 'session_token_source.dart';
 
 /// Web 播放器 access_token 铸造服务。
 ///
@@ -17,18 +21,31 @@ import 'session_http_client.dart';
 /// 桌面 client_id（65b708…）的 token 只给假密钥，**Web 播放器 token 才给真密钥**。
 /// 本服务复刻 Web 播放器的令牌获取：sp_dc cookie + TOTP → `/api/token`。
 ///
-/// TOTP secret 来自 web-player.js（版本 61），还原算法见 [_deobfuscateSecret]。
+/// TOTP secret 来自 web-player.js（版本 61），见 [_webPlayerTotp]。
+/// 会话续期（[mintAccessToken] / [ensureWebAccessToken]）优先交给 Rust 会话核心（[SessionTokenSource]）。
 /// sp_dc 由一次性 Web 登录（WebView2 登录页）捕获，见 `web_login.dart`。
 class WebTokenService {
-  final StorageService _storage;
+  final AuthSessionStore _storage;
   final http.Client _client;
 
   /// 登录第一次铸造专用：401 不触发 [SessionHttpClient] 的清除登录态，见 [mintForLogin]。
   final http.Client _loginClient;
 
-  WebTokenService(this._storage, [http.Client? client])
-    : _client = SessionHttpClient(_storage, client ?? http.Client()),
-      _loginClient = Http2Client(client ?? http.Client());
+  /// 令牌续期来源（生产为 Rust 会话核心）；为 null 时只用 Dart HTTP。
+  final SessionTokenSource? _tokens;
+
+  Future<String>? _inFlightEnsure;
+  int _inFlightEnsureEpoch = -1;
+
+  WebTokenService(
+    this._storage, [
+    http.Client? client,
+    SessionTokenSource? tokens,
+  ]) : _client = SessionHttpClient(_storage, client ?? http.Client()),
+       _loginClient = Http2Client(client ?? http.Client()),
+       // 与其他服务一致：注入自定义 http.Client（测试）时不走 Rust
+       _tokens =
+           tokens ?? (client == null ? const RustSessionTokenSource() : null);
 
   static const String _tokenEndpoint = 'https://open.spotify.com/api/token';
   static const String _serverTimeEndpoint =
@@ -62,61 +79,39 @@ class WebTokenService {
   /// 当前有效的 TOTP secret 版本（与 web-player.js 的 totpVer 对应）。
   static const int totpVersion = 61;
 
+  /// 当前时刻的 6 位 Web 播放器 TOTP：生产由 Rust（`generate_web_player_totp_v61`，内置 V61 secret）生成，
+  /// 未加载 Rust 核心时（单元测试）用 Dart 实现。
+  static String _webPlayerTotp(int timestampMs) {
+    if (RustCore.ready) {
+      return rust.generateWebPlayerTotpV61(timestampMs: timestampMs);
+    }
+    return _dartTotpV61(timestampMs);
+  }
+
   /// 版本 61 的混淆 secret 原文（web-player.js 内嵌）。
   static const String _obfuscatedSecretV61 = ',7/*F("rLJ2oxaKL^f+E1xvP@N';
 
-  /// 还原 TOTP secret：逐字符 `charCode ^ ((i % 33) + 9)`，结果数字 join 成十进制串，
-  /// 该串的 UTF-8 字节即 secret（对应 JS 里 `Buffer.from(joined,'utf8')` 后 fromHex 的等价物）。
-  static List<int> _deobfuscateSecret(String obfuscated) {
-    if (RustCore.ready) {
-      try {
-        return rust.deobfuscateTotpSecret(obfuscated: obfuscated);
-      } catch (_) {}
-    }
-    final codes = <int>[];
-    for (var i = 0; i < obfuscated.length; i++) {
-      codes.add(obfuscated.codeUnitAt(i) ^ ((i % 33) + 9));
-    }
-    final joined = codes.join();
-    return utf8.encode(joined);
-  }
-
-  /// 标准 TOTP（SHA1 / 30s / 6 位），与 OTPAuth 一致。
-  static String totp(
-    List<int> secret,
-    int timestampMs, {
-    int period = 30,
-    int digits = 6,
-  }) {
-    if (RustCore.ready) {
-      try {
-        return rust.generateTotp(
-          secret: secret,
-          timestampMs: timestampMs,
-          period: period,
-          digits: digits,
-        );
-      } catch (_) {}
-    }
-    final counter = timestampMs ~/ 1000 ~/ period;
+  /// Dart 版 TOTP（SHA1 / 30s / 6 位），与 Rust `web_totp` 一致。
+  /// secret 还原：逐字符 `charCode ^ ((i % 33) + 9)`，结果数字 join 成十进制串，取其 UTF-8 字节。
+  static String _dartTotpV61(int timestampMs) {
+    final codes = <int>[
+      for (var i = 0; i < _obfuscatedSecretV61.length; i++)
+        _obfuscatedSecretV61.codeUnitAt(i) ^ ((i % 33) + 9),
+    ];
+    final secret = utf8.encode(codes.join());
+    final counter = timestampMs ~/ 1000 ~/ 30;
     final msg = ByteData(8)..setUint64(0, counter, Endian.big);
     final h = Hmac(sha1, secret).convert(msg.buffer.asUint8List()).bytes;
     final off = h[h.length - 1] & 0x0F;
     final code =
-        ((ByteData.sublistView(
+        (ByteData.sublistView(
               Uint8List.fromList(h),
               off,
               off + 4,
-            ).getUint32(0, Endian.big)) &
+            ).getUint32(0, Endian.big) &
             0x7FFFFFFF) %
-        _pow10(digits);
-    return code.toString().padLeft(digits, '0');
-  }
-
-  static int _pow10(int n) {
-    var r = 1;
-    for (var i = 0; i < n; i++) r *= 10;
-    return r;
+        1000000;
+    return code.toString().padLeft(6, '0');
   }
 
   // --- token 铸造 ---
@@ -129,37 +124,63 @@ class WebTokenService {
     if (spDc.isEmpty) {
       throw WebSignInRequiredException();
     }
+    if (client == null && RustCore.ready) {
+      try {
+        final proxy = await RustBackendBridge.proxyForUrl(_tokenEndpoint);
+        if (proxy != null) {
+          final minted = await rust_backend.rustMintWebToken(
+            spDc: spDc,
+            proxy: proxy,
+          );
+          return (token: minted.token, expiryMs: minted.expiryMs.toInt());
+        }
+      } catch (e) {
+        final msg = e.toString();
+        final httpMatch = RegExp(r'http:(\d+):').firstMatch(msg);
+        if (httpMatch != null) {
+          final status = int.parse(httpMatch.group(1)!);
+          debugPrint('[web-token] /api/token HTTP $status (rust)');
+          throw WebTokenHttpException(status);
+        }
+        // connect:/timeout: 等传输错误回退到 Dart HTTP 客户端
+      }
+    }
     final httpClient = client ?? http.Client();
-    final uri = await _tokenUri(httpClient);
-    final res = await httpClient
-        .get(
-          uri,
-          headers: {
-            'Cookie': 'sp_dc=$spDc',
-            'User-Agent':
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36',
-            'Accept': 'application/json',
-          },
-        )
-        .timeout(const Duration(seconds: 10));
-    return _parseToken(res.statusCode, utf8.decode(res.bodyBytes));
+    try {
+      final uri = await _tokenUri(httpClient);
+      final res = await httpClient
+          .get(
+            uri,
+            headers: {
+              'Cookie': 'sp_dc=$spDc',
+              'User-Agent': SpotifyAuthConstants.webUserAgent,
+              'Accept': 'application/json',
+            },
+          )
+          .timeout(const Duration(seconds: 10));
+      return _parseToken(res.statusCode, utf8.decode(res.bodyBytes));
+    } finally {
+      if (client == null) httpClient.close();
+    }
   }
 
   /// 带 TOTP 的令牌地址。
   static Future<Uri> _tokenUri(http.Client httpClient) async {
-    final secret = _deobfuscateSecret(_obfuscatedSecretV61);
     final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final totpNow = totp(secret, nowMs);
+    final totpNow = _webPlayerTotp(nowMs);
 
     // 服务器时间对齐（可选，失败则 unavailable）
     String totpServer = 'unavailable';
     try {
       final st = await httpClient
-          .get(Uri.parse(_serverTimeEndpoint))
+          .get(
+            Uri.parse(_serverTimeEndpoint),
+            headers: {'User-Agent': SpotifyAuthConstants.webUserAgent},
+          )
           .timeout(const Duration(seconds: 4));
       final serverTime = jsonDecode(st.body)['serverTime'];
       if (serverTime is num) {
-        totpServer = totp(secret, serverTime.toInt() * 1000);
+        totpServer = _webPlayerTotp(serverTime.toInt() * 1000);
       }
     } catch (_) {}
 
@@ -201,7 +222,10 @@ class WebTokenService {
     if (dc.isEmpty) {
       throw WebSignInRequiredException();
     }
-    final minted = await mintTokenForSpDc(dc, client: _client);
+    final tokens = _tokens;
+    final minted =
+        (tokens == null ? null : await refreshWebTokenVia(tokens, _storage)) ??
+        await mintTokenForSpDc(dc, client: _client);
     _storage.checkSession(epoch);
     await _storage.writeSession(epoch, [
       () => _storage.setWebAccessToken(minted.token, minted.expiryMs),
@@ -272,6 +296,33 @@ class WebTokenService {
     if (cached.isNotEmpty && expiry > nowMs + 60 * 1000) {
       return cached;
     }
+    final existing = _inFlightEnsure;
+    if (existing != null && _inFlightEnsureEpoch == epoch) {
+      return await existing;
+    }
+    final future = _ensureWebAccessTokenUncached(
+      epoch: epoch,
+      cached: cached,
+      expiry: expiry,
+      retries: retries,
+    );
+    _inFlightEnsure = future;
+    _inFlightEnsureEpoch = epoch;
+    try {
+      return await future;
+    } finally {
+      if (identical(_inFlightEnsure, future)) {
+        _inFlightEnsure = null;
+      }
+    }
+  }
+
+  Future<String> _ensureWebAccessTokenUncached({
+    required int epoch,
+    required String cached,
+    required int expiry,
+    required int retries,
+  }) async {
     Object? lastError;
     StackTrace? lastStack;
     for (var attempt = 0; attempt <= retries; attempt++) {

@@ -6,9 +6,16 @@
 // Static analysis wrongly picks the IO variant, thus ignore this
 // ignore_for_file: argument_type_not_assignable
 
+import 'api/audio_stream.dart';
+import 'api/backend.dart';
+import 'api/backup.dart';
 import 'api/lyrics.dart';
+import 'api/net_config.dart';
 import 'api/network.dart';
+import 'api/pathfinder.dart';
 import 'api/protocol.dart';
+import 'api/session_tokens.dart';
+import 'api/watchfeed.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'frb_generated.dart';
@@ -30,6 +37,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   dco_decode_StreamSink_audio_download_event_Sse(dynamic raw);
 
   @protected
+  RustStreamSink<RustPlaylistDto> dco_decode_StreamSink_rust_playlist_dto_Sse(
+    dynamic raw,
+  );
+
+  @protected
   RustStreamSink<WebSocketEvent> dco_decode_StreamSink_web_socket_event_Sse(
     dynamic raw,
   );
@@ -38,10 +50,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   String dco_decode_String(dynamic raw);
 
   @protected
-  ApHandshakeKeys dco_decode_ap_handshake_keys(dynamic raw);
+  AudioDownloadEvent dco_decode_audio_download_event(dynamic raw);
 
   @protected
-  AudioDownloadEvent dco_decode_audio_download_event(dynamic raw);
+  AudioDownloadTarget dco_decode_audio_download_target(dynamic raw);
 
   @protected
   BilingualLine dco_decode_bilingual_line(dynamic raw);
@@ -50,10 +62,84 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool dco_decode_bool(dynamic raw);
 
   @protected
+  int dco_decode_box_autoadd_i_32(dynamic raw);
+
+  @protected
+  PlatformInt64 dco_decode_box_autoadd_i_64(dynamic raw);
+
+  @protected
   NormalizationInfo dco_decode_box_autoadd_normalization_info(dynamic raw);
 
   @protected
+  RustAlbumDto dco_decode_box_autoadd_rust_album_dto(dynamic raw);
+
+  @protected
+  RustArtistDto dco_decode_box_autoadd_rust_artist_dto(dynamic raw);
+
+  @protected
+  RustArtistOverviewDto dco_decode_box_autoadd_rust_artist_overview_dto(
+    dynamic raw,
+  );
+
+  @protected
+  RustBackupFetchRequest dco_decode_box_autoadd_rust_backup_fetch_request(
+    dynamic raw,
+  );
+
+  @protected
+  RustCanvasMediaDto dco_decode_box_autoadd_rust_canvas_media_dto(dynamic raw);
+
+  @protected
+  RustNetConfig dco_decode_box_autoadd_rust_net_config(dynamic raw);
+
+  @protected
+  RustPlaylistDto dco_decode_box_autoadd_rust_playlist_dto(dynamic raw);
+
+  @protected
+  RustPlaylistSummaryDto dco_decode_box_autoadd_rust_playlist_summary_dto(
+    dynamic raw,
+  );
+
+  @protected
+  RustSessionConfig dco_decode_box_autoadd_rust_session_config(dynamic raw);
+
+  @protected
+  RustSpotifyLyricsDto dco_decode_box_autoadd_rust_spotify_lyrics_dto(
+    dynamic raw,
+  );
+
+  @protected
+  RustTrackCreditsDto dco_decode_box_autoadd_rust_track_credits_dto(
+    dynamic raw,
+  );
+
+  @protected
+  RustTrackDto dco_decode_box_autoadd_rust_track_dto(dynamic raw);
+
+  @protected
+  RustWatchFeedAudioDto dco_decode_box_autoadd_rust_watch_feed_audio_dto(
+    dynamic raw,
+  );
+
+  @protected
+  RustWatchFeedCreatorDto dco_decode_box_autoadd_rust_watch_feed_creator_dto(
+    dynamic raw,
+  );
+
+  @protected
+  RustWatchFeedEntityRowDto
+  dco_decode_box_autoadd_rust_watch_feed_entity_row_dto(dynamic raw);
+
+  @protected
+  RustWatchFeedShelfDto dco_decode_box_autoadd_rust_watch_feed_shelf_dto(
+    dynamic raw,
+  );
+
+  @protected
   SpotifyLinkTarget dco_decode_box_autoadd_spotify_link_target(dynamic raw);
+
+  @protected
+  int dco_decode_box_autoadd_u_16(dynamic raw);
 
   @protected
   double dco_decode_f_64(dynamic raw);
@@ -74,6 +160,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<String> dco_decode_list_String(dynamic raw);
 
   @protected
+  List<AudioDownloadTarget> dco_decode_list_audio_download_target(dynamic raw);
+
+  @protected
   List<BilingualLine> dco_decode_list_bilingual_line(dynamic raw);
 
   @protected
@@ -89,13 +178,177 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
 
   @protected
+  List<(String, String)> dco_decode_list_record_string_string(dynamic raw);
+
+  @protected
+  List<RustAlbumDto> dco_decode_list_rust_album_dto(dynamic raw);
+
+  @protected
+  List<RustArtistDto> dco_decode_list_rust_artist_dto(dynamic raw);
+
+  @protected
+  List<RustCategoryDto> dco_decode_list_rust_category_dto(dynamic raw);
+
+  @protected
+  List<RustCollectionEntryDto> dco_decode_list_rust_collection_entry_dto(
+    dynamic raw,
+  );
+
+  @protected
+  List<RustCreditGroupDto> dco_decode_list_rust_credit_group_dto(dynamic raw);
+
+  @protected
+  List<RustCreditPersonDto> dco_decode_list_rust_credit_person_dto(dynamic raw);
+
+  @protected
+  List<RustExtendedMetadataEntryDto>
+  dco_decode_list_rust_extended_metadata_entry_dto(dynamic raw);
+
+  @protected
+  List<RustHomeChipDto> dco_decode_list_rust_home_chip_dto(dynamic raw);
+
+  @protected
+  List<RustHomeItemDto> dco_decode_list_rust_home_item_dto(dynamic raw);
+
+  @protected
+  List<RustHomeSectionDto> dco_decode_list_rust_home_section_dto(dynamic raw);
+
+  @protected
+  List<RustImageDto> dco_decode_list_rust_image_dto(dynamic raw);
+
+  @protected
+  List<RustLibraryTrackDto> dco_decode_list_rust_library_track_dto(dynamic raw);
+
+  @protected
+  List<RustLrclibCandidateDto> dco_decode_list_rust_lrclib_candidate_dto(
+    dynamic raw,
+  );
+
+  @protected
+  List<RustPlaybackFileDto> dco_decode_list_rust_playback_file_dto(dynamic raw);
+
+  @protected
+  List<RustPlaylistDto> dco_decode_list_rust_playlist_dto(dynamic raw);
+
+  @protected
+  List<RustPlaylistSummaryDto> dco_decode_list_rust_playlist_summary_dto(
+    dynamic raw,
+  );
+
+  @protected
+  List<RustPodcastEpisodeDto> dco_decode_list_rust_podcast_episode_dto(
+    dynamic raw,
+  );
+
+  @protected
+  List<RustProtoAudioFileDto> dco_decode_list_rust_proto_audio_file_dto(
+    dynamic raw,
+  );
+
+  @protected
+  List<RustProtoTrackMetadataDto> dco_decode_list_rust_proto_track_metadata_dto(
+    dynamic raw,
+  );
+
+  @protected
+  List<RustSpotifyLyricAlternativeDto>
+  dco_decode_list_rust_spotify_lyric_alternative_dto(dynamic raw);
+
+  @protected
+  List<RustSpotifyLyricLineDto> dco_decode_list_rust_spotify_lyric_line_dto(
+    dynamic raw,
+  );
+
+  @protected
+  List<RustTrackDto> dco_decode_list_rust_track_dto(dynamic raw);
+
+  @protected
+  List<RustWatchFeedEntryDto> dco_decode_list_rust_watch_feed_entry_dto(
+    dynamic raw,
+  );
+
+  @protected
+  List<RustWatchFeedHashtagDto> dco_decode_list_rust_watch_feed_hashtag_dto(
+    dynamic raw,
+  );
+
+  @protected
+  List<RustWatchFeedItemDto> dco_decode_list_rust_watch_feed_item_dto(
+    dynamic raw,
+  );
+
+  @protected
   LrcLine dco_decode_lrc_line(dynamic raw);
 
   @protected
   NormalizationInfo dco_decode_normalization_info(dynamic raw);
 
   @protected
+  String? dco_decode_opt_String(dynamic raw);
+
+  @protected
+  int? dco_decode_opt_box_autoadd_i_32(dynamic raw);
+
+  @protected
+  PlatformInt64? dco_decode_opt_box_autoadd_i_64(dynamic raw);
+
+  @protected
   NormalizationInfo? dco_decode_opt_box_autoadd_normalization_info(dynamic raw);
+
+  @protected
+  RustAlbumDto? dco_decode_opt_box_autoadd_rust_album_dto(dynamic raw);
+
+  @protected
+  RustArtistDto? dco_decode_opt_box_autoadd_rust_artist_dto(dynamic raw);
+
+  @protected
+  RustArtistOverviewDto? dco_decode_opt_box_autoadd_rust_artist_overview_dto(
+    dynamic raw,
+  );
+
+  @protected
+  RustCanvasMediaDto? dco_decode_opt_box_autoadd_rust_canvas_media_dto(
+    dynamic raw,
+  );
+
+  @protected
+  RustPlaylistDto? dco_decode_opt_box_autoadd_rust_playlist_dto(dynamic raw);
+
+  @protected
+  RustPlaylistSummaryDto? dco_decode_opt_box_autoadd_rust_playlist_summary_dto(
+    dynamic raw,
+  );
+
+  @protected
+  RustSpotifyLyricsDto? dco_decode_opt_box_autoadd_rust_spotify_lyrics_dto(
+    dynamic raw,
+  );
+
+  @protected
+  RustTrackCreditsDto? dco_decode_opt_box_autoadd_rust_track_credits_dto(
+    dynamic raw,
+  );
+
+  @protected
+  RustTrackDto? dco_decode_opt_box_autoadd_rust_track_dto(dynamic raw);
+
+  @protected
+  RustWatchFeedAudioDto? dco_decode_opt_box_autoadd_rust_watch_feed_audio_dto(
+    dynamic raw,
+  );
+
+  @protected
+  RustWatchFeedCreatorDto?
+  dco_decode_opt_box_autoadd_rust_watch_feed_creator_dto(dynamic raw);
+
+  @protected
+  RustWatchFeedEntityRowDto?
+  dco_decode_opt_box_autoadd_rust_watch_feed_entity_row_dto(dynamic raw);
+
+  @protected
+  RustWatchFeedShelfDto? dco_decode_opt_box_autoadd_rust_watch_feed_shelf_dto(
+    dynamic raw,
+  );
 
   @protected
   SpotifyLinkTarget? dco_decode_opt_box_autoadd_spotify_link_target(
@@ -103,7 +356,203 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  int? dco_decode_opt_box_autoadd_u_16(dynamic raw);
+
+  @protected
   List<BilingualLine>? dco_decode_opt_list_bilingual_line(dynamic raw);
+
+  @protected
+  Uint8List? dco_decode_opt_list_prim_u_8_strict(dynamic raw);
+
+  @protected
+  (String, String) dco_decode_record_string_string(dynamic raw);
+
+  @protected
+  RustAlbumCatalogPageDto dco_decode_rust_album_catalog_page_dto(dynamic raw);
+
+  @protected
+  RustAlbumDto dco_decode_rust_album_dto(dynamic raw);
+
+  @protected
+  RustAlbumQueryDto dco_decode_rust_album_query_dto(dynamic raw);
+
+  @protected
+  RustApSessionDto dco_decode_rust_ap_session_dto(dynamic raw);
+
+  @protected
+  RustArtistCatalogPageDto dco_decode_rust_artist_catalog_page_dto(dynamic raw);
+
+  @protected
+  RustArtistDto dco_decode_rust_artist_dto(dynamic raw);
+
+  @protected
+  RustArtistOverviewDto dco_decode_rust_artist_overview_dto(dynamic raw);
+
+  @protected
+  RustBackupFetchRequest dco_decode_rust_backup_fetch_request(dynamic raw);
+
+  @protected
+  RustBackupSnapshotDto dco_decode_rust_backup_snapshot_dto(dynamic raw);
+
+  @protected
+  RustCanvasMediaDto dco_decode_rust_canvas_media_dto(dynamic raw);
+
+  @protected
+  RustCategoryDto dco_decode_rust_category_dto(dynamic raw);
+
+  @protected
+  RustCollectionEntryDto dco_decode_rust_collection_entry_dto(dynamic raw);
+
+  @protected
+  RustCreditGroupDto dco_decode_rust_credit_group_dto(dynamic raw);
+
+  @protected
+  RustCreditPersonDto dco_decode_rust_credit_person_dto(dynamic raw);
+
+  @protected
+  RustDrmRelayResultDto dco_decode_rust_drm_relay_result_dto(dynamic raw);
+
+  @protected
+  RustExtendedMetadataEntryDto dco_decode_rust_extended_metadata_entry_dto(
+    dynamic raw,
+  );
+
+  @protected
+  RustHomeChipDto dco_decode_rust_home_chip_dto(dynamic raw);
+
+  @protected
+  RustHomeFeedDto dco_decode_rust_home_feed_dto(dynamic raw);
+
+  @protected
+  RustHomeItemDto dco_decode_rust_home_item_dto(dynamic raw);
+
+  @protected
+  RustHomeSectionDto dco_decode_rust_home_section_dto(dynamic raw);
+
+  @protected
+  RustHttpRawDto dco_decode_rust_http_raw_dto(dynamic raw);
+
+  @protected
+  RustImageDto dco_decode_rust_image_dto(dynamic raw);
+
+  @protected
+  RustLibraryTrackDto dco_decode_rust_library_track_dto(dynamic raw);
+
+  @protected
+  RustLibraryTracksPageDto dco_decode_rust_library_tracks_page_dto(dynamic raw);
+
+  @protected
+  RustLrclibCandidateDto dco_decode_rust_lrclib_candidate_dto(dynamic raw);
+
+  @protected
+  RustLrclibResponseDto dco_decode_rust_lrclib_response_dto(dynamic raw);
+
+  @protected
+  RustNetConfig dco_decode_rust_net_config(dynamic raw);
+
+  @protected
+  RustPlaybackFileDto dco_decode_rust_playback_file_dto(dynamic raw);
+
+  @protected
+  RustPlaylistCatalogPageDto dco_decode_rust_playlist_catalog_page_dto(
+    dynamic raw,
+  );
+
+  @protected
+  RustPlaylistDto dco_decode_rust_playlist_dto(dynamic raw);
+
+  @protected
+  RustPlaylistSummaryDto dco_decode_rust_playlist_summary_dto(dynamic raw);
+
+  @protected
+  RustPodcastEpisodeDto dco_decode_rust_podcast_episode_dto(dynamic raw);
+
+  @protected
+  RustPodcastShowDto dco_decode_rust_podcast_show_dto(dynamic raw);
+
+  @protected
+  RustProtoAudioFileDto dco_decode_rust_proto_audio_file_dto(dynamic raw);
+
+  @protected
+  RustProtoEpisodeMetadataDto dco_decode_rust_proto_episode_metadata_dto(
+    dynamic raw,
+  );
+
+  @protected
+  RustProtoTrackMetadataDto dco_decode_rust_proto_track_metadata_dto(
+    dynamic raw,
+  );
+
+  @protected
+  RustSearchPageDto dco_decode_rust_search_page_dto(dynamic raw);
+
+  @protected
+  RustSessionConfig dco_decode_rust_session_config(dynamic raw);
+
+  @protected
+  RustSpotifyLyricAlternativeDto dco_decode_rust_spotify_lyric_alternative_dto(
+    dynamic raw,
+  );
+
+  @protected
+  RustSpotifyLyricLineDto dco_decode_rust_spotify_lyric_line_dto(dynamic raw);
+
+  @protected
+  RustSpotifyLyricsDto dco_decode_rust_spotify_lyrics_dto(dynamic raw);
+
+  @protected
+  RustStorageResolveDto dco_decode_rust_storage_resolve_dto(dynamic raw);
+
+  @protected
+  RustTokenResult dco_decode_rust_token_result(dynamic raw);
+
+  @protected
+  RustTrackCatalogPageDto dco_decode_rust_track_catalog_page_dto(dynamic raw);
+
+  @protected
+  RustTrackCreditsDto dco_decode_rust_track_credits_dto(dynamic raw);
+
+  @protected
+  RustTrackDto dco_decode_rust_track_dto(dynamic raw);
+
+  @protected
+  RustTrackPlaybackMediaDto dco_decode_rust_track_playback_media_dto(
+    dynamic raw,
+  );
+
+  @protected
+  RustWatchFeedAudioDto dco_decode_rust_watch_feed_audio_dto(dynamic raw);
+
+  @protected
+  RustWatchFeedCreatorDto dco_decode_rust_watch_feed_creator_dto(dynamic raw);
+
+  @protected
+  RustWatchFeedEntityPageDto dco_decode_rust_watch_feed_entity_page_dto(
+    dynamic raw,
+  );
+
+  @protected
+  RustWatchFeedEntityRowDto dco_decode_rust_watch_feed_entity_row_dto(
+    dynamic raw,
+  );
+
+  @protected
+  RustWatchFeedEntryDto dco_decode_rust_watch_feed_entry_dto(dynamic raw);
+
+  @protected
+  RustWatchFeedHashtagDto dco_decode_rust_watch_feed_hashtag_dto(dynamic raw);
+
+  @protected
+  RustWatchFeedItemDto dco_decode_rust_watch_feed_item_dto(dynamic raw);
+
+  @protected
+  RustWatchFeedPageDto dco_decode_rust_watch_feed_page_dto(dynamic raw);
+
+  @protected
+  RustWatchFeedShelfDto dco_decode_rust_watch_feed_shelf_dto(dynamic raw);
+
+  @protected
+  RustWatchFeedVisualDto dco_decode_rust_watch_feed_visual_dto(dynamic raw);
 
   @protected
   SpotifyLinkTarget dco_decode_spotify_link_target(dynamic raw);
@@ -134,6 +583,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   sse_decode_StreamSink_audio_download_event_Sse(SseDeserializer deserializer);
 
   @protected
+  RustStreamSink<RustPlaylistDto> sse_decode_StreamSink_rust_playlist_dto_Sse(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   RustStreamSink<WebSocketEvent> sse_decode_StreamSink_web_socket_event_Sse(
     SseDeserializer deserializer,
   );
@@ -142,10 +596,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   String sse_decode_String(SseDeserializer deserializer);
 
   @protected
-  ApHandshakeKeys sse_decode_ap_handshake_keys(SseDeserializer deserializer);
+  AudioDownloadEvent sse_decode_audio_download_event(
+    SseDeserializer deserializer,
+  );
 
   @protected
-  AudioDownloadEvent sse_decode_audio_download_event(
+  AudioDownloadTarget sse_decode_audio_download_target(
     SseDeserializer deserializer,
   );
 
@@ -156,7 +612,94 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool sse_decode_bool(SseDeserializer deserializer);
 
   @protected
+  int sse_decode_box_autoadd_i_32(SseDeserializer deserializer);
+
+  @protected
+  PlatformInt64 sse_decode_box_autoadd_i_64(SseDeserializer deserializer);
+
+  @protected
   NormalizationInfo sse_decode_box_autoadd_normalization_info(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustAlbumDto sse_decode_box_autoadd_rust_album_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustArtistDto sse_decode_box_autoadd_rust_artist_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustArtistOverviewDto sse_decode_box_autoadd_rust_artist_overview_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustBackupFetchRequest sse_decode_box_autoadd_rust_backup_fetch_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustCanvasMediaDto sse_decode_box_autoadd_rust_canvas_media_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustNetConfig sse_decode_box_autoadd_rust_net_config(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustPlaylistDto sse_decode_box_autoadd_rust_playlist_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustPlaylistSummaryDto sse_decode_box_autoadd_rust_playlist_summary_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustSessionConfig sse_decode_box_autoadd_rust_session_config(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustSpotifyLyricsDto sse_decode_box_autoadd_rust_spotify_lyrics_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustTrackCreditsDto sse_decode_box_autoadd_rust_track_credits_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustTrackDto sse_decode_box_autoadd_rust_track_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustWatchFeedAudioDto sse_decode_box_autoadd_rust_watch_feed_audio_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustWatchFeedCreatorDto sse_decode_box_autoadd_rust_watch_feed_creator_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustWatchFeedEntityRowDto
+  sse_decode_box_autoadd_rust_watch_feed_entity_row_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustWatchFeedShelfDto sse_decode_box_autoadd_rust_watch_feed_shelf_dto(
     SseDeserializer deserializer,
   );
 
@@ -164,6 +707,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   SpotifyLinkTarget sse_decode_box_autoadd_spotify_link_target(
     SseDeserializer deserializer,
   );
+
+  @protected
+  int sse_decode_box_autoadd_u_16(SseDeserializer deserializer);
 
   @protected
   double sse_decode_f_64(SseDeserializer deserializer);
@@ -182,6 +728,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<String> sse_decode_list_String(SseDeserializer deserializer);
+
+  @protected
+  List<AudioDownloadTarget> sse_decode_list_audio_download_target(
+    SseDeserializer deserializer,
+  );
 
   @protected
   List<BilingualLine> sse_decode_list_bilingual_line(
@@ -203,13 +754,221 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
 
   @protected
+  List<(String, String)> sse_decode_list_record_string_string(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<RustAlbumDto> sse_decode_list_rust_album_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<RustArtistDto> sse_decode_list_rust_artist_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<RustCategoryDto> sse_decode_list_rust_category_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<RustCollectionEntryDto> sse_decode_list_rust_collection_entry_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<RustCreditGroupDto> sse_decode_list_rust_credit_group_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<RustCreditPersonDto> sse_decode_list_rust_credit_person_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<RustExtendedMetadataEntryDto>
+  sse_decode_list_rust_extended_metadata_entry_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<RustHomeChipDto> sse_decode_list_rust_home_chip_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<RustHomeItemDto> sse_decode_list_rust_home_item_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<RustHomeSectionDto> sse_decode_list_rust_home_section_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<RustImageDto> sse_decode_list_rust_image_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<RustLibraryTrackDto> sse_decode_list_rust_library_track_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<RustLrclibCandidateDto> sse_decode_list_rust_lrclib_candidate_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<RustPlaybackFileDto> sse_decode_list_rust_playback_file_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<RustPlaylistDto> sse_decode_list_rust_playlist_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<RustPlaylistSummaryDto> sse_decode_list_rust_playlist_summary_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<RustPodcastEpisodeDto> sse_decode_list_rust_podcast_episode_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<RustProtoAudioFileDto> sse_decode_list_rust_proto_audio_file_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<RustProtoTrackMetadataDto> sse_decode_list_rust_proto_track_metadata_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<RustSpotifyLyricAlternativeDto>
+  sse_decode_list_rust_spotify_lyric_alternative_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<RustSpotifyLyricLineDto> sse_decode_list_rust_spotify_lyric_line_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<RustTrackDto> sse_decode_list_rust_track_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<RustWatchFeedEntryDto> sse_decode_list_rust_watch_feed_entry_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<RustWatchFeedHashtagDto> sse_decode_list_rust_watch_feed_hashtag_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<RustWatchFeedItemDto> sse_decode_list_rust_watch_feed_item_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   LrcLine sse_decode_lrc_line(SseDeserializer deserializer);
 
   @protected
   NormalizationInfo sse_decode_normalization_info(SseDeserializer deserializer);
 
   @protected
+  String? sse_decode_opt_String(SseDeserializer deserializer);
+
+  @protected
+  int? sse_decode_opt_box_autoadd_i_32(SseDeserializer deserializer);
+
+  @protected
+  PlatformInt64? sse_decode_opt_box_autoadd_i_64(SseDeserializer deserializer);
+
+  @protected
   NormalizationInfo? sse_decode_opt_box_autoadd_normalization_info(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustAlbumDto? sse_decode_opt_box_autoadd_rust_album_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustArtistDto? sse_decode_opt_box_autoadd_rust_artist_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustArtistOverviewDto? sse_decode_opt_box_autoadd_rust_artist_overview_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustCanvasMediaDto? sse_decode_opt_box_autoadd_rust_canvas_media_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustPlaylistDto? sse_decode_opt_box_autoadd_rust_playlist_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustPlaylistSummaryDto? sse_decode_opt_box_autoadd_rust_playlist_summary_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustSpotifyLyricsDto? sse_decode_opt_box_autoadd_rust_spotify_lyrics_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustTrackCreditsDto? sse_decode_opt_box_autoadd_rust_track_credits_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustTrackDto? sse_decode_opt_box_autoadd_rust_track_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustWatchFeedAudioDto? sse_decode_opt_box_autoadd_rust_watch_feed_audio_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustWatchFeedCreatorDto?
+  sse_decode_opt_box_autoadd_rust_watch_feed_creator_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustWatchFeedEntityRowDto?
+  sse_decode_opt_box_autoadd_rust_watch_feed_entity_row_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustWatchFeedShelfDto? sse_decode_opt_box_autoadd_rust_watch_feed_shelf_dto(
     SseDeserializer deserializer,
   );
 
@@ -219,7 +978,277 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  int? sse_decode_opt_box_autoadd_u_16(SseDeserializer deserializer);
+
+  @protected
   List<BilingualLine>? sse_decode_opt_list_bilingual_line(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  Uint8List? sse_decode_opt_list_prim_u_8_strict(SseDeserializer deserializer);
+
+  @protected
+  (String, String) sse_decode_record_string_string(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustAlbumCatalogPageDto sse_decode_rust_album_catalog_page_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustAlbumDto sse_decode_rust_album_dto(SseDeserializer deserializer);
+
+  @protected
+  RustAlbumQueryDto sse_decode_rust_album_query_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustApSessionDto sse_decode_rust_ap_session_dto(SseDeserializer deserializer);
+
+  @protected
+  RustArtistCatalogPageDto sse_decode_rust_artist_catalog_page_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustArtistDto sse_decode_rust_artist_dto(SseDeserializer deserializer);
+
+  @protected
+  RustArtistOverviewDto sse_decode_rust_artist_overview_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustBackupFetchRequest sse_decode_rust_backup_fetch_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustBackupSnapshotDto sse_decode_rust_backup_snapshot_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustCanvasMediaDto sse_decode_rust_canvas_media_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustCategoryDto sse_decode_rust_category_dto(SseDeserializer deserializer);
+
+  @protected
+  RustCollectionEntryDto sse_decode_rust_collection_entry_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustCreditGroupDto sse_decode_rust_credit_group_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustCreditPersonDto sse_decode_rust_credit_person_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustDrmRelayResultDto sse_decode_rust_drm_relay_result_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustExtendedMetadataEntryDto sse_decode_rust_extended_metadata_entry_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustHomeChipDto sse_decode_rust_home_chip_dto(SseDeserializer deserializer);
+
+  @protected
+  RustHomeFeedDto sse_decode_rust_home_feed_dto(SseDeserializer deserializer);
+
+  @protected
+  RustHomeItemDto sse_decode_rust_home_item_dto(SseDeserializer deserializer);
+
+  @protected
+  RustHomeSectionDto sse_decode_rust_home_section_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustHttpRawDto sse_decode_rust_http_raw_dto(SseDeserializer deserializer);
+
+  @protected
+  RustImageDto sse_decode_rust_image_dto(SseDeserializer deserializer);
+
+  @protected
+  RustLibraryTrackDto sse_decode_rust_library_track_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustLibraryTracksPageDto sse_decode_rust_library_tracks_page_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustLrclibCandidateDto sse_decode_rust_lrclib_candidate_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustLrclibResponseDto sse_decode_rust_lrclib_response_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustNetConfig sse_decode_rust_net_config(SseDeserializer deserializer);
+
+  @protected
+  RustPlaybackFileDto sse_decode_rust_playback_file_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustPlaylistCatalogPageDto sse_decode_rust_playlist_catalog_page_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustPlaylistDto sse_decode_rust_playlist_dto(SseDeserializer deserializer);
+
+  @protected
+  RustPlaylistSummaryDto sse_decode_rust_playlist_summary_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustPodcastEpisodeDto sse_decode_rust_podcast_episode_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustPodcastShowDto sse_decode_rust_podcast_show_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustProtoAudioFileDto sse_decode_rust_proto_audio_file_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustProtoEpisodeMetadataDto sse_decode_rust_proto_episode_metadata_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustProtoTrackMetadataDto sse_decode_rust_proto_track_metadata_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustSearchPageDto sse_decode_rust_search_page_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustSessionConfig sse_decode_rust_session_config(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustSpotifyLyricAlternativeDto sse_decode_rust_spotify_lyric_alternative_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustSpotifyLyricLineDto sse_decode_rust_spotify_lyric_line_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustSpotifyLyricsDto sse_decode_rust_spotify_lyrics_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustStorageResolveDto sse_decode_rust_storage_resolve_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustTokenResult sse_decode_rust_token_result(SseDeserializer deserializer);
+
+  @protected
+  RustTrackCatalogPageDto sse_decode_rust_track_catalog_page_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustTrackCreditsDto sse_decode_rust_track_credits_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustTrackDto sse_decode_rust_track_dto(SseDeserializer deserializer);
+
+  @protected
+  RustTrackPlaybackMediaDto sse_decode_rust_track_playback_media_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustWatchFeedAudioDto sse_decode_rust_watch_feed_audio_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustWatchFeedCreatorDto sse_decode_rust_watch_feed_creator_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustWatchFeedEntityPageDto sse_decode_rust_watch_feed_entity_page_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustWatchFeedEntityRowDto sse_decode_rust_watch_feed_entity_row_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustWatchFeedEntryDto sse_decode_rust_watch_feed_entry_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustWatchFeedHashtagDto sse_decode_rust_watch_feed_hashtag_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustWatchFeedItemDto sse_decode_rust_watch_feed_item_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustWatchFeedPageDto sse_decode_rust_watch_feed_page_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustWatchFeedShelfDto sse_decode_rust_watch_feed_shelf_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustWatchFeedVisualDto sse_decode_rust_watch_feed_visual_dto(
     SseDeserializer deserializer,
   );
 
@@ -259,6 +1288,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_StreamSink_rust_playlist_dto_Sse(
+    RustStreamSink<RustPlaylistDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_StreamSink_web_socket_event_Sse(
     RustStreamSink<WebSocketEvent> self,
     SseSerializer serializer,
@@ -268,14 +1303,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_String(String self, SseSerializer serializer);
 
   @protected
-  void sse_encode_ap_handshake_keys(
-    ApHandshakeKeys self,
+  void sse_encode_audio_download_event(
+    AudioDownloadEvent self,
     SseSerializer serializer,
   );
 
   @protected
-  void sse_encode_audio_download_event(
-    AudioDownloadEvent self,
+  void sse_encode_audio_download_target(
+    AudioDownloadTarget self,
     SseSerializer serializer,
   );
 
@@ -286,8 +1321,113 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_bool(bool self, SseSerializer serializer);
 
   @protected
+  void sse_encode_box_autoadd_i_32(int self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_i_64(
+    PlatformInt64 self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_normalization_info(
     NormalizationInfo self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_rust_album_dto(
+    RustAlbumDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_rust_artist_dto(
+    RustArtistDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_rust_artist_overview_dto(
+    RustArtistOverviewDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_rust_backup_fetch_request(
+    RustBackupFetchRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_rust_canvas_media_dto(
+    RustCanvasMediaDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_rust_net_config(
+    RustNetConfig self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_rust_playlist_dto(
+    RustPlaylistDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_rust_playlist_summary_dto(
+    RustPlaylistSummaryDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_rust_session_config(
+    RustSessionConfig self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_rust_spotify_lyrics_dto(
+    RustSpotifyLyricsDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_rust_track_credits_dto(
+    RustTrackCreditsDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_rust_track_dto(
+    RustTrackDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_rust_watch_feed_audio_dto(
+    RustWatchFeedAudioDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_rust_watch_feed_creator_dto(
+    RustWatchFeedCreatorDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_rust_watch_feed_entity_row_dto(
+    RustWatchFeedEntityRowDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_rust_watch_feed_shelf_dto(
+    RustWatchFeedShelfDto self,
     SseSerializer serializer,
   );
 
@@ -296,6 +1436,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     SpotifyLinkTarget self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_box_autoadd_u_16(int self, SseSerializer serializer);
 
   @protected
   void sse_encode_f_64(double self, SseSerializer serializer);
@@ -322,6 +1465,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_list_String(List<String> self, SseSerializer serializer);
 
   @protected
+  void sse_encode_list_audio_download_target(
+    List<AudioDownloadTarget> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_bilingual_line(
     List<BilingualLine> self,
     SseSerializer serializer,
@@ -346,11 +1495,179 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_record_string_string(
+    List<(String, String)> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_rust_album_dto(
+    List<RustAlbumDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_rust_artist_dto(
+    List<RustArtistDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_rust_category_dto(
+    List<RustCategoryDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_rust_collection_entry_dto(
+    List<RustCollectionEntryDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_rust_credit_group_dto(
+    List<RustCreditGroupDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_rust_credit_person_dto(
+    List<RustCreditPersonDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_rust_extended_metadata_entry_dto(
+    List<RustExtendedMetadataEntryDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_rust_home_chip_dto(
+    List<RustHomeChipDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_rust_home_item_dto(
+    List<RustHomeItemDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_rust_home_section_dto(
+    List<RustHomeSectionDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_rust_image_dto(
+    List<RustImageDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_rust_library_track_dto(
+    List<RustLibraryTrackDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_rust_lrclib_candidate_dto(
+    List<RustLrclibCandidateDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_rust_playback_file_dto(
+    List<RustPlaybackFileDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_rust_playlist_dto(
+    List<RustPlaylistDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_rust_playlist_summary_dto(
+    List<RustPlaylistSummaryDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_rust_podcast_episode_dto(
+    List<RustPodcastEpisodeDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_rust_proto_audio_file_dto(
+    List<RustProtoAudioFileDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_rust_proto_track_metadata_dto(
+    List<RustProtoTrackMetadataDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_rust_spotify_lyric_alternative_dto(
+    List<RustSpotifyLyricAlternativeDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_rust_spotify_lyric_line_dto(
+    List<RustSpotifyLyricLineDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_rust_track_dto(
+    List<RustTrackDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_rust_watch_feed_entry_dto(
+    List<RustWatchFeedEntryDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_rust_watch_feed_hashtag_dto(
+    List<RustWatchFeedHashtagDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_rust_watch_feed_item_dto(
+    List<RustWatchFeedItemDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_lrc_line(LrcLine self, SseSerializer serializer);
 
   @protected
   void sse_encode_normalization_info(
     NormalizationInfo self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_String(String? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_box_autoadd_i_32(int? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_box_autoadd_i_64(
+    PlatformInt64? self,
     SseSerializer serializer,
   );
 
@@ -361,14 +1678,434 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_rust_album_dto(
+    RustAlbumDto? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_rust_artist_dto(
+    RustArtistDto? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_rust_artist_overview_dto(
+    RustArtistOverviewDto? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_rust_canvas_media_dto(
+    RustCanvasMediaDto? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_rust_playlist_dto(
+    RustPlaylistDto? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_rust_playlist_summary_dto(
+    RustPlaylistSummaryDto? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_rust_spotify_lyrics_dto(
+    RustSpotifyLyricsDto? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_rust_track_credits_dto(
+    RustTrackCreditsDto? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_rust_track_dto(
+    RustTrackDto? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_rust_watch_feed_audio_dto(
+    RustWatchFeedAudioDto? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_rust_watch_feed_creator_dto(
+    RustWatchFeedCreatorDto? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_rust_watch_feed_entity_row_dto(
+    RustWatchFeedEntityRowDto? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_rust_watch_feed_shelf_dto(
+    RustWatchFeedShelfDto? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_spotify_link_target(
     SpotifyLinkTarget? self,
     SseSerializer serializer,
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_u_16(int? self, SseSerializer serializer);
+
+  @protected
   void sse_encode_opt_list_bilingual_line(
     List<BilingualLine>? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_list_prim_u_8_strict(
+    Uint8List? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_record_string_string(
+    (String, String) self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_album_catalog_page_dto(
+    RustAlbumCatalogPageDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_album_dto(RustAlbumDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_rust_album_query_dto(
+    RustAlbumQueryDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_ap_session_dto(
+    RustApSessionDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_artist_catalog_page_dto(
+    RustArtistCatalogPageDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_artist_dto(RustArtistDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_rust_artist_overview_dto(
+    RustArtistOverviewDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_backup_fetch_request(
+    RustBackupFetchRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_backup_snapshot_dto(
+    RustBackupSnapshotDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_canvas_media_dto(
+    RustCanvasMediaDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_category_dto(
+    RustCategoryDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_collection_entry_dto(
+    RustCollectionEntryDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_credit_group_dto(
+    RustCreditGroupDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_credit_person_dto(
+    RustCreditPersonDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_drm_relay_result_dto(
+    RustDrmRelayResultDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_extended_metadata_entry_dto(
+    RustExtendedMetadataEntryDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_home_chip_dto(
+    RustHomeChipDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_home_feed_dto(
+    RustHomeFeedDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_home_item_dto(
+    RustHomeItemDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_home_section_dto(
+    RustHomeSectionDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_http_raw_dto(
+    RustHttpRawDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_image_dto(RustImageDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_rust_library_track_dto(
+    RustLibraryTrackDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_library_tracks_page_dto(
+    RustLibraryTracksPageDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_lrclib_candidate_dto(
+    RustLrclibCandidateDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_lrclib_response_dto(
+    RustLrclibResponseDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_net_config(RustNetConfig self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_rust_playback_file_dto(
+    RustPlaybackFileDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_playlist_catalog_page_dto(
+    RustPlaylistCatalogPageDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_playlist_dto(
+    RustPlaylistDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_playlist_summary_dto(
+    RustPlaylistSummaryDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_podcast_episode_dto(
+    RustPodcastEpisodeDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_podcast_show_dto(
+    RustPodcastShowDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_proto_audio_file_dto(
+    RustProtoAudioFileDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_proto_episode_metadata_dto(
+    RustProtoEpisodeMetadataDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_proto_track_metadata_dto(
+    RustProtoTrackMetadataDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_search_page_dto(
+    RustSearchPageDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_session_config(
+    RustSessionConfig self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_spotify_lyric_alternative_dto(
+    RustSpotifyLyricAlternativeDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_spotify_lyric_line_dto(
+    RustSpotifyLyricLineDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_spotify_lyrics_dto(
+    RustSpotifyLyricsDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_storage_resolve_dto(
+    RustStorageResolveDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_token_result(
+    RustTokenResult self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_track_catalog_page_dto(
+    RustTrackCatalogPageDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_track_credits_dto(
+    RustTrackCreditsDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_track_dto(RustTrackDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_rust_track_playback_media_dto(
+    RustTrackPlaybackMediaDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_watch_feed_audio_dto(
+    RustWatchFeedAudioDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_watch_feed_creator_dto(
+    RustWatchFeedCreatorDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_watch_feed_entity_page_dto(
+    RustWatchFeedEntityPageDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_watch_feed_entity_row_dto(
+    RustWatchFeedEntityRowDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_watch_feed_entry_dto(
+    RustWatchFeedEntryDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_watch_feed_hashtag_dto(
+    RustWatchFeedHashtagDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_watch_feed_item_dto(
+    RustWatchFeedItemDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_watch_feed_page_dto(
+    RustWatchFeedPageDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_watch_feed_shelf_dto(
+    RustWatchFeedShelfDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_rust_watch_feed_visual_dto(
+    RustWatchFeedVisualDto self,
     SseSerializer serializer,
   );
 

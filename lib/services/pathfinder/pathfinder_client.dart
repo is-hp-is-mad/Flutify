@@ -2,7 +2,10 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../../core/rust_core.dart';
 import '../../core/utils/json_bytes.dart';
+import '../../src/rust/api/backend.dart' as rust;
+import '../rust_backend_bridge.dart';
 import 'pathfinder_operations.dart';
 
 /// GraphQL Pathfinder 客户端（`api-partner.spotify.com/pathfinder/v2/query`）。
@@ -14,8 +17,13 @@ class PathfinderClient {
 
   final http.Client _client;
   final Future<Map<String, String>> Function() headers;
+  final bool useRustBackend;
 
-  PathfinderClient(this._client, {required this.headers});
+  PathfinderClient(
+    this._client, {
+    required this.headers,
+    this.useRustBackend = false,
+  });
 
   /// 执行查询并返回 `data`；HTTP 非 200 或响应含 errors 且无 data 时抛 [PathfinderException]。
   ///
@@ -26,6 +34,40 @@ class PathfinderClient {
     Map<String, Object?> variables, {
     bool failOnErrors = false,
   }) async {
+    if (useRustBackend && RustCore.ready && !failOnErrors) {
+      final proxy = await RustBackendBridge.proxyForUrl(endpoint);
+      if (proxy != null) {
+        try {
+          final jsonStr = await rust.rustPathfinderQuery(
+            operation: op.name,
+            hash: op.sha256Hash,
+            variablesJson: jsonEncode(variables),
+            proxy: proxy,
+          );
+          final decoded = jsonDecode(jsonStr);
+          if (decoded is Map<String, dynamic>) return decoded;
+        } catch (e) {
+          final msg = e.toString();
+          final httpMatch = RegExp(r'http:(\d{3}):').firstMatch(msg);
+          if (httpMatch != null) {
+            final code = int.parse(httpMatch.group(1)!);
+            throw PathfinderException(op.name, code, msg);
+          }
+          // 非 HTTP 错误且可回退时（如 Rust 会话未同步）继续走 Dart 路径
+          if (!msg.contains('auth:missing')) {
+            final lower = msg.toLowerCase();
+            throw PathfinderException(
+              op.name,
+              0,
+              msg,
+              hashStale:
+                  lower.contains('persistedquery') ||
+                  lower.contains('persisted query'),
+            );
+          }
+        }
+      }
+    }
     final res = await _client.post(
       Uri.parse(endpoint),
       headers: {...await headers(), 'content-type': 'application/json;charset=UTF-8'},
@@ -54,6 +96,39 @@ class PathfinderClient {
       throw PathfinderException(op.name, res.statusCode, errors.toString(), hashStale: _isHashStale(errors));
     }
     return data;
+  }
+
+  /// Rust 直接查询并解析（`api/pathfinder.rs`）时使用的代理；null 表示交给 Dart
+  /// （未启用 Rust、Rust 核心未加载或需要走自建网关）。
+  Future<String?> rustProxy() async {
+    if (!useRustBackend || !RustCore.ready) return null;
+    return RustBackendBridge.proxyForUrl(endpoint);
+  }
+
+  /// 执行一次 Rust 类型化查询，错误按 [query] 的规则转换：`http:{status}:` → [PathfinderException]，
+  /// `format:{说明}` → [FormatException]；Rust 会话未同步（`auth:missing`）抛 [RustPathfinderUnavailable]，
+  /// 调用方改走 Dart。
+  Future<T> runRust<T>(PathfinderOperation op, Future<T> Function() call) async {
+    try {
+      return await call();
+    } catch (e) {
+      final msg = e.toString();
+      final httpMatch = RegExp(r'http:(\d{3}):').firstMatch(msg);
+      if (httpMatch != null) {
+        throw PathfinderException(op.name, int.parse(httpMatch.group(1)!), msg);
+      }
+      if (msg.contains('auth:missing')) throw const RustPathfinderUnavailable();
+      final format = RegExp(r'format:(.*)$').firstMatch(msg);
+      if (format != null) throw FormatException(format.group(1)!.trim());
+      final lower = msg.toLowerCase();
+      throw PathfinderException(
+        op.name,
+        0,
+        msg,
+        hashStale:
+            lower.contains('persistedquery') || lower.contains('persisted query'),
+      );
+    }
   }
 
   /// 桌面客户端升级后旧的 sha256Hash 会被服务端拒绝：
@@ -91,4 +166,9 @@ class PathfinderException implements Exception {
 
   @override
   String toString() => message;
+}
+
+/// Rust 会话尚未同步，这次 Pathfinder 查询交给 Dart HTTP。
+class RustPathfinderUnavailable implements Exception {
+  const RustPathfinderUnavailable();
 }

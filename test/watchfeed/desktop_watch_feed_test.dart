@@ -6,7 +6,6 @@ import 'package:flutify_app/providers/library_provider.dart';
 import 'package:flutify_app/providers/playback_provider.dart';
 import 'package:flutify_app/services/spotify_api_service.dart';
 import 'package:flutify_app/services/storage_service.dart';
-import 'package:flutify_app/services/watchfeed/watch_feed_parser.dart';
 import 'package:flutify_app/ui/screens/detail/album_detail_screen.dart';
 import 'package:flutify_app/providers/spotify_provider.dart';
 import 'package:flutify_app/ui/screens/watchfeed/desktop/desktop_watch_feed.dart';
@@ -20,6 +19,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../fakes/fake_audio_player_service.dart';
+import 'support/dart_watch_feed_parser.dart';
 import 'watch_feed_fixtures.dart';
 import 'watch_feed_screen_test.dart' show FakePreviewPlayer;
 
@@ -107,25 +107,6 @@ void main() {
   setUp(() => ArtworkPalette.enabled = false);
   tearDown(() => ArtworkPalette.enabled = true);
 
-  test('实体 feed 解析：试听、#标签补 #、月度听众、封面深色、专辑', () {
-    final page = WatchFeedParser.parseEntityFeed(
-      entityResponse(2)['data'] as Map<String, dynamic>,
-    );
-    expect(page.items, hasLength(2));
-    expect(page.nextOffset, isNull);
-    final item = page.items.first;
-    expect(item.audio?.url, 'https://p.scdn.co/mp3-preview/p1');
-    expect(item.hashtags.single.title, '#sad');
-    expect(
-      item.hashtags.single.navigationUri,
-      'spotify:watch-feed:discovery-feed:tagsad',
-    );
-    expect(item.creator?.monthlyListeners, 15852288);
-    expect(item.backgroundColor, 0xFF303840);
-    expect(item.track?.album?.id, 'al1');
-    expect(item.track?.artists.single.name, 'Artist One');
-  });
-
   Future<({FakePreviewPlayer player, List<String> requests})> pump(
     WidgetTester tester, {
     bool mixed = false,
@@ -136,8 +117,7 @@ void main() {
     SharedPreferences.setMockInitialValues({'sp_access_token': 'token'});
     final storage = await StorageService.init();
     final requests = <String>[];
-    final api = SpotifyApiService(
-      storage,
+    final api = SpotifyApiService(storage.auth,
       MockClient((request) async {
         requests.add(request.url.toString());
         if (request.url.host == 'api-partner.spotify.com') {
@@ -156,10 +136,11 @@ void main() {
         }
         return http.Response('{"items":[]}', 200);
       }),
+      const DartWatchFeedDecoder(),
     );
     final audio = FakeAudioPlayerService();
-    final playback = PlaybackProvider(audio, storage);
-    final library = LibraryProvider(storage);
+    final playback = PlaybackProvider(audio, storage.playback);
+    final library = LibraryProvider(storage.library);
     final player = FakePreviewPlayer();
     addTearDown(() {
       playback.dispose();
@@ -346,16 +327,16 @@ void main() {
       addTearDown(tester.view.reset);
       SharedPreferences.setMockInitialValues({'sp_access_token': 'token'});
       final storage = await StorageService.init();
-      final api = SpotifyApiService(
-        storage,
+      final api = SpotifyApiService(storage.auth,
         MockClient((request) async {
           if (request.url.host == 'api-partner.spotify.com') {
             return http.Response(jsonEncode(entityResponse(items)), 200);
           }
           return http.Response('{}', 404);
         }),
+        const DartWatchFeedDecoder(),
       );
-      final spotify = SpotifyProvider(api, storage);
+      final spotify = SpotifyProvider(api, storage.library);
       addTearDown(spotify.dispose);
       await tester.pumpWidget(
         ChangeNotifierProvider.value(

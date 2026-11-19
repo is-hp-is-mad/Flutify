@@ -9,7 +9,7 @@ import 'dart:io';
 
 import 'package:flutify_app/services/auth/proto_codec.dart';
 import 'package:flutify_app/services/protocol/extended_metadata.dart';
-import 'package:flutify_app/services/protocol/spotify_id.dart';
+import 'package:flutify_app/core/utils/spotify_id.dart';
 import 'package:http/http.dart' as http;
 
 /// base62 episode id → 16 字节 gid 的 hex。

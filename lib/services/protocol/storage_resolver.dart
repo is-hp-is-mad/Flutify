@@ -2,7 +2,11 @@ import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
+import '../../core/constants/spotify_endpoints.dart';
+import '../../core/rust_core.dart';
+import '../../src/rust/api/backend.dart' as rust;
 import '../auth/proto_codec.dart';
+import '../rust_backend_bridge.dart';
 
 /// `storage-resolve` 响应（`spotify.download.proto.StorageResolveResponse`，proto3）。
 class StorageResolveResult {
@@ -37,6 +41,23 @@ Future<StorageResolveResult> resolveAudioStorage({
   required Future<Map<String, String>> Function() headers,
   http.Client? client,
 }) async {
+  if (client == null && RustCore.ready) {
+    final proxy = await RustBackendBridge.proxyForUrl(
+      '${SpotifyEndpoints.defaultSpClientBase}/storage-resolve/files/audio/interactive/$fileIdHex',
+    );
+    if (proxy != null) {
+      final dto = await rust.rustResolveAudioStorage(
+        spclientBase: SpotifyEndpoints.defaultSpClientBase,
+        fileIdHex: fileIdHex,
+        proxy: proxy,
+      );
+      return StorageResolveResult(
+        result: dto.result,
+        cdnUrls: dto.cdnUrls,
+        fileId: Uint8List.fromList(dto.fileId),
+      );
+    }
+  }
   final c = client ?? http.Client();
   try {
     final paths = [

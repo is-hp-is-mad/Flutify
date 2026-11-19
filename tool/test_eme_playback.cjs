@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const dart = fs.readFileSync(path.join(__dirname, '../lib/services/eme/eme_player.dart'), 'utf8');
+const dart = fs.readFileSync(path.join(__dirname, '../lib/services/eme/eme_page_html.dart'), 'utf8');
 const html = dart.split("const String emePageHtml = r'''")[1].split("''';")[0];
 const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
 const deferred = () => {

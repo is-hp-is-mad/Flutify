@@ -61,7 +61,7 @@ Future<void> _pumpApp(WidgetTester tester, TargetPlatform platform) async {
       storageService: storage,
       audioEngine: FakeAudioPlayerService(),
       emePlayer: EmePlayer(),
-      spotifyApiService: FakeSpotifyApiService(storage),
+      spotifyApiService: FakeSpotifyApiService(storage.auth),
     ),
   );
   await _settle(tester);
@@ -149,7 +149,10 @@ void main() {
         expectHistoryUntouched();
 
         if (Platform.isMacOS) {
-          installMacOSMouseNavigation();
+          installMacOSMouseNavigation(
+            onBack: () => AppRoutes.navigateBack?.call(),
+            onForward: () => AppRoutes.navigateForward?.call(),
+          );
           addTearDown(() => _channel.setMethodCallHandler(null));
           for (final method in ['back', 'forward']) {
             await _fromNative(tester, method);

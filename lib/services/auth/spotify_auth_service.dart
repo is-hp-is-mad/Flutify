@@ -4,14 +4,15 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../../core/constants/spotify_endpoints.dart';
-import '../protocol/access_point.dart';
-import '../storage_service.dart';
+import '../rust_backend_bridge.dart';
+import '../storage/auth_session_store.dart';
 import 'account_profile_service.dart';
 import 'auth_constants.dart';
 import 'client_profile.dart';
 import 'client_token_service.dart';
 import 'session_expired_exception.dart';
 import 'session_http_client.dart';
+import 'session_token_source.dart';
 import 'web_token_exception.dart';
 import 'web_token_service.dart';
 
@@ -19,7 +20,8 @@ import 'web_token_service.dart';
 ///
 /// 在应用内 WebView（Linux 为系统 Chrome）登录 open.spotify.com，取得 Web 会话凭据 `sp_dc`，
 /// 再用 `sp_dc + TOTP` 铸造 access_token；过期时用同一个 `sp_dc` 重新铸造。App 不接触密码。
-/// client-token 以桌面端身份申请。
+/// client-token 以 Web 播放器身份申请。令牌续期优先交给 Rust 会话核心（[SessionTokenSource]），
+/// 结果按会话 epoch 写回 [AuthSessionStore]；Rust 不处理时（网关 / 测试）走 Dart HTTP。
 ///
 /// 说明：以官方客户端身份访问违反 Spotify 服务条款，存在账号风控风险，建议用小号测试。
 class SpotifyAuthService {
@@ -29,13 +31,16 @@ class SpotifyAuthService {
   /// Web 登录铸造的令牌属于 Web 播放器，client-token 与业务请求头必须同一身份。
   static const SpotifyClientProfile _profile = SpotifyClientProfile.web;
 
-  final StorageService _storage;
+  final AuthSessionStore _storage;
   final http.Client _client;
   final ClientTokenService _clientTokenService;
   final AccountProfileService _profiles;
 
-  /// 按 access_token 查询 canonical username（默认登录 AP 读 APWelcome；测试注入替身）。
-  final Future<String> Function(String accessToken, String deviceId)
+  /// 令牌续期来源（生产为 Rust 会话核心）；为 null 时只用 Dart HTTP。
+  final SessionTokenSource? _tokens;
+
+  /// 可选的自定义用户名解析器（仅测试注入替身；生产默认不再连接 Desktop AP）。
+  final Future<String> Function(String accessToken, String deviceId)?
   _usernameResolver;
 
   /// 正在进行中的续期请求：并发调用复用同一个 Future，避免重复打令牌端点。
@@ -50,6 +55,7 @@ class SpotifyAuthService {
     this._storage,
     this._client,
     this._usernameResolver,
+    this._tokens,
   ) : _clientTokenService = ClientTokenService(_client),
       _profiles = AccountProfileService(_client) {
     _storage.sessionInvalidated.addListener(() {
@@ -60,10 +66,11 @@ class SpotifyAuthService {
   }
 
   factory SpotifyAuthService(
-    StorageService storage, [
+    AuthSessionStore storage, [
     http.Client? client,
     Future<String> Function(String accessToken, String deviceId)?
     usernameResolver,
+    SessionTokenSource? tokens,
   ]) {
     final http.Client effectiveClient = SessionHttpClient(
       storage,
@@ -72,9 +79,9 @@ class SpotifyAuthService {
     return SpotifyAuthService._(
       storage,
       effectiveClient,
-      usernameResolver ??
-          (token, deviceId) =>
-              _usernameFromAccessPoint(effectiveClient, token, deviceId),
+      usernameResolver,
+      // 与其他服务一致：注入自定义 http.Client（测试）时不走 Rust
+      tokens ?? (client == null ? const RustSessionTokenSource() : null),
     );
   }
 
@@ -133,17 +140,37 @@ class SpotifyAuthService {
 
   Future<String> _requestClientToken() async {
     final epoch = _storage.sessionEpoch;
-    final granted = await _clientTokenService.request(
-      await _deviceId(),
-      _profile,
-    );
+    final deviceId = await _deviceId();
+    _storage.checkSession(epoch);
+    final SessionToken granted =
+        await _tokens?.refreshClientToken(_storage) ??
+        await _requestClientTokenDart(deviceId);
     await _storage.writeSession(epoch, [
       () => _storage.setClientToken(granted.token),
-      () =>
-          _storage.setClientTokenExpiry(granted.expiryEpochMs(DateTime.now())),
+      () => _storage.setClientTokenExpiry(granted.expiryMs),
       () => _storage.setClientTokenProfile(_profile.name),
     ]);
+    RustBackendBridge.syncSession(_storage);
     return granted.token;
+  }
+
+  Future<SessionToken> _requestClientTokenDart(String deviceId) async {
+    final granted = await _clientTokenService.request(deviceId);
+    return (
+      token: granted.token,
+      expiryMs: granted.expiryEpochMs(DateTime.now()),
+    );
+  }
+
+  /// 用 `sp_dc` 重新铸造 Web access_token：优先 Rust 会话核心，不处理时走 Dart HTTP。
+  Future<SessionToken> _mintWebToken() async =>
+      await _webTokenViaSource() ??
+      await WebTokenService.mintTokenForSpDc(_storage.spDc, client: _client);
+
+  Future<SessionToken?> _webTokenViaSource() {
+    final tokens = _tokens;
+    if (tokens == null) return Future.value();
+    return refreshWebTokenVia(tokens, _storage);
   }
 
   // ---------------------------------------------------------------------------
@@ -157,10 +184,7 @@ class SpotifyAuthService {
     var token = _storage.webAccessToken;
     var expiryMs = _storage.webAccessTokenExpiry;
     if (token.isEmpty || !_isFresh(expiryMs)) {
-      final minted = await WebTokenService.mintTokenForSpDc(
-        _storage.spDc,
-        client: _client,
-      );
+      final minted = await _mintWebToken();
       token = minted.token;
       expiryMs = minted.expiryMs;
     }
@@ -171,6 +195,7 @@ class SpotifyAuthService {
       () => _storage.setAccessTokenExpiry(expiryMs),
     ]);
     sessionExpired.value = false;
+    RustBackendBridge.syncSession(_storage);
     try {
       await ensureClientToken();
     } catch (_) {}
@@ -228,10 +253,7 @@ class SpotifyAuthService {
       throw const SessionExpiredException();
     }
     try {
-      final minted = await WebTokenService.mintTokenForSpDc(
-        _storage.spDc,
-        client: _client,
-      );
+      final minted = await _mintWebToken();
       await _storage.writeSession(epoch, [
         _storage.markDesktopSession,
         () => _storage.setWebAccessToken(minted.token, minted.expiryMs),
@@ -239,6 +261,7 @@ class SpotifyAuthService {
         () => _storage.setAccessTokenExpiry(minted.expiryMs),
       ]);
       sessionExpired.value = false;
+      RustBackendBridge.syncSession(_storage);
       return _storage.accessToken;
     } on WebTokenHttpException catch (e) {
       if (epoch == _storage.sessionEpoch && e.statusCode == 401) {
@@ -254,7 +277,7 @@ class SpotifyAuthService {
   // ---------------------------------------------------------------------------
 
   /// 先走 Web 播放器 Pathfinder `profileAttributes`（一次取回用户名、昵称与头像），
-  /// 失败再回退 AP + 内部资料接口 / 公开 `/v1/me`。
+  /// 失败再回退内部资料接口 / 公开 `/v1/me`（不再发起 Desktop AP 连接）。
   Future<void> _loadProfile() async {
     final epoch = _storage.sessionEpoch;
     _storage.checkSession(epoch);
@@ -280,27 +303,32 @@ class SpotifyAuthService {
         () => _storage.setDisplayName(''),
         () => _storage.setAvatarUrl(''),
       ]);
-      try {
-        final username = await _usernameResolver(
-          _storage.accessToken,
-          _storage.deviceId,
-        );
-        if (username.isNotEmpty) {
-          await _storage.writeSession(epoch, [
-            () => _storage.setUsername(username),
-          ]);
+      final resolver = _usernameResolver;
+      if (resolver != null) {
+        try {
+          final username = await resolver(
+            _storage.accessToken,
+            _storage.deviceId,
+          );
+          if (username.isNotEmpty) {
+            await _storage.writeSession(epoch, [
+              () => _storage.setUsername(username),
+            ]);
+          }
+        } catch (_) {
+          // 交给 /v1/me 回退（其响应的 id 即用户名）
         }
-      } catch (_) {
-        // AP 不可达时交给 /v1/me 回退（其响应的 id 即用户名）
       }
     }
     _storage.checkSession(epoch);
     final profile =
-        await _profiles.fetchProfileView(
-          username: _storage.username,
-          accessToken: _storage.accessToken,
-          clientToken: _storage.clientToken,
-        ) ??
+        (_storage.username.isNotEmpty
+            ? await _profiles.fetchProfileView(
+                username: _storage.username,
+                accessToken: _storage.accessToken,
+                clientToken: _storage.clientToken,
+              )
+            : null) ??
         await _profiles.fetchMe(_storage.accessToken);
     _storage.checkSession(epoch);
     if (profile == null) return;
@@ -311,25 +339,6 @@ class SpotifyAuthService {
       () => _storage.setDisplayName(profile.displayName),
       () => _storage.setAvatarUrl(profile.avatarUrl),
     ]);
-  }
-
-  /// 令牌响应不含用户名：用 access_token 登录 AP，从 APWelcome 取 canonical username。
-  /// 媒体库（rootlist / 收藏集合）与资料接口都按用户名寻址，缺它整个媒体库为空。
-  static Future<String> _usernameFromAccessPoint(
-    http.Client client,
-    String accessToken,
-    String deviceId,
-  ) async {
-    final ap = await SpotifyAccessPoint.connect(client: client);
-    try {
-      final welcome = await ap.authenticate(
-        ApCredentials.accessToken(accessToken),
-        deviceId: deviceId.isEmpty ? null : deviceId,
-      );
-      return welcome.canonicalUsername;
-    } finally {
-      ap.close();
-    }
   }
 
   /// 恢复的会话缺资料时需要补拉：昵称或用户名缺失（如登录时资料接口失败）。
@@ -375,5 +384,6 @@ class SpotifyAuthService {
       } catch (_) {}
     }
     await _storage.invalidateSession(epoch);
+    RustBackendBridge.clearSession();
   }
 }

@@ -39,37 +39,36 @@ void main() {
     });
     storage = await StorageService.init();
     cookieClears = 0;
-    storage.clearWebViewCookies = () async {
+    storage.auth.clearWebViewCookies = () async {
       cookieClears++;
     };
   });
 
   void expectCleared() {
     for (final value in [
-      storage.accessToken,
-      storage.refreshToken,
-      storage.username,
-      storage.displayName,
-      storage.avatarUrl,
-      storage.clientToken,
-      storage.clientTokenProfile,
-      storage.spClientToken,
-      storage.spDc,
-      storage.webAccessToken,
+      storage.auth.accessToken,
+      storage.auth.refreshToken,
+      storage.auth.username,
+      storage.auth.displayName,
+      storage.auth.avatarUrl,
+      storage.auth.clientToken,
+      storage.auth.clientTokenProfile,
+      storage.auth.spClientToken,
+      storage.auth.spDc,
+      storage.auth.webAccessToken,
     ]) {
       expect(value, isEmpty);
     }
-    expect(storage.isLoggedIn, isFalse);
-    expect(storage.accessTokenExpiry, 0);
-    expect(storage.clientTokenExpiry, 0);
-    expect(storage.webAccessTokenExpiry, 0);
+    expect(storage.auth.isLoggedIn, isFalse);
+    expect(storage.auth.accessTokenExpiry, 0);
+    expect(storage.auth.clientTokenExpiry, 0);
+    expect(storage.auth.webAccessTokenExpiry, 0);
   }
 
   test(
     'account 401 clears every credential and cookies, signs UI out',
     () async {
-      final auth = SpotifyAuthService(
-        storage,
+      final auth = SpotifyAuthService(storage.auth,
         MockClient((_) async => http.Response('', 200)),
       );
       final provider = AuthProvider(auth);
@@ -77,17 +76,16 @@ void main() {
       var changes = 0;
       provider.onSessionChanged = () => changes++;
       final order = <String>[];
-      storage.beforeCookieCleanup.add(() async {
+      storage.auth.beforeCookieCleanup.add(() async {
         order.add('stop-page');
       });
-      storage.clearWebViewCookies = () async {
+      storage.auth.clearWebViewCookies = () async {
         order.add('cookies');
         expect(provider.isSignedIn, isFalse);
         expectCleared();
         cookieClears++;
       };
-      final client = SessionHttpClient(
-        storage,
+      final client = SessionHttpClient(storage.auth,
         MockClient((_) async => http.Response('rejected', 401)),
       );
       final response = await client.get(
@@ -100,25 +98,24 @@ void main() {
       expect(order, ['stop-page', 'cookies']);
       expect(cookieClears, 1);
       expect(changes, 1);
-      expect(storage.cookieCleanupPending, isFalse);
-      expect(storage.deviceId, 'installation');
-      expect(storage.proxyPassword, 'proxy-password');
-      expect(storage.preferencesJson, '{}');
-      expect(storage.updateMode, 'manual');
+      expect(storage.auth.cookieCleanupPending, isFalse);
+      expect(storage.auth.deviceId, 'installation');
+      expect(storage.preferences.proxyPassword, 'proxy-password');
+      expect(storage.preferences.preferencesJson, '{}');
+      expect(storage.updates.updateMode, 'manual');
     },
   );
 
   for (final status in [403, 429, 503]) {
     test('account HTTP $status preserves session', () async {
-      final client = SessionHttpClient(
-        storage,
+      final client = SessionHttpClient(storage.auth,
         MockClient((_) async => http.Response('', status)),
       );
       await client.get(
         Uri.parse('https://api.spotify.com/v1/me'),
         headers: {'Authorization': 'Bearer desktop-token'},
       );
-      expect(storage.isLoggedIn, isTrue);
+      expect(storage.auth.isLoggedIn, isTrue);
       expect(cookieClears, 0);
     });
   }
@@ -142,12 +139,11 @@ void main() {
     test(
       'unrelated or anonymous 401 preserves login: ${request.$1} ${request.$2.keys}',
       () async {
-        final client = SessionHttpClient(
-          storage,
+        final client = SessionHttpClient(storage.auth,
           MockClient((_) async => http.Response('', 401)),
         );
         await client.get(Uri.parse(request.$1), headers: request.$2);
-        expect(storage.isLoggedIn, isTrue);
+        expect(storage.auth.isLoggedIn, isTrue);
         expect(cookieClears, 0);
       },
     );
@@ -158,13 +154,12 @@ void main() {
     () async {
       final releaseCookies = Completer<void>();
       final clearing = Completer<void>();
-      storage.clearWebViewCookies = () async {
+      storage.auth.clearWebViewCookies = () async {
         cookieClears++;
         clearing.complete();
         await releaseCookies.future;
       };
-      final client = SessionHttpClient(
-        storage,
+      final client = SessionHttpClient(storage.auth,
         MockClient((_) async => http.Response('', 401)),
       );
       final requests = List.generate(
@@ -177,7 +172,7 @@ void main() {
       await clearing.future;
       expectCleared();
       var loginReady = false;
-      final login = storage.prepareForLogin().then((_) => loginReady = true);
+      final login = storage.auth.prepareForLogin().then((_) => loginReady = true);
       await Future<void>.delayed(Duration.zero);
       expect(loginReady, isFalse);
       releaseCookies.complete();
@@ -190,8 +185,7 @@ void main() {
   test('late old 401 does not clear a new login', () async {
     final reply = Completer<http.Response>();
     final sent = Completer<void>();
-    final client = SessionHttpClient(
-      storage,
+    final client = SessionHttpClient(storage.auth,
       MockClient((_) {
         sent.complete();
         return reply.future;
@@ -202,15 +196,15 @@ void main() {
       headers: {'Authorization': 'Bearer desktop-token'},
     );
     await sent.future;
-    await storage.invalidateSession(storage.sessionEpoch);
-    await storage.beginLoginSession();
-    await storage.markDesktopSession();
-    await storage.setRefreshToken('new-refresh');
-    await storage.setAccessToken('new-access');
+    await storage.auth.invalidateSession(storage.auth.sessionEpoch);
+    await storage.auth.beginLoginSession();
+    await storage.auth.markDesktopSession();
+    await storage.auth.setRefreshToken('new-refresh');
+    await storage.auth.setAccessToken('new-access');
     reply.complete(http.Response('', 401));
     await request;
-    expect(storage.accessToken, 'new-access');
-    expect(storage.refreshToken, 'new-refresh');
+    expect(storage.auth.accessToken, 'new-access');
+    expect(storage.auth.refreshToken, 'new-refresh');
     expect(cookieClears, 1);
   });
 
@@ -219,8 +213,7 @@ void main() {
     () async {
       final reply = Completer<http.Response>();
       final sent = Completer<void>();
-      final auth = SpotifyAuthService(
-        storage,
+      final auth = SpotifyAuthService(storage.auth,
         MockClient((_) {
           sent.complete();
           return reply.future;
@@ -229,7 +222,7 @@ void main() {
       final refresh = auth.refreshAccessToken();
       final rejected = expectLater(refresh, throwsStateError);
       await sent.future;
-      await storage.invalidateSession(storage.sessionEpoch);
+      await storage.auth.invalidateSession(storage.auth.sessionEpoch);
       reply.complete(
         http.Response(
           jsonEncode({
@@ -248,8 +241,7 @@ void main() {
   test('late Web token response cannot restore a cleared session', () async {
     final reply = Completer<http.Response>();
     final sent = Completer<void>();
-    final web = WebTokenService(
-      storage,
+    final web = WebTokenService(storage.auth,
       MockClient((request) {
           if (request.url.path == '/api/server-time') {
             return Future.value(http.Response('{}', 200));
@@ -261,7 +253,7 @@ void main() {
     final mint = web.mintAccessToken();
     final rejected = expectLater(mint, throwsStateError);
     await sent.future;
-    await storage.invalidateSession(storage.sessionEpoch);
+    await storage.auth.invalidateSession(storage.auth.sessionEpoch);
     reply.complete(http.Response('{"accessToken":"late"}', 200));
     await rejected;
     expectCleared();
@@ -271,8 +263,7 @@ void main() {
     'Web token endpoint 401 resets without remote logout or retry',
     () async {
       var calls = 0;
-      final auth = SpotifyAuthService(
-        storage,
+      final auth = SpotifyAuthService(storage.auth,
         MockClient((request) async {
           // 铸造前的服务器时间对齐不算令牌请求
           if (request.url.path == '/api/server-time') {
@@ -294,40 +285,40 @@ void main() {
   test(
     'cookie failure keeps credentials cleared and retries across restart',
     () async {
-      storage.clearWebViewCookies = () async {
+      storage.auth.clearWebViewCookies = () async {
         throw StateError('plugin unavailable');
       };
-      await storage.invalidateSession(storage.sessionEpoch);
+      await storage.auth.invalidateSession(storage.auth.sessionEpoch);
       expectCleared();
-      expect(storage.cookieCleanupPending, isTrue);
-      await expectLater(storage.prepareForLogin(), throwsStateError);
+      expect(storage.auth.cookieCleanupPending, isTrue);
+      await expectLater(storage.auth.prepareForLogin(), throwsStateError);
       final restored = await StorageService.init();
-      expect(restored.cookieCleanupPending, isTrue);
-      restored.clearWebViewCookies = () async {
+      expect(restored.auth.cookieCleanupPending, isTrue);
+      restored.auth.clearWebViewCookies = () async {
         cookieClears++;
       };
-      await restored.prepareForLogin();
-      expect(restored.cookieCleanupPending, isFalse);
+      await restored.auth.prepareForLogin();
+      expect(restored.auth.cookieCleanupPending, isFalse);
       expect(cookieClears, 1);
     },
   );
 
   test('concurrent cookie cleanup retries share one operation', () async {
-    storage.clearWebViewCookies = () async => throw StateError('unavailable');
-    await storage.invalidateSession(storage.sessionEpoch);
+    storage.auth.clearWebViewCookies = () async => throw StateError('unavailable');
+    await storage.auth.invalidateSession(storage.auth.sessionEpoch);
     final release = Completer<void>();
     final started = Completer<void>();
-    storage.clearWebViewCookies = () {
+    storage.auth.clearWebViewCookies = () {
       cookieClears++;
       started.complete();
       return release.future;
     };
-    final retries = List.generate(3, (_) => storage.prepareForLogin());
+    final retries = List.generate(3, (_) => storage.auth.prepareForLogin());
     await started.future;
-    expect(storage.cookieCleanupPending, isTrue);
+    expect(storage.auth.cookieCleanupPending, isTrue);
     expect(cookieClears, 1);
     release.complete();
     await Future.wait(retries);
-    expect(storage.cookieCleanupPending, isFalse);
+    expect(storage.auth.cookieCleanupPending, isFalse);
   });
 }

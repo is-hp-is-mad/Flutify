@@ -1,4 +1,4 @@
-import '../../services/updates/update_release.dart';
+import '../../models/update_release.dart';
 
 /// 应用信息（设置页「关于」、开源许可页使用）。
 ///

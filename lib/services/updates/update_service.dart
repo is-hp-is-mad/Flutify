@@ -7,15 +7,15 @@ import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 
 import '../../core/constants/app_info.dart';
-import '../storage_service.dart';
+import '../storage/update_state_store.dart';
 import 'update_downloader.dart';
 import 'update_installer.dart';
-import 'update_release.dart';
+import '../../models/update_release.dart';
 
 enum UpdateStatus { idle, checking, available, downloading, ready, installing, failed }
 
 class UpdateService extends ChangeNotifier {
-  final StorageService storage;
+  final UpdateStateStore storage;
   final UpdateInstaller installer;
   final http.Client client;
   final UpdateDownloader Function() downloaderFactory;
@@ -242,6 +242,7 @@ class UpdateService extends ChangeNotifier {
       if (_disposed || generation != _generation) return;
       status = UpdateStatus.failed;
       error = e.toString();
+      debugPrint('[Updates] Check failed: $e');
       _notify();
     }
   }
@@ -301,6 +302,7 @@ class UpdateService extends ChangeNotifier {
       if (_disposed || generation != _generation) return;
       status = UpdateStatus.failed;
       error = e.toString();
+      debugPrint('[Updates] Download failed: $e');
       _notify();
     } finally {
       if (identical(_downloader, downloader)) _downloader = null;
@@ -315,12 +317,20 @@ class UpdateService extends ChangeNotifier {
     _notify();
   }
 
+  /// 安装前 / 打开发布页手动更新前的回调（记下「更新后续播」标记等）；失败不影响更新。
+  Future<void> Function()? beforeInstall;
+
   Future<void> install() async {
     if (package == null || checksum == null || status != UpdateStatus.ready) return;
     status = UpdateStatus.installing;
     error = null;
     needsInstallPermission = false;
     _notify();
+    try {
+      await beforeInstall?.call();
+    } catch (e) {
+      debugPrint('[Updates] beforeInstall failed: $e');
+    }
     try {
       final opened = await installer.install(package!, checksum!);
       needsInstallPermission = !opened;

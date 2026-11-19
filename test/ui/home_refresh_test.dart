@@ -67,7 +67,7 @@ Future<ControlledHomeApi> pumpHome(
   addTearDown(tester.view.reset);
   SharedPreferences.setMockInitialValues({});
   final storage = await StorageService.init();
-  final api = ControlledHomeApi(storage);
+  final api = ControlledHomeApi(storage.auth);
   await tester.pumpWidget(
     FlutifyApp(
       storageService: storage,

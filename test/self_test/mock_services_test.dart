@@ -1,8 +1,8 @@
 import 'dart:io';
 
-import 'package:flutify_app/core/self_test/mock_audio.dart';
-import 'package:flutify_app/core/self_test/mock_cover_server.dart';
-import 'package:flutify_app/core/self_test/mock_services.dart';
+import 'package:flutify_app/self_test/mock_audio.dart';
+import 'package:flutify_app/self_test/mock_cover_server.dart';
+import 'package:flutify_app/self_test/mock_services.dart';
 import 'package:flutify_app/models/lyrics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -96,7 +96,7 @@ void main() {
       final api = bootstrap.spotifyApiService;
       final catalog = bootstrap.catalog;
 
-      expect(bootstrap.storageService.isLoggedIn, isTrue);
+      expect(bootstrap.storageService.auth.isLoggedIn, isTrue);
       expect(api.isConfigured, isTrue);
       expect(api.supportsConnect, isTrue);
 

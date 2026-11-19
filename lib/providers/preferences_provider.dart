@@ -1,14 +1,16 @@
 import 'package:flutter/foundation.dart';
 
 import '../models/app_preferences.dart';
-import '../services/storage_service.dart';
+import '../services/backup/backup_ports.dart';
+import '../services/storage/preferences_store.dart';
 
 /// 界面偏好（语言 / 歌词样式 / 启动页 / 窗口记忆 / Connect）的唯一来源。
 ///
 /// 修改即时生效并持久化；订阅方用 `context.select` 只取自己关心的字段。
 /// 沉浸式歌词「铺满整个屏幕」沿用早先的独立存储键，这里只做读写桥接。
-class PreferencesProvider extends ChangeNotifier {
-  final StorageService _storage;
+class PreferencesProvider extends ChangeNotifier
+    implements BackupPreferencesPort {
+  final PreferencesStore _storage;
   AppPreferences _prefs;
 
   PreferencesProvider(this._storage) : _prefs = AppPreferences.decode(_storage.preferencesJson);

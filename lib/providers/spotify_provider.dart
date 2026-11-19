@@ -17,7 +17,7 @@ import '../services/lyrics/lyrics_resolver.dart';
 import '../services/lyrics/lyrics_translation.dart';
 import '../services/cache/cache_location.dart';
 import '../services/spotify_api_service.dart';
-import '../services/storage_service.dart';
+import '../services/storage/library_cache_store.dart';
 
 enum SearchResultType { tracks, artists, playlists }
 
@@ -26,7 +26,7 @@ class SpotifyProvider extends ChangeNotifier {
   static const Duration _searchDebounce = Duration(milliseconds: 300);
 
   final SpotifyApiService _api;
-  final StorageService _storage;
+  final LibraryCacheStore _storage;
 
   SpotifyUser _user = SpotifyUser.guest;
   HomeFeed _home = HomeFeed.empty;

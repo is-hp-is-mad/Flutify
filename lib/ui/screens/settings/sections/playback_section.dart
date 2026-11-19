@@ -5,8 +5,8 @@ import '../../../../l10n/l10n.dart';
 import '../../../../models/playback_state.dart' show SpotifyRepeatMode;
 import '../../../../providers/playback_provider.dart';
 import '../../../../providers/preferences_provider.dart';
+import '../widgets/settings_menu_field.dart';
 import '../widgets/settings_section.dart';
-import '../widgets/settings_segmented.dart';
 import '../widgets/settings_slider_tile.dart';
 
 /// 播放：连续多首无法播放时自动暂停（默认开启）、音量均衡、歌曲间淡入淡出。
@@ -50,14 +50,15 @@ class PlaybackSection extends StatelessWidget {
         SettingsTile(
           title: l10n.settingsDefaultRepeat,
           subtitle: l10n.settingsDefaultRepeatSubtitle,
-          below: SettingsSegmented<SpotifyRepeatMode>(
-            values: SpotifyRepeatMode.values,
-            labelOf: (v) => switch (v) {
-              SpotifyRepeatMode.off => l10n.settingsRepeatOff,
-              SpotifyRepeatMode.context => l10n.settingsRepeatList,
-              SpotifyRepeatMode.track => l10n.settingsRepeatTrack,
-            },
-            selected: defaultRepeat,
+          below: SettingsMenuField<SpotifyRepeatMode>(
+            semanticLabel: l10n.settingsDefaultRepeat,
+            icon: Icons.repeat_rounded,
+            value: defaultRepeat,
+            options: [
+              SettingsMenuOption(value: SpotifyRepeatMode.off, label: l10n.settingsRepeatOff),
+              SettingsMenuOption(value: SpotifyRepeatMode.context, label: l10n.settingsRepeatList),
+              SettingsMenuOption(value: SpotifyRepeatMode.track, label: l10n.settingsRepeatTrack),
+            ],
             // 除了存起来，还要当场交给播放器：它才是循环方式的实际持有者。
             // 否则用户在设置里选完，要等到下次启动（甚至切歌单）才看到效果。
             onChanged: (v) {

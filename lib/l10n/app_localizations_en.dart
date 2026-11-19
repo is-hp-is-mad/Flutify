@@ -247,6 +247,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String songCountLoaded(int count) {
+    return '$count loaded';
+  }
+
+  @override
   String followerCount(String count) {
     return '$count followers';
   }
@@ -1286,6 +1291,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsCopyLogEmpty => 'No log yet';
+
+  @override
+  String get settingsExportLog => 'Export diagnostic log';
+
+  @override
+  String get settingsExportLogSubtitle =>
+      'Save full runtime log as a .log or .txt file';
+
+  @override
+  String get settingsExportLogFormat => 'Choose export format';
+
+  @override
+  String settingsExportLogDone(String path) {
+    return 'Log exported: $path';
+  }
+
+  @override
+  String get settingsExportLogFailed => 'Failed to export log';
 
   @override
   String get taskbarLyricsColorAuto => 'Auto';

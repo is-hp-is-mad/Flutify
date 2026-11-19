@@ -15,7 +15,7 @@ void main() {
 
   test('settings survive a restart', () async {
     final storage = await freshStorage();
-    final provider = AppearanceProvider(storage);
+    final provider = AppearanceProvider(storage.preferences);
     provider.update(provider.settings.copyWith(
       themeMode: ThemeMode.dark,
       accent: AccentPreset.violet.color,
@@ -24,7 +24,7 @@ void main() {
     ));
     provider.dispose(); // dispose 会把防抖中的修改立即落盘
 
-    final restored = AppearanceProvider(storage).settings;
+    final restored = AppearanceProvider(storage.preferences).settings;
     expect(restored.themeMode, ThemeMode.dark);
     expect(restored.accent, AccentPreset.violet.color);
     expect(restored.cornerStyle, CornerStyle.rounded);
@@ -33,30 +33,30 @@ void main() {
 
   test('corrupt or partial storage falls back to defaults field by field', () async {
     final storage = await freshStorage({'ui_appearance': '{"themeMode":"nope","glassBlur":7,"pureBlack":true}'});
-    final s = AppearanceProvider(storage).settings;
+    final s = AppearanceProvider(storage.preferences).settings;
     expect(s.themeMode, AppearanceSettings.defaults.themeMode);
     expect(s.glassBlur, 1.0); // 越界值被夹到 0~1
     expect(s.pureBlack, isTrue);
 
     final broken = await freshStorage({'ui_appearance': 'not json'});
-    expect(AppearanceProvider(broken).settings, AppearanceSettings.defaults);
+    expect(AppearanceProvider(broken.preferences).settings, AppearanceSettings.defaults);
   });
 
   test('glass material persists and old or unknown values fall back to liquid glass', () async {
     final storage = await freshStorage();
-    final provider = AppearanceProvider(storage);
+    final provider = AppearanceProvider(storage.preferences);
     provider.update(provider.settings.copyWith(glassMaterial: GlassMaterial.hyper));
     provider.dispose();
-    expect(AppearanceProvider(storage).settings.glassMaterial, GlassMaterial.hyper);
+    expect(AppearanceProvider(storage.preferences).settings.glassMaterial, GlassMaterial.hyper);
 
     final old = await freshStorage({'ui_appearance': '{"glassBlur":0.4}'});
-    expect(AppearanceProvider(old).settings.glassMaterial, GlassMaterial.liquid);
+    expect(AppearanceProvider(old.preferences).settings.glassMaterial, GlassMaterial.liquid);
     final unknown = await freshStorage({'ui_appearance': '{"glassMaterial":"chrome"}'});
-    expect(AppearanceProvider(unknown).settings.glassMaterial, GlassMaterial.liquid);
+    expect(AppearanceProvider(unknown.preferences).settings.glassMaterial, GlassMaterial.liquid);
   });
 
   test('dynamic accent uses the artwork colour only when enabled', () async {
-    final provider = AppearanceProvider(await freshStorage());
+    final provider = AppearanceProvider((await freshStorage()).preferences);
     provider.setArtworkColor(const Color(0xFF203080));
     expect(provider.accent, AppearanceSettings.defaults.accent);
 
@@ -69,7 +69,7 @@ void main() {
   });
 
   test('theme reflects pure black and accent', () async {
-    final provider = AppearanceProvider(await freshStorage());
+    final provider = AppearanceProvider((await freshStorage()).preferences);
     provider.update(provider.settings.copyWith(pureBlack: true, accent: AccentPreset.ocean.color));
     final dark = provider.theme(Brightness.dark);
     expect(dark.colorScheme.surface, Colors.black);
@@ -79,7 +79,7 @@ void main() {
 
   test('legacy settings with hyperRenderMode parse gracefully', () async {
     final storage = await freshStorage({'ui_appearance': '{"glassMaterial":"hyper","hyperRenderMode":"xiaomi_native"}'});
-    final provider = AppearanceProvider(storage);
+    final provider = AppearanceProvider(storage.preferences);
     expect(provider.settings.glassMaterial, GlassMaterial.hyper);
     provider.dispose();
   });

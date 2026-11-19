@@ -42,9 +42,7 @@ void main() {
         LyricLine(startTimeMs: 38000, words: ''),
       ],
     );
-    final playback = PlaybackProvider(
-      FakeAudioPlayerService(),
-      storage,
+    final playback = PlaybackProvider(FakeAudioPlayerService(), storage.playback,
       audioLoader: FakeTrackAudioSource(),
     );
     addTearDown(playback.dispose);
@@ -54,12 +52,9 @@ void main() {
         providers: [
           ChangeNotifierProvider.value(value: playback),
           ChangeNotifierProvider(
-            create: (_) => SpotifyProvider(
-              FakeSpotifyApiService(
-                storage,
+            create: (_) => SpotifyProvider(FakeSpotifyApiService(storage.auth,
                 lyricsById: {'synthetic-dots': lyrics},
-              ),
-              storage,
+              ), storage.library,
             ),
           ),
         ],
