@@ -70,7 +70,8 @@ test('macOS retains the validated SDK, runs titlebar hit-testing when testing, a
   const macos = job('macos');
   assert.match(workflow(), /FLUTTER_VERSION_MACOS: '3\.44\.9'/);
   assert.match(macos, /flutter-version: \$\{\{ env\.FLUTTER_VERSION_MACOS \}\}/);
-  assert.match(macos, /flutter test/);
+  assert.match(job('macos-tests'), /flutter-version: \$\{\{ env\.FLUTTER_VERSION_MACOS \}\}/);
+  assert.match(job('macos-tests'), /flutter test/);
   assert.match(macos, /swiftc macos\/Runner\/TrafficLightAligner\.swift tool\/test_macos_titlebar\.swift/);
   assert.match(macos, /flutter build macos --release/);
   assert.doesNotMatch(macos, /notarytool|import-codesign/);
