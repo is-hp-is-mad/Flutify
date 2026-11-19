@@ -21,8 +21,53 @@ const SERVER_TIME_ENDPOINT: &str = "https://open.spotify.com/api/server-time";
 const CLIENT_TOKEN_ENDPOINT: &str = "https://clienttoken.spotify.com/v1/clienttoken";
 const PATHFINDER_ENDPOINT: &str = "https://api-partner.spotify.com/pathfinder/v2/query";
 
-const WEB_USER_AGENT: &str =
+const WINDOWS_WEB_USER_AGENT: &str =
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36";
+const MACOS_WEB_USER_AGENT: &str =
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36";
+const LINUX_WEB_USER_AGENT: &str =
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36";
+const ANDROID_WEB_USER_AGENT: &str =
+    "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36";
+
+/// 按当前编译目标平台返回对应的 Web 浏览器 UA（与 Dart `SpotifyAuthConstants.webUserAgent` 对齐）。
+pub fn web_user_agent() -> &'static str {
+    if cfg!(target_os = "android") {
+        ANDROID_WEB_USER_AGENT
+    } else if cfg!(target_os = "macos") {
+        MACOS_WEB_USER_AGENT
+    } else if cfg!(target_os = "linux") {
+        LINUX_WEB_USER_AGENT
+    } else {
+        WINDOWS_WEB_USER_AGENT
+    }
+}
+
+/// 精简非 Chrome UA（用于 `open.spotify.com` 播客 SSR 页面内嵌 `initialState`），按当前平台匹配 OS。
+pub fn podcast_user_agent() -> &'static str {
+    if cfg!(target_os = "android") {
+        "Mozilla/5.0 (Linux; Android 14; Mobile)"
+    } else if cfg!(target_os = "macos") {
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
+    } else if cfg!(target_os = "linux") {
+        "Mozilla/5.0 (X11; Linux x86_64)"
+    } else {
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+    }
+}
+
+/// `clienttoken` 的 `js_sdk_data` 平台字段，与当前 OS 及 UA 保持一致。
+fn js_sdk_platform() -> (&'static str, &'static str, &'static str) {
+    if cfg!(target_os = "android") {
+        ("android", "14", "smartphone")
+    } else if cfg!(target_os = "macos") {
+        ("osx", "10.15.7", "computer")
+    } else if cfg!(target_os = "linux") {
+        ("linux", "x86_64", "computer")
+    } else {
+        ("windows", "NT 10.0", "computer")
+    }
+}
 const WEB_CLIENT_ID: &str = "d8a5ed958d274c2e8ee717e6a4b0971d";
 /// 与 Dart `SpotifyAuthConstants.webClientVersion` 保持一致：client-token 与业务请求头须同一身份。
 const WEB_CLIENT_VERSION: &str = "1.3.8.509.g26b6eac7300d";
@@ -214,7 +259,10 @@ pub async fn mint_web_token(sp_dc: &str, proxy: &str) -> Result<MintedToken, Str
     let mut totp_server = "unavailable".to_string();
     if let Ok(Ok(st_res)) = tokio::time::timeout(
         Duration::from_secs(4),
-        client.get(SERVER_TIME_ENDPOINT).send_routed(),
+        client
+            .get(SERVER_TIME_ENDPOINT)
+            .header("User-Agent", web_user_agent())
+            .send_routed(),
     )
     .await
     {
@@ -239,7 +287,7 @@ pub async fn mint_web_token(sp_dc: &str, proxy: &str) -> Result<MintedToken, Str
                 ("totpServer", totp_server.as_str()),
             ])
             .header("Cookie", format!("sp_dc={sp_dc}"))
-            .header("User-Agent", WEB_USER_AGENT)
+            .header("User-Agent", web_user_agent())
             .header("Accept", "application/json")
             .send_routed(),
     )
@@ -314,6 +362,7 @@ pub async fn request_web_client_token(
     proxy: &str,
 ) -> Result<GrantedClientToken, String> {
     let client = http_client::client_for(proxy)?;
+    let (os, os_version, device_type) = js_sdk_platform();
     let payload = json!({
         "client_data": {
             "client_version": WEB_CLIENT_VERSION,
@@ -321,10 +370,10 @@ pub async fn request_web_client_token(
             "js_sdk_data": {
                 "device_brand": "unknown",
                 "device_model": "unknown",
-                "os": "windows",
-                "os_version": "NT 10.0",
+                "os": os,
+                "os_version": os_version,
                 "device_id": device_id,
-                "device_type": "computer",
+                "device_type": device_type,
             }
         }
     });
@@ -334,7 +383,7 @@ pub async fn request_web_client_token(
             .post(CLIENT_TOKEN_ENDPOINT)
             .header("Accept", "application/json")
             .header("Content-Type", "application/json")
-            .header("User-Agent", WEB_USER_AGENT)
+            .header("User-Agent", web_user_agent())
             .body(payload.to_string())
             .send_routed(),
     )
@@ -471,7 +520,7 @@ fn request_headers(
         Ok(())
     };
     set("authorization", &format!("Bearer {access_token}"))?;
-    set("user-agent", WEB_USER_AGENT)?;
+    set("user-agent", web_user_agent())?;
     set("app-platform", "WebPlayer")?;
     set("spotify-app-version", WEB_CLIENT_VERSION)?;
     if let Some(ct) = client_token.filter(|v| !v.is_empty()) {
@@ -679,5 +728,30 @@ mod tests {
         assert!(cleared.access_token.is_empty());
         assert_eq!(cleared.proxy, "http://127.0.0.1:7890");
         assert_eq!(cleared.epoch, 8);
+    }
+
+    #[test]
+    fn platform_user_agent_and_js_sdk_match_target_os() {
+        let ua = web_user_agent();
+        let podcast_ua = podcast_user_agent();
+        let (os, _, device_type) = js_sdk_platform();
+        assert!(!podcast_ua.contains("Chrome/"));
+        if cfg!(target_os = "android") {
+            assert!(ua.contains("Android"));
+            assert_eq!(os, "android");
+            assert_eq!(device_type, "smartphone");
+        } else if cfg!(target_os = "macos") {
+            assert!(ua.contains("Macintosh"));
+            assert_eq!(os, "osx");
+            assert_eq!(device_type, "computer");
+        } else if cfg!(target_os = "linux") {
+            assert!(ua.contains("X11; Linux"));
+            assert_eq!(os, "linux");
+            assert_eq!(device_type, "computer");
+        } else {
+            assert!(ua.contains("Windows NT 10.0"));
+            assert_eq!(os, "windows");
+            assert_eq!(device_type, "computer");
+        }
     }
 }

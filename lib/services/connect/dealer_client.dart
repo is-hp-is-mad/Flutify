@@ -52,7 +52,7 @@ class DealerClient {
   static const String defaultDealerHost = 'dealer.spotify.com';
   static const String defaultSpclientHost = 'spclient.wg.spotify.com';
   static final Uri defaultApresolve = Uri.parse('https://apresolve.spotify.com/?type=dealer&type=spclient');
-  static const String _defaultUserAgent = SpotifyAuthConstants.webUserAgent;
+  static String get _defaultUserAgent => SpotifyAuthConstants.webUserAgent;
 
   final http.Client _client;
   final Future<Map<String, String>> Function() _headers;
@@ -225,7 +225,9 @@ class DealerClient {
   /// apresolve 取接入点；失败保留上一次的结果，仍没有就用默认域名。
   Future<void> _resolveHosts() async {
     try {
-      final res = await _client.get(_apresolve).timeout(const Duration(seconds: 10));
+      final res = await _client
+          .get(_apresolve, headers: {'User-Agent': _defaultUserAgent})
+          .timeout(const Duration(seconds: 10));
       if (res.statusCode == 200) {
         final json = jsonDecode(utf8.decode(res.bodyBytes));
         if (json is Map) {

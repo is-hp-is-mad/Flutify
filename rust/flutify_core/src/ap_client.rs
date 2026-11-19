@@ -387,7 +387,10 @@ async fn resolve_access_points(route: &ApRoute) -> Result<Vec<(String, u16)>, St
         ApRoute::Gateway(g) => (g.proxy.as_str(), g.route("apresolve.spotify.com", PATH), g.headers()),
     };
     let client = spotify_session::client_for_proxy(proxy)?;
-    let mut request = client.get(url).header("Accept", "application/json");
+    let mut request = client
+        .get(url)
+        .header("Accept", "application/json")
+        .header("User-Agent", spotify_session::web_user_agent());
     for (name, value) in headers {
         request = request.header(name, value);
     }

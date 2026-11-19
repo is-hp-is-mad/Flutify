@@ -17,7 +17,6 @@ import '../library/rootlist_parser.dart';
 import '../pathfinder/pathfinder_client.dart';
 import '../pathfinder/pathfinder_operations.dart';
 import '../pathfinder/pathfinder_parsers.dart';
-import '../protocol/access_point.dart';
 import '../../src/rust/api/backup.dart' as rust;
 import '../rust_backend_bridge.dart';
 import '../spotify_api_service.dart';
@@ -167,22 +166,6 @@ class SpDcBackupFetcher {
             images.first is Map<String, dynamic>) {
           avatarUrl =
               (images.first as Map<String, dynamic>)['url'] as String? ?? '';
-        }
-      } catch (_) {}
-    }
-
-    if (id.isEmpty && token.isNotEmpty) {
-      try {
-        final ap = await SpotifyAccessPoint.connect();
-        try {
-          final welcome = await ap.authenticate(
-            ApCredentials.accessToken(token),
-          );
-          if (welcome.canonicalUsername.isNotEmpty) {
-            id = welcome.canonicalUsername;
-          }
-        } finally {
-          ap.close();
         }
       } catch (_) {}
     }

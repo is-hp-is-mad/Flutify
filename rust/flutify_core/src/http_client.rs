@@ -51,6 +51,7 @@ pub fn client_for(proxy: &str) -> Result<reqwest::Client, String> {
         return Ok(client.clone());
     }
     let mut builder = reqwest::Client::builder()
+        .user_agent(crate::spotify_session::web_user_agent())
         .connect_timeout(Duration::from_secs(15))
         .pool_idle_timeout(Duration::from_secs(90))
         // 与 dart:io 一致：不自动跟随重定向，交给上层处理

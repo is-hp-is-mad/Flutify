@@ -186,4 +186,39 @@ void main() {
       expect(AuthProvider.describeError(const SessionExpiredException()), contains('过期'));
     });
   });
+
+  group('平台 UA 与 js_sdk_data 对齐', () {
+    test('按平台返回对应 UA 与 client-token 平台元数据', () {
+      expect(SpotifyAuthConstants.webUserAgentForPlatform('windows'), contains('Windows NT 10.0'));
+      expect(SpotifyAuthConstants.webUserAgentForPlatform('macos'), contains('Macintosh; Intel Mac OS X'));
+      expect(SpotifyAuthConstants.webUserAgentForPlatform('linux'), contains('X11; Linux x86_64'));
+      expect(SpotifyAuthConstants.webUserAgentForPlatform('android'), contains('Android 14; Mobile'));
+
+      expect(SpotifyAuthConstants.podcastUserAgentForPlatform('windows'), isNot(contains('Chrome/')));
+      expect(SpotifyAuthConstants.podcastUserAgentForPlatform('macos'), contains('Macintosh'));
+      expect(SpotifyAuthConstants.podcastUserAgentForPlatform('linux'), contains('Linux'));
+      expect(SpotifyAuthConstants.podcastUserAgentForPlatform('android'), contains('Android'));
+
+      expect(SpotifyAuthConstants.jsSdkPlatformFor('windows'), (os: 'windows', osVersion: 'NT 10.0', deviceType: 'computer'));
+      expect(SpotifyAuthConstants.jsSdkPlatformFor('macos'), (os: 'osx', osVersion: '10.15.7', deviceType: 'computer'));
+      expect(SpotifyAuthConstants.jsSdkPlatformFor('linux'), (os: 'linux', osVersion: 'x86_64', deviceType: 'computer'));
+      expect(SpotifyAuthConstants.jsSdkPlatformFor('android'), (os: 'android', osVersion: '14', deviceType: 'smartphone'));
+
+      expect(SpotifyAuthConstants.webPlatformIdentifierFor('windows'), contains('windows'));
+      expect(SpotifyAuthConstants.webPlatformIdentifierFor('macos'), contains('osx'));
+      expect(SpotifyAuthConstants.webPlatformIdentifierFor('linux'), contains('linux'));
+      expect(SpotifyAuthConstants.webPlatformIdentifierFor('android'), contains('android'));
+    });
+
+    test('清洗 Android WebView UA 去掉 wv 与 Version 标记', () {
+      const raw =
+          'Mozilla/5.0 (Linux; Android 15; Pixel 9; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/134.0.6998.135 Mobile Safari/537.36';
+      final cleaned = SpotifyAuthConstants.cleanAndroidWebViewUserAgent(raw);
+      expect(cleaned, isNot(contains('; wv')));
+      expect(cleaned, isNot(contains('Version/4.0')));
+      expect(cleaned, contains('Chrome/134.0.6998.135 Mobile Safari/537.36'));
+      expect(SpotifyAuthConstants.cleanAndroidWebViewUserAgent(''), SpotifyAuthConstants.androidWebUserAgent);
+      expect(SpotifyAuthConstants.cleanAndroidWebViewUserAgent(null), SpotifyAuthConstants.androidWebUserAgent);
+    });
+  });
 }

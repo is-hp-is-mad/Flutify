@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 
 import '../../core/rust_core.dart';
 import '../../src/rust/api/backend.dart' as rust;
+import '../auth/auth_constants.dart';
 import '../rust_backend_bridge.dart';
 import 'fairplay.dart';
 
@@ -131,8 +132,7 @@ class WidevineLicenseClient {
     await Future<void>.delayed(remaining);
   }
 
-  static const String _ua =
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36';
+  static String get _ua => SpotifyAuthConstants.webUserAgent;
 
   List<String> get _hostsOrder => [
     ?lastGoodHost,

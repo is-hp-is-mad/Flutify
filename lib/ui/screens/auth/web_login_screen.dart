@@ -11,6 +11,7 @@ import '../../../l10n/l10n.dart';
 
 import '../../../core/platform/flutify_platform.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../services/auth/auth_constants.dart';
 import '../../../services/auth/login_region_check.dart';
 import '../../../services/auth/web_login_flow.dart';
 import '../../../services/auth/web_token_exception.dart';
@@ -135,16 +136,9 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
   /// 最近一次页面地址（同意页自动点击的判定依据）。
   String? _currentUrl;
 
-  /// Android 默认使用清洗后的系统 WebView 手机 UA（避免 Client Hints 与桌面 UA 冲突导致风控 400），
-  /// 其他平台默认使用桌面 UA；点击右上角可手动切换对比。
-  bool _useMobileUa = !kIsWeb && Platform.isAndroid;
-  String? _mobileUserAgent;
-  int _webViewRevision = 0;
-
-  static const String _desktopUserAgent =
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36';
-  static const String _fallbackMobileUserAgent =
-      'Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36';
+  /// 当前平台的 WebView UA：Android 使用清洗后的系统 WebView 手机 UA（避免 Client Hints 冲突），
+  /// 其他平台按 OS 使用对应的桌面 Chrome UA。
+  String _webViewUserAgent = SpotifyAuthConstants.webUserAgent;
 
   @override
   void initState() {
@@ -258,8 +252,8 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
       if (!mounted || _done || revision != _pageRevision) return;
       await EmePlayer.ensureEnvironment();
       if (!mounted || _done || revision != _pageRevision) return;
-      if (_useMobileUa) {
-        await _resolveMobileUserAgent();
+      if (!kIsWeb && Platform.isAndroid) {
+        await _resolveAndroidUserAgent();
         if (!mounted || _done || revision != _pageRevision) return;
       }
       // 加载登录页之前先确认出口地区；大陆出口时不创建 WebView，等用户选择
@@ -447,44 +441,14 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
     _tryAutoApprove();
   }
 
-  Future<String> _resolveMobileUserAgent() async {
-    if (_mobileUserAgent != null) return _mobileUserAgent!;
+  Future<void> _resolveAndroidUserAgent() async {
     String? raw;
-    if (!kIsWeb && Platform.isAndroid) {
-      try {
-        raw = (await InAppWebViewController.getDefaultUserAgent()).trim();
-      } catch (_) {
-        raw = null;
-      }
+    try {
+      raw = await InAppWebViewController.getDefaultUserAgent();
+    } catch (_) {
+      raw = null;
     }
-    final cleaned = (raw != null && raw.isNotEmpty)
-        ? raw
-            .replaceAll(RegExp(r';\s*wv\b|\bwv;\s*'), '')
-            .replaceAll(RegExp(r'\bVersion/\d+(?:\.\d+)*\s+'), '')
-            .replaceAll(RegExp(r'\s{2,}'), ' ')
-            .trim()
-        : _fallbackMobileUserAgent;
-    _mobileUserAgent = cleaned.isEmpty ? _fallbackMobileUserAgent : cleaned;
-    return _mobileUserAgent!;
-  }
-
-  Future<void> _toggleUserAgent() async {
-    if (_done) return;
-    final nextMobile = !_useMobileUa;
-    if (nextMobile) {
-      await _resolveMobileUserAgent();
-    }
-    if (!mounted || _done) return;
-    final activeUa = nextMobile
-        ? (_mobileUserAgent ?? _fallbackMobileUserAgent)
-        : _desktopUserAgent;
-    debugPrint('[WebLogin] 调试切换 UA: mobile=$nextMobile ua=$activeUa');
-    setState(() {
-      _useMobileUa = nextMobile;
-      _currentUrl = null;
-      _controller = null;
-      _webViewRevision++;
-    });
+    _webViewUserAgent = SpotifyAuthConstants.cleanAndroidWebViewUserAgent(raw);
   }
 
   // ---------------------------------------------------------------------------
@@ -510,17 +474,6 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
           tooltip: context.l10n.commonClose,
           onPressed: () => _finish(null),
         ),
-        actions: [
-          IconButton(
-            icon: Icon(
-              _useMobileUa
-                  ? Icons.desktop_windows_rounded
-                  : Icons.smartphone_rounded,
-            ),
-            tooltip: _useMobileUa ? '当前：手机 UA（点击切回桌面 UA）' : '当前：桌面 UA（点击切换手机 UA）',
-            onPressed: _toggleUserAgent,
-          ),
-        ],
       ),
       body: Column(
         children: [
@@ -542,7 +495,6 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
               children: [
                 if (_webViewReady && !_sessionRejected)
                   InAppWebView(
-                    key: ValueKey('web_login_$_webViewRevision'),
                     // 复用 EME 的自定义环境：同一用户数据目录只允许一个环境实例，
                     // 不传会触发插件再建环境（ERROR_INVALID_STATE）导致 WebView 创建失败
                     webViewEnvironment: EmePlayer.cachedEnvironment,
@@ -561,10 +513,7 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                       disableContextMenu: true,
                       supportZoom: false,
                       thirdPartyCookiesEnabled: true,
-                      // 默认伪装成桌面 Chrome；点击右上角调试按钮可切换手机 UA 重载对比
-                      userAgent: _useMobileUa
-                          ? (_mobileUserAgent ?? _fallbackMobileUserAgent)
-                          : _desktopUserAgent,
+                      userAgent: _webViewUserAgent,
                     ),
                     onWebViewCreated: (controller) => _controller = controller,
                     onReceivedError: (_, request, error) =>

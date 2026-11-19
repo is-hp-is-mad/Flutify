@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import '../../core/rust_core.dart';
 import '../../models/podcast.dart';
 import '../../src/rust/api/backend.dart' as rust;
+import '../auth/auth_constants.dart';
 import '../rust_backend_bridge.dart';
 
 /// 播客节目数据来源：解析 open.spotify.com 节目页的服务端渲染状态。
@@ -27,7 +28,7 @@ class PodcastService {
 
   /// 注意：UA 决定返回的页面变体 —— 完整的桌面 Chrome UA 拿到的是无 initialState 的桌面版
   /// SPA 壳；这个精简 UA 才会拿到内嵌实体数据的 mobile-web-player 页面（tool/show_page_probe.py 实测）。
-  static const String _userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)';
+  static String get _userAgent => SpotifyAuthConstants.podcastUserAgent;
 
   PodcastService([http.Client? client, bool? useRustBackend])
     : _client = client,

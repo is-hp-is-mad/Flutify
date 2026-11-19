@@ -13,7 +13,6 @@ use crate::http_client::RoutedSend;
 use crate::spotify_backend::BackendImage;
 use crate::spotify_session;
 
-const PODCAST_USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)";
 const CANVAS_LIMIT_BYTES: usize = 12 * 1024 * 1024;
 
 #[derive(Clone, Debug)]
@@ -292,7 +291,7 @@ async fn fetch_podcast_html(url: &str) -> Result<String, String> {
         Duration::from_secs(15),
         client
             .get(url)
-            .header("User-Agent", PODCAST_USER_AGENT)
+            .header("User-Agent", spotify_session::podcast_user_agent())
             .header("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8")
             .send_routed(),
     )

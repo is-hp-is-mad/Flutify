@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 
 import '../../core/rust_core.dart';
 import '../../src/rust/api/backend.dart' as rust;
+import '../auth/auth_constants.dart';
 import '../network/retry_after_cooldown.dart';
 import '../rust_backend_bridge.dart';
 
@@ -104,9 +105,8 @@ class NeteaseClient {
   /// 被风控后暂停请求的时长（只记在内存里，重启即恢复）。
   static const Duration cooldown = Duration(minutes: 10);
 
-  static const Map<String, String> _headers = {
-    'User-Agent':
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Flutify (lyrics translation)',
+  static Map<String, String> get _headers => {
+    'User-Agent': SpotifyAuthConstants.webUserAgent,
     'Referer': 'https://music.163.com',
   };
 

@@ -10,6 +10,7 @@ import '../../src/rust/api/protocol.dart' as rust;
 import '../network/http2_client.dart';
 import '../rust_backend_bridge.dart';
 import '../storage/auth_session_store.dart';
+import 'auth_constants.dart';
 import 'web_token_exception.dart';
 import 'session_http_client.dart';
 import 'session_token_source.dart';
@@ -152,8 +153,7 @@ class WebTokenService {
             uri,
             headers: {
               'Cookie': 'sp_dc=$spDc',
-              'User-Agent':
-                  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36',
+              'User-Agent': SpotifyAuthConstants.webUserAgent,
               'Accept': 'application/json',
             },
           )
@@ -173,7 +173,10 @@ class WebTokenService {
     String totpServer = 'unavailable';
     try {
       final st = await httpClient
-          .get(Uri.parse(_serverTimeEndpoint))
+          .get(
+            Uri.parse(_serverTimeEndpoint),
+            headers: {'User-Agent': SpotifyAuthConstants.webUserAgent},
+          )
           .timeout(const Duration(seconds: 4));
       final serverTime = jsonDecode(st.body)['serverTime'];
       if (serverTime is num) {

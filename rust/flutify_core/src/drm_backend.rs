@@ -10,8 +10,6 @@ use crate::spotify_session;
 
 const WIDEVINE_KEY_FORMAT_UUID: &str = "urn:uuid:edef8ba9-79d6-4ace-a3c8-27dcd51d21ed";
 const FAIRPLAY_KEY_FORMAT: &str = "com.apple.streamingkeydelivery";
-const WEB_USER_AGENT: &str =
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BackendPlaybackFile {
@@ -319,7 +317,7 @@ pub async fn relay_drm_request(
         let mut req = client
             .request(m.clone(), &url)
             .header("client-token", client_token)
-            .header("User-Agent", WEB_USER_AGENT)
+            .header("User-Agent", spotify_session::web_user_agent())
             .header("Referer", "https://open.spotify.com/");
         if let Some(ref token) = bearer_token {
             if !token.is_empty() {

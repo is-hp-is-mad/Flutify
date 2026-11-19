@@ -7,7 +7,6 @@ import 'package:path/path.dart' as p;
 import '../../models/audio_playback_info.dart';
 
 import '../audio/audio_engine.dart';
-import '../auth/auth_constants.dart';
 import '../auth/client_profile.dart';
 import '../cache/cache_location.dart';
 import '../eme/fairplay.dart';
@@ -406,8 +405,8 @@ class EmeTrackAudioSource implements TrackAudioSource, AudioCacheStore {
           client: _client,
           urls: urls,
           dest: dest,
-          headers: const {
-            'User-Agent': SpotifyAuthConstants.desktopUserAgent,
+          headers: {
+            'User-Agent': SpotifyClientProfile.web.userAgent,
           },
           // 首段小一点：起播只需 init 段 + 首个媒体段
           segmentBytes: _kMinBytesToPlay,

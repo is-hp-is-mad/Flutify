@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../../core/constants/spotify_endpoints.dart';
-import '../protocol/access_point.dart';
 import '../rust_backend_bridge.dart';
 import '../storage/auth_session_store.dart';
 import 'account_profile_service.dart';
@@ -40,8 +39,8 @@ class SpotifyAuthService {
   /// 令牌续期来源（生产为 Rust 会话核心）；为 null 时只用 Dart HTTP。
   final SessionTokenSource? _tokens;
 
-  /// 按 access_token 查询 canonical username（默认登录 AP 读 APWelcome；测试注入替身）。
-  final Future<String> Function(String accessToken, String deviceId)
+  /// 可选的自定义用户名解析器（仅测试注入替身；生产默认不再连接 Desktop AP）。
+  final Future<String> Function(String accessToken, String deviceId)?
   _usernameResolver;
 
   /// 正在进行中的续期请求：并发调用复用同一个 Future，避免重复打令牌端点。
@@ -80,9 +79,7 @@ class SpotifyAuthService {
     return SpotifyAuthService._(
       storage,
       effectiveClient,
-      usernameResolver ??
-          (token, deviceId) =>
-              _usernameFromAccessPoint(effectiveClient, token, deviceId),
+      usernameResolver,
       // 与其他服务一致：注入自定义 http.Client（测试）时不走 Rust
       tokens ?? (client == null ? const RustSessionTokenSource() : null),
     );
@@ -280,7 +277,7 @@ class SpotifyAuthService {
   // ---------------------------------------------------------------------------
 
   /// 先走 Web 播放器 Pathfinder `profileAttributes`（一次取回用户名、昵称与头像），
-  /// 失败再回退 AP + 内部资料接口 / 公开 `/v1/me`。
+  /// 失败再回退内部资料接口 / 公开 `/v1/me`（不再发起 Desktop AP 连接）。
   Future<void> _loadProfile() async {
     final epoch = _storage.sessionEpoch;
     _storage.checkSession(epoch);
@@ -306,27 +303,32 @@ class SpotifyAuthService {
         () => _storage.setDisplayName(''),
         () => _storage.setAvatarUrl(''),
       ]);
-      try {
-        final username = await _usernameResolver(
-          _storage.accessToken,
-          _storage.deviceId,
-        );
-        if (username.isNotEmpty) {
-          await _storage.writeSession(epoch, [
-            () => _storage.setUsername(username),
-          ]);
+      final resolver = _usernameResolver;
+      if (resolver != null) {
+        try {
+          final username = await resolver(
+            _storage.accessToken,
+            _storage.deviceId,
+          );
+          if (username.isNotEmpty) {
+            await _storage.writeSession(epoch, [
+              () => _storage.setUsername(username),
+            ]);
+          }
+        } catch (_) {
+          // 交给 /v1/me 回退（其响应的 id 即用户名）
         }
-      } catch (_) {
-        // AP 不可达时交给 /v1/me 回退（其响应的 id 即用户名）
       }
     }
     _storage.checkSession(epoch);
     final profile =
-        await _profiles.fetchProfileView(
-          username: _storage.username,
-          accessToken: _storage.accessToken,
-          clientToken: _storage.clientToken,
-        ) ??
+        (_storage.username.isNotEmpty
+            ? await _profiles.fetchProfileView(
+                username: _storage.username,
+                accessToken: _storage.accessToken,
+                clientToken: _storage.clientToken,
+              )
+            : null) ??
         await _profiles.fetchMe(_storage.accessToken);
     _storage.checkSession(epoch);
     if (profile == null) return;
@@ -337,25 +339,6 @@ class SpotifyAuthService {
       () => _storage.setDisplayName(profile.displayName),
       () => _storage.setAvatarUrl(profile.avatarUrl),
     ]);
-  }
-
-  /// 令牌响应不含用户名：用 access_token 登录 AP，从 APWelcome 取 canonical username。
-  /// 媒体库（rootlist / 收藏集合）与资料接口都按用户名寻址，缺它整个媒体库为空。
-  static Future<String> _usernameFromAccessPoint(
-    http.Client client,
-    String accessToken,
-    String deviceId,
-  ) async {
-    final ap = await SpotifyAccessPoint.connect();
-    try {
-      final welcome = await ap.authenticate(
-        ApCredentials.accessToken(accessToken),
-        deviceId: deviceId.isEmpty ? null : deviceId,
-      );
-      return welcome.canonicalUsername;
-    } finally {
-      ap.close();
-    }
   }
 
   /// 恢复的会话缺资料时需要补拉：昵称或用户名缺失（如登录时资料接口失败）。

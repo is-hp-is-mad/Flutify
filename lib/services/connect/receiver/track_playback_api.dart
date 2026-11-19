@@ -5,6 +5,8 @@ import 'package:http/http.dart' as http;
 import '../../../../core/rust_core.dart';
 import '../../../../models/audio_playback_info.dart';
 import '../../../../src/rust/api/backend.dart' as rust;
+import '../../auth/auth_constants.dart';
+import '../../auth/client_profile.dart';
 import '../../rust_backend_bridge.dart';
 
 /// track-playback 设备接口（`{spclient}/track-playback/v1/devices…`）。
@@ -19,8 +21,7 @@ import '../../rust_backend_bridge.dart';
 class TrackPlaybackApi {
   static const String webClientId = 'd8a5ed958d274c2e8ee717e6a4b0971d';
   static const String webClientVersion = '1.3.5.31.ga27a71fef885';
-  static const String userAgent =
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36';
+  static String get userAgent => SpotifyAuthConstants.webUserAgent;
 
   final http.Client _client;
   final Future<String> Function() _webToken;
@@ -99,14 +100,7 @@ class TrackPlaybackApi {
             'client_data': {
               'client_version': webClientVersion,
               'client_id': webClientId,
-              'js_sdk_data': {
-                'device_brand': 'unknown',
-                'device_model': 'unknown',
-                'os': 'windows',
-                'os_version': 'NT 10.0',
-                'device_id': deviceId,
-                'device_type': 'computer',
-              },
+              'js_sdk_data': SpotifyClientProfile.web.jsSdkData(deviceId),
             },
           }),
         )
@@ -201,12 +195,11 @@ class TrackPlaybackApi {
           ],
         },
         'device_id': deviceId,
-        'device_type': 'computer',
+        'device_type': SpotifyAuthConstants.jsSdkPlatform.deviceType,
         'metadata': {},
         'model': 'web_player',
         'name': name,
-        'platform_identifier':
-            'web_player windows 10;chrome 154.0.0.0;desktop',
+        'platform_identifier': SpotifyAuthConstants.webPlatformIdentifier,
         'is_group': false,
       },
       'outro_endcontent_snooping': false,

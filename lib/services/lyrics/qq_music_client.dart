@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 
 import '../../core/rust_core.dart';
 import '../../src/rust/api/backend.dart' as rust;
+import '../auth/auth_constants.dart';
 import '../network/retry_after_cooldown.dart';
 import '../rust_backend_bridge.dart';
 
@@ -212,7 +213,7 @@ class QqMusicClient {
     try {
       return await (() async {
         final reqHeaders = <String, String>{
-          'User-Agent': 'Mozilla/5.0 Flutify (lyrics translation)',
+          'User-Agent': SpotifyAuthConstants.webUserAgent,
           'Referer': 'https://y.qq.com/',
           'Accept': 'application/json',
           if (body != null) 'Content-Type': 'application/json',

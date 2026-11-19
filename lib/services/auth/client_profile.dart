@@ -44,14 +44,17 @@ enum SpotifyClientProfile {
   };
 
   /// Web 播放器 client-token 请求里的 js_sdk_data（对齐 web-player 前端：未定义的字段不发送）。
-  Map<String, String> jsSdkData(String deviceId) => {
-    'device_brand': 'unknown',
-    'device_model': 'unknown',
-    'os': 'windows',
-    'os_version': 'NT 10.0',
-    'device_id': deviceId,
-    'device_type': 'computer',
-  };
+  Map<String, String> jsSdkData(String deviceId) {
+    final platform = SpotifyAuthConstants.jsSdkPlatform;
+    return {
+      'device_brand': 'unknown',
+      'device_model': 'unknown',
+      'os': platform.os,
+      'os_version': platform.osVersion,
+      'device_id': deviceId,
+      'device_type': platform.deviceType,
+    };
+  }
 
   /// AP keyexchange.proto BuildInfo，与桌面 HTTP 配置共用版本。
   ProtoWriter apBuildInfo() => ProtoWriter()

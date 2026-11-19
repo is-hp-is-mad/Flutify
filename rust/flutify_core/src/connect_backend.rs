@@ -44,10 +44,7 @@ pub async fn track_playback_request(
         .request(m, &url)
         .header("Authorization", format!("Bearer {bearer_token}"))
         .header("client-token", client_token)
-        .header(
-            "User-Agent",
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
-        )
+        .header("User-Agent", spotify_session::web_user_agent())
         .header("Origin", "https://open.spotify.com")
         .header("Referer", "https://open.spotify.com/")
         .header("app-platform", "WebPlayer")

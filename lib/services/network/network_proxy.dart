@@ -4,12 +4,13 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart' show debugPrint;
 
-import 'proxy_endpoint.dart';
 import '../../models/proxy_mode.dart';
+import '../../models/spotify_gateway.dart';
+import '../auth/auth_constants.dart';
+import 'gateway_http_client.dart';
+import 'proxy_endpoint.dart';
 import 'proxy_tunnel.dart';
 import 'system_proxy.dart';
-import '../../models/spotify_gateway.dart';
-import 'gateway_http_client.dart';
 
 /// 全局网络代理策略（设置 →「网络」）：所有 HTTP / WebSocket 请求与接入点的 TCP 连接都按它选路。
 ///
@@ -198,7 +199,9 @@ class NetworkProxy {
 
   Future<String> _readCountry() async {
     // Bypass the Spotify gateway while honoring the selected forward proxy.
-    final client = HttpClient()..findProxy = findProxy;
+    final client = HttpClient()
+      ..findProxy = findProxy
+      ..userAgent = SpotifyAuthConstants.webUserAgent;
     client.connectionTimeout = const Duration(seconds: 8);
     try {
       return await (() async {
@@ -238,6 +241,7 @@ class NetworkProxy {
     if (_mode == ProxyMode.system) await refreshSystem();
     final client = HttpClient()
       ..findProxy = findProxy
+      ..userAgent = SpotifyAuthConstants.webUserAgent
       ..idleTimeout = Duration.zero
       ..connectionTimeout = const Duration(seconds: 3);
     const urls = [
@@ -471,6 +475,8 @@ class ProxyHttpOverrides extends HttpOverrides {
   @override
   HttpClient createHttpClient(SecurityContext? context) {
     final client = super.createHttpClient(context);
+    // 统一默认 UA 为当前平台的浏览器 UA，避免 dart:io 泄漏 "Dart/3.x (dart:io)"。
+    client.userAgent = SpotifyAuthConstants.webUserAgent;
     // 只记录、不改变结论：证书依旧被拒绝，日志能指出是哪个 CA 在拦截。
     // 自建 TLS 的连接（直连 / 自建隧道）由下面各自传入同一回调，不经这里。
     client.badCertificateCallback = _logRejectedCertificate;

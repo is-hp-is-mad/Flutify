@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 import '../../../l10n/l10n.dart';
+import '../../../services/auth/auth_constants.dart';
 import '../../../services/auth/login_region_check.dart';
 import '../../../services/auth/webview_error_logger.dart';
 import '../../widgets/app_button.dart';
@@ -140,6 +141,7 @@ class _BackupAccountLoginScreenState extends State<BackupAccountLoginScreen> {
   bool _busy = false;
   bool _done = false;
   int _openSpotifyTicks = 0;
+  String _webViewUserAgent = SpotifyAuthConstants.webUserAgent;
 
   @override
   void initState() {
@@ -184,6 +186,17 @@ class _BackupAccountLoginScreenState extends State<BackupAccountLoginScreen> {
         return;
       }
       setState(() => _regionChecking = false);
+    }
+
+    if (Platform.isAndroid) {
+      String? raw;
+      try {
+        raw = await InAppWebViewController.getDefaultUserAgent();
+      } catch (_) {
+        raw = null;
+      }
+      _webViewUserAgent = SpotifyAuthConstants.cleanAndroidWebViewUserAgent(raw);
+      if (!mounted || _done) return;
     }
 
     if (!mounted || _done) return;
@@ -410,6 +423,7 @@ return '';
                 incognito: !Platform.isWindows,
                 javaScriptEnabled: true,
                 thirdPartyCookiesEnabled: true,
+                userAgent: _webViewUserAgent,
               ),
               onWebViewCreated: (controller) => _controller = controller,
               onReceivedError: (_, request, error) =>
