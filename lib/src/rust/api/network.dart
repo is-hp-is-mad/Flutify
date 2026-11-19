@@ -10,23 +10,6 @@ import 'protocol.dart';
 // These functions are ignored because they are not marked as `pub`: `download_emit`, `pairs`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `from`, `from`
 
-/// AP 链路：从 [offset] 起下载并（[key] 非空时）AES-128-CTR 解密，逐块推送解密后的数据。
-Stream<AudioDownloadEvent> audioDownloadDecrypt({
-  required String proxy,
-  required String url,
-  required List<HttpHeaderEntry> headers,
-  required PlatformInt64 offset,
-  required List<int> key,
-  required List<int> iv,
-}) => RustLib.instance.api.crateApiNetworkAudioDownloadDecrypt(
-  proxy: proxy,
-  url: url,
-  headers: headers,
-  offset: offset,
-  key: key,
-  iv: iv,
-);
-
 /// EME 链路：多连接分段下载写入 [path]，推送「从 0 起连续可用字节」进度。
 Stream<AudioDownloadEvent> audioDownloadToFile({
   required String proxy,

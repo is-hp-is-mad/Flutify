@@ -3,6 +3,7 @@
 
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
+import 'api/audio_stream.dart';
 import 'api/backend.dart';
 import 'api/lyrics.dart';
 import 'api/network.dart';
@@ -69,7 +70,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.13.0';
 
   @override
-  int get rustContentHash => 66775167;
+  int get rustContentHash => 1765283065;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -111,15 +112,6 @@ abstract class RustLibApi extends BaseApi {
     required List<int> message,
   });
 
-  Stream<AudioDownloadEvent> crateApiNetworkAudioDownloadDecrypt({
-    required String proxy,
-    required String url,
-    required List<HttpHeaderEntry> headers,
-    required PlatformInt64 offset,
-    required List<int> key,
-    required List<int> iv,
-  });
-
   Stream<AudioDownloadEvent> crateApiNetworkAudioDownloadToFile({
     required String proxy,
     required List<String> urls,
@@ -128,6 +120,13 @@ abstract class RustLibApi extends BaseApi {
     required PlatformInt64 segmentBytes,
     required int connections,
     required int maxAttemptsPerSegment,
+  });
+
+  Stream<AudioDownloadEvent> crateApiAudioStreamAudioProgressiveDownload({
+    required List<AudioDownloadTarget> targets,
+    required List<int> key,
+    required List<int> iv,
+    required int maxAttempts,
   });
 
   String crateApiLyricsCleanLyricsSearchTitle({required String title});
@@ -730,54 +729,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  Stream<AudioDownloadEvent> crateApiNetworkAudioDownloadDecrypt({
-    required String proxy,
-    required String url,
-    required List<HttpHeaderEntry> headers,
-    required PlatformInt64 offset,
-    required List<int> key,
-    required List<int> iv,
-  }) {
-    final sink = RustStreamSink<AudioDownloadEvent>();
-    unawaited(
-      handler.executeNormal(
-        NormalTask(
-          callFfi: (port_) {
-            final serializer = SseSerializer(generalizedFrbRustBinding);
-            sse_encode_StreamSink_audio_download_event_Sse(sink, serializer);
-            sse_encode_String(proxy, serializer);
-            sse_encode_String(url, serializer);
-            sse_encode_list_http_header_entry(headers, serializer);
-            sse_encode_i_64(offset, serializer);
-            sse_encode_list_prim_u_8_loose(key, serializer);
-            sse_encode_list_prim_u_8_loose(iv, serializer);
-            pdeCallFfi(
-              generalizedFrbRustBinding,
-              serializer,
-              funcId: 7,
-              port: port_,
-            );
-          },
-          codec: SseCodec(
-            decodeSuccessData: sse_decode_unit,
-            decodeErrorData: null,
-          ),
-          constMeta: kCrateApiNetworkAudioDownloadDecryptConstMeta,
-          argValues: [sink, proxy, url, headers, offset, key, iv],
-          apiImpl: this,
-        ),
-      ),
-    );
-    return sink.stream;
-  }
-
-  TaskConstMeta get kCrateApiNetworkAudioDownloadDecryptConstMeta =>
-      const TaskConstMeta(
-        debugName: "audio_download_decrypt",
-        argNames: ["sink", "proxy", "url", "headers", "offset", "key", "iv"],
-      );
-
-  @override
   Stream<AudioDownloadEvent> crateApiNetworkAudioDownloadToFile({
     required String proxy,
     required List<String> urls,
@@ -804,7 +755,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 8,
+              funcId: 7,
               port: port_,
             );
           },
@@ -843,6 +794,50 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           "connections",
           "maxAttemptsPerSegment",
         ],
+      );
+
+  @override
+  Stream<AudioDownloadEvent> crateApiAudioStreamAudioProgressiveDownload({
+    required List<AudioDownloadTarget> targets,
+    required List<int> key,
+    required List<int> iv,
+    required int maxAttempts,
+  }) {
+    final sink = RustStreamSink<AudioDownloadEvent>();
+    unawaited(
+      handler.executeNormal(
+        NormalTask(
+          callFfi: (port_) {
+            final serializer = SseSerializer(generalizedFrbRustBinding);
+            sse_encode_StreamSink_audio_download_event_Sse(sink, serializer);
+            sse_encode_list_audio_download_target(targets, serializer);
+            sse_encode_list_prim_u_8_loose(key, serializer);
+            sse_encode_list_prim_u_8_loose(iv, serializer);
+            sse_encode_u_32(maxAttempts, serializer);
+            pdeCallFfi(
+              generalizedFrbRustBinding,
+              serializer,
+              funcId: 8,
+              port: port_,
+            );
+          },
+          codec: SseCodec(
+            decodeSuccessData: sse_decode_unit,
+            decodeErrorData: null,
+          ),
+          constMeta: kCrateApiAudioStreamAudioProgressiveDownloadConstMeta,
+          argValues: [sink, targets, key, iv, maxAttempts],
+          apiImpl: this,
+        ),
+      ),
+    );
+    return sink.stream;
+  }
+
+  TaskConstMeta get kCrateApiAudioStreamAudioProgressiveDownloadConstMeta =>
+      const TaskConstMeta(
+        debugName: "audio_progressive_download",
+        argNames: ["sink", "targets", "key", "iv", "maxAttempts"],
       );
 
   @override
@@ -3676,6 +3671,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  AudioDownloadTarget dco_decode_audio_download_target(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return AudioDownloadTarget(
+      proxy: dco_decode_String(arr[0]),
+      url: dco_decode_String(arr[1]),
+      headers: dco_decode_list_http_header_entry(arr[2]),
+    );
+  }
+
+  @protected
   BilingualLine dco_decode_bilingual_line(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -3849,6 +3857,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   List<String> dco_decode_list_String(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_String).toList();
+  }
+
+  @protected
+  List<AudioDownloadTarget> dco_decode_list_audio_download_target(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_audio_download_target)
+        .toList();
   }
 
   @protected
@@ -4960,6 +4976,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  AudioDownloadTarget sse_decode_audio_download_target(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_proxy = sse_decode_String(deserializer);
+    var var_url = sse_decode_String(deserializer);
+    var var_headers = sse_decode_list_http_header_entry(deserializer);
+    return AudioDownloadTarget(
+      proxy: var_proxy,
+      url: var_url,
+      headers: var_headers,
+    );
+  }
+
+  @protected
   BilingualLine sse_decode_bilingual_line(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_startTimeMs = sse_decode_i_64(deserializer);
@@ -5150,6 +5181,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var ans_ = <String>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_String(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<AudioDownloadTarget> sse_decode_list_audio_download_target(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <AudioDownloadTarget>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_audio_download_target(deserializer));
     }
     return ans_;
   }
@@ -6600,6 +6645,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_audio_download_target(
+    AudioDownloadTarget self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.proxy, serializer);
+    sse_encode_String(self.url, serializer);
+    sse_encode_list_http_header_entry(self.headers, serializer);
+  }
+
+  @protected
   void sse_encode_bilingual_line(BilingualLine self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_64(self.startTimeMs, serializer);
@@ -6797,6 +6853,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_i_32(self.length, serializer);
     for (final item in self) {
       sse_encode_String(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_audio_download_target(
+    List<AudioDownloadTarget> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_audio_download_target(item, serializer);
     }
   }
 

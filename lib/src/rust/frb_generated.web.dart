@@ -6,6 +6,7 @@
 // Static analysis wrongly picks the IO variant, thus ignore this
 // ignore_for_file: argument_type_not_assignable
 
+import 'api/audio_stream.dart';
 import 'api/backend.dart';
 import 'api/lyrics.dart';
 import 'api/network.dart';
@@ -48,6 +49,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   AudioDownloadEvent dco_decode_audio_download_event(dynamic raw);
+
+  @protected
+  AudioDownloadTarget dco_decode_audio_download_target(dynamic raw);
 
   @protected
   BilingualLine dco_decode_bilingual_line(dynamic raw);
@@ -131,6 +135,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<String> dco_decode_list_String(dynamic raw);
+
+  @protected
+  List<AudioDownloadTarget> dco_decode_list_audio_download_target(dynamic raw);
 
   @protected
   List<BilingualLine> dco_decode_list_bilingual_line(dynamic raw);
@@ -485,6 +492,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  AudioDownloadTarget sse_decode_audio_download_target(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BilingualLine sse_decode_bilingual_line(SseDeserializer deserializer);
 
   @protected
@@ -582,6 +594,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<String> sse_decode_list_String(SseDeserializer deserializer);
+
+  @protected
+  List<AudioDownloadTarget> sse_decode_list_audio_download_target(
+    SseDeserializer deserializer,
+  );
 
   @protected
   List<BilingualLine> sse_decode_list_bilingual_line(
@@ -1039,6 +1056,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_audio_download_target(
+    AudioDownloadTarget self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bilingual_line(BilingualLine self, SseSerializer serializer);
 
   @protected
@@ -1157,6 +1180,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_list_String(List<String> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_audio_download_target(
+    List<AudioDownloadTarget> self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_list_bilingual_line(
