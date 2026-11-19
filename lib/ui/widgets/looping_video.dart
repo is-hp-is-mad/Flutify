@@ -178,7 +178,12 @@ class _LoopingVideoState extends State<LoopingVideo> {
                 callback: (_) => _fail(revision),
               );
             },
-            onReceivedError: (_, _, _) => _fail(revision),
+            // 只认主页面失败：Chromium 播 mp4 时会先发 `Range: bytes=0-`，再跳到文件尾部读尾部 box
+            // 并主动取消首个请求，Android WebView 把这次取消也报成 net::ERR_FAILED；
+            // 视频真正加载失败由 <video> 的 error 事件（videoError）与 10 秒超时兜底。
+            onReceivedError: (_, request, _) {
+              if (request.isForMainFrame ?? true) _fail(revision);
+            },
           ),
         ),
         // 封面盖在视频上，首帧出来后淡出（透明度动画只作用于普通图片层）。
