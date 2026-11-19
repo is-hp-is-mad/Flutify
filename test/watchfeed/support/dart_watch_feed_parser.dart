@@ -12,6 +12,39 @@ import 'proto_tree.dart';
 
 /// Watch Feed 各接口响应 → 内存模型。字段号来自 Spotify Android 9.2.0.26 反编译与线上实测，
 /// 见 docs/DISCOVERY_FEED_ANALYSIS.md。全部宽松解析：不认识的组件跳过，缺字段给空值，不抛错。
+/// 测试用 [WatchFeedDecoder]：把夹具（Protobuf / Pathfinder JSON）转成模型，供 widget / 服务测试使用。
+///
+/// 生产环境由 Rust 解析（[RustWatchFeedDecoder]），解析本身的正确性由
+/// `rust/flutify_core/src/watchfeed_backend_tests.rs` 用同样的夹具覆盖；这里是从原 Dart 实现搬来的副本。
+class DartWatchFeedDecoder implements WatchFeedDecoder {
+  const DartWatchFeedDecoder();
+
+  @override
+  Future<WatchFeedPage> feed(Uint8List bytes) async =>
+      WatchFeedParser.parseFeed(bytes);
+
+  @override
+  Future<WatchFeedShelf?> browseShelf(Uint8List bytes) async =>
+      WatchFeedParser.parseBrowseShelf(bytes);
+
+  @override
+  Future<WatchFeedShelf?> seedShelf(Uint8List bytes) async =>
+      WatchFeedParser.parseSeedShelf(bytes);
+
+  @override
+  Future<WatchFeedEntityPage> entityFeed(Map<String, dynamic> data) async =>
+      WatchFeedParser.parseEntityFeed(data);
+
+  @override
+  Future<WatchFeedPage> discoveryFeedView(
+    Map<String, dynamic> data, {
+    List<String> previousItems = const [],
+  }) async => WatchFeedParser.parseDiscoveryFeedView(
+    data,
+    previousItems: previousItems,
+  );
+}
+
 abstract final class WatchFeedParser {
   // ---------------------------------------------------------------------------
   // 入口：搜索页 Browse
