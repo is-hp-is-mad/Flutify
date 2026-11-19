@@ -81,15 +81,21 @@ fn is_fresh(expiry_ms: i64) -> bool {
 }
 
 /// 更新或初始化 Rust 会话状态（Dart 登录 / 启动恢复 / 刷新后同步）。
-pub fn configure_session(next: SessionState) {
+///
+/// 代理的唯一来源是 `net_config`（Dart 经 `rust_net_configure` 推送）：[next] 的 `proxy` 为空时
+/// 保留当前代理，不会把已推送的配置冲掉。
+pub fn configure_session(mut next: SessionState) {
     let mut guard = runtime_state()
         .state
         .write()
         .unwrap_or_else(|e| e.into_inner());
+    if next.proxy.is_empty() {
+        next.proxy = guard.proxy.clone();
+    }
     *guard = next;
 }
 
-/// 仅更新代理地址。
+/// 仅更新代理地址（由 `net_config::set` 调用）。
 pub fn set_proxy(proxy: String) {
     let mut guard = runtime_state()
         .state

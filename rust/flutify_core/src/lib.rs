@@ -23,6 +23,7 @@ pub mod lrc;
 pub mod lyric_script;
 pub mod lyrics_backend;
 pub mod lyrics_title;
+pub mod net_config;
 pub mod proto_lite;
 pub mod shannon;
 pub mod spotify_backend;
