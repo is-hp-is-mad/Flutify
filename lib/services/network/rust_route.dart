@@ -103,3 +103,35 @@ Future<void> pushRustNetConfig({NetworkProxy? proxy}) async {
   if (!RustCore.ready) return;
   rust.rustNetConfigure(config: await rustNetConfigFor(proxy: proxy));
 }
+
+String? _pushedFingerprint;
+DateTime _pushedAt = DateTime.fromMillisecondsSinceEpoch(0);
+
+/// 网络设置变了（含关闭网关）、或距上次推送超过 1 分钟（系统代理 / PAC 可能变了）时重新推送给 Rust。
+///
+/// Rust 的统一出口（`http_client::send`）按推送的网关配置改写请求；网关关掉后若不推送，
+/// Rust 会继续把请求发往网关，所以每次交给 Rust 发请求前都经过这里。
+Future<void> pushRustNetConfigIfChanged({NetworkProxy? proxy}) async {
+  if (!RustCore.ready) return;
+  final p = proxy ?? NetworkProxy.instance;
+  final g = p.gateway;
+  final fingerprint = [
+    p.mode.name,
+    p.manual?.host,
+    p.manual?.port,
+    p.manualUsername,
+    p.manualPassword.hashCode,
+    g.enabled,
+    g.baseUrl,
+    g.username,
+    g.password.hashCode,
+  ].join('|');
+  final now = DateTime.now();
+  if (fingerprint == _pushedFingerprint &&
+      now.difference(_pushedAt) < const Duration(minutes: 1)) {
+    return;
+  }
+  await pushRustNetConfig(proxy: p);
+  _pushedFingerprint = fingerprint;
+  _pushedAt = now;
+}

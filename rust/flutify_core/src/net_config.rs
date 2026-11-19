@@ -77,6 +77,91 @@ pub fn gateway_supports_ap(host: &str, port: u16) -> bool {
         || prefix.strip_suffix(".ap").is_some_and(|s| !s.is_empty())
 }
 
+/// 与 Dart `SpotifyGateway.supports` 一致：哪些 HTTP(S) 地址经网关转发。
+///
+/// 只认默认端口、无用户信息；`accounts.spotify.com` 只转 `/api/token`，`open.spotify.com` 只转
+/// `/api/token` 与 `/api/server-time`（浏览器登录流程不经网关）；另含 Widevine provisioning、
+/// Spotify API / CDN 主机与 `*spotify*.*akamaized.net`。
+pub fn gateway_supports(url: &reqwest::Url) -> bool {
+    let scheme = url.scheme();
+    if !matches!(scheme, "http" | "https") || !url.username().is_empty() || url.password().is_some() {
+        return false;
+    }
+    if let Some(port) = url.port() {
+        if port != if scheme == "http" { 80 } else { 443 } {
+            return false;
+        }
+    }
+    let Some(host) = url.host_str() else {
+        return false;
+    };
+    let host = host.to_ascii_lowercase();
+    let path = url.path();
+    match host.as_str() {
+        "accounts.spotify.com" => return path == "/api/token",
+        "open.spotify.com" => return path == "/api/token" || path == "/api/server-time",
+        _ => {}
+    }
+    if is_widevine_provisioning(url, &host) {
+        return true;
+    }
+    if [
+        "api.spotify.com",
+        "apresolve.spotify.com",
+        "api-partner.spotify.com",
+        "clienttoken.spotify.com",
+        "spclient.wg.spotify.com",
+        "betamax.akamaized.net",
+    ]
+    .contains(&host.as_str())
+    {
+        return true;
+    }
+    if ["spclient.spotify.com", "scdn.co", "spotifycdn.com"]
+        .iter()
+        .any(|d| host == *d || host.ends_with(&format!(".{d}")))
+    {
+        return true;
+    }
+    spotify_service_host(&host) || spotify_akamai_host(&host)
+}
+
+fn is_widevine_provisioning(url: &reqwest::Url, host: &str) -> bool {
+    url.scheme() == "https"
+        && url.port().is_none()
+        && ((host == "www.googleapis.com" && url.path() == "/certificateprovisioning/v1/devicecertificates/create")
+            || (host == "provisioning.googleapis.com" && url.path() == "/v1/devicecertificates/create"))
+}
+
+fn label_chars(s: &str) -> bool {
+    s.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+}
+
+/// `^[a-z0-9-]*(spclient|dealer|audio|video)[a-z0-9-]*(\.[a-z0-9-]+)*\.spotify\.com$`
+fn spotify_service_host(host: &str) -> bool {
+    let Some(prefix) = host.strip_suffix(".spotify.com") else {
+        return false;
+    };
+    let mut labels = prefix.split('.');
+    let Some(first) = labels.next() else {
+        return false;
+    };
+    label_chars(first)
+        && ["spclient", "dealer", "audio", "video"].iter().any(|k| first.contains(k))
+        && labels.all(|l| !l.is_empty() && label_chars(l))
+}
+
+/// `^[a-z0-9-]*spotify[a-z0-9-]*\.[a-z0-9.-]*akamaized\.net$`
+fn spotify_akamai_host(host: &str) -> bool {
+    let Some((first, rest)) = host.split_once('.') else {
+        return false;
+    };
+    label_chars(first)
+        && first.contains("spotify")
+        && rest.ends_with("akamaized.net")
+        && rest.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-' || b == b'.')
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct NetConfig {
     pub proxy: String,
@@ -123,6 +208,31 @@ mod tests {
             "https://gateway.example/assets-test/apresolve.spotify.com/?type=accesspoint"
         );
         assert_eq!(g.headers()[0], ("X-Proxy-User".to_string(), "test-user".to_string()));
+    }
+
+    #[test]
+    fn gateway_supports_matches_dart_rules() {
+        let ok = |u: &str| gateway_supports(&reqwest::Url::parse(u).unwrap());
+        assert!(ok("https://accounts.spotify.com/api/token"));
+        assert!(!ok("https://accounts.spotify.com/login"));
+        assert!(ok("https://open.spotify.com/api/server-time"));
+        assert!(!ok("https://open.spotify.com/show/x"));
+        assert!(ok("https://api-partner.spotify.com/pathfinder/v2/query"));
+        assert!(ok("https://spclient.wg.spotify.com/x"));
+        assert!(ok("https://gew4-spclient.spotify.com/x"));
+        assert!(!ok("https://audio-ak.spotify.com.edgesuite.net/x"));
+        assert!(ok("https://audio4-ak-spotify-com.akamaized.net/x"));
+        assert!(ok("https://gew1-dealer.spotify.com/"));
+        assert!(ok("https://i.scdn.co/image/x"));
+        assert!(ok("https://scdn.co/x"));
+        assert!(ok("https://foo.spotifycdn.com/x"));
+        assert!(ok("https://www.googleapis.com/certificateprovisioning/v1/devicecertificates/create"));
+        assert!(!ok("https://www.googleapis.com/other"));
+        assert!(!ok("https://api.spotify.com:8443/v1/me"));
+        assert!(!ok("https://user:pw@api.spotify.com/v1/me"));
+        assert!(!ok("https://gateway.example/assets/api.spotify.com/v1/me"));
+        assert!(!ok("https://evilspotify.com/x"));
+        assert!(!ok("https://spclient.spotify.com.evil.com/x"));
     }
 
     #[test]

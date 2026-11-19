@@ -1,5 +1,6 @@
 //! Spotify Connect 状态接口（connect-state/v1 HTTP）与 Dealer 控制面消息辅助。
 
+use crate::http_client::RoutedSend;
 use crate::spotify_session;
 
 /// 通过 Rust 会话通道发送 `connect-state/v1` 请求（自动带 Bearer、client-token、401 刷新及代理）。
@@ -55,7 +56,7 @@ pub async fn track_playback_request(
     if let Some(body) = body_json {
         req = req.body(body);
     }
-    let res = tokio::time::timeout(std::time::Duration::from_secs(10), req.send())
+    let res = tokio::time::timeout(std::time::Duration::from_secs(10), req.send_routed())
         .await
         .map_err(|_| "track-playback timeout".to_string())?
         .map_err(|e| format!("track-playback:{e}"))?;

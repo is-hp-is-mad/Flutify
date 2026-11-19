@@ -12,6 +12,7 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 use tokio::sync::Mutex;
 
+use crate::http_client::RoutedSend;
 use crate::http_client;
 use crate::web_totp;
 
@@ -213,7 +214,7 @@ pub async fn mint_web_token(sp_dc: &str, proxy: &str) -> Result<MintedToken, Str
     let mut totp_server = "unavailable".to_string();
     if let Ok(Ok(st_res)) = tokio::time::timeout(
         Duration::from_secs(4),
-        client.get(SERVER_TIME_ENDPOINT).send(),
+        client.get(SERVER_TIME_ENDPOINT).send_routed(),
     )
     .await
     {
@@ -240,7 +241,7 @@ pub async fn mint_web_token(sp_dc: &str, proxy: &str) -> Result<MintedToken, Str
             .header("Cookie", format!("sp_dc={sp_dc}"))
             .header("User-Agent", WEB_USER_AGENT)
             .header("Accept", "application/json")
-            .send(),
+            .send_routed(),
     )
     .await
     .map_err(|_| "timeout:/api/token timed out".to_string())?
@@ -335,7 +336,7 @@ pub async fn request_web_client_token(
             .header("Content-Type", "application/json")
             .header("User-Agent", WEB_USER_AGENT)
             .body(payload.to_string())
-            .send(),
+            .send_routed(),
     )
     .await
     .map_err(|_| "timeout:clienttoken timed out".to_string())?
@@ -504,7 +505,7 @@ pub async fn authorized_request(
             req = req.body(bytes.clone());
         }
 
-        let res = tokio::time::timeout(Duration::from_secs(20), req.send())
+        let res = tokio::time::timeout(Duration::from_secs(20), req.send_routed())
             .await
             .map_err(|_| format!("timeout:{url}"))?
             .map_err(|e| format!("request:{e}"))?;

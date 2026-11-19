@@ -19,10 +19,18 @@ import 'storage/auth_session_store.dart';
 class RustBackendBridge {
   RustBackendBridge._();
 
-  /// 返回 Rust 可直接使用的代理地址（`''` 为直连）；若需要走自定义网关或配置无效则返回 null（回退 Dart）。
+  /// 返回 Rust 请求使用的代理地址（`''` 为直连）；网关配置无效时返回 null（交给 Dart，按无效配置报错）。
+  ///
+  /// 需要走自建网关的地址也交给 Rust：先确保 Rust 拿到最新的网关配置，由 Rust 的统一出口改写到网关、
+  /// 带上网关凭据并按网关主机的代理发出（返回值此时就是网关主机的代理）。
   static Future<String?> proxyForUrl(String url) async {
     final route = await rustRouteFor(Uri.parse(url));
-    if (route == null || route.viaGateway) return null;
+    if (route == null) return null;
+    try {
+      await pushRustNetConfigIfChanged();
+    } on StateError {
+      return null;
+    }
     return route.proxy;
   }
 

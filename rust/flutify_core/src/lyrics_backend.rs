@@ -4,6 +4,7 @@ use std::time::Duration;
 
 use serde_json::Value;
 
+use crate::http_client::RoutedSend;
 use crate::spotify_session;
 
 #[derive(Debug, Clone)]
@@ -124,7 +125,7 @@ async fn lrclib_request(path: &str, params: &[(&str, &str)], proxy: &str) -> Bac
             .get(url.clone())
             .header("User-Agent", "Flutify (lyrics fallback)")
             .header("Accept", "application/json");
-        if let Ok(Ok(res)) = tokio::time::timeout(Duration::from_secs(12), req.send()).await {
+        if let Ok(Ok(res)) = tokio::time::timeout(Duration::from_secs(12), req.send_routed()).await {
             let code = res.status().as_u16();
             if code == 404 {
                 return BackendLrclibResponse {
@@ -226,7 +227,7 @@ pub async fn lyrics_http_request(
     if let Some(b) = body {
         req = req.body(b);
     }
-    let res = tokio::time::timeout(Duration::from_secs(12), req.send())
+    let res = tokio::time::timeout(Duration::from_secs(12), req.send_routed())
         .await
         .map_err(|_| "lyrics:timeout".to_string())?
         .map_err(|e| format!("lyrics:{e}"))?;

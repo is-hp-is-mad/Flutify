@@ -9,6 +9,7 @@ use base64::Engine as _;
 use futures_util::StreamExt;
 use serde_json::{json, Value};
 
+use crate::http_client::RoutedSend;
 use crate::spotify_backend::BackendImage;
 use crate::spotify_session;
 
@@ -293,7 +294,7 @@ async fn fetch_podcast_html(url: &str) -> Result<String, String> {
             .get(url)
             .header("User-Agent", PODCAST_USER_AGENT)
             .header("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8")
-            .send(),
+            .send_routed(),
     )
     .await
     .map_err(|_| "网络请求失败，请检查网络：timeout".to_string())?
@@ -360,7 +361,7 @@ pub async fn fetch_canvas(hash: &str, track_uri: &str) -> Result<Option<BackendC
     let is_video = kind != "IMAGE" && kind != "GIF";
 
     let client = spotify_session::client_for_url(url_str)?;
-    let res = tokio::time::timeout(Duration::from_secs(12), client.get(url_str).send())
+    let res = tokio::time::timeout(Duration::from_secs(12), client.get(url_str).send_routed())
         .await
         .map_err(|_| "canvas timeout".to_string())?
         .map_err(|e| format!("canvas:{e}"))?;

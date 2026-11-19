@@ -4,6 +4,7 @@ use std::time::Duration;
 
 use serde_json::Value;
 
+use crate::http_client::RoutedSend;
 use crate::proto_lite::ProtoMsg;
 use crate::spotify_session;
 
@@ -331,7 +332,7 @@ pub async fn relay_drm_request(
                 .body(b.clone());
         }
 
-        match tokio::time::timeout(timeout, req.send()).await {
+        match tokio::time::timeout(timeout, req.send_routed()).await {
             Ok(Ok(res)) => {
                 let status = res.status().as_u16();
                 let body = res
