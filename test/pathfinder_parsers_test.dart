@@ -1,3 +1,4 @@
+import 'package:flutify_app/models/connect_cluster.dart';
 import 'package:flutify_app/services/pathfinder/pathfinder_parsers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -33,13 +34,39 @@ void main() {
       expect(PathfinderParsers.idFromUri(''), '');
     });
 
-    test('images 按宽度降序并支持 maxWidth', () {
+    test('images 按宽度降序并支持 maxWidth 与缺省宽高时的分辨率推断', () {
       final list = PathfinderParsers.images([
         {'url': 'a', 'maxWidth': 300},
         ...cover['sources']!,
         {'url': ''},
       ]);
       expect(list.map((i) => i.url), ['https://i.scdn.co/image/large', 'a', 'https://i.scdn.co/image/small']);
+
+      final withoutWidths = PathfinderParsers.images([
+        {'url': 'https://i.scdn.co/image/ab67616d00004851aaa'},
+        {'url': 'https://i.scdn.co/image/ab67616d00001e02bbb'},
+        {'url': 'https://i.scdn.co/image/ab67616d0000b273ccc'},
+      ]);
+      expect(
+        withoutWidths.first.url,
+        'https://i.scdn.co/image/ab67616d0000b273ccc',
+      );
+
+      final connectState = ConnectPlayerState.fromJson({
+        'track': {
+          'uri': 'spotify:track:t1',
+          'metadata': {
+            'title': 'Song',
+            'image_url': 'spotify:image:ab67616d00001e02bbb',
+            'image_large_url': 'spotify:image:ab67616d00001e02bbb',
+            'image_xlarge_url': 'spotify:image:ab67616d0000b273ccc',
+          },
+        },
+      });
+      expect(
+        connectState.imageUrl,
+        'https://i.scdn.co/image/ab67616d0000b273ccc',
+      );
     });
 
     test('stripHtml 与 hexColor', () {

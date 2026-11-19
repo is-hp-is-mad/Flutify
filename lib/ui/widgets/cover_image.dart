@@ -10,17 +10,24 @@ class CoverImage extends StatelessWidget {
 
   /// 显示边长（dp）。为空时通过 LayoutBuilder 取父约束宽度。
   final double? size;
+
+  /// 解码缓存参考边长（dp）。封面动画缩放（飞行、歌词小图切换）时固定它，
+  /// 避免布局边长变化触发重复解码；大封面（≥ 240dp）保留原图分辨率。
+  final double? cacheSize;
   final BorderRadius? borderRadius;
   final bool circular;
   final IconData placeholderIcon;
+  final FilterQuality? filterQuality;
 
   const CoverImage({
     super.key,
     required this.url,
     this.size,
+    this.cacheSize,
     this.borderRadius,
     this.circular = false,
     this.placeholderIcon = Icons.music_note_rounded,
+    this.filterQuality,
   });
 
   @override
@@ -62,10 +69,20 @@ class CoverImage extends StatelessWidget {
         ? const Duration(milliseconds: 150)
         : Duration.zero;
 
+    // CachedNetworkImage 默认 FilterQuality.low（无 mipmap 的单次双线性插值）：
+    // 大封面（如展开播放页把 640px 原图放大到 1000+ 物理像素）会明显发糊，改用双三次采样；
+    // 缩略图与缩小动画改用带硬件 mipmap 的 medium，避免锯齿与模糊。
+    final effectiveQuality =
+        filterQuality ??
+        ((logicalWidth == null || logicalWidth >= 160)
+            ? FilterQuality.high
+            : FilterQuality.medium);
+
     return CachedNetworkImage(
       imageUrl: url,
       fit: BoxFit.cover,
-      memCacheWidth: _cacheWidth(context, logicalWidth),
+      filterQuality: effectiveQuality,
+      memCacheWidth: _cacheWidth(context, cacheSize ?? logicalWidth),
       fadeInDuration: fadeIn,
       fadeOutDuration: Duration.zero,
       placeholder: (_, _) =>
@@ -74,10 +91,12 @@ class CoverImage extends StatelessWidget {
     );
   }
 
-  /// 只限制宽度以保持宽高比；乘 1.5 余量，保证非正方形图片在 BoxFit.cover
-  /// 裁切后依旧清晰。结果按 64px 取整，减少同一张图的缓存变体数量。
+  /// 小缩略图按 1.5 倍显示像素解码并按 64px 取整；大封面（≥ 240dp）直接解码原图（如 Spotify 640px），
+  /// 既保留全部细节，也让专辑页、封面飞行与播放页命中同一份内存缓存而不重复解码。
   int? _cacheWidth(BuildContext context, double? logicalWidth) {
-    if (logicalWidth == null || logicalWidth <= 0) return null;
+    if (logicalWidth == null || logicalWidth <= 0 || logicalWidth >= 240) {
+      return null;
+    }
     final px = logicalWidth * MediaQuery.devicePixelRatioOf(context) * 1.5;
     return ((px / 64).ceil() * 64);
   }

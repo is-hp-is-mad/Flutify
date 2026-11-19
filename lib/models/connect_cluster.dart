@@ -158,7 +158,11 @@ class ConnectPlayerState {
       albumTitle: meta['album_title'] as String? ?? '',
       albumUri: meta['album_uri'] as String? ?? '',
       artistUri: meta['artist_uri'] as String? ?? '',
-      imageUrl: imageUrlOf(meta['image_large_url'] as String? ?? meta['image_url'] as String?),
+      imageUrl: imageUrlOf(
+        meta['image_xlarge_url'] as String? ??
+            meta['image_large_url'] as String? ??
+            meta['image_url'] as String?,
+      ),
       contextUri: json['context_uri'] as String? ?? '',
       isPlaying: json['is_playing'] as bool? ?? false,
       isPaused: json['is_paused'] as bool? ?? false,

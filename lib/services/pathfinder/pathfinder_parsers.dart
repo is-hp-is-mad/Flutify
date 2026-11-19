@@ -23,21 +23,48 @@ class PathfinderParsers {
   /// `spotify:track:xxx` → `xxx`。
   static String idFromUri(String uri) => uri.isEmpty ? '' : uri.substring(uri.lastIndexOf(':') + 1);
 
-  /// 图片 sources：[{url, width|maxWidth, height|maxHeight}]，按宽度从大到小排列（模型取第一张作封面）。
+  /// 图片 sources：[{url, width|maxWidth, height|maxHeight, size?}]，按宽度从大到小排列（模型取第一张作封面）。
+  /// 部分接口省略数值尺寸时，按 Spotify 图片尺寸标识或 CDN 哈希前缀兜底排序，避免把 64/300px 缩略图排到前面。
   static List<SpotifyImage> images(Object? sources) {
     final list = <SpotifyImage>[];
     for (final s in _list(sources)) {
       final m = _map(s);
       final url = m?['url'];
       if (url is! String || url.isEmpty) continue;
-      list.add(SpotifyImage(
-        url: url,
-        width: _int(m!['width']) ?? _int(m['maxWidth']),
-        height: _int(m['height']) ?? _int(m['maxHeight']),
-      ));
+      final w =
+          _int(m!['width']) ??
+          _int(m['maxWidth']) ??
+          _inferredImageWidth(url, m['size']);
+      list.add(
+        SpotifyImage(
+          url: url,
+          width: w,
+          height: _int(m['height']) ?? _int(m['maxHeight']) ?? w,
+        ),
+      );
     }
     list.sort((a, b) => (b.width ?? 0).compareTo(a.width ?? 0));
     return list;
+  }
+
+  static int? _inferredImageWidth(String url, Object? sizeLabel) {
+    switch (sizeLabel) {
+      case 'XLARGE':
+      case 'xlarge':
+        return 640;
+      case 'LARGE':
+      case 'large':
+      case 'DEFAULT':
+      case 'default':
+        return 300;
+      case 'SMALL':
+      case 'small':
+        return 64;
+    }
+    if (url.contains('ab67616d0000b273')) return 640;
+    if (url.contains('ab67616d00001e02')) return 300;
+    if (url.contains('ab67616d00004851')) return 64;
+    return null;
   }
 
   /// 解开 `{__typename: XxxResponseWrapper | XxxWrapper, data: {...}}` 包装；非包装对象原样返回。

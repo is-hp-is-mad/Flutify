@@ -135,6 +135,7 @@ class _CanvasArtworkState extends State<CanvasArtwork>
     final cover = CoverImage(
       url: widget.track.coverUrl,
       size: widget.size,
+      cacheSize: 400,
       borderRadius: widget.borderRadius,
     );
     // Linux 桌面没有内嵌 WebView，Canvas 视频无法播放；Windows 需等共享 WebView2 环境就绪再挂载。
