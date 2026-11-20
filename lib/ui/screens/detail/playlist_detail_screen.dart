@@ -89,17 +89,22 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
         p.id == LibraryProvider.likedSongsId ||
         p.id.startsWith(BackupAccount.backupLikedPrefix) ||
         context.read<LibraryProvider>().isOwnPlaylist(p.id);
-    // 卡片上的曲目数不可靠（主页 / 搜索卡片常缺，daylist 等动态歌单也可能报 0）：没带曲目就去拉
-    if (!isLibraryOwned &&
-        (p.tracks.isEmpty || p.tracks.length < p.totalTracks))
-      _fetch();
+    // Spotify 上真实存在的歌单每次都以服务端为准重新拉取：本机收藏 / 备份导入时存下的曲目只是快照，
+    // 官方编辑歌单每周都在变。拿快照点歌会把旧顺序交给播放队列，与 Connect 服务端按当前歌单
+    // 展开的顺序对不上，队列只剩服务端下发的两首。拉取期间先显示快照，拉取失败时继续用快照。
+    if (!isLibraryOwned) {
+      final hasSnapshot = p.tracks.isNotEmpty ||
+          (context.read<LibraryProvider>().findPlaylist(p.id)?.tracks.isNotEmpty ?? false);
+      _fetch(quiet: hasSnapshot);
+    }
   }
 
   /// 懒加载/流式拉取歌单：首批 100 首到达即刻渲染，后续曲目在后台增量补齐。
-  Future<void> _fetch() async {
+  /// [quiet]：已有本机快照可显示，后台刷新、不显示加载占位。
+  Future<void> _fetch({bool quiet = false}) async {
     await _playlistSub?.cancel();
     setState(() {
-      _loading = true;
+      _loading = !quiet;
       _loadingMore = false;
       _error = null;
     });
@@ -120,7 +125,11 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
           onError: (Object e) {
             if (mounted) {
               setState(() {
-                if (_fetched == null) _error = e;
+                // 有本机快照（如对方已设为私密的备份歌单）时继续显示快照，不当作错误
+                final snapshot =
+                    context.read<LibraryProvider>().findPlaylist(widget.playlist.id)?.tracks ??
+                    widget.playlist.tracks;
+                if (_fetched == null && snapshot.isEmpty) _error = e;
                 _loading = false;
                 _loadingMore = false;
               });
