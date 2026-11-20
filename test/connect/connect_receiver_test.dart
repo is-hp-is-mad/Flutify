@@ -616,6 +616,32 @@ void main() {
   );
 
   test(
+    'a pending user play holds handover so the previous track cannot override it',
+    () async {
+      var attempts = 0;
+      host.handOver = (_) async {
+        attempts++;
+        return true;
+      };
+      final release = host.holdHandOver();
+      final m = TpStateMachine.fromJson(machine(['a']))!;
+      await host.load(m, [0], positionMs: 0, paused: false);
+      audio.stateController.add(PlayerState(true, ProcessingState.ready));
+      // 注册刚完成：本机仍在出声、接收端未激活，平时这里会交接
+      host.onReceiverRegistered();
+      await Future<void>.delayed(const Duration(milliseconds: 25));
+      expect(host.handOverHeld, isTrue);
+      expect(attempts, 0);
+
+      release();
+      release(); // 重复释放无副作用
+      expect(host.handOverHeld, isFalse);
+      host.onReceiverRegistered();
+      await until(() => attempts == 1);
+    },
+  );
+
+  test(
     'handover retries are bounded and registration can recover the same track',
     () async {
       var attempts = 0;

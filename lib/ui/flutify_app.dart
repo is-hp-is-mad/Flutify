@@ -374,6 +374,7 @@ class FlutifyApp extends StatelessWidget {
             playback.addListener(() {
               if (playback.isPlaying) connect.localPlaybackStarted();
             });
+            PlaybackReceiverHost? receiverHost;
             playback.remotePlay = (context, tracks, start) async {
               final remote = connect.controlsRemote(
                 localPlaying: playback.isPlaying,
@@ -399,12 +400,19 @@ class FlutifyApp extends StatelessWidget {
                 username: ctx.read<SpotifyAuthService>().username,
               );
               if (request == null) return false;
+              debugPrint(
+                '[Connect] 点歌请求：context=${request.contextUri} '
+                'track=${request.trackUri ?? '(从头)'} '
+                'shuffle=${playback.shuffle} repeat=${playback.repeatMode.name}',
+              );
               if (!remote) {
                 final ticket = playback.prepareReceiverQueue(
                   context,
                   tracks,
                   start,
                 );
+                // 等服务端推回新状态期间，不让自动交接把上一首重新交过去盖掉这次点歌
+                final releaseHandOver = receiverHost?.holdHandOver();
                 try {
                   final repeat =
                       ctx.read<PreferencesProvider>().prefs.defaultRepeatMode;
@@ -418,6 +426,8 @@ class FlutifyApp extends StatelessWidget {
                   playback.cancelReceiverQueue(ticket);
                   debugPrint('[Connect] 播放端启动失败，改在本机播放：$e');
                   return false;
+                } finally {
+                  releaseHandOver?.call();
                 }
               }
               try {
@@ -429,7 +439,7 @@ class FlutifyApp extends StatelessWidget {
               }
             };
             if (enableConnectReceiver) {
-              _startConnectReceiver(ctx, connect, playback);
+              receiverHost = _startConnectReceiver(ctx, connect, playback);
             } else {
               connect.receiverDeviceId =
                   ctx.read<AuthSessionStore>().receiverDeviceId;
@@ -463,13 +473,13 @@ class FlutifyApp extends StatelessWidget {
   }
 }
 
-void _startConnectReceiver(
+PlaybackReceiverHost? _startConnectReceiver(
   BuildContext ctx,
   ConnectProvider connect,
   PlaybackProvider playback,
 ) {
   final tokens = ctx.read<WebTokenService?>();
-  if (tokens == null) return;
+  if (tokens == null) return null;
   final preferences = ctx.read<PreferencesProvider>();
   final deviceId = ctx.read<AuthSessionStore>().receiverDeviceId;
   final host = PlaybackReceiverHost(playback);
@@ -553,7 +563,13 @@ void _startConnectReceiver(
     }
     final remoteAudible =
         connect.activeDevice != null && connect.player.isAudible;
-    if (playback.isPlaying || receiver.isActive || remoteAudible) return;
+    // 等待期间用户已经点了歌（正在经 Connect 下发）：不再把上次的歌交给服务端
+    if (playback.isPlaying ||
+        receiver.isActive ||
+        remoteAudible ||
+        host.handOverHeld) {
+      return;
+    }
     await handOver(playback.position.inMilliseconds, paused: true);
   };
 
@@ -582,6 +598,7 @@ void _startConnectReceiver(
     receiver.stop,
     timeout: const Duration(seconds: 3),
   );
+  return host;
 }
 
 Object _proxyKey(AppPreferences prefs) => (

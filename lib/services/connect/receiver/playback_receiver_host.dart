@@ -45,6 +45,29 @@ class PlaybackReceiverHost implements ReceiverHost {
   final Duration handoverRetryDelay;
   int _commandGeneration = 0;
   int _handoverGeneration = 0;
+  int _handOverHolds = 0;
+
+  /// 用户点歌正经 Connect 下发给本机播放端：期间不做自动交接。
+  bool get handOverHeld => _handOverHolds > 0;
+
+  /// 用户点歌经 Connect 下发期间调用，返回的回调在请求结束（成功或失败）后调用。
+  ///
+  /// 点歌发出后、服务端把新状态推回本机前，本机仍在放上一首且接收端尚未激活，
+  /// 注册完成 / 播放状态变化都会触发自动交接；晚到的交接会把上一首重新交给服务端，
+  /// 覆盖用户刚点的歌，队列也只剩服务端下发的短窗口。
+  /// 释放时不立即重试交接：成功时接收端已激活，失败时本机随即改播用户点的歌，
+  /// 由那次播放状态变化再触发交接。
+  void Function() holdHandOver() {
+    _handOverHolds++;
+    ++_handoverGeneration;
+    _handoverRetry?.cancel();
+    var released = false;
+    return () {
+      if (released) return;
+      released = true;
+      _handOverHolds--;
+    };
+  }
 
   /// 本机改了随机 / 循环时调用：经 Connect 命令发给服务端（本机即目标设备），其他设备同步显示。
   Future<bool> Function({
@@ -243,6 +266,7 @@ class PlaybackReceiverHost implements ReceiverHost {
     if (_disposed ||
         _applying ||
         _handingOver ||
+        handOverHeld ||
         (_handoverRetry?.isActive ?? false))
       return;
     final track = playback.currentTrack;

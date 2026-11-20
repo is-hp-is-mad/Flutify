@@ -1276,6 +1276,17 @@ class PlaybackProvider extends ChangeNotifier
         index: index,
       );
     }
+    if (matchesSeed) {
+      // 诊断：点歌时服务端下发的顺序与所点列表不一致（只剩短窗口）
+      String names(Iterable<SpotifyTrack> ts) =>
+          ts.map((t) => '${t.name}(${t.uri})').join(' → ');
+      debugPrint(
+        '[playback] Connect 窗口与所点列表不一致，队列只保留窗口：'
+        'shuffle=$_shuffle context=${seed.context.uri} '
+        '窗口=${names(window)}；列表从所点处=${names(seed.tracks.skip(index < 0 ? 0 : index).take(window.length))}'
+        '${index < 0 ? '（列表中找不到当前曲目）' : ''}',
+      );
+    }
     return (
       tracks: List.of(window),
       context: matchesSeed ? seed.context : PlaybackContext.none,
