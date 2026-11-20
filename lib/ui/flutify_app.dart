@@ -420,6 +420,7 @@ class FlutifyApp extends StatelessWidget {
                     request,
                     repeatingContext: repeat != SpotifyRepeatMode.off,
                     repeatingTrack: repeat == SpotifyRepeatMode.track,
+                    shufflingContext: playback.shuffle,
                   );
                   return true;
                 } on ConnectException catch (e) {
@@ -528,6 +529,7 @@ PlaybackReceiverHost? _startConnectReceiver(
         paused: paused,
         repeatingContext: repeat != SpotifyRepeatMode.off,
         repeatingTrack: repeat == SpotifyRepeatMode.track,
+        shufflingContext: playback.shuffle,
       );
       return true;
     } catch (e) {

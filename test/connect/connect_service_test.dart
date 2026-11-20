@@ -615,6 +615,28 @@ void main() {
       expect((adHoc['options'] as Map)['skip_to'], {'track_index': 1});
     });
 
+    test('play：随机 / 循环随命令下发，不沿用服务端旧状态', () async {
+      await h.service.start();
+      h.requests.clear();
+
+      await h.service.play(
+        'dev-1',
+        contextUri: 'spotify:playlist:p1',
+        trackUri: 'spotify:track:t2',
+        repeatingContext: true,
+        repeatingTrack: false,
+        shufflingContext: false,
+      );
+
+      final command =
+          jsonDecode(h.requests.first.body)['command'] as Map<String, dynamic>;
+      expect((command['options'] as Map)['player_options_override'], {
+        'repeating_context': true,
+        'repeating_track': false,
+        'shuffling_context': false,
+      });
+    });
+
     test('服务端拒绝（403）→ ConnectException 带状态码', () async {
       await h.service.start();
       h.commandStatus = 403;

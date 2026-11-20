@@ -279,6 +279,7 @@ class MockConnectService implements ConnectService {
     bool paused = false,
     bool? repeatingContext,
     bool? repeatingTrack,
+    bool? shufflingContext,
     bool confirm = false,
   }) async {
     final targetUri =

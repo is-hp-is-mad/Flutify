@@ -106,6 +106,7 @@ class ConnectProvider extends ChangeNotifier implements RemoteConnectMediaPort {
     bool paused = false,
     bool? repeatingContext,
     bool? repeatingTrack,
+    bool? shufflingContext,
   }) {
     final id = receiverDeviceId;
     final service = _service;
@@ -122,6 +123,7 @@ class ConnectProvider extends ChangeNotifier implements RemoteConnectMediaPort {
         paused: paused,
         repeatingContext: repeatingContext,
         repeatingTrack: repeatingTrack,
+        shufflingContext: shufflingContext,
         confirm: true,
       ),
     );

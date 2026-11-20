@@ -200,6 +200,7 @@ class ConnectService {
     bool paused = false,
     bool? repeatingContext,
     bool? repeatingTrack,
+    bool? shufflingContext,
     bool confirm = false,
   }) => _runPlaybackCommand(
     () => _command(deviceId, 'play', {
@@ -230,6 +231,8 @@ class ConnectService {
         'player_options_override': <String, Object?>{
           if (repeatingContext != null) 'repeating_context': repeatingContext,
           if (repeatingTrack != null) 'repeating_track': repeatingTrack,
+          // 不带时服务端沿用账号上次的随机状态：本机关着随机，服务端却可能按随机顺序下发
+          if (shufflingContext != null) 'shuffling_context': shufflingContext,
         },
       },
     }),

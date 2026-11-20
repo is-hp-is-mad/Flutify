@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import '../../../models/audio_playback_info.dart';
 
 import '../../../models/album.dart';
@@ -206,6 +207,11 @@ class PlaybackReceiverHost implements ReceiverHost {
 
   @override
   void applyOptions(TpOptions options) {
+    debugPrint(
+      '[Receiver] 服务端选项：shuffle=${options.shuffle} '
+      'repeatContext=${options.repeatContext} repeatTrack=${options.repeatTrack}'
+      '${_optionsPending ? '（等待本机改动生效中）' : ''}',
+    );
     _applyingOptions = true;
     try {
       if (_optionsPending) {
