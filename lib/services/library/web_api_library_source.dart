@@ -159,14 +159,51 @@ class WebApiLibrarySource implements LibrarySource {
     },
   );
 
-  Future<void> _send(String method, String path, {Map<String, Object?>? body}) async {
+  @override
+  Future<void> setPlaylistSaved(SpotifyPlaylist playlist, bool saved) => _send(
+    saved ? 'PUT' : 'DELETE',
+    '/playlists/${Uri.encodeComponent(playlist.id)}/followers',
+  );
+
+  @override
+  Future<String> createPlaylist(String name, List<SpotifyTrack> tracks) async {
+    final created = await _send('POST', '/me/playlists', body: {'name': name, 'public': false});
+    final id = created is Map<String, dynamic> ? created['id'] : null;
+    if (id is! String || id.isEmpty) throw const LibrarySourceException('新建歌单返回格式异常');
+    final uris = [
+      for (final t in tracks)
+        if ((t.uri.isNotEmpty ? t.uri : (t.id.isEmpty ? '' : 'spotify:track:${t.id}')) case final u
+            when u.startsWith('spotify:track:') || u.startsWith('spotify:episode:'))
+          u,
+    ];
+    for (var i = 0; i < uris.length; i += 100) {
+      await _send(
+        'POST',
+        '/playlists/${Uri.encodeComponent(id)}/tracks',
+        body: {'uris': uris.sublist(i, i + 100 > uris.length ? uris.length : i + 100)},
+      );
+    }
+    return 'spotify:playlist:$id';
+  }
+
+  /// 发送写请求；返回解析后的 JSON 响应体（没有响应体时为 null）。
+  Future<Object?> _send(String method, String path, {Map<String, Object?>? body}) async {
     if (!isSignedIn) throw const LibrarySourceException('未登录，无法同步到 Spotify 账号');
     final request = http.Request(method, Uri.parse('${_baseUrl()}$path'))
       ..headers.addAll(await _headers());
-    if (body != null) request.body = jsonEncode(body);
+    if (body != null) {
+      request.headers['Content-Type'] = 'application/json';
+      request.body = jsonEncode(body);
+    }
     final res = await http.Response.fromStream(await _client.send(request));
     if (res.statusCode < 200 || res.statusCode >= 300) {
       throw LibrarySourceException('同步收藏失败', res.statusCode);
+    }
+    if (res.bodyBytes.isEmpty) return null;
+    try {
+      return jsonDecode(utf8.decode(res.bodyBytes));
+    } catch (_) {
+      return null;
     }
   }
 }

@@ -553,6 +553,12 @@ jobs:
             beta) printf '%s\n\n' "> **beta 测试版**：由 ${SOURCE_TAG} 经人工确认后提升。" > "$out" ;;
             *) printf '%s\n\n' "> **正式版**：由 ${SOURCE_TAG} 提升。" > "$out" ;;
           esac
+          # 三个通道共用的重要说明（按基础版本号取：v0.18.222-selftest → docs/releases/v0.18-notice.md），放在最前面
+          notice="docs/releases/$(printf '%s' "$RELEASE_TAG" | sed -E 's/^(v[0-9]+\.[0-9]+).*/\1/')-notice.md"
+          if [ -f "$notice" ]; then
+            cat "$notice" >> "$out"
+            printf '\n' >> "$out"
+          fi
           # 自测版：如实列出相对上一个自测标签（必须是本次提交的祖先）的提交，不套用整个版本系列共用的说明文件
           if [ "$CHANNEL" = self-test ]; then
             short=$(git rev-parse --short "$SHA")

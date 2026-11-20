@@ -52,4 +52,12 @@ class SessionLibrarySource implements LibrarySource {
   @override
   Future<void> addTrackToPlaylist(String playlistUri, SpotifyTrack track) =>
       _current.addTrackToPlaylist(playlistUri, track);
+
+  @override
+  Future<void> setPlaylistSaved(SpotifyPlaylist playlist, bool saved) =>
+      _current.setPlaylistSaved(playlist, saved);
+
+  @override
+  Future<String> createPlaylist(String name, List<SpotifyTrack> tracks) =>
+      _current.createPlaylist(name, tracks);
 }

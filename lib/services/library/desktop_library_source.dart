@@ -23,7 +23,10 @@ import 'rootlist_parser.dart';
 ///   再用 Pathfinder `decorateContextTracks`（曲目）/ `getAlbum`（专辑）/ `queryArtistOverview`（艺人）补全详情，
 ///   补全请求限并发，且只取最新的 N 条（见各 `*Limit`），避免媒体库很大时一次性打出数百请求；
 /// - 歌单：spclient `playlist/v2/user/{username}/rootlist`（JSON），缺名称 / 封面的条目再查一次歌单概要；
-/// - 写入（点赞 / 收藏 / 关注）：`collection/v2/write`。
+/// - 写入（点赞 / 收藏 / 关注）：`collection/v2/write`；
+/// - 歌单进出音乐库：`playlist/v2/user/{username}/rootlist/changes`（ADD / REM），新建歌单
+///   `POST playlist/v2/playlist` 后加到 rootlist 最前、再用 Pathfinder `addToPlaylist` 写曲目——
+///   与 open.spotify.com 相同（它的 `addToLibrary` mutation 不接受歌单 URI）。
 class DesktopLibrarySource implements LibrarySource {
   static const String _spclient = SpotifyEndpoints.defaultSpClientBase;
 
@@ -268,6 +271,125 @@ class DesktopLibrarySource implements LibrarySource {
       ]);
     } catch (e) {
       throw LibrarySourceException('添加到歌单失败：$e');
+    }
+  }
+
+  @override
+  Future<void> setPlaylistSaved(SpotifyPlaylist playlist, bool saved) async {
+    if (!_hasUsername) throw const LibrarySourceException('未登录，无法同步到 Spotify 账号');
+    final uri = _uri(playlist.uri, 'playlist', playlist.id);
+    await _rootlistChanges(
+      saved
+          ? {
+              'kind': 'ADD',
+              'add': {
+                'addFirst': true,
+                'items': [_rootlistItem(uri)],
+              },
+            }
+          : {
+              'kind': 'REM',
+              'rem': {
+                'itemsAsKey': true,
+                'items': [
+                  {'uri': uri},
+                ],
+              },
+            },
+    );
+  }
+
+  /// 每次往新歌单写入的曲目数（与 Web API 单次上限一致）。
+  static const int _addBatch = 100;
+
+  @override
+  Future<String> createPlaylist(String name, List<SpotifyTrack> tracks) async {
+    if (!_hasUsername) throw const LibrarySourceException('未登录，无法同步到 Spotify 账号');
+    final res = await _client.post(
+      Uri.parse('$_spclient/playlist/v2/playlist'),
+      headers: {...await _headers(), 'Content-Type': 'application/json', 'Accept': 'application/json'},
+      body: jsonEncode({
+        'ops': [
+          {
+            'kind': 'UPDATE_LIST_ATTRIBUTES',
+            'updateListAttributes': {
+              'newAttributes': {
+                'values': {'name': name, 'formatAttributes': [], 'pictureSize': []},
+                'noValue': [],
+              },
+            },
+          },
+        ],
+        'info': _changeInfo,
+      }),
+    );
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw LibrarySourceException('新建歌单失败', res.statusCode);
+    }
+    final String uri;
+    try {
+      uri = (jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>)['uri'] as String;
+    } catch (e) {
+      throw LibrarySourceException('新建歌单返回格式异常：$e');
+    }
+    await _rootlistChanges({
+      'kind': 'ADD',
+      'add': {
+        'addFirst': true,
+        'items': [_rootlistItem(uri)],
+      },
+    });
+    final uris = [
+      for (final t in tracks)
+        if (_trackUri(t) case final u?) u,
+    ];
+    try {
+      for (var i = 0; i < uris.length; i += _addBatch) {
+        await _data.addToPlaylist(uri, uris.sublist(i, min(i + _addBatch, uris.length)));
+      }
+    } catch (e) {
+      throw LibrarySourceException('歌单已建好，但写入曲目失败：$e');
+    }
+    return uri;
+  }
+
+  static const Map<String, Object> _changeInfo = {
+    'source': {'client': 'WEBPLAYER'},
+  };
+
+  static Map<String, Object> _rootlistItem(String uri) => {
+    'uri': uri,
+    'attributes': {
+      'timestamp': DateTime.now().millisecondsSinceEpoch.toString(),
+      'formatAttributes': [],
+      'availableSignals': [],
+    },
+  };
+
+  /// 曲目 / 单集的 Spotify URI；本地文件等返回 null。
+  static String? _trackUri(SpotifyTrack t) {
+    final uri = t.uri.isNotEmpty ? t.uri : (t.id.isEmpty ? '' : 'spotify:track:${t.id}');
+    return uri.startsWith('spotify:track:') || uri.startsWith('spotify:episode:') ? uri : null;
+  }
+
+  Future<void> _rootlistChanges(Map<String, Object> op) async {
+    final res = await _client.post(
+      Uri.parse('$_spclient/playlist/v2/user/${Uri.encodeComponent(_username())}/rootlist/changes'),
+      headers: {...await _headers(), 'Content-Type': 'application/json', 'Accept': 'application/json'},
+      body: jsonEncode({
+        'deltas': [
+          {
+            'ops': [op],
+            'info': _changeInfo,
+          },
+        ],
+        'wantResultingRevisions': false,
+        'wantSyncResult': false,
+        'nonces': [],
+      }),
+    );
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw LibrarySourceException('同步歌单到音乐库失败', res.statusCode);
     }
   }
 

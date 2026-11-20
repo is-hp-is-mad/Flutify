@@ -20,8 +20,9 @@ import '../services/storage/library_cache_store.dart';
 /// - 未登录：媒体库为空（不再有示例数据）；
 /// - 未提供 source（单元测试 / 纯本地）：只使用本机持久化的数据。
 ///
-/// 歌单说明：账号歌单来自 rootlist；「新建歌单」「保存别人的歌单」目前只保存在本机（[ownPlaylists] /
-/// 本机收藏），刷新后仍然保留。
+/// 歌单说明：账号歌单来自 rootlist；收藏 / 取消收藏别人的歌单会同步到账号的 rootlist。
+/// 「新建歌单」与从备份导入的歌单先保存在本机（[ownPlaylists] / 本机收藏）；旧版本里收藏的歌单
+/// 也只在本机——这些都列在 [unsyncedPlaylists]，由 [syncPlaylistToAccount] 补写到账号。
 ///
 /// 所有列表采用「写时复制」：每次修改都生成新的 List 实例，getter 在两次修改之间
 /// 返回同一实例。这样组件可以安全地 `context.select` 整个列表，
@@ -54,6 +55,9 @@ class LibraryProvider extends ChangeNotifier implements BackupLibraryPort {
   String? _loadError;
   String? _syncError;
   int _refreshGeneration = 0;
+
+  /// 本次启动后已成功读到账号的歌单列表（rootlist）：在此之前无法判断哪些本机歌单没同步。
+  bool _remoteListed = false;
 
   LibraryProvider(this._storage, {this._source}) {
     _load();
@@ -167,6 +171,7 @@ class LibraryProvider extends ChangeNotifier implements BackupLibraryPort {
       }),
       _run(source.fetchPlaylists, current, fail, (playlists) {
         _remotePlaylists = playlists.map(_withOwnerName).toList();
+        _remoteListed = true;
         _rebuildPlaylists();
         _storage.writeJsonList(LibraryCacheStore.keyLibraryPlaylists, _remotePlaylists.map((p) => p.toJson()));
       }),
@@ -217,6 +222,7 @@ class LibraryProvider extends ChangeNotifier implements BackupLibraryPort {
     _likedIds = const {};
     _likedSongsCache = null;
     _remotePlaylists = const [];
+    _remoteListed = false;
     _artists = const [];
     _albums = const [];
     _rebuildPlaylists();
@@ -322,10 +328,12 @@ class LibraryProvider extends ChangeNotifier implements BackupLibraryPort {
     _sync((s) => s.setTrackLiked(track, liking));
   }
 
-  /// 保存 / 取消保存歌单。账号歌单（rootlist）取消保存仅在本机隐藏到下次刷新；
-  /// 保存别人的歌单目前只保存在本机。
+  /// 保存 / 取消保存歌单：本地立即生效，再同步到账号的音乐库（rootlist ADD / REM）。
+  /// 本机新建的歌单（`local_`）在账号里不存在，只改本地。
   void togglePlaylistSaved(SpotifyPlaylist playlist) {
-    if (isPlaylistSaved(playlist.id)) {
+    final saving = !isPlaylistSaved(playlist.id);
+    final inAccount = _remotePlaylists.any((p) => p.id == playlist.id);
+    if (!saving) {
       _localPlaylists = _localPlaylists.where((p) => p.id != playlist.id).toList();
       _remotePlaylists = _remotePlaylists.where((p) => p.id != playlist.id).toList();
     } else {
@@ -333,6 +341,61 @@ class LibraryProvider extends ChangeNotifier implements BackupLibraryPort {
     }
     _rebuildPlaylists();
     _persistPlaylists();
+    notifyListeners();
+    if (isOwnPlaylist(playlist.id)) return;
+    // 取消收藏只对账号里确实有的歌单发 REM：旧版本只存在本机的收藏，账号里本来就没有
+    if (saving || inAccount) {
+      _sync((s) => s.setPlaylistSaved(playlist, saving));
+    }
+  }
+
+  /// 只存在本机、没写进账号音乐库的歌单：本机新建的、从备份导入的，以及旧版本里收藏的。
+  /// 本次启动后还没成功读到账号歌单列表时为空（无法判断）。
+  List<SpotifyPlaylist> get unsyncedPlaylists {
+    final source = _source;
+    if (source == null || !source.isSignedIn || !_remoteListed) return const [];
+    final remoteIds = {for (final p in _remotePlaylists) p.id};
+    return [
+      for (final p in _localPlaylists)
+        if (isOwnPlaylist(p.id) || !remoteIds.contains(p.id)) p,
+    ];
+  }
+
+  /// 把本机歌单写进当前账号：别人的歌单加入音乐库；本机新建的歌单在账号里新建同名歌单并写入曲目。
+  /// 别人的歌单加不进去（如对方的私密歌单）且本机有曲目时，退而在账号里建一份同名副本。
+  /// 失败抛 [LibrarySourceException]（本地数据不变）。
+  Future<void> syncPlaylistToAccount(SpotifyPlaylist playlist) async {
+    final source = _source;
+    if (source == null || !source.isSignedIn) {
+      throw const LibrarySourceException('未登录，无法同步到 Spotify 账号');
+    }
+    SpotifyPlaylist? copy;
+    Future<SpotifyPlaylist> createCopy() async {
+      final uri = await source.createPlaylist(playlist.name, playlist.tracks);
+      return playlist.copyWith(id: uri.split(':').last, uri: uri, ownerName: _userName);
+    }
+
+    if (isOwnPlaylist(playlist.id)) {
+      copy = await createCopy();
+    } else {
+      try {
+        await source.setPlaylistSaved(playlist, true);
+      } catch (e) {
+        if (playlist.tracks.isEmpty) rethrow;
+        debugPrint('[library] 歌单加入音乐库失败，改为新建副本：$e');
+        copy = await createCopy();
+      }
+    }
+    if (_disposed) return;
+    final synced = copy ?? playlist;
+    if (copy != null) {
+      // 账号里是新 ID 的歌单：本机那份去掉，否则同名会把账号歌单挡住、且永远显示未同步
+      _localPlaylists = _localPlaylists.where((p) => p.id != playlist.id).toList();
+      _persistPlaylists();
+    }
+    _remotePlaylists = [synced, ..._remotePlaylists.where((p) => p.id != synced.id)];
+    _storage.writeJsonList(LibraryCacheStore.keyLibraryPlaylists, _remotePlaylists.map((p) => p.toJson()));
+    _rebuildPlaylists();
     notifyListeners();
   }
 

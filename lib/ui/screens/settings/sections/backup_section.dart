@@ -15,6 +15,7 @@ import '../../../widgets/cover_image.dart';
 import '../../../widgets/menu/desktop_menu.dart';
 import '../../../widgets/toast/app_toast.dart';
 import '../../auth/backup_account_login_screen.dart';
+import '../../library/playlist_sync_screen.dart';
 import '../widgets/settings_section.dart';
 import '../../../widgets/flutify_dialog.dart';
 import '../../../widgets/flutify_progress.dart';
@@ -222,6 +223,14 @@ class _BackupSectionState extends State<BackupSection> {
       title: '歌单备份',
       footer: '支持查看各账号自己的已点赞歌曲与歌单；无论是备份的歌曲还是歌单，都支持勾选其中一部分一键导入到当前账号。',
       children: [
+        if (context.watch<LibraryProvider>().unsyncedPlaylists case final unsynced
+            when unsynced.isNotEmpty)
+          SettingsTile(
+            title: '同步本机歌单到 Spotify',
+            subtitle: '有 ${unsynced.length} 个歌单只保存在本机，没有写进账号的音乐库',
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => PlaylistSyncScreen.open(context),
+          ),
         SettingsSwitchTile(
           title: '启用歌单备份',
           subtitle: '支持本机账号自动备份与独立 WebView 多账号收藏歌单备份落盘',

@@ -42,6 +42,13 @@ abstract class LibrarySource {
 
   /// 把 [track] 加到账号歌单 [playlistUri] 的末尾（写入失败抛 [LibrarySourceException]）。
   Future<void> addTrackToPlaylist(String playlistUri, SpotifyTrack track);
+
+  /// 把歌单加入 / 移出账号的音乐库（rootlist；与官方客户端「添加到音乐库」一致）。
+  Future<void> setPlaylistSaved(SpotifyPlaylist playlist, bool saved);
+
+  /// 在账号里新建歌单 [name]（放在音乐库最前）并按顺序写入 [tracks]，返回新歌单的 URI。
+  /// 本地文件等没有 Spotify URI 的曲目会被跳过。
+  Future<String> createPlaylist(String name, List<SpotifyTrack> tracks);
 }
 
 /// 媒体库读写失败（网络、鉴权或接口返回非 2xx）。

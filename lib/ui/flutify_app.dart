@@ -74,6 +74,7 @@ import 'widgets/lyric_bridge_binding.dart';
 import 'widgets/playback_session_keeper.dart';
 import 'widgets/taskbar_lyrics_binding.dart';
 import 'widgets/update_prompt.dart';
+import 'widgets/playlist_sync_prompt.dart';
 
 class FlutifyApp extends StatelessWidget {
   final StorageService storageService;
@@ -698,7 +699,9 @@ class _ThemedApp extends StatelessWidget {
             ),
           );
         },
-        home: const UpdatePromptBinding(child: MainShell()),
+        home: const UpdatePromptBinding(
+          child: PlaylistSyncPromptBinding(child: MainShell()),
+        ),
       ),
     );
   }

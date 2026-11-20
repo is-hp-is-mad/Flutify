@@ -30,6 +30,12 @@ class UpdateStateStore {
     await _prefs.setString('update_resume_from', fromVersion);
   }
 
+  /// 「有歌单没同步到 Spotify」提示已在哪个版本弹过（每个版本最多弹一次）。
+  String get playlistSyncPromptedVersion =>
+      _prefs.getString('playlist_sync_prompted_version') ?? '';
+  Future<bool> setPlaylistSyncPromptedVersion(String value) =>
+      _prefs.setString('playlist_sync_prompted_version', value);
+
   Future<void> clearResumeAfterUpdate() async {
     await _prefs.remove('update_resume_at');
     await _prefs.remove('update_resume_from');

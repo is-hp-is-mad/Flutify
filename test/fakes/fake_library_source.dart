@@ -94,4 +94,24 @@ class FakeLibrarySource implements LibrarySource {
     if (writeError != null) throw writeError!;
     writes.add('add:$playlistUri:${track.id}');
   }
+
+  /// 设置后，[setPlaylistSaved] 抛该异常（优先于 [writeError]）。
+  Object? playlistSaveError;
+
+  @override
+  Future<void> setPlaylistSaved(SpotifyPlaylist playlist, bool saved) async {
+    if (playlistSaveError != null) throw playlistSaveError!;
+    if (writeError != null) throw writeError!;
+    writes.add('${saved ? 'savePlaylist' : 'unsavePlaylist'}:${playlist.id}');
+  }
+
+  int _created = 0;
+
+  @override
+  Future<String> createPlaylist(String name, List<SpotifyTrack> tracks) async {
+    if (writeError != null) throw writeError!;
+    final id = 'created${++_created}';
+    writes.add('create:$name:${tracks.map((t) => t.id).join(',')}');
+    return 'spotify:playlist:$id';
+  }
 }

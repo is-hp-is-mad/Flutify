@@ -174,6 +174,33 @@ class MockLibrarySource implements LibrarySource {
       totalTracks: list.length,
     );
   }
+
+  @override
+  Future<void> setPlaylistSaved(SpotifyPlaylist playlist, bool saved) async {
+    if (saved) {
+      _playlistsByUri[playlist.uri] = playlist;
+      _playlistTracks[playlist.uri] ??= List.of(playlist.tracks);
+    } else {
+      _playlistsByUri.remove(playlist.uri);
+      _playlistTracks.remove(playlist.uri);
+    }
+  }
+
+  @override
+  Future<String> createPlaylist(String name, List<SpotifyTrack> tracks) async {
+    final id = 'mock${DateTime.now().microsecondsSinceEpoch}';
+    final uri = 'spotify:playlist:$id';
+    _playlistTracks[uri] = List.of(tracks);
+    _playlistsByUri[uri] = SpotifyPlaylist(
+      id: id,
+      name: name,
+      uri: uri,
+      ownerName: catalog.currentUser.displayName,
+      tracks: List.unmodifiable(tracks),
+      totalTracks: tracks.length,
+    );
+    return uri;
+  }
 }
 
 /// 内存态 Spotify Connect 服务：零长连接，提供多设备列表与即时状态控制。
