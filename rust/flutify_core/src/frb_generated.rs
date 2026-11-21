@@ -1410,6 +1410,7 @@ fn wire__crate__api__backend__rust_fetch_podcast_episode_impl(
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
             let api_episode_id = <String>::sse_decode(&mut deserializer);
             let api_proxy = <String>::sse_decode(&mut deserializer);
+            let api_accept_language = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, String>(
@@ -1417,6 +1418,7 @@ fn wire__crate__api__backend__rust_fetch_podcast_episode_impl(
                         let output_ok = crate::api::backend::rust_fetch_podcast_episode(
                             api_episode_id,
                             api_proxy,
+                            api_accept_language,
                         )
                         .await?;
                         std::result::Result::Ok(output_ok)
@@ -1451,13 +1453,17 @@ fn wire__crate__api__backend__rust_fetch_podcast_show_impl(
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
             let api_show_id = <String>::sse_decode(&mut deserializer);
             let api_proxy = <String>::sse_decode(&mut deserializer);
+            let api_accept_language = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, String>(
                     (move || async move {
-                        let output_ok =
-                            crate::api::backend::rust_fetch_podcast_show(api_show_id, api_proxy)
-                                .await?;
+                        let output_ok = crate::api::backend::rust_fetch_podcast_show(
+                            api_show_id,
+                            api_proxy,
+                            api_accept_language,
+                        )
+                        .await?;
                         std::result::Result::Ok(output_ok)
                     })()
                     .await,
