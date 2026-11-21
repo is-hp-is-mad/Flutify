@@ -79,8 +79,8 @@ class _BackupSectionState extends State<BackupSection> {
         context,
         context.l10n.backupAccountAdded(
           account.title,
-          account.likedTracks.length,
-          account.playlists.length,
+          context.l10n.likedSongCount(account.likedTracks.length),
+          context.l10n.playlistCount(account.playlists.length),
         ),
         icon: Icons.check_circle_rounded,
         tone: ToastTone.success,
@@ -105,8 +105,8 @@ class _BackupSectionState extends State<BackupSection> {
     AppToast.show(
       context,
       context.l10n.backupSynced(
-        result.syncedPlaylists,
-        result.addedLikedTracks,
+        context.l10n.playlistCount(result.syncedPlaylists),
+        context.l10n.likedSongCount(result.addedLikedTracks),
       ),
       icon: Icons.sync_rounded,
       tone: ToastTone.success,
@@ -126,7 +126,7 @@ class _BackupSectionState extends State<BackupSection> {
     // 在后台导入：先提示，界面不等待；完成后再提示结果
     AppToast.show(
       context,
-      context.l10n.backupImporting(selected.length),
+      context.l10n.backupImporting(context.l10n.playlistCount(selected.length)),
       icon: Icons.downloading_rounded,
     );
     final result = await service.importSelectedPlaylists(selected);
@@ -134,8 +134,8 @@ class _BackupSectionState extends State<BackupSection> {
     AppToast.show(
       context,
       context.l10n.backupImported(
-        result.syncedPlaylists,
-        result.addedLikedTracks,
+        context.l10n.playlistCount(result.syncedPlaylists),
+        context.l10n.likedSongCount(result.addedLikedTracks),
       ),
       icon: Icons.playlist_add_check_rounded,
       tone: ToastTone.success,
@@ -429,8 +429,8 @@ class _BackupAccountTile extends StatelessWidget {
     return SettingsTile(
       title: l10n.backupAccountTitle(account.title, badge),
       subtitle: l10n.backupAccountSubtitle(
-        account.likedTracks.length,
-        account.playlists.length,
+        l10n.likedSongCount(account.likedTracks.length),
+        l10n.playlistCount(account.playlists.length),
       ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
@@ -698,7 +698,7 @@ class _TrackImportDialogState extends State<_TrackImportDialog> {
                     AppToast.show(
                       context,
                       l10n.backupImportedAsPlaylist(
-                        selected.length,
+                        l10n.songCount(selected.length),
                         widget.playlist.name,
                       ),
                       icon: Icons.playlist_add_check_rounded,
@@ -720,8 +720,8 @@ class _TrackImportDialogState extends State<_TrackImportDialog> {
                   AppToast.show(
                     context,
                     isExternalBackupLiked
-                        ? l10n.backupLikedMerged(selected.length, added)
-                        : l10n.backupLikedSaved(selected.length, added),
+                        ? l10n.backupLikedMerged(l10n.songCount(selected.length), added)
+                        : l10n.backupLikedSaved(l10n.songCount(selected.length), added),
                     icon: Icons.favorite_rounded,
                     tone: ToastTone.success,
                   );

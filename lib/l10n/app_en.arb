@@ -799,7 +799,7 @@
   "backupTitle": "Playlist backup",
   "backupFooter": "Browse each account's liked songs and playlists, and import any selection into this account.",
   "backupUnsyncedTitle": "Sync local playlists to Spotify",
-  "backupUnsyncedSubtitle": "{count} playlists exist only on this device and are not in your account library yet",
+  "backupUnsyncedSubtitle": "{count, plural, =1{1 playlist exists only on this device and is not in your account library yet} other{{count} playlists exist only on this device and are not in your account library yet}}",
   "@backupUnsyncedSubtitle": {
     "placeholders": {
       "count": {
@@ -843,17 +843,17 @@
   "backupSyncToAccountSubtitle": "Merge liked songs from the checked accounts into this one and sync their playlists",
   "backupNow": "Back up all accounts now",
   "backupNowSubtitle": "Fetch the latest saved items from every account and store them locally",
-  "backupAccountAdded": "Backed up \"{title}\" ({liked} liked songs, {playlists} playlists)",
+  "backupAccountAdded": "Backed up \"{title}\" ({liked}, {playlists})",
   "@backupAccountAdded": {
     "placeholders": {
       "title": {
         "type": "String"
       },
       "liked": {
-        "type": "int"
+        "type": "String"
       },
       "playlists": {
-        "type": "int"
+        "type": "String"
       }
     }
   },
@@ -865,33 +865,33 @@
       }
     }
   },
-  "backupSynced": "Synced {playlists} playlists and merged {liked} liked songs",
+  "backupSynced": "Synced {playlists} and merged {liked}",
   "@backupSynced": {
     "placeholders": {
       "playlists": {
-        "type": "int"
+        "type": "String"
       },
       "liked": {
-        "type": "int"
+        "type": "String"
       }
     }
   },
-  "backupImporting": "Importing {count} playlists in the background…",
+  "backupImporting": "Importing {playlists} in the background…",
   "@backupImporting": {
     "placeholders": {
-      "count": {
-        "type": "int"
+      "playlists": {
+        "type": "String"
       }
     }
   },
-  "backupImported": "Imported {playlists} playlists and merged {liked} liked songs",
+  "backupImported": "Imported {playlists} and merged {liked}",
   "@backupImported": {
     "placeholders": {
       "playlists": {
-        "type": "int"
+        "type": "String"
       },
       "liked": {
-        "type": "int"
+        "type": "String"
       }
     }
   },
@@ -928,14 +928,14 @@
       }
     }
   },
-  "backupAccountSubtitle": "{liked} liked songs · {playlists} playlists saved",
+  "backupAccountSubtitle": "{liked} · {playlists} saved",
   "@backupAccountSubtitle": {
     "placeholders": {
       "liked": {
-        "type": "int"
+        "type": "String"
       },
       "playlists": {
-        "type": "int"
+        "type": "String"
       }
     }
   },
@@ -972,11 +972,11 @@
       }
     }
   },
-  "backupImportedAsPlaylist": "Imported {count} songs as the playlist \"{name}\"",
+  "backupImportedAsPlaylist": "Imported {songs} as the playlist \"{name}\"",
   "@backupImportedAsPlaylist": {
     "placeholders": {
-      "count": {
-        "type": "int"
+      "songs": {
+        "type": "String"
       },
       "name": {
         "type": "String"
@@ -992,22 +992,22 @@
     }
   },
   "backupImportAsPlaylistShort": "Import as playlist",
-  "backupLikedMerged": "Merged {count} songs into Liked Songs ({added} new)",
+  "backupLikedMerged": "Merged {songs} into Liked Songs ({added} new)",
   "@backupLikedMerged": {
     "placeholders": {
-      "count": {
-        "type": "int"
+      "songs": {
+        "type": "String"
       },
       "added": {
         "type": "int"
       }
     }
   },
-  "backupLikedSaved": "Saved {count} songs ({added} new)",
+  "backupLikedSaved": "Saved {songs} ({added} new)",
   "@backupLikedSaved": {
     "placeholders": {
-      "count": {
-        "type": "int"
+      "songs": {
+        "type": "String"
       },
       "added": {
         "type": "int"
@@ -1034,7 +1034,7 @@
   "backupLoginTitle": "Sign in to the Spotify account to back up",
   "playlistSyncTitle": "Sync playlists to Spotify",
   "playlistSyncIntro": "In older versions, playlists you saved, created or imported from a backup stayed on this device, so the official app and web player could not see them. Selected playlists are written to your account: other people's playlists are added to your library, and your own are recreated under the same name.",
-  "playlistSyncDone": "Done: {count} playlists synced to your account.",
+  "playlistSyncDone": "{count, plural, =1{Done: 1 playlist synced to your account.} other{Done: {count} playlists synced to your account.}}",
   "@playlistSyncDone": {
     "placeholders": {
       "count": {
@@ -1064,11 +1064,11 @@
     }
   },
   "playlistSyncStart": "Start sync",
-  "playlistSyncCreate": "Create in your account ({count} songs)",
+  "playlistSyncCreate": "Create in your account ({songs})",
   "@playlistSyncCreate": {
     "placeholders": {
-      "count": {
-        "type": "int"
+      "songs": {
+        "type": "String"
       }
     }
   },
@@ -1083,7 +1083,7 @@
       }
     }
   },
-  "playlistSyncPromptTitle": "{count} playlists aren't synced to Spotify",
+  "playlistSyncPromptTitle": "{count, plural, =1{1 playlist is not synced to Spotify} other{{count} playlists are not synced to Spotify}}",
   "@playlistSyncPromptTitle": {
     "placeholders": {
       "count": {
@@ -1095,5 +1095,21 @@
   "playlistSyncPromptLater": "Not now",
   "playlistSyncPromptGo": "Sync now",
   "playerCanvasPlay": "Play Canvas",
-  "playerCanvasStop": "Stop Canvas"
+  "playerCanvasStop": "Stop Canvas",
+  "playlistCount": "{count, plural, =1{1 playlist} other{{count} playlists}}",
+  "@playlistCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "likedSongCount": "{count, plural, =1{1 liked song} other{{count} liked songs}}",
+  "@likedSongCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

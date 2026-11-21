@@ -2415,7 +2415,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String backupUnsyncedSubtitle(int count) {
-    return '$count playlists exist only on this device and are not in your account library yet';
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count playlists exist only on this device and are not in your account library yet',
+      one: '1 playlist exists only on this device and is not in your account library yet',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -2476,8 +2482,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'Fetch the latest saved items from every account and store them locally';
 
   @override
-  String backupAccountAdded(String title, int liked, int playlists) {
-    return 'Backed up "$title" ($liked liked songs, $playlists playlists)';
+  String backupAccountAdded(String title, String liked, String playlists) {
+    return 'Backed up "$title" ($liked, $playlists)';
   }
 
   @override
@@ -2486,18 +2492,18 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String backupSynced(int playlists, int liked) {
-    return 'Synced $playlists playlists and merged $liked liked songs';
+  String backupSynced(String playlists, String liked) {
+    return 'Synced $playlists and merged $liked';
   }
 
   @override
-  String backupImporting(int count) {
-    return 'Importing $count playlists in the background…';
+  String backupImporting(String playlists) {
+    return 'Importing $playlists in the background…';
   }
 
   @override
-  String backupImported(int playlists, int liked) {
-    return 'Imported $playlists playlists and merged $liked liked songs';
+  String backupImported(String playlists, String liked) {
+    return 'Imported $playlists and merged $liked';
   }
 
   @override
@@ -2525,8 +2531,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String backupAccountSubtitle(int liked, int playlists) {
-    return '$liked liked songs · $playlists playlists saved';
+  String backupAccountSubtitle(String liked, String playlists) {
+    return '$liked · $playlists saved';
   }
 
   @override
@@ -2563,8 +2569,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String backupImportedAsPlaylist(int count, String name) {
-    return 'Imported $count songs as the playlist "$name"';
+  String backupImportedAsPlaylist(String songs, String name) {
+    return 'Imported $songs as the playlist "$name"';
   }
 
   @override
@@ -2576,13 +2582,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupImportAsPlaylistShort => 'Import as playlist';
 
   @override
-  String backupLikedMerged(int count, int added) {
-    return 'Merged $count songs into Liked Songs ($added new)';
+  String backupLikedMerged(String songs, int added) {
+    return 'Merged $songs into Liked Songs ($added new)';
   }
 
   @override
-  String backupLikedSaved(int count, int added) {
-    return 'Saved $count songs ($added new)';
+  String backupLikedSaved(String songs, int added) {
+    return 'Saved $songs ($added new)';
   }
 
   @override
@@ -2610,7 +2616,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String playlistSyncDone(int count) {
-    return 'Done: $count playlists synced to your account.';
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Done: $count playlists synced to your account.',
+      one: 'Done: 1 playlist synced to your account.',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -2634,8 +2646,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get playlistSyncStart => 'Start sync';
 
   @override
-  String playlistSyncCreate(int count) {
-    return 'Create in your account ($count songs)';
+  String playlistSyncCreate(String songs) {
+    return 'Create in your account ($songs)';
   }
 
   @override
@@ -2654,7 +2666,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String playlistSyncPromptTitle(int count) {
-    return '$count playlists aren\'t synced to Spotify';
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count playlists are not synced to Spotify',
+      one: '1 playlist is not synced to Spotify',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -2672,4 +2690,26 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get playerCanvasStop => 'Stop Canvas';
+
+  @override
+  String playlistCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count playlists',
+      one: '1 playlist',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String likedSongCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count liked songs',
+      one: '1 liked song',
+    );
+    return '$_temp0';
+  }
 }

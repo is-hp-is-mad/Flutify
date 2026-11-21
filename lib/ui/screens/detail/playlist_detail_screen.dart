@@ -530,8 +530,14 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       AppToast.show(
         context,
         isExternalBackupLikedSongs
-            ? context.l10n.backupLikedMerged(selectedTracks.length, added)
-            : context.l10n.backupLikedSaved(selectedTracks.length, added),
+            ? context.l10n.backupLikedMerged(
+                context.l10n.songCount(selectedTracks.length),
+                added,
+              )
+            : context.l10n.backupLikedSaved(
+                context.l10n.songCount(selectedTracks.length),
+                added,
+              ),
         icon: Icons.favorite_rounded,
         tone: ToastTone.success,
       );
@@ -550,7 +556,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       AppToast.show(
         context,
         context.l10n.backupImportedAsPlaylist(
-          selectedTracks.length,
+          context.l10n.songCount(selectedTracks.length),
           playlist.name,
         ),
         icon: Icons.playlist_add_check_rounded,

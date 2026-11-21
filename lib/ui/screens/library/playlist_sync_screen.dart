@@ -159,7 +159,7 @@ class _PlaylistSyncScreenState extends State<PlaylistSyncScreen> {
     final count = p.tracks.isNotEmpty ? p.tracks.length : p.totalTracks;
     final state = _states[p.id] ?? _SyncState.pending;
     final l10n = context.l10n;
-    final action = own ? l10n.playlistSyncCreate(count) : l10n.playlistSyncAdd;
+    final action = own ? l10n.playlistSyncCreate(l10n.songCount(count)) : l10n.playlistSyncAdd;
     final (String status, Color color) = switch (state) {
       _SyncState.pending => (action, colors.onSurfaceVariant),
       _SyncState.running => (l10n.playlistSyncStateRunning, colors.primary),

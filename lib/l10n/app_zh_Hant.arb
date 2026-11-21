@@ -1120,17 +1120,17 @@
   "backupSyncToAccountSubtitle": "把已勾選帳號的已點贊歌曲併入本帳號，歌單同步到本帳號",
   "backupNow": "立即備份全部帳號",
   "backupNowSubtitle": "擷取各帳號最新收藏並儲存到本機",
-  "backupAccountAdded": "已備份帳號「{title}」（{liked} 首已點贊歌曲，{playlists} 個歌單）",
+  "backupAccountAdded": "已備份帳號「{title}」（{liked}，{playlists}）",
   "@backupAccountAdded": {
     "placeholders": {
       "title": {
         "type": "String"
       },
       "liked": {
-        "type": "int"
+        "type": "String"
       },
       "playlists": {
-        "type": "int"
+        "type": "String"
       }
     }
   },
@@ -1142,33 +1142,33 @@
       }
     }
   },
-  "backupSynced": "已同步 {playlists} 個歌單，併入 {liked} 首已點贊歌曲",
+  "backupSynced": "已同步 {playlists}，併入 {liked}",
   "@backupSynced": {
     "placeholders": {
       "playlists": {
-        "type": "int"
+        "type": "String"
       },
       "liked": {
-        "type": "int"
+        "type": "String"
       }
     }
   },
-  "backupImporting": "正在背景匯入 {count} 個歌單…",
+  "backupImporting": "正在背景匯入 {playlists}…",
   "@backupImporting": {
     "placeholders": {
-      "count": {
-        "type": "int"
+      "playlists": {
+        "type": "String"
       }
     }
   },
-  "backupImported": "已匯入 {playlists} 個歌單，併入 {liked} 首已點贊歌曲",
+  "backupImported": "已匯入 {playlists}，併入 {liked}",
   "@backupImported": {
     "placeholders": {
       "playlists": {
-        "type": "int"
+        "type": "String"
       },
       "liked": {
-        "type": "int"
+        "type": "String"
       }
     }
   },
@@ -1205,14 +1205,14 @@
       }
     }
   },
-  "backupAccountSubtitle": "已儲存 {liked} 首已點贊歌曲 · {playlists} 個歌單",
+  "backupAccountSubtitle": "已儲存 {liked} · {playlists}",
   "@backupAccountSubtitle": {
     "placeholders": {
       "liked": {
-        "type": "int"
+        "type": "String"
       },
       "playlists": {
-        "type": "int"
+        "type": "String"
       }
     }
   },
@@ -1249,11 +1249,11 @@
       }
     }
   },
-  "backupImportedAsPlaylist": "已將所選 {count} 首歌曲匯入為歌單「{name}」",
+  "backupImportedAsPlaylist": "已將所選 {songs} 匯入為歌單「{name}」",
   "@backupImportedAsPlaylist": {
     "placeholders": {
-      "count": {
-        "type": "int"
+      "songs": {
+        "type": "String"
       },
       "name": {
         "type": "String"
@@ -1269,22 +1269,22 @@
     }
   },
   "backupImportAsPlaylistShort": "匯入為本帳號歌單",
-  "backupLikedMerged": "已將 {count} 首歌曲併入「已點贊的歌曲」（新增 {added} 首）",
+  "backupLikedMerged": "已將 {songs} 併入「已點贊的歌曲」（新增 {added} 首）",
   "@backupLikedMerged": {
     "placeholders": {
-      "count": {
-        "type": "int"
+      "songs": {
+        "type": "String"
       },
       "added": {
         "type": "int"
       }
     }
   },
-  "backupLikedSaved": "已收藏 {count} 首歌曲（新增 {added} 首）",
+  "backupLikedSaved": "已收藏 {songs}（新增 {added} 首）",
   "@backupLikedSaved": {
     "placeholders": {
-      "count": {
-        "type": "int"
+      "songs": {
+        "type": "String"
       },
       "added": {
         "type": "int"
@@ -1341,11 +1341,11 @@
     }
   },
   "playlistSyncStart": "開始同步",
-  "playlistSyncCreate": "在帳號中建立歌單（{count} 首）",
+  "playlistSyncCreate": "在帳號中建立歌單（{songs}）",
   "@playlistSyncCreate": {
     "placeholders": {
-      "count": {
-        "type": "int"
+      "songs": {
+        "type": "String"
       }
     }
   },
@@ -1372,5 +1372,21 @@
   "playlistSyncPromptLater": "以後再說",
   "playlistSyncPromptGo": "前往同步",
   "playerCanvasPlay": "播放 Canvas",
-  "playerCanvasStop": "停止 Canvas"
+  "playerCanvasStop": "停止 Canvas",
+  "playlistCount": "{count} 個歌單",
+  "@playlistCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "likedSongCount": "{count} 首已點贊歌曲",
+  "@likedSongCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

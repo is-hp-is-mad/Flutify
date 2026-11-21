@@ -4412,8 +4412,8 @@ abstract class AppLocalizations {
   /// No description provided for @backupAccountAdded.
   ///
   /// In zh, this message translates to:
-  /// **'已备份账号「{title}」（{liked} 首已点赞歌曲，{playlists} 个歌单）'**
-  String backupAccountAdded(String title, int liked, int playlists);
+  /// **'已备份账号「{title}」（{liked}，{playlists}）'**
+  String backupAccountAdded(String title, String liked, String playlists);
 
   /// No description provided for @backupAccountAddFailed.
   ///
@@ -4424,20 +4424,20 @@ abstract class AppLocalizations {
   /// No description provided for @backupSynced.
   ///
   /// In zh, this message translates to:
-  /// **'已同步 {playlists} 个歌单，并入 {liked} 首已点赞歌曲'**
-  String backupSynced(int playlists, int liked);
+  /// **'已同步 {playlists}，并入 {liked}'**
+  String backupSynced(String playlists, String liked);
 
   /// No description provided for @backupImporting.
   ///
   /// In zh, this message translates to:
-  /// **'正在后台导入 {count} 个歌单…'**
-  String backupImporting(int count);
+  /// **'正在后台导入 {playlists}…'**
+  String backupImporting(String playlists);
 
   /// No description provided for @backupImported.
   ///
   /// In zh, this message translates to:
-  /// **'已导入 {playlists} 个歌单，并入 {liked} 首已点赞歌曲'**
-  String backupImported(int playlists, int liked);
+  /// **'已导入 {playlists}，并入 {liked}'**
+  String backupImported(String playlists, String liked);
 
   /// No description provided for @backupSavedAll.
   ///
@@ -4478,8 +4478,8 @@ abstract class AppLocalizations {
   /// No description provided for @backupAccountSubtitle.
   ///
   /// In zh, this message translates to:
-  /// **'已保存 {liked} 首已点赞歌曲 · {playlists} 个歌单'**
-  String backupAccountSubtitle(int liked, int playlists);
+  /// **'已保存 {liked} · {playlists}'**
+  String backupAccountSubtitle(String liked, String playlists);
 
   /// No description provided for @backupIncludeInSync.
   ///
@@ -4538,8 +4538,8 @@ abstract class AppLocalizations {
   /// No description provided for @backupImportedAsPlaylist.
   ///
   /// In zh, this message translates to:
-  /// **'已将所选 {count} 首歌曲导入为歌单「{name}」'**
-  String backupImportedAsPlaylist(int count, String name);
+  /// **'已将所选 {songs} 导入为歌单「{name}」'**
+  String backupImportedAsPlaylist(String songs, String name);
 
   /// No description provided for @backupImportAsPlaylist.
   ///
@@ -4556,14 +4556,14 @@ abstract class AppLocalizations {
   /// No description provided for @backupLikedMerged.
   ///
   /// In zh, this message translates to:
-  /// **'已将 {count} 首歌曲并入「已点赞的歌曲」（新增 {added} 首）'**
-  String backupLikedMerged(int count, int added);
+  /// **'已将 {songs} 并入「已点赞的歌曲」（新增 {added} 首）'**
+  String backupLikedMerged(String songs, int added);
 
   /// No description provided for @backupLikedSaved.
   ///
   /// In zh, this message translates to:
-  /// **'已收藏 {count} 首歌曲（新增 {added} 首）'**
-  String backupLikedSaved(int count, int added);
+  /// **'已收藏 {songs}（新增 {added} 首）'**
+  String backupLikedSaved(String songs, int added);
 
   /// No description provided for @backupMergeLiked.
   ///
@@ -4640,8 +4640,8 @@ abstract class AppLocalizations {
   /// No description provided for @playlistSyncCreate.
   ///
   /// In zh, this message translates to:
-  /// **'在账号中新建歌单（{count} 首）'**
-  String playlistSyncCreate(int count);
+  /// **'在账号中新建歌单（{songs}）'**
+  String playlistSyncCreate(String songs);
 
   /// No description provided for @playlistSyncAdd.
   ///
@@ -4702,6 +4702,18 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'停止 Canvas'**
   String get playerCanvasStop;
+
+  /// No description provided for @playlistCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 个歌单'**
+  String playlistCount(int count);
+
+  /// No description provided for @likedSongCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 首已点赞歌曲'**
+  String likedSongCount(int count);
 
 }
 

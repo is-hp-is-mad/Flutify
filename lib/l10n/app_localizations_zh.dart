@@ -2336,8 +2336,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get backupNowSubtitle => '拉取各账号最新收藏并保存到本地';
 
   @override
-  String backupAccountAdded(String title, int liked, int playlists) {
-    return '已备份账号「$title」（$liked 首已点赞歌曲，$playlists 个歌单）';
+  String backupAccountAdded(String title, String liked, String playlists) {
+    return '已备份账号「$title」（$liked，$playlists）';
   }
 
   @override
@@ -2346,18 +2346,18 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String backupSynced(int playlists, int liked) {
-    return '已同步 $playlists 个歌单，并入 $liked 首已点赞歌曲';
+  String backupSynced(String playlists, String liked) {
+    return '已同步 $playlists，并入 $liked';
   }
 
   @override
-  String backupImporting(int count) {
-    return '正在后台导入 $count 个歌单…';
+  String backupImporting(String playlists) {
+    return '正在后台导入 $playlists…';
   }
 
   @override
-  String backupImported(int playlists, int liked) {
-    return '已导入 $playlists 个歌单，并入 $liked 首已点赞歌曲';
+  String backupImported(String playlists, String liked) {
+    return '已导入 $playlists，并入 $liked';
   }
 
   @override
@@ -2385,8 +2385,8 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String backupAccountSubtitle(int liked, int playlists) {
-    return '已保存 $liked 首已点赞歌曲 · $playlists 个歌单';
+  String backupAccountSubtitle(String liked, String playlists) {
+    return '已保存 $liked · $playlists';
   }
 
   @override
@@ -2423,8 +2423,8 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String backupImportedAsPlaylist(int count, String name) {
-    return '已将所选 $count 首歌曲导入为歌单「$name」';
+  String backupImportedAsPlaylist(String songs, String name) {
+    return '已将所选 $songs 导入为歌单「$name」';
   }
 
   @override
@@ -2436,13 +2436,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get backupImportAsPlaylistShort => '导入为本账号歌单';
 
   @override
-  String backupLikedMerged(int count, int added) {
-    return '已将 $count 首歌曲并入「已点赞的歌曲」（新增 $added 首）';
+  String backupLikedMerged(String songs, int added) {
+    return '已将 $songs 并入「已点赞的歌曲」（新增 $added 首）';
   }
 
   @override
-  String backupLikedSaved(int count, int added) {
-    return '已收藏 $count 首歌曲（新增 $added 首）';
+  String backupLikedSaved(String songs, int added) {
+    return '已收藏 $songs（新增 $added 首）';
   }
 
   @override
@@ -2493,8 +2493,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get playlistSyncStart => '开始同步';
 
   @override
-  String playlistSyncCreate(int count) {
-    return '在账号中新建歌单（$count 首）';
+  String playlistSyncCreate(String songs) {
+    return '在账号中新建歌单（$songs）';
   }
 
   @override
@@ -2531,6 +2531,16 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get playerCanvasStop => '停止 Canvas';
+
+  @override
+  String playlistCount(int count) {
+    return '$count 个歌单';
+  }
+
+  @override
+  String likedSongCount(int count) {
+    return '$count 首已点赞歌曲';
+  }
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -4860,8 +4870,8 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get backupNowSubtitle => '擷取各帳號最新收藏並儲存到本機';
 
   @override
-  String backupAccountAdded(String title, int liked, int playlists) {
-    return '已備份帳號「$title」（$liked 首已點贊歌曲，$playlists 個歌單）';
+  String backupAccountAdded(String title, String liked, String playlists) {
+    return '已備份帳號「$title」（$liked，$playlists）';
   }
 
   @override
@@ -4870,18 +4880,18 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   }
 
   @override
-  String backupSynced(int playlists, int liked) {
-    return '已同步 $playlists 個歌單，併入 $liked 首已點贊歌曲';
+  String backupSynced(String playlists, String liked) {
+    return '已同步 $playlists，併入 $liked';
   }
 
   @override
-  String backupImporting(int count) {
-    return '正在背景匯入 $count 個歌單…';
+  String backupImporting(String playlists) {
+    return '正在背景匯入 $playlists…';
   }
 
   @override
-  String backupImported(int playlists, int liked) {
-    return '已匯入 $playlists 個歌單，併入 $liked 首已點贊歌曲';
+  String backupImported(String playlists, String liked) {
+    return '已匯入 $playlists，併入 $liked';
   }
 
   @override
@@ -4904,8 +4914,8 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get backupBadgeExternal => '外部備份帳號';
 
   @override
-  String backupAccountSubtitle(int liked, int playlists) {
-    return '已儲存 $liked 首已點贊歌曲 · $playlists 個歌單';
+  String backupAccountSubtitle(String liked, String playlists) {
+    return '已儲存 $liked · $playlists';
   }
 
   @override
@@ -4942,8 +4952,8 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   }
 
   @override
-  String backupImportedAsPlaylist(int count, String name) {
-    return '已將所選 $count 首歌曲匯入為歌單「$name」';
+  String backupImportedAsPlaylist(String songs, String name) {
+    return '已將所選 $songs 匯入為歌單「$name」';
   }
 
   @override
@@ -4955,8 +4965,8 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get backupImportAsPlaylistShort => '匯入為本帳號歌單';
 
   @override
-  String backupLikedMerged(int count, int added) {
-    return '已將 $count 首歌曲併入「已點贊的歌曲」（新增 $added 首）';
+  String backupLikedMerged(String songs, int added) {
+    return '已將 $songs 併入「已點贊的歌曲」（新增 $added 首）';
   }
 
   @override
@@ -5007,8 +5017,8 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get playlistSyncStart => '開始同步';
 
   @override
-  String playlistSyncCreate(int count) {
-    return '在帳號中建立歌單（$count 首）';
+  String playlistSyncCreate(String songs) {
+    return '在帳號中建立歌單（$songs）';
   }
 
   @override
@@ -5033,4 +5043,14 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get playlistSyncPromptGo => '前往同步';
+
+  @override
+  String playlistCount(int count) {
+    return '$count 個歌單';
+  }
+
+  @override
+  String likedSongCount(int count) {
+    return '$count 首已點贊歌曲';
+  }
 }

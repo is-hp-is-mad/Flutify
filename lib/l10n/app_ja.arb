@@ -836,17 +836,17 @@
   "backupSyncToAccountSubtitle": "チェックしたアカウントのお気に入りの曲をこのアカウントに統合し、プレイリストを同期します",
   "backupNow": "すべてのアカウントを今すぐバックアップ",
   "backupNowSubtitle": "各アカウントの最新のお気に入りを取得し、ローカルに保存します",
-  "backupAccountAdded": "「{title}」をバックアップしました（お気に入り {liked} 曲、プレイリスト {playlists} 件）",
+  "backupAccountAdded": "「{title}」をバックアップしました（{liked}、{playlists}）",
   "@backupAccountAdded": {
     "placeholders": {
       "title": {
         "type": "String"
       },
       "liked": {
-        "type": "int"
+        "type": "String"
       },
       "playlists": {
-        "type": "int"
+        "type": "String"
       }
     }
   },
@@ -858,33 +858,33 @@
       }
     }
   },
-  "backupSynced": "プレイリスト {playlists} 件を同期し、お気に入り {liked} 曲を統合しました",
+  "backupSynced": "{playlists}を同期し、{liked}を統合しました",
   "@backupSynced": {
     "placeholders": {
       "playlists": {
-        "type": "int"
+        "type": "String"
       },
       "liked": {
-        "type": "int"
+        "type": "String"
       }
     }
   },
-  "backupImporting": "プレイリスト {count} 件をバックグラウンドで取り込み中…",
+  "backupImporting": "{playlists}をバックグラウンドで取り込み中…",
   "@backupImporting": {
     "placeholders": {
-      "count": {
-        "type": "int"
+      "playlists": {
+        "type": "String"
       }
     }
   },
-  "backupImported": "プレイリスト {playlists} 件を取り込み、お気に入り {liked} 曲を統合しました",
+  "backupImported": "{playlists}を取り込み、{liked}を統合しました",
   "@backupImported": {
     "placeholders": {
       "playlists": {
-        "type": "int"
+        "type": "String"
       },
       "liked": {
-        "type": "int"
+        "type": "String"
       }
     }
   },
@@ -921,14 +921,14 @@
       }
     }
   },
-  "backupAccountSubtitle": "お気に入り {liked} 曲 · プレイリスト {playlists} 件を保存済み",
+  "backupAccountSubtitle": "{liked} · {playlists}を保存済み",
   "@backupAccountSubtitle": {
     "placeholders": {
       "liked": {
-        "type": "int"
+        "type": "String"
       },
       "playlists": {
-        "type": "int"
+        "type": "String"
       }
     }
   },
@@ -965,11 +965,11 @@
       }
     }
   },
-  "backupImportedAsPlaylist": "選んだ {count} 曲をプレイリスト「{name}」として取り込みました",
+  "backupImportedAsPlaylist": "選んだ {songs} をプレイリスト「{name}」として取り込みました",
   "@backupImportedAsPlaylist": {
     "placeholders": {
-      "count": {
-        "type": "int"
+      "songs": {
+        "type": "String"
       },
       "name": {
         "type": "String"
@@ -985,22 +985,22 @@
     }
   },
   "backupImportAsPlaylistShort": "プレイリストとして取り込む",
-  "backupLikedMerged": "{count} 曲を「お気に入りの曲」に統合しました（新規 {added} 曲）",
+  "backupLikedMerged": "{songs}を「お気に入りの曲」に統合しました（新規 {added} 曲）",
   "@backupLikedMerged": {
     "placeholders": {
-      "count": {
-        "type": "int"
+      "songs": {
+        "type": "String"
       },
       "added": {
         "type": "int"
       }
     }
   },
-  "backupLikedSaved": "{count} 曲を保存しました（新規 {added} 曲）",
+  "backupLikedSaved": "{songs}を保存しました（新規 {added} 曲）",
   "@backupLikedSaved": {
     "placeholders": {
-      "count": {
-        "type": "int"
+      "songs": {
+        "type": "String"
       },
       "added": {
         "type": "int"
@@ -1057,11 +1057,11 @@
     }
   },
   "playlistSyncStart": "同期を開始",
-  "playlistSyncCreate": "アカウントに作成（{count} 曲）",
+  "playlistSyncCreate": "アカウントに作成（{songs}）",
   "@playlistSyncCreate": {
     "placeholders": {
-      "count": {
-        "type": "int"
+      "songs": {
+        "type": "String"
       }
     }
   },
@@ -1088,5 +1088,21 @@
   "playlistSyncPromptLater": "あとで",
   "playlistSyncPromptGo": "同期する",
   "playerCanvasPlay": "Canvas を再生",
-  "playerCanvasStop": "Canvas を停止"
+  "playerCanvasStop": "Canvas を停止",
+  "playlistCount": "{count} 件のプレイリスト",
+  "@playlistCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "likedSongCount": "お気に入り {count} 曲",
+  "@likedSongCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

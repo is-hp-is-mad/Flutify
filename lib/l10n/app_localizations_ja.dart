@@ -2372,8 +2372,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get backupNowSubtitle => '各アカウントの最新のお気に入りを取得し、ローカルに保存します';
 
   @override
-  String backupAccountAdded(String title, int liked, int playlists) {
-    return '「$title」をバックアップしました（お気に入り $liked 曲、プレイリスト $playlists 件）';
+  String backupAccountAdded(String title, String liked, String playlists) {
+    return '「$title」をバックアップしました（$liked、$playlists）';
   }
 
   @override
@@ -2382,18 +2382,18 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String backupSynced(int playlists, int liked) {
-    return 'プレイリスト $playlists 件を同期し、お気に入り $liked 曲を統合しました';
+  String backupSynced(String playlists, String liked) {
+    return '${playlists}を同期し、${liked}を統合しました';
   }
 
   @override
-  String backupImporting(int count) {
-    return 'プレイリスト $count 件をバックグラウンドで取り込み中…';
+  String backupImporting(String playlists) {
+    return '${playlists}をバックグラウンドで取り込み中…';
   }
 
   @override
-  String backupImported(int playlists, int liked) {
-    return 'プレイリスト $playlists 件を取り込み、お気に入り $liked 曲を統合しました';
+  String backupImported(String playlists, String liked) {
+    return '${playlists}を取り込み、${liked}を統合しました';
   }
 
   @override
@@ -2421,8 +2421,8 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String backupAccountSubtitle(int liked, int playlists) {
-    return 'お気に入り $liked 曲 · プレイリスト $playlists 件を保存済み';
+  String backupAccountSubtitle(String liked, String playlists) {
+    return '$liked · ${playlists}を保存済み';
   }
 
   @override
@@ -2459,8 +2459,8 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String backupImportedAsPlaylist(int count, String name) {
-    return '選んだ $count 曲をプレイリスト「$name」として取り込みました';
+  String backupImportedAsPlaylist(String songs, String name) {
+    return '選んだ $songs をプレイリスト「$name」として取り込みました';
   }
 
   @override
@@ -2472,13 +2472,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get backupImportAsPlaylistShort => 'プレイリストとして取り込む';
 
   @override
-  String backupLikedMerged(int count, int added) {
-    return '$count 曲を「お気に入りの曲」に統合しました（新規 $added 曲）';
+  String backupLikedMerged(String songs, int added) {
+    return '${songs}を「お気に入りの曲」に統合しました（新規 $added 曲）';
   }
 
   @override
-  String backupLikedSaved(int count, int added) {
-    return '$count 曲を保存しました（新規 $added 曲）';
+  String backupLikedSaved(String songs, int added) {
+    return '${songs}を保存しました（新規 $added 曲）';
   }
 
   @override
@@ -2529,8 +2529,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get playlistSyncStart => '同期を開始';
 
   @override
-  String playlistSyncCreate(int count) {
-    return 'アカウントに作成（$count 曲）';
+  String playlistSyncCreate(String songs) {
+    return 'アカウントに作成（$songs）';
   }
 
   @override
@@ -2567,4 +2567,14 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get playerCanvasStop => 'Canvas を停止';
+
+  @override
+  String playlistCount(int count) {
+    return '$count 件のプレイリスト';
+  }
+
+  @override
+  String likedSongCount(int count) {
+    return 'お気に入り $count 曲';
+  }
 }
