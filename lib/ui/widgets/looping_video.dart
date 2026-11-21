@@ -5,9 +5,9 @@ import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
-import '../../core/platform/flutify_platform.dart';
 import '../../services/eme/eme_player.dart';
 import 'cover_image.dart';
+import 'mpv_looping_video.dart';
 
 /// 静音循环的竖版短视频（官方 Canvas / 发现流卡片）：直接流式播放 CDN 地址。
 ///
@@ -134,13 +134,22 @@ class _LoopingVideoState extends State<LoopingVideo> {
   @override
   Widget build(BuildContext context) {
     final poster = CoverImage(url: widget.posterUrl);
-    final canPlay =
-        _envReady &&
-        widget.active &&
-        widget.videoUrl.startsWith('https://') &&
-        !FlutifyPlatform.isLinuxDesktop &&
-        !_failed;
-    if (!canPlay) return poster;
+    if (!widget.active ||
+        !widget.videoUrl.startsWith('https://') ||
+        _failed) {
+      return poster;
+    }
+    // 桌面端（Windows / macOS / Linux）：media_kit 原生纹理，取代 WebView
+    if (mpvVideoSupported) {
+      return MpvLoopingVideo(
+        url: widget.videoUrl,
+        placeholder: poster,
+        active: widget.active,
+        playing: widget.playing,
+      );
+    }
+    // 移动端（Android / iOS）走 InAppWebView
+    if (!_envReady) return poster;
     final revision = _revision;
     return Stack(
       fit: StackFit.expand,

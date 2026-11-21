@@ -16,6 +16,7 @@ import '../../../../services/canvas/canvas_service.dart';
 import '../../../../services/eme/eme_player.dart';
 import '../../../../services/spotify_api_service.dart';
 import '../../../widgets/cover_image.dart';
+import '../../../widgets/mpv_looping_video.dart';
 
 /// Shares the existing artwork bounds and swipe gestures. The muted WebView
 /// is only mounted while playback and application visibility permit motion.
@@ -138,8 +139,10 @@ class _CanvasArtworkState extends State<CanvasArtwork>
       cacheSize: 400,
       borderRadius: widget.borderRadius,
     );
-    // Linux 桌面没有内嵌 WebView，Canvas 视频无法播放；Windows 需等共享 WebView2 环境就绪再挂载。
-    final videoPlayable = _envReady && !FlutifyPlatform.isLinuxDesktop;
+    // 桌面端使用 media_kit 原生纹理，不再需要 WebView2 环境
+    final useNative = mpvVideoSupported;
+    // 移动端仍走 InAppWebView（Linux 以前无法播放，现在走 media_kit）
+    final videoPlayable = useNative || (_envReady && !FlutifyPlatform.isLinuxDesktop);
     if (!active ||
         media == null ||
         _failed ||
@@ -172,7 +175,14 @@ class _CanvasArtworkState extends State<CanvasArtwork>
                 gaplessPlayback: true,
                 errorBuilder: (_, _, _) => cover,
               )
-            else ...[
+            else if (useNative) ...[
+              MpvLoopingVideo(
+                bytes: media.bytes,
+                placeholder: cover,
+                active: true,
+                playing: true,
+              ),
+            ] else ...[
               IgnorePointer(
                 child: InAppWebView(
                   key: ValueKey('${widget.track.uri}:$viewRevision'),

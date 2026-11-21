@@ -9,6 +9,7 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 import '../../core/platform/flutify_platform.dart';
 import '../../services/eme/eme_player.dart';
+import 'mpv_looping_video.dart';
 
 /// 静音循环播放一段 MP4（铺满、居中裁切）。
 ///
@@ -17,8 +18,8 @@ import '../../services/eme/eme_player.dart';
 ///
 /// - Android：原生 ExoPlayer 硬解到 Flutter 纹理（`MotionVideoPlugin`），与页面同层合成，
 ///   滚动、缩放都不经过平台视图；应用退到后台或页面被盖住时自动暂停。
-/// - 其他平台：内容以 data: URL 交给内嵌 WebView 的 `<video>`，CSP 禁止一切网络请求；
-///   不支持内嵌 WebView 的平台（Linux 桌面）只显示占位。
+/// - Windows / macOS / Linux：media_kit（libmpv）硬解到 Flutter 纹理，与 Android 同等效果。
+/// - iOS：内容以 data: URL 交给内嵌 WebView 的 `<video>`，CSP 禁止一切网络请求。
 class MotionVideo extends StatelessWidget {
   final Uint8List bytes;
   final Widget placeholder;
@@ -41,6 +42,15 @@ class MotionVideo extends StatelessWidget {
         playing: playing,
       );
     }
+    // 桌面端（Windows / macOS / Linux）：media_kit 纹理播放
+    if (mpvVideoSupported) {
+      return MpvLoopingVideo(
+        bytes: bytes,
+        placeholder: placeholder,
+        playing: playing,
+      );
+    }
+    // iOS 仍走 WebView；不支持 WebView 的平台显示占位
     if (!FlutifyPlatform.supportsInAppWebView) return placeholder;
     return _WebMotionVideo(bytes: bytes, placeholder: placeholder);
   }
@@ -121,7 +131,7 @@ class _TextureMotionVideoState extends State<_TextureMotionVideo>
   void didChangeDependencies() {
     super.didChangeDependencies();
     // 页面被其他不透明页面盖住时 TickerMode 关闭，视频跟着停
-    _visible = TickerMode.of(context);
+    _visible = TickerMode.valuesOf(context).enabled;
     _syncPlaying();
   }
 
@@ -236,6 +246,10 @@ class _TextureMotionVideoState extends State<_TextureMotionVideo>
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// iOS：WebView base64 播放（保留兼容）
+// ---------------------------------------------------------------------------
 
 class _WebMotionVideo extends StatefulWidget {
   final Uint8List bytes;
