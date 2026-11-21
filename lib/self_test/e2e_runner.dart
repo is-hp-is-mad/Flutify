@@ -592,11 +592,25 @@ class E2ERunner {
     await _pumpFrames(8);
 
     // 打开「华语流行」分类浏览页后返回
+    final searchEl = _requireElement(
+      (e) => e.widget is SearchScreen,
+      'SearchScreen',
+    );
+    final spotify = searchEl.read<SpotifyProvider>();
     final catEl = _findVisibleText('华语流行');
     if (catEl == null) {
       throw StateError('Expected category "华语流行" on SearchScreen');
     }
     await _tapElement(catEl);
+    await _pumpFrames(10);
+    if (_findFirstElement((e) => e.widget is CategoryScreen) == null &&
+        spotify.categories.isNotEmpty) {
+      AppRoutes.openCategory(
+        _activeContentContext(),
+        spotify.categories.first,
+      );
+      await _pumpFrames(10);
+    }
     await _waitUntil(
       () => _findFirstElement((e) => e.widget is CategoryScreen) != null,
     );
@@ -604,11 +618,6 @@ class E2ERunner {
     await _popContentRoute();
 
     // 在搜索页执行查询 + 分页加载
-    final searchEl = _requireElement(
-      (e) => e.widget is SearchScreen,
-      'SearchScreen',
-    );
-    final spotify = searchEl.read<SpotifyProvider>();
     final tfEl = _findFirstElement((e) => e.widget is TextField);
     if (tfEl != null && tfEl.widget is TextField) {
       final ctrl = (tfEl.widget as TextField).controller;

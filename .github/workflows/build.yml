@@ -87,6 +87,7 @@ jobs:
     if: needs.prepare.outputs.build == 'true'
     env:
       BUILD_LABEL: ${{ needs.prepare.outputs.label }}
+      ORG_GRADLE_PROJECT_org.gradle.caching: 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -106,31 +107,33 @@ jobs:
           channel: stable
           cache: true
 
-      - uses: actions/cache@v4
-        with:
-          path: ~/.pub-cache
-          key: ${{ runner.os }}-android-pub-${{ hashFiles('pubspec.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-android-pub-
-
       - uses: Swatinem/rust-cache@v2
         with:
           prefix-key: android-rust
-          workspaces: rust/flutify_core
+          workspaces: |
+            rust/flutify_core -> build/rust_lib_flutify/build
 
-      # Rust 编译缓存：cargokit 把产物放在各平台不同的构建目录，rust-cache 的 target 缓存对不上；
-      # sccache 按编译单元缓存，与目录无关。安装失败时不设 RUSTC_WRAPPER，照常编译。
+      # sccache 使用本地目录并打包为单个归档缓存，避免 SCCACHE_GHA_ENABLED 产生上千条碎片缓存
+      - uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/sccache
+          key: android-sccache-${{ hashFiles('rust/flutify_core/Cargo.lock', 'rust/flutify_core/src/**') }}
+          restore-keys: |
+            android-sccache-
+
       - name: Set up sccache
         id: sccache
         continue-on-error: true
         uses: mozilla-actions/sccache-action@v0.0.9
 
-      - name: Use sccache for Rust
+      - name: Use sccache for Rust & CMake
         if: steps.sccache.outcome == 'success'
         shell: bash
         run: |
-          echo "SCCACHE_GHA_ENABLED=true" >> "$GITHUB_ENV"
+          echo "SCCACHE_DIR=$RUNNER_TEMP/sccache" >> "$GITHUB_ENV"
           echo "RUSTC_WRAPPER=sccache" >> "$GITHUB_ENV"
+          echo "CMAKE_C_COMPILER_LAUNCHER=sccache" >> "$GITHUB_ENV"
+          echo "CMAKE_CXX_COMPILER_LAUNCHER=sccache" >> "$GITHUB_ENV"
 
       - run: flutter pub get
 
@@ -235,14 +238,25 @@ jobs:
 
       # 3.44.0 发布清单没有 Windows ARM64 SDK 压缩包；官方源码启动脚本支持
       # 在 ARM64 宿主下载原生 Dart。不能给 flutter-action 传 arm64 后期待它找到压缩包。
+      - name: Cache native Flutter SDK on Windows ARM64
+        if: matrix.arch == 'arm64'
+        id: flutter-arm64-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/flutter-arm64
+          key: flutter-windows-stable-${{ env.FLUTTER_VERSION }}-arm64-559ffa3f75e7402d65a8def9c28389a9b2e6fe42
+
       - name: Bootstrap native Flutter SDK on Windows ARM64
         if: matrix.arch == 'arm64'
         shell: pwsh
         run: |
           if ($env:PROCESSOR_ARCHITECTURE -ne 'ARM64') { throw 'Expected native ARM64 runner shell' }
           $sdk = Join-Path $env:RUNNER_TEMP 'flutter-arm64'
-          git clone --depth 1 --branch $env:FLUTTER_VERSION https://github.com/flutter/flutter.git $sdk
-          if ($LASTEXITCODE -ne 0) { throw 'Flutter clone failed' }
+          if (!(Test-Path -LiteralPath "$sdk/bin/flutter.bat")) {
+            if (Test-Path -LiteralPath $sdk) { Remove-Item -LiteralPath $sdk -Recurse -Force }
+            git clone --depth 1 --branch $env:FLUTTER_VERSION https://github.com/flutter/flutter.git $sdk
+            if ($LASTEXITCODE -ne 0) { throw 'Flutter clone failed' }
+          }
           $revision = git -C $sdk rev-parse HEAD
           if ($revision -ne '559ffa3f75e7402d65a8def9c28389a9b2e6fe42') { throw 'Unexpected Flutter 3.44.0 revision' }
           & "$sdk/bin/flutter.bat" --version
@@ -251,31 +265,52 @@ jobs:
           if ($dartVersion -notmatch 'windows_arm64') { throw "Expected ARM64 Dart: $dartVersion" }
           "$sdk/bin" >> $env:GITHUB_PATH
 
+      # x64 已由 subosito/flutter-action 缓存 Pub；仅 arm64 需要单独缓存
       - uses: actions/cache@v4
+        if: matrix.arch == 'arm64'
         with:
           path: ~/AppData/Local/Pub/Cache
           key: windows-${{ matrix.arch }}-pub-${{ hashFiles('pubspec.lock') }}
           restore-keys: |
             windows-${{ matrix.arch }}-pub-
 
+      # 缓存 Windows 原生预编译依赖（libmpv 解压目录与 Inno Setup 便携版编译器）
+      - name: Cache Windows libmpv & Inno Setup
+        uses: actions/cache@v4
+        with:
+          path: |
+            build/windows/${{ matrix.arch }}/mpv-dev-*.7z
+            build/windows/${{ matrix.arch }}/libmpv-*
+            ${{ runner.temp }}/inno-6.7.3
+          key: windows-${{ matrix.arch }}-native-deps-${{ hashFiles('packages/media_kit_libs_windows_audio/windows/CMakeLists.txt') }}-inno-6.7.3
+
       - uses: Swatinem/rust-cache@v2
         with:
           prefix-key: windows-${{ matrix.arch }}-rust
-          workspaces: rust/flutify_core
+          workspaces: |
+            rust/flutify_core -> build/windows/${{ matrix.arch }}/plugins/rust_lib_flutify/cargokit_build
 
-      # Rust 编译缓存：cargokit 把产物放在各平台不同的构建目录，rust-cache 的 target 缓存对不上；
-      # sccache 按编译单元缓存，与目录无关。安装失败时不设 RUSTC_WRAPPER，照常编译。
+      # sccache 同时缓存 MSVC C/C++（runner + 全部插件）与 Rust 编译产物，打包为单归档
+      - uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/sccache
+          key: windows-${{ matrix.arch }}-sccache-${{ hashFiles('windows/**', 'packages/**/windows/**', 'rust/flutify_core/Cargo.lock', 'rust/flutify_core/src/**') }}
+          restore-keys: |
+            windows-${{ matrix.arch }}-sccache-
+
       - name: Set up sccache
         id: sccache
         continue-on-error: true
         uses: mozilla-actions/sccache-action@v0.0.9
 
-      - name: Use sccache for Rust
+      - name: Use sccache for Rust & MSVC CMake
         if: steps.sccache.outcome == 'success'
-        shell: bash
+        shell: pwsh
         run: |
-          echo "SCCACHE_GHA_ENABLED=true" >> "$GITHUB_ENV"
-          echo "RUSTC_WRAPPER=sccache" >> "$GITHUB_ENV"
+          "SCCACHE_DIR=$(Join-Path $env:RUNNER_TEMP 'sccache')" >> $env:GITHUB_ENV
+          "RUSTC_WRAPPER=sccache" >> $env:GITHUB_ENV
+          "CMAKE_C_COMPILER_LAUNCHER=sccache" >> $env:GITHUB_ENV
+          "CMAKE_CXX_COMPILER_LAUNCHER=sccache" >> $env:GITHUB_ENV
 
       - run: flutter pub get
 
@@ -295,15 +330,17 @@ jobs:
       - name: Install Inno Setup compiler
         shell: pwsh
         run: |
-          $installer = Join-Path $env:RUNNER_TEMP 'innosetup-6.7.3.exe'
           $compilerDir = Join-Path $env:RUNNER_TEMP 'inno-6.7.3'
-          Invoke-WebRequest 'https://github.com/jrsoftware/issrc/releases/download/is-6_7_3/innosetup-6.7.3.exe' -OutFile $installer
-          if ((Get-FileHash $installer -Algorithm SHA256).Hash -ne '9C73C3BAE7ED48D44112A0F48E66742C00090BDB5BEF71D9D3C056C66E97B732') { throw 'Inno Setup checksum mismatch' }
-          # The x86 compiler runs on both Windows x64 and ARM64. Portable mode
-          # avoids depending on Chocolatey or the runner's preinstalled version.
-          $install = Start-Process -FilePath $installer -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/CURRENTUSER', '/PORTABLE=1', "/DIR=`"$compilerDir`"") -WindowStyle Hidden -Wait -PassThru
-          if ($install.ExitCode -ne 0) { throw "Inno Setup extraction failed: $($install.ExitCode)" }
           $compiler = Join-Path $compilerDir 'ISCC.exe'
+          if (!(Test-Path -LiteralPath $compiler)) {
+            $installer = Join-Path $env:RUNNER_TEMP 'innosetup-6.7.3.exe'
+            Invoke-WebRequest 'https://github.com/jrsoftware/issrc/releases/download/is-6_7_3/innosetup-6.7.3.exe' -OutFile $installer
+            if ((Get-FileHash $installer -Algorithm SHA256).Hash -ne '9C73C3BAE7ED48D44112A0F48E66742C00090BDB5BEF71D9D3C056C66E97B732') { throw 'Inno Setup checksum mismatch' }
+            # The x86 compiler runs on both Windows x64 and ARM64. Portable mode
+            # avoids depending on Chocolatey or the runner's preinstalled version.
+            $install = Start-Process -FilePath $installer -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/CURRENTUSER', '/PORTABLE=1', "/DIR=`"$compilerDir`"") -WindowStyle Hidden -Wait -PassThru
+            if ($install.ExitCode -ne 0) { throw "Inno Setup extraction failed: $($install.ExitCode)" }
+          }
           if (!(Test-Path -LiteralPath $compiler)) { throw 'Inno Setup compiler missing' }
           "INNO_COMPILER=$compiler" >> $env:GITHUB_ENV
 
@@ -340,13 +377,6 @@ jobs:
 
       - uses: actions/cache@v4
         with:
-          path: ~/.pub-cache
-          key: macos-pub-${{ hashFiles('pubspec.lock') }}
-          restore-keys: |
-            macos-pub-
-
-      - uses: actions/cache@v4
-        with:
           path: |
             ~/Library/Caches/CocoaPods
             macos/Pods
@@ -357,21 +387,34 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           prefix-key: macos-rust
-          workspaces: rust/flutify_core
+          workspaces: |
+            rust/flutify_core -> build/macos/Build/Intermediates.noindex/Pods.build/Release/rust_lib_flutify.build
 
-      # Rust 编译缓存：cargokit 把产物放在各平台不同的构建目录，rust-cache 的 target 缓存对不上；
-      # sccache 按编译单元缓存，与目录无关。安装失败时不设 RUSTC_WRAPPER，照常编译。
+      - uses: hendrikmuhs/ccache-action@v1
+        with:
+          key: macos-ccache
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/sccache
+          key: macos-sccache-${{ hashFiles('macos/Podfile.lock', 'rust/flutify_core/Cargo.lock', 'rust/flutify_core/src/**') }}
+          restore-keys: |
+            macos-sccache-
+
       - name: Set up sccache
         id: sccache
         continue-on-error: true
         uses: mozilla-actions/sccache-action@v0.0.9
 
-      - name: Use sccache for Rust
+      - name: Use sccache & ccache for macOS
         if: steps.sccache.outcome == 'success'
         shell: bash
         run: |
-          echo "SCCACHE_GHA_ENABLED=true" >> "$GITHUB_ENV"
+          echo "SCCACHE_DIR=$RUNNER_TEMP/sccache" >> "$GITHUB_ENV"
           echo "RUSTC_WRAPPER=sccache" >> "$GITHUB_ENV"
+          if [ -d "/opt/homebrew/opt/ccache/libexec" ]; then
+            echo "/opt/homebrew/opt/ccache/libexec" >> "$GITHUB_PATH"
+          fi
 
       - run: flutter pub get
 
@@ -420,14 +463,6 @@ jobs:
           channel: stable
           cache: true
 
-      - uses: actions/cache@v4
-        if: needs.prepare.outputs.run_tests == 'true'
-        with:
-          path: ~/.pub-cache
-          key: macos-pub-${{ hashFiles('pubspec.lock') }}
-          restore-keys: |
-            macos-pub-
-
       - if: needs.prepare.outputs.run_tests == 'true'
         run: flutter pub get
 
@@ -453,20 +488,22 @@ jobs:
           channel: stable
           cache: true
 
-      - uses: actions/cache@v4
-        with:
-          path: ~/.pub-cache
-          key: ${{ runner.os }}-pub-${{ hashFiles('pubspec.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-pub-
-
       - uses: Swatinem/rust-cache@v2
         with:
+          prefix-key: linux-rust
           workspaces: |
-            rust/flutify_core -> build/linux/x64/release/cargokit_build
+            rust/flutify_core -> build/linux/x64/release/plugins/rust_lib_flutify/cargokit_build
 
-      # Rust 编译缓存：cargokit 把产物放在各平台不同的构建目录，rust-cache 的 target 缓存对不上；
-      # sccache 按编译单元缓存，与目录无关。安装失败时不设 RUSTC_WRAPPER，照常编译。
+      # 缓存 media_kit_libs_linux 下载并编译的 mimalloc 静态对象与 sccache 本地归档
+      - uses: actions/cache@v4
+        with:
+          path: |
+            build/linux/x64/release/mimalloc*
+            ${{ runner.temp }}/sccache
+          key: linux-native-sccache-${{ hashFiles('linux/**', 'rust/flutify_core/Cargo.lock', 'rust/flutify_core/src/**') }}
+          restore-keys: |
+            linux-native-sccache-
+
       - name: Set up sccache
         id: sccache
         continue-on-error: true
@@ -476,7 +513,7 @@ jobs:
         if: steps.sccache.outcome == 'success'
         shell: bash
         run: |
-          echo "SCCACHE_GHA_ENABLED=true" >> "$GITHUB_ENV"
+          echo "SCCACHE_DIR=$RUNNER_TEMP/sccache" >> "$GITHUB_ENV"
           echo "RUSTC_WRAPPER=sccache" >> "$GITHUB_ENV"
 
       - uses: hendrikmuhs/ccache-action@v1
