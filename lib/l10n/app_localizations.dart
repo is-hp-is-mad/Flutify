@@ -1010,7 +1010,7 @@ abstract class AppLocalizations {
   /// No description provided for @nowPlaying.
   ///
   /// In zh, this message translates to:
-  /// **'正在播放'**
+  /// **'当前播放'**
   String get nowPlaying;
 
   /// No description provided for @openNowPlaying.
@@ -1412,7 +1412,7 @@ abstract class AppLocalizations {
   /// No description provided for @deviceSpotifyConnect.
   ///
   /// In zh, this message translates to:
-  /// **'Spotify Connect'**
+  /// **'Spotify 畅联功能'**
   String get deviceSpotifyConnect;
 
   /// No description provided for @connectThisDevice.
@@ -2654,7 +2654,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsConnectSection.
   ///
   /// In zh, this message translates to:
-  /// **'Spotify Connect'**
+  /// **'Spotify 畅联功能'**
   String get settingsConnectSection;
 
   /// No description provided for @settingsConnectEnabled.

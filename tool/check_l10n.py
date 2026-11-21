@@ -23,7 +23,7 @@ BANNED = {
         '播客': 'Podcast', '創建': '建立', '新建': '建立', '帳號': '帳戶', '隊列': '佇列', '媒體庫': '音樂庫',
         '任務欄': '工作列', '退出登入': '登出', '服務器': '伺服器', '音頻': '音訊', '默認': '預設', '信息': '資訊',
     },
-    'en': {'Your library': 'Your Library'},
+    'en': {'Your library': 'Your Library', 'Sign in': 'Log in', 'sign in': 'log in', 'Sign out': 'Log out', 'sign out': 'log out', 'sign-in': 'login', 'Sign-in': 'Login'},
 }
 
 

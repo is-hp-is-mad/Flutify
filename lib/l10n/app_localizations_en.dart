@@ -57,14 +57,14 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get shellSignInTitle => 'Sign in to see your library';
+  String get shellSignInTitle => 'Log in to see your library';
 
   @override
   String get shellSignInMessage =>
       'Saved playlists, albums and artists will show up here.';
 
   @override
-  String get shellSignIn => 'Sign in';
+  String get shellSignIn => 'Log in';
 
   @override
   String get windowMinimize => 'Minimize';
@@ -309,10 +309,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authSessionExpiredMessage =>
-      'Spotify ended this sign-in (for example, you signed out everywhere or changed your password). Please sign in again.';
+      'Spotify ended this login (for example, you logged out everywhere or changed your password). Please log in again.';
 
   @override
-  String get authSignInAgain => 'Sign in again';
+  String get authSignInAgain => 'Log in again';
 
   @override
   String get homeEmptyTitle => 'Nothing here yet';
@@ -576,18 +576,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get playerSwipeHint => 'Swipe the artwork to change songs';
 
   @override
-  String get playbackErrorSignIn => 'Sign in to play music';
+  String get playbackErrorSignIn => 'Log in to play music';
 
   @override
   String get playbackErrorWebSignIn =>
-      'Full-track playback requires a Web sign-in first';
+      'Full-track playback requires a Web login first';
 
   @override
-  String get webLoginAction => 'Web sign-in';
+  String get webLoginAction => 'Web login';
 
   @override
   String get webLoginSuccess =>
-      'Web sign-in complete — full-track playback is ready';
+      'Web login complete — full-track playback is ready';
 
   @override
   String playbackErrorUnavailable(String track) {
@@ -613,14 +613,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get regionCheckSectionSubtitle =>
-      'Confirm where your network exits before signing in or playing; mainland China stops the list';
+      'Confirm where your network exits before logging in or playing; mainland China stops the list';
 
   @override
   String get regionCheckEnabled => 'Enable region check';
 
   @override
   String get regionCheckEnabledHint =>
-      'When off, no check runs at all and neither sign-in nor playback is blocked';
+      'When off, no check runs at all and neither login nor playback is blocked';
 
   @override
   String get regionCheckOnNetworkChange => 'Re-check when the network changes';
@@ -661,7 +661,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get detailSignInRequired => 'Sign in to see what\'s here';
+  String get detailSignInRequired => 'Log in to see what\'s here';
 
   @override
   String get detailLoadFailed =>
@@ -778,11 +778,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get connectNoDevicesHint =>
-      'Open Spotify on a phone, computer or speaker signed in to the same account';
+      'Open Spotify on a phone, computer or speaker logged in to the same account';
 
   @override
   String get connectUnavailable =>
-      'Sign in with the desktop method to control Spotify on your other devices';
+      'Log in with the desktop method to control Spotify on your other devices';
 
   @override
   String get connectConnecting => 'Connecting to Spotify Connect…';
@@ -1577,7 +1577,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsProxyFootnote =>
-      'Only HTTP proxies are supported (the mixed port of Clash or v2rayN works). A manual proxy may use a username and password, e.g. a self-hosted relay. The sign-in page always follows the system proxy.';
+      'Only HTTP proxies are supported (the mixed port of Clash or v2rayN works). A manual proxy may use a username and password, e.g. a self-hosted relay. The login page always follows the system proxy.';
 
   @override
   String get settingsPrivacySection => 'Privacy';
@@ -1716,23 +1716,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accountTitle => 'Spotify account';
 
   @override
-  String get accountSignedOutMessage => 'Sign in to sync your library';
+  String get accountSignedOutMessage => 'Log in to sync your library';
 
   @override
-  String get accountSignIn => 'Sign in';
+  String get accountSignIn => 'Log in';
 
   @override
-  String get accountSignOut => 'Sign out';
+  String get accountSignOut => 'Log out';
 
   @override
-  String get accountSignOutTitle => 'Sign out?';
+  String get accountSignOutTitle => 'Log out?';
 
   @override
   String get accountSignOutMessage =>
-      'Your saved sign-in and library cache will be removed from this device. You\'ll need to sign in again.';
+      'Your saved login and library cache will be removed from this device. You\'ll need to log in again.';
 
   @override
-  String get accountSignOutConfirm => 'Sign out';
+  String get accountSignOutConfirm => 'Log out';
 
   @override
   String get sleepTimer => 'Sleep timer';
@@ -1850,7 +1850,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsGatewayDescription =>
-      'Connect to Spotify APIs, media and Connect through your server. Browser sign-in stays on Spotify. Applies to new connections after saving.';
+      'Connect to Spotify APIs, media and Connect through your server. Browser login stays on Spotify. Applies to new connections after saving.';
 
   @override
   String get settingsGatewayUrl => 'Gateway URL (including path)';
@@ -2034,29 +2034,29 @@ class AppLocalizationsEn extends AppLocalizations {
       'Could not refresh. Check your connection and try again.';
 
   @override
-  String get loginTitle => 'Sign in to Spotify';
+  String get loginTitle => 'Log in to Spotify';
 
   @override
   String get loginSubtitle =>
-      'Sign in once on Spotify’s official page.\nThe remaining authorization steps finish automatically.';
+      'Log in once on Spotify’s official page.\nThe remaining authorization steps finish automatically.';
 
   @override
   String get loginTermsNotice =>
-      'Signing in as an official client does not comply with Spotify’s terms of service. Consider using a secondary account.';
+      'Logging in as an official client does not comply with Spotify’s terms of service. Consider using a secondary account.';
 
   @override
   String get loginPasswordPrivate => 'Flutify does not access your password';
 
   @override
-  String get loginOfficialPage => 'Sign in using Spotify’s official page';
+  String get loginOfficialPage => 'Log in using Spotify’s official page';
 
   @override
   String get loginRemoteDevices =>
-      'Control your other Spotify devices after signing in';
+      'Control your other Spotify devices after logging in';
 
   @override
   String loginSignedInAs(String name) {
-    return 'Signed in as $name';
+    return 'Logged in as $name';
   }
 
   @override
@@ -2066,19 +2066,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loginBack => 'Back';
 
   @override
-  String get loginFailed => 'Sign-in failed';
+  String get loginFailed => 'Login failed';
 
   @override
-  String get webLoginTitle => 'Full-track playback: Web sign-in';
+  String get webLoginTitle => 'Full-track playback: Web login';
 
   @override
-  String get webLoginCardTitle => 'Full-track playback (Web sign-in)';
+  String get webLoginCardTitle => 'Full-track playback (Web login)';
 
   @override
   String get webLoginReady => 'Ready to play full tracks';
 
   @override
-  String get webLoginRequired => 'Sign in once to enable full-track playback';
+  String get webLoginRequired => 'Log in once to enable full-track playback';
 
   @override
   String get webLoginConsentHint =>
@@ -2091,32 +2091,32 @@ class AppLocalizationsEn extends AppLocalizations {
   String get webLoginAuthorizing => 'Completing account authorization…';
 
   @override
-  String get webLoginFinishing => 'Finishing sign-in…';
+  String get webLoginFinishing => 'Finishing login…';
 
   @override
   String get webLoginBackgroundHint =>
-      'You are signed in. The remaining steps will finish automatically.';
+      'You are logged in. The remaining steps will finish automatically.';
 
   @override
   String get webLoginGoogleHint =>
-      'Registered with Google? Sign in here with your email and password. If you have no password, set one with “Forgot password” on Spotify’s website.';
+      'Registered with Google? Log in here with your email and password. If you have no password, set one with “Forgot password” on Spotify’s website.';
 
   @override
   String get loginBrowserFallback =>
-      'Could not open the browser. The sign-in link was copied; paste it into your browser.';
+      'Could not open the browser. The login link was copied; paste it into your browser.';
 
   @override
-  String get loginBrowserTitle => 'Finish signing in with your browser';
+  String get loginBrowserTitle => 'Finish logging in with your browser';
 
   @override
   String get loginBrowserSubtitle =>
-      'This page will continue automatically after you sign in and approve access.';
+      'This page will continue automatically after you log in and approve access.';
 
   @override
   String get loginReopen => 'Reopen';
 
   @override
-  String get loginLinkCopied => 'Sign-in link copied';
+  String get loginLinkCopied => 'Login link copied';
 
   @override
   String get loginCopyLink => 'Copy link';
@@ -2246,7 +2246,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get webLoginRegionCheckingHint =>
-      'Confirming where your network exits before the sign-in page loads, so sign-in doesn\'t fail in an unsupported region.';
+      'Confirming where your network exits before the login page loads, so login doesn\'t fail in an unsupported region.';
 
   @override
   String get webLoginRegionBlockedTitle =>
@@ -2254,7 +2254,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get webLoginRegionBlockedBody =>
-      'Spotify isn\'t available in mainland China, so signing in will likely fail or be restricted. Turn on a proxy, switch to an overseas node, then check again.';
+      'Spotify isn\'t available in mainland China, so logging in will likely fail or be restricted. Turn on a proxy, switch to an overseas node, then check again.';
 
   @override
   String get webLoginRegionRecheck => 'Check again';
@@ -2483,7 +2483,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backupAddAccountSubtitle =>
-      'Sign in to open.spotify.com in a separate WebView to read its saved playlists';
+      'Log in to open.spotify.com in a separate WebView to read its saved playlists';
 
   @override
   String get backupSyncToAccount => 'Sync backed-up playlists to this account';
@@ -2538,7 +2538,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get backupBadgePrevious => 'Previously signed in';
+  String get backupBadgePrevious => 'Previously logged in';
 
   @override
   String get backupBadgeExternal => 'External backup account';
@@ -2623,7 +2623,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get backupLoginTitle => 'Sign in to the Spotify account to back up';
+  String get backupLoginTitle => 'Log in to the Spotify account to back up';
 
   @override
   String get playlistSyncTitle => 'Sync playlists to Spotify';
@@ -2733,11 +2733,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authErrorSessionInvalidated =>
-      'Your sign-in is no longer valid. Please sign in again.';
+      'Your login is no longer valid. Please log in again.';
 
   @override
   String get authErrorSessionExpired =>
-      'Your sign-in has expired. Please sign in again.';
+      'Your login has expired. Please log in again.';
 
   @override
   String get authErrorNetwork =>
@@ -2745,7 +2745,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String authErrorFailed(String detail) {
-    return 'Sign-in failed: $detail';
+    return 'Login failed: $detail';
   }
 
   @override
@@ -2755,7 +2755,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get webLoginSessionRejected =>
-      'Spotify rejected this sign-in (HTTP 401). Try again; if it keeps happening, your proxy or VPN exit is probably blocked.';
+      'Spotify rejected this login (HTTP 401). Try again; if it keeps happening, your proxy or VPN exit is probably blocked.';
 
   @override
   String webLoginTlsIntercepted(String detail) {
@@ -2810,7 +2810,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get libraryErrorNotSignedIn =>
-      'Not signed in, so nothing can be synced to your Spotify account.';
+      'Not logged in, so nothing can be synced to your Spotify account.';
 
   @override
   String libraryErrorRead(String detail) {

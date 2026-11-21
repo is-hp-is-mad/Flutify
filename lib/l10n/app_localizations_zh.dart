@@ -513,7 +513,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get playingFromLibrary => '正在播放音乐库';
 
   @override
-  String get nowPlaying => '正在播放';
+  String get nowPlaying => '当前播放';
 
   @override
   String get openNowPlaying => '打开正在播放';
@@ -730,7 +730,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deviceCurrent => '当前收听设备';
 
   @override
-  String get deviceSpotifyConnect => 'Spotify Connect';
+  String get deviceSpotifyConnect => 'Spotify 畅联功能';
 
   @override
   String get connectThisDevice => '此设备';
@@ -1393,7 +1393,7 @@ class AppLocalizationsZh extends AppLocalizations {
       'Windows「默认应用」里已为 spotify: 链接选择了其他程序，请在系统设置中改为 Flutify';
 
   @override
-  String get settingsConnectSection => 'Spotify Connect';
+  String get settingsConnectSection => 'Spotify 畅联功能';
 
   @override
   String get settingsConnectEnabled => '启用 Spotify Connect';
@@ -3160,7 +3160,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get playingFromLibrary => '正在播放音樂庫';
 
   @override
-  String get nowPlaying => '正在播放';
+  String get nowPlaying => '現正播放';
 
   @override
   String get openNowPlaying => '打開正在播放';
