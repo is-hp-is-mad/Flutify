@@ -267,13 +267,13 @@ class MD3ETheme {
         }),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return TextStyle(
+            return textTheme.labelMedium?.copyWith(
               fontSize: 12,
               fontWeight: FontWeight.w600,
               color: colorScheme.primary,
             );
           }
-          return TextStyle(
+          return textTheme.labelMedium?.copyWith(
             fontSize: 12,
             fontWeight: FontWeight.w500,
             color: colorScheme.onSurfaceVariant,
@@ -287,12 +287,12 @@ class MD3ETheme {
         indicatorColor: colorScheme.primaryContainer,
         selectedIconTheme: IconThemeData(color: colorScheme.primary),
         unselectedIconTheme: IconThemeData(color: colorScheme.onSurfaceVariant),
-        selectedLabelTextStyle: TextStyle(
+        selectedLabelTextStyle: textTheme.labelMedium?.copyWith(
           color: colorScheme.primary,
           fontWeight: FontWeight.w600,
           fontSize: 12,
         ),
-        unselectedLabelTextStyle: TextStyle(
+        unselectedLabelTextStyle: textTheme.labelMedium?.copyWith(
           color: colorScheme.onSurfaceVariant,
           fontWeight: FontWeight.w500,
           fontSize: 12,
@@ -341,6 +341,7 @@ class MD3ETheme {
           side: BorderSide(color: colorScheme.outlineVariant),
           shape: tokens.pillShape,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          textStyle: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
         ).copyWith(mouseCursor: WidgetStateMouseCursor.clickable),
       ),
 

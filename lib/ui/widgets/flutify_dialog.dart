@@ -112,7 +112,7 @@ class FlutifyDialog extends StatelessWidget {
               Flexible(
                 child: Padding(
                   padding: contentPadding ?? const EdgeInsets.symmetric(horizontal: 24),
-                  child: DefaultTextStyle(
+                  child: DefaultTextStyle.merge(
                     style: TextStyle(
                       color: dark ? const Color(0xb3ffffff) : const Color(0x99000000),
                       fontSize: 15,

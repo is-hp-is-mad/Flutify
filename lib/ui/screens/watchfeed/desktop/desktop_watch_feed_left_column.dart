@@ -417,10 +417,11 @@ class _CreatorSection extends StatelessWidget {
                         minimumSize: const Size(0, 28),
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         visualDensity: VisualDensity.compact,
-                        textStyle: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        textStyle: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
                       ),
                       onPressed: () => context
                           .read<LibraryProvider>()
