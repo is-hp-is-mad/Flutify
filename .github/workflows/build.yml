@@ -357,6 +357,45 @@ jobs:
             dist/*.zip
             dist/*-setup.exe
 
+  # 在一次性的 CI 机器上真实安装 / 卸载安装包，防止卸载脚本在用户机器上留下残留或误删。
+  # 不阻塞发布（release 不依赖它）；脚本稳定后可再决定是否作为发布门槛。
+  windows-installer-test:
+    name: Installer · Windows ${{ matrix.arch }} install / uninstall
+    needs: [prepare, windows]
+    if: needs.prepare.outputs.build == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: windows-latest
+          - arch: arm64
+            runner: windows-11-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-${{ matrix.arch }}
+          path: installer_artifacts
+      - name: Install, launch, uninstall and verify cleanup
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem installer_artifacts -Filter '*-setup.exe' | Select-Object -First 1
+          if (-not $setup) { throw 'Missing setup.exe artifact' }
+          ./tool/test_windows_installer.ps1 -Setup $setup.FullName -Arch '${{ matrix.arch }}'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: installer-test-logs-${{ matrix.arch }}
+          path: ${{ runner.temp }}/flutify-install-test-logs
+          if-no-files-found: ignore
+          retention-days: 7
+
   macos:
     name: macOS
     needs: prepare

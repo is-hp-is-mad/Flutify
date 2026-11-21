@@ -62,14 +62,61 @@ Name: "{autodesktop}\Flutify"; Filename: "{app}\Flutify.exe"; WorkingDir: "{app}
 [Run]
 Filename: "{app}\Flutify.exe"; Description: "{cm:LaunchProgram,Flutify}"; Flags: nowait postinstall
 
-; Only installed program files are removed. User profiles and FlutifyCache are
-; intentionally absent from UninstallDelete, including portable cache folders.
+; Uninstall removes the installed program files plus everything Flutify.exe
+; registers at runtime outside the install directory (Start menu link, app
+; identity key, spotify: handler). User data (settings, playlist backups,
+; WebView2 login profile, logs, temp profiles) is kept unless the user agrees in
+; the uninstall dialog or passes /PURGE=1 to unins000.exe (silent default: keep).
+; Cache folders the user moved to a custom location (FlutifyCache) are never
+; deleted automatically.
 
 [Code]
-// spotify: link registration is written by Flutify.exe at runtime (HKCU, see
-// windows/runner/protocol_handler.cpp). On uninstall, hand spotify: links back to
-// the previous handler if Flutify owns them, and drop Flutify's own registration,
-// so clicking a link never points at a deleted executable.
+function PurgeRequested: Boolean;
+begin
+  if ExpandConstant('{param:PURGE|}') <> '' then
+    Result := ExpandConstant('{param:PURGE|0}') = '1'
+  else if UninstallSilent then
+    Result := False
+  else
+    Result := MsgBox('Also delete Flutify settings, playlist backups, the login profile and logs?',
+      mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES;
+end;
+
+procedure DeleteTempFiles;
+var
+  Temp: String;
+  Find: TFindRec;
+begin
+  Temp := GetEnv('TEMP');
+  if Temp = '' then
+    Exit;
+  DeleteFile(Temp + '\flutify.log');
+  DeleteFile(Temp + '\flutify.prev.log');
+  DelTree(Temp + '\libCachedImageData', True, True, True);
+  if FindFirst(Temp + '\flutify_backup_profile_*', Find) then
+  begin
+    try
+      repeat
+        if (Find.Attributes and FILE_ATTRIBUTE_DIRECTORY) <> 0 then
+          DelTree(Temp + '\' + Find.Name, True, True, True);
+      until not FindNext(Find);
+    finally
+      FindClose(Find);
+    end;
+  end;
+end;
+
+procedure PurgeUserData;
+begin
+  DelTree(ExpandConstant('{app}\Flutify.exe.WebView2'), True, True, True);
+  DelTree(ExpandConstant('{userappdata}\Flutify'), True, True, True);
+  DelTree(ExpandConstant('{localappdata}\Flutify'), True, True, True);
+  DeleteTempFiles;
+end;
+
+// Flutify.exe writes these at every launch (windows/runner/media_identity.cpp,
+// protocol_handler.cpp). They are not installer-managed, so remove them here;
+// otherwise a dangling Start menu link and registry keys survive the uninstall.
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 var
   Command, Previous: String;
@@ -87,5 +134,9 @@ begin
   end;
   RegDeleteKeyIncludingSubkeys(HKCU, 'Software\Classes\Flutify.SpotifyURI');
   RegDeleteValue(HKCU, 'Software\RegisteredApplications', 'Flutify');
+  RegDeleteKeyIncludingSubkeys(HKCU, 'Software\Classes\AppUserModelId\Flutify');
   RegDeleteKeyIncludingSubkeys(HKCU, 'Software\Flutify');
+  DeleteFile(ExpandConstant('{userprograms}\Flutify.lnk'));
+  if PurgeRequested then
+    PurgeUserData;
 end;
