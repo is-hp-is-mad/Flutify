@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:ui' show PlatformDispatcher;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/utils/file_log.dart';
+import '../../l10n/app_localizations.dart';
 import '../../core/theme/md3e_theme.dart';
 import 'app_button.dart';
 
@@ -19,7 +21,7 @@ class AppStartup extends StatefulWidget {
 }
 
 class _AppStartupState extends State<AppStartup> {
-  String _stage = '正在启动';
+  String _stage = 'starting';
   String? _failure;
   String? _reason;
   Widget? _app;
@@ -35,7 +37,7 @@ class _AppStartupState extends State<AppStartup> {
 
   Future<void> _start() async {
     _timer = Timer(const Duration(seconds: 60), () {
-      if (mounted) setState(() => _reason = '初始化超时：$_stage，请关闭并重新打开应用。');
+      if (mounted) setState(() => _reason = _l10n.startupTimeout(_stage));
     });
     try {
       final app = await widget.initialize((stage) {
@@ -69,6 +71,16 @@ class _AppStartupState extends State<AppStartup> {
     );
   }
 
+  /// 启动失败页在本地化代理就绪前显示，按系统语言取文案（不支持的语言回退英文）。
+  AppLocalizations get _l10n {
+    final locale = PlatformDispatcher.instance.locale;
+    try {
+      return lookupAppLocalizations(locale);
+    } catch (_) {
+      return lookupAppLocalizations(const Locale('en'));
+    }
+  }
+
   @override
   void dispose() {
     _timer?.cancel();
@@ -94,16 +106,16 @@ class _AppStartupState extends State<AppStartup> {
                       children: [
                         const Text('Flutify', style: TextStyle(fontSize: 28)),
                         const SizedBox(height: 24),
-                        Text('启动失败：$_stage'),
+                        Text(_l10n.startupFailed(_stage)),
                         const SizedBox(height: 12),
                         SelectableText(_reason!),
                         ...[
                           const SizedBox(height: 12),
-                          Text('请复制诊断信息反馈，然后关闭并重新打开应用。'),
+                          Text(_l10n.startupCopyHint),
                           const SizedBox(height: 12),
                           AppButton.outlined(
                             onPressed: _copyDiagnostics,
-                            child: const Text('复制诊断信息'),
+                            child: Text(_l10n.startupCopyDiagnostics),
                           ),
                         ],
                       ],

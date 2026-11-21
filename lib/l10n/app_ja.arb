@@ -1104,5 +1104,126 @@
         "type": "int"
       }
     }
-  }
+  },
+  "authErrorSessionInvalidated": "ログインの有効期限が切れました。もう一度ログインしてください。",
+  "authErrorSessionExpired": "ログインの有効期限が切れました。もう一度ログインしてください。",
+  "authErrorNetwork": "Spotify に接続できません。ネットワークまたはプロキシを確認してください。",
+  "authErrorFailed": "ログインに失敗しました: {detail}",
+  "@authErrorFailed": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "webLoginSaveSessionFailed": "Web セッションを保存できませんでした: {detail}",
+  "@webLoginSaveSessionFailed": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "webLoginSessionRejected": "Spotify がこのログインを拒否しました（HTTP 401）。再試行してください。繰り返し発生する場合は、プロキシや VPN の出口がブロックされている可能性があります。",
+  "webLoginTlsIntercepted": "TLS 証明書の検証に失敗し、Spotify に接続できません（{detail}）。プロキシやセキュリティソフトが HTTPS を傍受している場合は、公開証明書を設定するか、一時的に無効にしてください。",
+  "@webLoginTlsIntercepted": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "webLoginTokenPending": "Web トークンをまだ取得できません（{detail}）。自動で再試行します。",
+  "@webLoginTokenPending": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "webLoginPreparationFailed": "WebView の Cookie を消去できませんでした。もう一度お試しください。",
+  "radioFailed": "曲のラジオを開始できませんでした。しばらくしてからもう一度お試しください。",
+  "startupFailed": "起動に失敗しました: {stage}",
+  "@startupFailed": {
+    "placeholders": {
+      "stage": {
+        "type": "String"
+      }
+    }
+  },
+  "startupTimeout": "初期化がタイムアウトしました: {stage}。アプリを閉じて開き直してください。",
+  "@startupTimeout": {
+    "placeholders": {
+      "stage": {
+        "type": "String"
+      }
+    }
+  },
+  "startupCopyHint": "診断情報をコピーして報告し、アプリを閉じて開き直してください。",
+  "startupCopyDiagnostics": "診断情報をコピー",
+  "hyperGlassPresetLarge": "汎用の大型カード",
+  "hyperGlassPresetPurple": "パープル",
+  "hyperGlassPresetBlue": "ブルー",
+  "hyperGlassPresetBionic": "バイオニックガラス",
+  "hyperGlassPreviewHint": "{name} · 長押しで屈折ハイライトを体験",
+  "@hyperGlassPreviewHint": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "libraryErrorNotSignedIn": "ログインしていないため、Spotify アカウントに同期できません。",
+  "libraryErrorRead": "ライブラリを読み込めませんでした: {detail}",
+  "@libraryErrorRead": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "libraryErrorWrite": "同期に失敗しました: {detail}",
+  "@libraryErrorWrite": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "libraryErrorBadResponse": "Spotify から予期しない形式のデータが返されました: {detail}",
+  "@libraryErrorBadResponse": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "libraryErrorPartial": "プレイリストは作成されましたが、曲の追加に失敗しました: {detail}",
+  "@libraryErrorPartial": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "backupFailed": "バックアップに失敗しました: {detail}",
+  "@backupFailed": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "backupAccountFailed": "「{title}」をバックアップできませんでした: {detail}",
+  "@backupAccountFailed": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "creditsFailed": "クレジットを読み込めませんでした。もう一度お試しください。"
 }

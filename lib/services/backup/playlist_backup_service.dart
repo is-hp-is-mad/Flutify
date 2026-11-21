@@ -54,7 +54,7 @@ class PlaylistBackupService extends ChangeNotifier {
   int _intervalMinutes = defaultIntervalMinutes;
   int _activeBackupCount = 0;
   bool _runningAllBackups = false;
-  String? _lastError;
+  BackupFailure? _lastFailure;
   Timer? _timer;
   bool _disposed = false;
 
@@ -110,7 +110,10 @@ class PlaylistBackupService extends ChangeNotifier {
   Duration get effectiveInterval =>
       Duration(minutes: max(minIntervalMinutes, _intervalMinutes));
   bool get isBackingUp => _activeBackupCount > 0;
-  String? get lastError => _lastError;
+  String? get lastError => _lastFailure?.message;
+
+  /// 与 [lastError] 对应的结构化原因，界面据此显示本地化提示。
+  BackupFailure? get lastFailure => _lastFailure;
 
   /// 所有备份账号合并后的「已点赞的歌曲」（按曲目 ID 去重）。
   List<SpotifyTrack> get mergedLikedTracks {
@@ -179,8 +182,8 @@ class PlaylistBackupService extends ChangeNotifier {
   }
 
   void clearError() {
-    if (_lastError == null) return;
-    _lastError = null;
+    if (_lastFailure == null) return;
+    _lastFailure = null;
     _notify();
   }
 
@@ -402,7 +405,7 @@ class PlaylistBackupService extends ChangeNotifier {
       throw ArgumentError('WebView 会话凭据不能为空');
     }
     _activeBackupCount++;
-    _lastError = null;
+    _lastFailure = null;
     _notify();
     try {
       final snapshot = await _fetchSnapshot(credentials);
@@ -444,7 +447,7 @@ class PlaylistBackupService extends ChangeNotifier {
       _persistToDisk();
       return account;
     } catch (e) {
-      _lastError = '备份账号失败：$e';
+      _lastFailure = BackupFailure('备份账号失败：$e', detail: '$e');
       rethrow;
     } finally {
       if (_activeBackupCount > 0) _activeBackupCount--;
@@ -480,7 +483,7 @@ class PlaylistBackupService extends ChangeNotifier {
     if (_runningAllBackups) return;
     _runningAllBackups = true;
     _activeBackupCount++;
-    _lastError = null;
+    _lastFailure = null;
     _notify();
     try {
       if (_autoCurrentAccount) {
@@ -518,7 +521,11 @@ class PlaylistBackupService extends ChangeNotifier {
           );
           if (_mergeExternalAccount(updated)) changed = true;
         } catch (e) {
-          _lastError ??= '账号 ${account.title} 备份失败：$e';
+          _lastFailure ??= BackupFailure(
+            '账号 ${account.title} 备份失败：$e',
+            accountTitle: account.title,
+            detail: '$e',
+          );
           debugPrint('[Backup] 备份账号 ${account.title} 失败: $e');
         }
       }
@@ -748,4 +755,18 @@ class PlaylistBackupService extends ChangeNotifier {
     _preferences?.removeListener(_onPreferencesChanged);
     super.dispose();
   }
+}
+
+/// 备份失败的结构化原因。
+class BackupFailure {
+  const BackupFailure(this.message, {this.accountTitle, this.detail = ''});
+
+  /// 中文兜底文案（日志 / 测试用）。
+  final String message;
+
+  /// 失败的账号（批量备份时有值）。
+  final String? accountTitle;
+
+  /// 底层异常说明（不翻译）。
+  final String detail;
 }

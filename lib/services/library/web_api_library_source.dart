@@ -98,7 +98,7 @@ class WebApiLibrarySource implements LibrarySource {
     String? url = '${_baseUrl()}$firstPath';
     for (var page = 0; url != null && page < maxPages; page++) {
       final res = await _client.get(Uri.parse(url), headers: await _headers());
-      if (res.statusCode != 200) throw LibrarySourceException('读取媒体库失败', res.statusCode);
+      if (res.statusCode != 200) throw LibrarySourceException('读取媒体库失败', res.statusCode, LibraryErrorKind.readFailed);
       final json = jsonDecode(utf8.decode(res.bodyBytes));
       if (json is! Map<String, dynamic>) break;
       final items = itemsOf(json);
@@ -169,7 +169,7 @@ class WebApiLibrarySource implements LibrarySource {
   Future<String> createPlaylist(String name, List<SpotifyTrack> tracks) async {
     final created = await _send('POST', '/me/playlists', body: {'name': name, 'public': false});
     final id = created is Map<String, dynamic> ? created['id'] : null;
-    if (id is! String || id.isEmpty) throw const LibrarySourceException('新建歌单返回格式异常');
+    if (id is! String || id.isEmpty) throw const LibrarySourceException('新建歌单返回格式异常', null, LibraryErrorKind.badResponse);
     final uris = [
       for (final t in tracks)
         if ((t.uri.isNotEmpty ? t.uri : (t.id.isEmpty ? '' : 'spotify:track:${t.id}')) case final u
@@ -188,7 +188,7 @@ class WebApiLibrarySource implements LibrarySource {
 
   /// 发送写请求；返回解析后的 JSON 响应体（没有响应体时为 null）。
   Future<Object?> _send(String method, String path, {Map<String, Object?>? body}) async {
-    if (!isSignedIn) throw const LibrarySourceException('未登录，无法同步到 Spotify 账号');
+    if (!isSignedIn) throw const LibrarySourceException('未登录，无法同步到 Spotify 账号', null, LibraryErrorKind.notSignedIn);
     final request = http.Request(method, Uri.parse('${_baseUrl()}$path'))
       ..headers.addAll(await _headers());
     if (body != null) {
@@ -197,7 +197,7 @@ class WebApiLibrarySource implements LibrarySource {
     }
     final res = await http.Response.fromStream(await _client.send(request));
     if (res.statusCode < 200 || res.statusCode >= 300) {
-      throw LibrarySourceException('同步收藏失败', res.statusCode);
+      throw LibrarySourceException('同步收藏失败', res.statusCode, LibraryErrorKind.writeFailed);
     }
     if (res.bodyBytes.isEmpty) return null;
     try {

@@ -367,7 +367,11 @@ class LibraryProvider extends ChangeNotifier implements BackupLibraryPort {
   Future<void> syncPlaylistToAccount(SpotifyPlaylist playlist) async {
     final source = _source;
     if (source == null || !source.isSignedIn) {
-      throw const LibrarySourceException('未登录，无法同步到 Spotify 账号');
+      throw const LibrarySourceException(
+        '未登录，无法同步到 Spotify 账号',
+        null,
+        LibraryErrorKind.notSignedIn,
+      );
     }
     SpotifyPlaylist? copy;
     Future<SpotifyPlaylist> createCopy() async {

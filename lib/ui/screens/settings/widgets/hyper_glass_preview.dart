@@ -43,11 +43,11 @@ class _HyperGlassPreviewState extends State<HyperGlassPreview>
 
   static const double _menuWidth = 172;
 
-  static final _presets = <(String, GlassFilter)>[
-    ('通用大卡', GlassTokens.commonLargeRegular),
-    ('着色紫', GlassTokens.tintPurple),
-    ('着色蓝', GlassTokens.tintBlue),
-    ('仿生玻璃', GlassTokens.bionicMediumRegular),
+  static final _presets = <(String Function(AppLocalizations), GlassFilter)>[
+    ((l) => l.hyperGlassPresetLarge, GlassTokens.commonLargeRegular),
+    ((l) => l.hyperGlassPresetPurple, GlassTokens.tintPurple),
+    ((l) => l.hyperGlassPresetBlue, GlassTokens.tintBlue),
+    ((l) => l.hyperGlassPresetBionic, GlassTokens.bionicMediumRegular),
   ];
 
   @override
@@ -212,7 +212,7 @@ class _HyperGlassPreviewState extends State<HyperGlassPreview>
                                                   ),
                                                   const SizedBox(height: 4),
                                                   Text(
-                                                    '${preset.$1} · 按住体验折射高光',
+                                                    context.l10n.hyperGlassPreviewHint(preset.$1(context.l10n)),
                                                     maxLines: 1,
                                                     overflow:
                                                         TextOverflow.ellipsis,
@@ -271,7 +271,7 @@ class _HyperGlassPreviewState extends State<HyperGlassPreview>
                                             ),
                                             alignment: Alignment.center,
                                             child: Text(
-                                              item.$1,
+                                              item.$1(context.l10n),
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
                                               style: TextStyle(

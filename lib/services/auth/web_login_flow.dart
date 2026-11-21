@@ -38,6 +38,8 @@ class WebLoginFlow extends ChangeNotifier {
   WebLoginStage _stage = WebLoginStage.webSignIn;
   String? _error;
   String? _notice;
+  WebLoginIssue? _errorIssue;
+  WebLoginIssue? _noticeIssue;
   bool _busy = false;
   bool _finished = false;
   int _revision = 0;
@@ -47,8 +49,14 @@ class WebLoginFlow extends ChangeNotifier {
   /// 需要展示的错误（[WebLoginStage.failed] 时有值）。
   String? get error => _error;
 
+  /// 与 [error] 对应的结构化原因，界面据此显示本地化文案。
+  WebLoginIssue? get errorIssue => _errorIssue;
+
   /// 非致命提示（如 Web token 铸造失败，sp_dc 已保存仍可继续）。
   String? get notice => _notice;
+
+  /// 与 [notice] 对应的结构化原因。
+  WebLoginIssue? get noticeIssue => _noticeIssue;
 
   /// 已捕获的 sp_dc。
   String? spDc;
@@ -114,7 +122,10 @@ class WebLoginFlow extends ChangeNotifier {
           _stage == WebLoginStage.failed) {
         return;
       }
-      _fail('保存 Web 会话失败：$e');
+      _fail(
+        '保存 Web 会话失败：$e',
+        WebLoginIssue(WebLoginIssueKind.saveSessionFailed, '$e'),
+      );
     } finally {
       _busy = false;
     }
@@ -130,6 +141,7 @@ class WebLoginFlow extends ChangeNotifier {
       await prepareWebToken();
       if (_finished || revision != _revision) return;
       _notice = null;
+      _noticeIssue = null;
     } catch (e) {
       if (_finished || revision != _revision) return;
       if (e is WebTokenHttpException && e.statusCode == 401) {
@@ -137,6 +149,7 @@ class WebLoginFlow extends ChangeNotifier {
         return;
       }
       _notice = webTokenMintNotice(e);
+      _noticeIssue = webTokenMintIssue(e);
     }
     if (_finished ||
         revision != _revision ||
@@ -152,6 +165,7 @@ class WebLoginFlow extends ChangeNotifier {
     _busy = true;
     try {
       _error = null;
+      _errorIssue = null;
       if (webSignedIn) {
         await _prepare();
       } else {
@@ -177,11 +191,12 @@ class WebLoginFlow extends ChangeNotifier {
     onFinished?.call(this);
   }
 
-  void _fail(String message) {
+  void _fail(String message, WebLoginIssue issue) {
     if (_finished) return;
     // 不置 _finished：失败态可 retry；poll / 授权回调只在对应阶段才推进
     _stage = WebLoginStage.failed;
     _error = message;
+    _errorIssue = issue;
     notifyListeners();
   }
 
@@ -191,12 +206,40 @@ class WebLoginFlow extends ChangeNotifier {
     ++_revision;
     spDc = null;
     _notice = null;
-    _fail('Spotify 拒绝了这次登录（HTTP 401），请重试；反复出现时多半是代理或 VPN 出口被拦截');
+    _noticeIssue = null;
+    _fail(
+      'Spotify 拒绝了这次登录（HTTP 401），请重试；反复出现时多半是代理或 VPN 出口被拦截',
+      const WebLoginIssue(WebLoginIssueKind.sessionRejected),
+    );
   }
 }
 
 /// 铸造失败的非致命提示：TLS 证书被拦截时给出可行动的说明，其余原样展示。
 /// 证书详情（issuer 等）由 ProxyHttpOverrides 的日志钩子写进诊断日志。
+WebLoginIssue webTokenMintIssue(Object error) => WebLoginIssue(
+  error is HandshakeException
+      ? WebLoginIssueKind.tlsIntercepted
+      : WebLoginIssueKind.tokenPending,
+  '$error',
+);
+
+/// 登录流程中界面要提示的问题类别（不含文案，界面按类别显示本地化文案）。
+enum WebLoginIssueKind {
+  saveSessionFailed,
+  sessionRejected,
+  tlsIntercepted,
+  tokenPending,
+}
+
+class WebLoginIssue {
+  const WebLoginIssue(this.kind, [this.detail = '']);
+
+  final WebLoginIssueKind kind;
+
+  /// 底层异常说明（不翻译）。
+  final String detail;
+}
+
 String webTokenMintNotice(Object error) {
   if (error is HandshakeException) {
     return 'TLS 证书验证失败，无法连接 Spotify（$error）。'

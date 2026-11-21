@@ -1466,5 +1466,126 @@
         "type": "int"
       }
     }
-  }
+  },
+  "authErrorSessionInvalidated": "登录已失效，请重新登录",
+  "authErrorSessionExpired": "登录已过期，请重新登录",
+  "authErrorNetwork": "无法连接到 Spotify，请检查网络或代理",
+  "authErrorFailed": "登录失败：{detail}",
+  "@authErrorFailed": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "webLoginSaveSessionFailed": "保存 Web 会话失败：{detail}",
+  "@webLoginSaveSessionFailed": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "webLoginSessionRejected": "Spotify 拒绝了这次登录（HTTP 401），请重试；反复出现多半是代理或 VPN 出口被拦截。",
+  "webLoginTlsIntercepted": "TLS 证书验证失败，无法连接 Spotify（{detail}）。若有代理或安全软件在拦截 HTTPS，请为其配置公共证书，或先关闭。",
+  "@webLoginTlsIntercepted": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "webLoginTokenPending": "Web token 暂未取到（{detail}），稍后会自动重试",
+  "@webLoginTokenPending": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "webLoginPreparationFailed": "WebView Cookie 清理失败，请重试",
+  "radioFailed": "无法开始歌曲电台，请稍后重试",
+  "startupFailed": "启动失败：{stage}",
+  "@startupFailed": {
+    "placeholders": {
+      "stage": {
+        "type": "String"
+      }
+    }
+  },
+  "startupTimeout": "初始化超时：{stage}，请关闭并重新打开应用。",
+  "@startupTimeout": {
+    "placeholders": {
+      "stage": {
+        "type": "String"
+      }
+    }
+  },
+  "startupCopyHint": "请复制诊断信息反馈，然后关闭并重新打开应用。",
+  "startupCopyDiagnostics": "复制诊断信息",
+  "hyperGlassPresetLarge": "通用大卡",
+  "hyperGlassPresetPurple": "着色紫",
+  "hyperGlassPresetBlue": "着色蓝",
+  "hyperGlassPresetBionic": "仿生玻璃",
+  "hyperGlassPreviewHint": "{name} · 按住体验折射高光",
+  "@hyperGlassPreviewHint": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "libraryErrorNotSignedIn": "未登录，无法同步到 Spotify 账号",
+  "libraryErrorRead": "读取失败：{detail}",
+  "@libraryErrorRead": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "libraryErrorWrite": "同步失败：{detail}",
+  "@libraryErrorWrite": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "libraryErrorBadResponse": "Spotify 返回的数据格式异常：{detail}",
+  "@libraryErrorBadResponse": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "libraryErrorPartial": "歌单已建好，但写入曲目失败：{detail}",
+  "@libraryErrorPartial": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "backupFailed": "备份账号失败：{detail}",
+  "@backupFailed": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "backupAccountFailed": "账号「{title}」备份失败：{detail}",
+  "@backupAccountFailed": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "creditsFailed": "无法加载制作人员信息，请重试"
 }

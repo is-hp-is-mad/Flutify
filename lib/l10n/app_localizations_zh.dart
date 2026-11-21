@@ -2541,6 +2541,114 @@ class AppLocalizationsZh extends AppLocalizations {
   String likedSongCount(int count) {
     return '$count 首已点赞歌曲';
   }
+
+  @override
+  String get authErrorSessionInvalidated => '登录已失效，请重新登录';
+
+  @override
+  String get authErrorSessionExpired => '登录已过期，请重新登录';
+
+  @override
+  String get authErrorNetwork => '无法连接到 Spotify，请检查网络或代理';
+
+  @override
+  String authErrorFailed(String detail) {
+    return '登录失败：$detail';
+  }
+
+  @override
+  String webLoginSaveSessionFailed(String detail) {
+    return '保存 Web 会话失败：$detail';
+  }
+
+  @override
+  String get webLoginSessionRejected =>
+      'Spotify 拒绝了这次登录（HTTP 401），请重试；反复出现多半是代理或 VPN 出口被拦截。';
+
+  @override
+  String webLoginTlsIntercepted(String detail) {
+    return 'TLS 证书验证失败，无法连接 Spotify（$detail）。若有代理或安全软件在拦截 HTTPS，请为其配置公共证书，或先关闭。';
+  }
+
+  @override
+  String webLoginTokenPending(String detail) {
+    return 'Web token 暂未取到（$detail），稍后会自动重试';
+  }
+
+  @override
+  String get webLoginPreparationFailed => 'WebView Cookie 清理失败，请重试';
+
+  @override
+  String get radioFailed => '无法开始歌曲电台，请稍后重试';
+
+  @override
+  String startupFailed(String stage) {
+    return '启动失败：$stage';
+  }
+
+  @override
+  String startupTimeout(String stage) {
+    return '初始化超时：$stage，请关闭并重新打开应用。';
+  }
+
+  @override
+  String get startupCopyHint => '请复制诊断信息反馈，然后关闭并重新打开应用。';
+
+  @override
+  String get startupCopyDiagnostics => '复制诊断信息';
+
+  @override
+  String get hyperGlassPresetLarge => '通用大卡';
+
+  @override
+  String get hyperGlassPresetPurple => '着色紫';
+
+  @override
+  String get hyperGlassPresetBlue => '着色蓝';
+
+  @override
+  String get hyperGlassPresetBionic => '仿生玻璃';
+
+  @override
+  String hyperGlassPreviewHint(String name) {
+    return '$name · 按住体验折射高光';
+  }
+
+  @override
+  String get libraryErrorNotSignedIn => '未登录，无法同步到 Spotify 账号';
+
+  @override
+  String libraryErrorRead(String detail) {
+    return '读取失败：$detail';
+  }
+
+  @override
+  String libraryErrorWrite(String detail) {
+    return '同步失败：$detail';
+  }
+
+  @override
+  String libraryErrorBadResponse(String detail) {
+    return 'Spotify 返回的数据格式异常：$detail';
+  }
+
+  @override
+  String libraryErrorPartial(String detail) {
+    return '歌单已建好，但写入曲目失败：$detail';
+  }
+
+  @override
+  String backupFailed(String detail) {
+    return '备份账号失败：$detail';
+  }
+
+  @override
+  String backupAccountFailed(String title, String detail) {
+    return '账号「$title」备份失败：$detail';
+  }
+
+  @override
+  String get creditsFailed => '无法加载制作人员信息，请重试';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -5053,4 +5161,106 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String likedSongCount(int count) {
     return '$count 首已點贊歌曲';
   }
+
+  @override
+  String get authErrorSessionInvalidated => '登入已失效，請重新登入';
+
+  @override
+  String get authErrorSessionExpired => '登入已過期，請重新登入';
+
+  @override
+  String get authErrorNetwork => '無法連線到 Spotify，請檢查網路或代理';
+
+  @override
+  String authErrorFailed(String detail) {
+    return '登入失敗：$detail';
+  }
+
+  @override
+  String webLoginSaveSessionFailed(String detail) {
+    return '儲存 Web 工作階段失敗：$detail';
+  }
+
+  @override
+  String get webLoginSessionRejected =>
+      'Spotify 拒絕了這次登入（HTTP 401），請重試；反覆出現多半是代理或 VPN 出口被攔截。';
+
+  @override
+  String webLoginTlsIntercepted(String detail) {
+    return 'TLS 憑證驗證失敗，無法連線到 Spotify（$detail）。若有代理或安全軟體在攔截 HTTPS，請為其設定公用憑證，或先關閉。';
+  }
+
+  @override
+  String webLoginTokenPending(String detail) {
+    return 'Web token 暫時取得失敗（$detail），稍後會自動重試';
+  }
+
+  @override
+  String get webLoginPreparationFailed => 'WebView Cookie 清理失敗，請重試';
+
+  @override
+  String get radioFailed => '無法開始歌曲電台，請稍後再試';
+
+  @override
+  String startupFailed(String stage) {
+    return '啟動失敗：$stage';
+  }
+
+  @override
+  String startupTimeout(String stage) {
+    return '初始化逾時：$stage，請關閉並重新開啟應用程式。';
+  }
+
+  @override
+  String get startupCopyHint => '請複製診斷資訊回報，然後關閉並重新開啟應用程式。';
+
+  @override
+  String get startupCopyDiagnostics => '複製診斷資訊';
+
+  @override
+  String get hyperGlassPresetPurple => '著色紫';
+
+  @override
+  String get hyperGlassPresetBlue => '著色藍';
+
+  @override
+  String hyperGlassPreviewHint(String name) {
+    return '$name · 按住體驗折射高光';
+  }
+
+  @override
+  String get libraryErrorNotSignedIn => '未登入，無法同步到 Spotify 帳號';
+
+  @override
+  String libraryErrorRead(String detail) {
+    return '讀取失敗：$detail';
+  }
+
+  @override
+  String libraryErrorWrite(String detail) {
+    return '同步失敗：$detail';
+  }
+
+  @override
+  String libraryErrorBadResponse(String detail) {
+    return 'Spotify 回傳的資料格式異常：$detail';
+  }
+
+  @override
+  String libraryErrorPartial(String detail) {
+    return '歌單已建好，但寫入曲目失敗：$detail';
+  }
+
+  @override
+  String backupFailed(String detail) {
+    return '備份帳號失敗：$detail';
+  }
+
+  @override
+  String backupAccountFailed(String title, String detail) {
+    return '帳號「$title」備份失敗：$detail';
+  }
+
+  @override
+  String get creditsFailed => '無法載入製作人員資訊，請重試';
 }

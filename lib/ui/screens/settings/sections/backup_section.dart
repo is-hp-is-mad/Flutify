@@ -148,11 +148,16 @@ class _BackupSectionState extends State<BackupSection> {
   ) async {
     await service.backupAllAccounts();
     if (!context.mounted) return;
-    final err = service.lastError;
-    if (err != null) {
+    final failure = service.lastFailure;
+    if (failure != null) {
       AppToast.show(
         context,
-        err,
+        failure.accountTitle == null
+            ? context.l10n.backupFailed(failure.detail)
+            : context.l10n.backupAccountFailed(
+                failure.accountTitle!,
+                failure.detail,
+              ),
         icon: Icons.warning_amber_rounded,
         tone: ToastTone.warning,
       );

@@ -8,6 +8,7 @@ import '../../widgets/app_button.dart';
 import '../../widgets/cover_image.dart';
 import '../../widgets/flutify_progress.dart';
 import '../../../l10n/l10n.dart';
+import '../../widgets/library_error_text.dart';
 
 enum _SyncState { pending, running, done, failed }
 
@@ -55,7 +56,7 @@ class _PlaylistSyncScreenState extends State<PlaylistSyncScreen> {
         _states[p.id] = _SyncState.done;
       } catch (e) {
         _states[p.id] = _SyncState.failed;
-        _errors[p.id] = '$e';
+        _errors[p.id] = mounted ? libraryErrorText(context.l10n, e) : '$e';
       }
       if (mounted) setState(() {});
     }

@@ -1111,5 +1111,126 @@
         "type": "int"
       }
     }
-  }
+  },
+  "authErrorSessionInvalidated": "Your sign-in is no longer valid. Please sign in again.",
+  "authErrorSessionExpired": "Your sign-in has expired. Please sign in again.",
+  "authErrorNetwork": "Can't reach Spotify. Check your network or proxy.",
+  "authErrorFailed": "Sign-in failed: {detail}",
+  "@authErrorFailed": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "webLoginSaveSessionFailed": "Couldn't save the web session: {detail}",
+  "@webLoginSaveSessionFailed": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "webLoginSessionRejected": "Spotify rejected this sign-in (HTTP 401). Try again; if it keeps happening, your proxy or VPN exit is probably blocked.",
+  "webLoginTlsIntercepted": "TLS certificate verification failed, so Spotify can't be reached ({detail}). If a proxy or security software is intercepting HTTPS, give it a public certificate or turn it off.",
+  "@webLoginTlsIntercepted": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "webLoginTokenPending": "Couldn't get the web token yet ({detail}). Retrying automatically.",
+  "@webLoginTokenPending": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "webLoginPreparationFailed": "Couldn't clear WebView cookies. Please try again.",
+  "radioFailed": "Couldn't start the song radio. Try again later.",
+  "startupFailed": "Startup failed: {stage}",
+  "@startupFailed": {
+    "placeholders": {
+      "stage": {
+        "type": "String"
+      }
+    }
+  },
+  "startupTimeout": "Initialization timed out: {stage}. Close and reopen the app.",
+  "@startupTimeout": {
+    "placeholders": {
+      "stage": {
+        "type": "String"
+      }
+    }
+  },
+  "startupCopyHint": "Copy the diagnostics and report them, then close and reopen the app.",
+  "startupCopyDiagnostics": "Copy diagnostics",
+  "hyperGlassPresetLarge": "Large card",
+  "hyperGlassPresetPurple": "Purple tint",
+  "hyperGlassPresetBlue": "Blue tint",
+  "hyperGlassPresetBionic": "Bionic glass",
+  "hyperGlassPreviewHint": "{name} · Press and hold to feel the refraction highlight",
+  "@hyperGlassPreviewHint": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "libraryErrorNotSignedIn": "Not signed in, so nothing can be synced to your Spotify account.",
+  "libraryErrorRead": "Couldn't read your library: {detail}",
+  "@libraryErrorRead": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "libraryErrorWrite": "Sync failed: {detail}",
+  "@libraryErrorWrite": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "libraryErrorBadResponse": "Spotify returned unexpected data: {detail}",
+  "@libraryErrorBadResponse": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "libraryErrorPartial": "The playlist was created, but adding its songs failed: {detail}",
+  "@libraryErrorPartial": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "backupFailed": "Backup failed: {detail}",
+  "@backupFailed": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "backupAccountFailed": "Couldn't back up \"{title}\": {detail}",
+  "@backupAccountFailed": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "creditsFailed": "Couldn't load the credits. Please try again."
 }

@@ -149,14 +149,14 @@ class DesktopLibrarySource implements LibrarySource {
         headers: await _headers(),
       );
       if (res.statusCode != 200) {
-        throw LibrarySourceException('读取歌单失败', res.statusCode);
+        throw LibrarySourceException('读取歌单失败', res.statusCode, LibraryErrorKind.readFailed);
       }
 
       final Map<String, dynamic> json;
       try {
         json = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
       } catch (e) {
-        throw LibrarySourceException('歌单数据格式异常：$e');
+        throw LibrarySourceException('歌单数据格式异常：$e', null, LibraryErrorKind.badResponse, '$e');
       }
       playlists = RootlistParser.parse(json);
     }
@@ -217,7 +217,7 @@ class DesktopLibrarySource implements LibrarySource {
         },
         body: CollectionCodec.encodePageRequest(username: user, set: set, token: token, limit: _pageSize),
       );
-      if (res.statusCode != 200) throw LibrarySourceException('读取收藏失败', res.statusCode);
+      if (res.statusCode != 200) throw LibrarySourceException('读取收藏失败', res.statusCode, LibraryErrorKind.readFailed);
       final parsed = CollectionCodec.decodePage(res.bodyBytes);
       all.addAll(parsed.items.where((e) => e.kind == kind));
       if (parsed.nextToken.isEmpty || parsed.items.isEmpty) break;
@@ -258,25 +258,25 @@ class DesktopLibrarySource implements LibrarySource {
     } on LibrarySourceException {
       rethrow;
     } catch (e) {
-      throw LibrarySourceException('读取可添加的歌单失败：$e');
+      throw LibrarySourceException('读取可添加的歌单失败：$e', null, LibraryErrorKind.readFailed, '$e');
     }
   }
 
   @override
   Future<void> addTrackToPlaylist(String playlistUri, SpotifyTrack track) async {
-    if (!isSignedIn) throw const LibrarySourceException('未登录，无法同步到 Spotify 账号');
+    if (!isSignedIn) throw const LibrarySourceException('未登录，无法同步到 Spotify 账号', null, LibraryErrorKind.notSignedIn);
     try {
       await _data.addToPlaylist(playlistUri, [
         _uri(track.uri, 'track', track.id),
       ]);
     } catch (e) {
-      throw LibrarySourceException('添加到歌单失败：$e');
+      throw LibrarySourceException('添加到歌单失败：$e', null, LibraryErrorKind.writeFailed, '$e');
     }
   }
 
   @override
   Future<void> setPlaylistSaved(SpotifyPlaylist playlist, bool saved) async {
-    if (!_hasUsername) throw const LibrarySourceException('未登录，无法同步到 Spotify 账号');
+    if (!_hasUsername) throw const LibrarySourceException('未登录，无法同步到 Spotify 账号', null, LibraryErrorKind.notSignedIn);
     final uri = _uri(playlist.uri, 'playlist', playlist.id);
     await _rootlistChanges(
       saved
@@ -304,7 +304,7 @@ class DesktopLibrarySource implements LibrarySource {
 
   @override
   Future<String> createPlaylist(String name, List<SpotifyTrack> tracks) async {
-    if (!_hasUsername) throw const LibrarySourceException('未登录，无法同步到 Spotify 账号');
+    if (!_hasUsername) throw const LibrarySourceException('未登录，无法同步到 Spotify 账号', null, LibraryErrorKind.notSignedIn);
     final res = await _client.post(
       Uri.parse('$_spclient/playlist/v2/playlist'),
       headers: {...await _headers(), 'Content-Type': 'application/json', 'Accept': 'application/json'},
@@ -324,13 +324,13 @@ class DesktopLibrarySource implements LibrarySource {
       }),
     );
     if (res.statusCode < 200 || res.statusCode >= 300) {
-      throw LibrarySourceException('新建歌单失败', res.statusCode);
+      throw LibrarySourceException('新建歌单失败', res.statusCode, LibraryErrorKind.writeFailed);
     }
     final String uri;
     try {
       uri = (jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>)['uri'] as String;
     } catch (e) {
-      throw LibrarySourceException('新建歌单返回格式异常：$e');
+      throw LibrarySourceException('新建歌单返回格式异常：$e', null, LibraryErrorKind.badResponse, '$e');
     }
     await _rootlistChanges({
       'kind': 'ADD',
@@ -348,7 +348,7 @@ class DesktopLibrarySource implements LibrarySource {
         await _data.addToPlaylist(uri, uris.sublist(i, min(i + _addBatch, uris.length)));
       }
     } catch (e) {
-      throw LibrarySourceException('歌单已建好，但写入曲目失败：$e');
+      throw LibrarySourceException('歌单已建好，但写入曲目失败：$e', null, LibraryErrorKind.partialWrite, '$e');
     }
     return uri;
   }
@@ -389,12 +389,12 @@ class DesktopLibrarySource implements LibrarySource {
       }),
     );
     if (res.statusCode < 200 || res.statusCode >= 300) {
-      throw LibrarySourceException('同步歌单到音乐库失败', res.statusCode);
+      throw LibrarySourceException('同步歌单到音乐库失败', res.statusCode, LibraryErrorKind.writeFailed);
     }
   }
 
   Future<void> _write(String set, String uri, bool added) async {
-    if (!isSignedIn) throw const LibrarySourceException('未登录，无法同步到 Spotify 账号');
+    if (!isSignedIn) throw const LibrarySourceException('未登录，无法同步到 Spotify 账号', null, LibraryErrorKind.notSignedIn);
     try {
       if (added) {
         await _data.addToLibrary([uri]);
@@ -422,7 +422,7 @@ class DesktopLibrarySource implements LibrarySource {
       ),
     );
     if (res.statusCode < 200 || res.statusCode >= 300) {
-      throw LibrarySourceException('同步收藏失败', res.statusCode);
+      throw LibrarySourceException('同步收藏失败', res.statusCode, LibraryErrorKind.writeFailed);
     }
   }
 

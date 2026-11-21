@@ -25,7 +25,7 @@ class SongRadio {
       final notFound = e.message == '没有找到对应的内容';
       AppToast.showOn(
         messenger,
-        notFound ? l10n.radioUnavailable : e.toString(),
+        notFound ? l10n.radioUnavailable : l10n.radioFailed,
         icon: Icons.sensors_off_rounded,
         tone: notFound ? ToastTone.warning : ToastTone.error,
       );

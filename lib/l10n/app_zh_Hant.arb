@@ -1388,5 +1388,126 @@
         "type": "int"
       }
     }
-  }
+  },
+  "authErrorSessionInvalidated": "登入已失效，請重新登入",
+  "authErrorSessionExpired": "登入已過期，請重新登入",
+  "authErrorNetwork": "無法連線到 Spotify，請檢查網路或代理",
+  "authErrorFailed": "登入失敗：{detail}",
+  "@authErrorFailed": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "webLoginSaveSessionFailed": "儲存 Web 工作階段失敗：{detail}",
+  "@webLoginSaveSessionFailed": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "webLoginSessionRejected": "Spotify 拒絕了這次登入（HTTP 401），請重試；反覆出現多半是代理或 VPN 出口被攔截。",
+  "webLoginTlsIntercepted": "TLS 憑證驗證失敗，無法連線到 Spotify（{detail}）。若有代理或安全軟體在攔截 HTTPS，請為其設定公用憑證，或先關閉。",
+  "@webLoginTlsIntercepted": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "webLoginTokenPending": "Web token 暫時取得失敗（{detail}），稍後會自動重試",
+  "@webLoginTokenPending": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "webLoginPreparationFailed": "WebView Cookie 清理失敗，請重試",
+  "radioFailed": "無法開始歌曲電台，請稍後再試",
+  "startupFailed": "啟動失敗：{stage}",
+  "@startupFailed": {
+    "placeholders": {
+      "stage": {
+        "type": "String"
+      }
+    }
+  },
+  "startupTimeout": "初始化逾時：{stage}，請關閉並重新開啟應用程式。",
+  "@startupTimeout": {
+    "placeholders": {
+      "stage": {
+        "type": "String"
+      }
+    }
+  },
+  "startupCopyHint": "請複製診斷資訊回報，然後關閉並重新開啟應用程式。",
+  "startupCopyDiagnostics": "複製診斷資訊",
+  "hyperGlassPresetLarge": "通用大卡",
+  "hyperGlassPresetPurple": "著色紫",
+  "hyperGlassPresetBlue": "著色藍",
+  "hyperGlassPresetBionic": "仿生玻璃",
+  "hyperGlassPreviewHint": "{name} · 按住體驗折射高光",
+  "@hyperGlassPreviewHint": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "libraryErrorNotSignedIn": "未登入，無法同步到 Spotify 帳號",
+  "libraryErrorRead": "讀取失敗：{detail}",
+  "@libraryErrorRead": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "libraryErrorWrite": "同步失敗：{detail}",
+  "@libraryErrorWrite": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "libraryErrorBadResponse": "Spotify 回傳的資料格式異常：{detail}",
+  "@libraryErrorBadResponse": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "libraryErrorPartial": "歌單已建好，但寫入曲目失敗：{detail}",
+  "@libraryErrorPartial": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "backupFailed": "備份帳號失敗：{detail}",
+  "@backupFailed": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "backupAccountFailed": "帳號「{title}」備份失敗：{detail}",
+  "@backupAccountFailed": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "creditsFailed": "無法載入製作人員資訊，請重試"
 }

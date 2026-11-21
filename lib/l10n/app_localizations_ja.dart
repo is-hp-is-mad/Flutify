@@ -2577,4 +2577,113 @@ class AppLocalizationsJa extends AppLocalizations {
   String likedSongCount(int count) {
     return 'お気に入り $count 曲';
   }
+
+  @override
+  String get authErrorSessionInvalidated => 'ログインの有効期限が切れました。もう一度ログインしてください。';
+
+  @override
+  String get authErrorSessionExpired => 'ログインの有効期限が切れました。もう一度ログインしてください。';
+
+  @override
+  String get authErrorNetwork => 'Spotify に接続できません。ネットワークまたはプロキシを確認してください。';
+
+  @override
+  String authErrorFailed(String detail) {
+    return 'ログインに失敗しました: $detail';
+  }
+
+  @override
+  String webLoginSaveSessionFailed(String detail) {
+    return 'Web セッションを保存できませんでした: $detail';
+  }
+
+  @override
+  String get webLoginSessionRejected =>
+      'Spotify がこのログインを拒否しました（HTTP 401）。再試行してください。繰り返し発生する場合は、プロキシや VPN の出口がブロックされている可能性があります。';
+
+  @override
+  String webLoginTlsIntercepted(String detail) {
+    return 'TLS 証明書の検証に失敗し、Spotify に接続できません（$detail）。プロキシやセキュリティソフトが HTTPS を傍受している場合は、公開証明書を設定するか、一時的に無効にしてください。';
+  }
+
+  @override
+  String webLoginTokenPending(String detail) {
+    return 'Web トークンをまだ取得できません（$detail）。自動で再試行します。';
+  }
+
+  @override
+  String get webLoginPreparationFailed =>
+      'WebView の Cookie を消去できませんでした。もう一度お試しください。';
+
+  @override
+  String get radioFailed => '曲のラジオを開始できませんでした。しばらくしてからもう一度お試しください。';
+
+  @override
+  String startupFailed(String stage) {
+    return '起動に失敗しました: $stage';
+  }
+
+  @override
+  String startupTimeout(String stage) {
+    return '初期化がタイムアウトしました: $stage。アプリを閉じて開き直してください。';
+  }
+
+  @override
+  String get startupCopyHint => '診断情報をコピーして報告し、アプリを閉じて開き直してください。';
+
+  @override
+  String get startupCopyDiagnostics => '診断情報をコピー';
+
+  @override
+  String get hyperGlassPresetLarge => '汎用の大型カード';
+
+  @override
+  String get hyperGlassPresetPurple => 'パープル';
+
+  @override
+  String get hyperGlassPresetBlue => 'ブルー';
+
+  @override
+  String get hyperGlassPresetBionic => 'バイオニックガラス';
+
+  @override
+  String hyperGlassPreviewHint(String name) {
+    return '$name · 長押しで屈折ハイライトを体験';
+  }
+
+  @override
+  String get libraryErrorNotSignedIn => 'ログインしていないため、Spotify アカウントに同期できません。';
+
+  @override
+  String libraryErrorRead(String detail) {
+    return 'ライブラリを読み込めませんでした: $detail';
+  }
+
+  @override
+  String libraryErrorWrite(String detail) {
+    return '同期に失敗しました: $detail';
+  }
+
+  @override
+  String libraryErrorBadResponse(String detail) {
+    return 'Spotify から予期しない形式のデータが返されました: $detail';
+  }
+
+  @override
+  String libraryErrorPartial(String detail) {
+    return 'プレイリストは作成されましたが、曲の追加に失敗しました: $detail';
+  }
+
+  @override
+  String backupFailed(String detail) {
+    return 'バックアップに失敗しました: $detail';
+  }
+
+  @override
+  String backupAccountFailed(String title, String detail) {
+    return '「$title」をバックアップできませんでした: $detail';
+  }
+
+  @override
+  String get creditsFailed => 'クレジットを読み込めませんでした。もう一度お試しください。';
 }

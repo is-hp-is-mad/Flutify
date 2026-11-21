@@ -2730,4 +2730,118 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get authErrorSessionInvalidated =>
+      'Your sign-in is no longer valid. Please sign in again.';
+
+  @override
+  String get authErrorSessionExpired =>
+      'Your sign-in has expired. Please sign in again.';
+
+  @override
+  String get authErrorNetwork =>
+      'Can\'t reach Spotify. Check your network or proxy.';
+
+  @override
+  String authErrorFailed(String detail) {
+    return 'Sign-in failed: $detail';
+  }
+
+  @override
+  String webLoginSaveSessionFailed(String detail) {
+    return 'Couldn\'t save the web session: $detail';
+  }
+
+  @override
+  String get webLoginSessionRejected =>
+      'Spotify rejected this sign-in (HTTP 401). Try again; if it keeps happening, your proxy or VPN exit is probably blocked.';
+
+  @override
+  String webLoginTlsIntercepted(String detail) {
+    return 'TLS certificate verification failed, so Spotify can\'t be reached ($detail). If a proxy or security software is intercepting HTTPS, give it a public certificate or turn it off.';
+  }
+
+  @override
+  String webLoginTokenPending(String detail) {
+    return 'Couldn\'t get the web token yet ($detail). Retrying automatically.';
+  }
+
+  @override
+  String get webLoginPreparationFailed =>
+      'Couldn\'t clear WebView cookies. Please try again.';
+
+  @override
+  String get radioFailed => 'Couldn\'t start the song radio. Try again later.';
+
+  @override
+  String startupFailed(String stage) {
+    return 'Startup failed: $stage';
+  }
+
+  @override
+  String startupTimeout(String stage) {
+    return 'Initialization timed out: $stage. Close and reopen the app.';
+  }
+
+  @override
+  String get startupCopyHint =>
+      'Copy the diagnostics and report them, then close and reopen the app.';
+
+  @override
+  String get startupCopyDiagnostics => 'Copy diagnostics';
+
+  @override
+  String get hyperGlassPresetLarge => 'Large card';
+
+  @override
+  String get hyperGlassPresetPurple => 'Purple tint';
+
+  @override
+  String get hyperGlassPresetBlue => 'Blue tint';
+
+  @override
+  String get hyperGlassPresetBionic => 'Bionic glass';
+
+  @override
+  String hyperGlassPreviewHint(String name) {
+    return '$name · Press and hold to feel the refraction highlight';
+  }
+
+  @override
+  String get libraryErrorNotSignedIn =>
+      'Not signed in, so nothing can be synced to your Spotify account.';
+
+  @override
+  String libraryErrorRead(String detail) {
+    return 'Couldn\'t read your library: $detail';
+  }
+
+  @override
+  String libraryErrorWrite(String detail) {
+    return 'Sync failed: $detail';
+  }
+
+  @override
+  String libraryErrorBadResponse(String detail) {
+    return 'Spotify returned unexpected data: $detail';
+  }
+
+  @override
+  String libraryErrorPartial(String detail) {
+    return 'The playlist was created, but adding its songs failed: $detail';
+  }
+
+  @override
+  String backupFailed(String detail) {
+    return 'Backup failed: $detail';
+  }
+
+  @override
+  String backupAccountFailed(String title, String detail) {
+    return 'Couldn\'t back up "$title": $detail';
+  }
+
+  @override
+  String get creditsFailed => 'Couldn\'t load the credits. Please try again.';
 }

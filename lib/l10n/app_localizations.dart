@@ -4715,6 +4715,168 @@ abstract class AppLocalizations {
   /// **'{count} 首已点赞歌曲'**
   String likedSongCount(int count);
 
+  /// No description provided for @authErrorSessionInvalidated.
+  ///
+  /// In zh, this message translates to:
+  /// **'登录已失效，请重新登录'**
+  String get authErrorSessionInvalidated;
+
+  /// No description provided for @authErrorSessionExpired.
+  ///
+  /// In zh, this message translates to:
+  /// **'登录已过期，请重新登录'**
+  String get authErrorSessionExpired;
+
+  /// No description provided for @authErrorNetwork.
+  ///
+  /// In zh, this message translates to:
+  /// **'无法连接到 Spotify，请检查网络或代理'**
+  String get authErrorNetwork;
+
+  /// No description provided for @authErrorFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'登录失败：{detail}'**
+  String authErrorFailed(String detail);
+
+  /// No description provided for @webLoginSaveSessionFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'保存 Web 会话失败：{detail}'**
+  String webLoginSaveSessionFailed(String detail);
+
+  /// No description provided for @webLoginSessionRejected.
+  ///
+  /// In zh, this message translates to:
+  /// **'Spotify 拒绝了这次登录（HTTP 401），请重试；反复出现多半是代理或 VPN 出口被拦截。'**
+  String get webLoginSessionRejected;
+
+  /// No description provided for @webLoginTlsIntercepted.
+  ///
+  /// In zh, this message translates to:
+  /// **'TLS 证书验证失败，无法连接 Spotify（{detail}）。若有代理或安全软件在拦截 HTTPS，请为其配置公共证书，或先关闭。'**
+  String webLoginTlsIntercepted(String detail);
+
+  /// No description provided for @webLoginTokenPending.
+  ///
+  /// In zh, this message translates to:
+  /// **'Web token 暂未取到（{detail}），稍后会自动重试'**
+  String webLoginTokenPending(String detail);
+
+  /// No description provided for @webLoginPreparationFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'WebView Cookie 清理失败，请重试'**
+  String get webLoginPreparationFailed;
+
+  /// No description provided for @radioFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'无法开始歌曲电台，请稍后重试'**
+  String get radioFailed;
+
+  /// No description provided for @startupFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'启动失败：{stage}'**
+  String startupFailed(String stage);
+
+  /// No description provided for @startupTimeout.
+  ///
+  /// In zh, this message translates to:
+  /// **'初始化超时：{stage}，请关闭并重新打开应用。'**
+  String startupTimeout(String stage);
+
+  /// No description provided for @startupCopyHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'请复制诊断信息反馈，然后关闭并重新打开应用。'**
+  String get startupCopyHint;
+
+  /// No description provided for @startupCopyDiagnostics.
+  ///
+  /// In zh, this message translates to:
+  /// **'复制诊断信息'**
+  String get startupCopyDiagnostics;
+
+  /// No description provided for @hyperGlassPresetLarge.
+  ///
+  /// In zh, this message translates to:
+  /// **'通用大卡'**
+  String get hyperGlassPresetLarge;
+
+  /// No description provided for @hyperGlassPresetPurple.
+  ///
+  /// In zh, this message translates to:
+  /// **'着色紫'**
+  String get hyperGlassPresetPurple;
+
+  /// No description provided for @hyperGlassPresetBlue.
+  ///
+  /// In zh, this message translates to:
+  /// **'着色蓝'**
+  String get hyperGlassPresetBlue;
+
+  /// No description provided for @hyperGlassPresetBionic.
+  ///
+  /// In zh, this message translates to:
+  /// **'仿生玻璃'**
+  String get hyperGlassPresetBionic;
+
+  /// No description provided for @hyperGlassPreviewHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'{name} · 按住体验折射高光'**
+  String hyperGlassPreviewHint(String name);
+
+  /// No description provided for @libraryErrorNotSignedIn.
+  ///
+  /// In zh, this message translates to:
+  /// **'未登录，无法同步到 Spotify 账号'**
+  String get libraryErrorNotSignedIn;
+
+  /// No description provided for @libraryErrorRead.
+  ///
+  /// In zh, this message translates to:
+  /// **'读取失败：{detail}'**
+  String libraryErrorRead(String detail);
+
+  /// No description provided for @libraryErrorWrite.
+  ///
+  /// In zh, this message translates to:
+  /// **'同步失败：{detail}'**
+  String libraryErrorWrite(String detail);
+
+  /// No description provided for @libraryErrorBadResponse.
+  ///
+  /// In zh, this message translates to:
+  /// **'Spotify 返回的数据格式异常：{detail}'**
+  String libraryErrorBadResponse(String detail);
+
+  /// No description provided for @libraryErrorPartial.
+  ///
+  /// In zh, this message translates to:
+  /// **'歌单已建好，但写入曲目失败：{detail}'**
+  String libraryErrorPartial(String detail);
+
+  /// No description provided for @backupFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'备份账号失败：{detail}'**
+  String backupFailed(String detail);
+
+  /// No description provided for @backupAccountFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'账号「{title}」备份失败：{detail}'**
+  String backupAccountFailed(String title, String detail);
+
+  /// No description provided for @creditsFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'无法加载制作人员信息，请重试'**
+  String get creditsFailed;
+
 }
 
 class _AppLocalizationsDelegate
