@@ -1237,7 +1237,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsLyricsBilingualSubtitle =>
-      'Preload Chinese translations from QQ Music, then NetEase for missing or incomplete lyrics, and finally LRCLIB when fallback is enabled. Also used by taskbar lyrics. Turning this off still allows manual and automatic searches. The song title and artist are sent to queried sources.';
+      'Preload Chinese translations from QQ Music, then NetEase, and finally LRCLIB when fallback is on. Taskbar lyrics use them too. Turning this off still allows manual and automatic searches. The song title and artist are sent to the sources.';
 
   @override
   String get settingsTaskbarLyricsSection => 'Taskbar lyrics';
@@ -1269,7 +1269,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsHomeWidgetsSubtitle =>
-      'On HyperOS, Flutify is in the Android widgets section at the bottom of the widget list. You can also tap Add here to place one directly, then long-press it to resize';
+      'On HyperOS, find Flutify under Android widgets at the bottom of the widget list, or tap Add here to place one directly. Long-press to resize';
 
   @override
   String get homeWidgetNowPlaying => 'Now Playing bar';
@@ -1565,7 +1565,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsProxyFootnote =>
-      'Only HTTP proxies are supported (the mixed port of Clash, v2rayN, etc. works); a manual proxy may use a username/password, e.g. a self-hosted relay in another region. The sign-in page always follows the system proxy settings.';
+      'Only HTTP proxies are supported (the mixed port of Clash or v2rayN works). A manual proxy may use a username and password, e.g. a self-hosted relay. The sign-in page always follows the system proxy.';
 
   @override
   String get settingsPrivacySection => 'Privacy';
@@ -1717,7 +1717,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get accountSignOutMessage =>
-      'Your saved sign-in and library cache will be removed from this device. You\'ll need to sign in again to play music and view your library.';
+      'Your saved sign-in and library cache will be removed from this device. You\'ll need to sign in again.';
 
   @override
   String get accountSignOutConfirm => 'Sign out';
@@ -1877,7 +1877,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsClearAllCacheHelp =>
-      'Clear audio, artwork, lyrics and browser temporary caches. Keep your login, settings, library and playback history. Audio in use or downloading is retained.';
+      'Clear audio, artwork, lyrics and browser temporary caches. Your login, settings, library and playback history are kept, as is audio in use or downloading.';
 
   @override
   String get settingsCacheLocationHelp =>
@@ -1915,7 +1915,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsGatewayAutomaticHelp =>
-      'Check the network\'s exit country/region using Cloudflare on startup, network changes, resume and every 2 minutes. Uses your selected system/manual proxy. Failed checks keep the current route.';
+      'Checks the exit country/region through Cloudflare on launch, network changes, resume and every 2 minutes, using your current proxy settings. If a check fails, the current route stays.';
 
   @override
   String get settingsGatewayDirectCountries =>
@@ -1923,7 +1923,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsGatewayDirectCountriesHelp =>
-      'Optional two-letter codes separated by commas or spaces. Empty: CN uses the gateway, all others connect directly. Filled: only listed countries/regions connect directly; all others use the gateway.';
+      'Optional two-letter codes separated by commas or spaces. Empty: only CN uses the gateway and the rest connect directly. Filled: only listed countries/regions connect directly and the rest use the gateway.';
 
   @override
   String get settingsGatewayCountriesInvalid =>
@@ -1969,7 +1969,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsLyricsAutoTranslateSubtitle =>
-      'Find existing translations. Chinese translations search QQ Music first using the song title and artist, then NetEase for missing or incomplete lyrics, and finally LRCLIB when fallback is enabled. More complete results must keep every previously translated line. Chinese script follows the interface.';
+      'Find existing translations by song title and artist: QQ Music, then NetEase, and finally LRCLIB when fallback is on. A more complete result is used only if it keeps every line already translated. Chinese script follows the interface.';
 
   @override
   String get settingsLyricsExcludeInterface => 'Skip the interface language';
@@ -2081,7 +2081,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get webLoginGoogleHint =>
-      'Registered with Google? Sign in here with your email and password. If you do not have a password, set one using “Forgot password” on Spotify’s website.';
+      'Registered with Google? Sign in here with your email and password. If you have no password, set one with “Forgot password” on Spotify’s website.';
 
   @override
   String get loginBrowserFallback =>
@@ -2127,7 +2127,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get updatesSelfTestWarning =>
-      'Self-test builds are for developers testing their own changes. One is produced automatically for every commit, with no verification at all, and it may fail to start, lose data or corrupt your settings. Do not use them for real work or daily listening. Versions also only move forward: after installing a self-test build you cannot return to a release until a release with a higher build number is published.';
+      'Self-test builds are generated automatically for every commit and are completely unverified. They may fail to start, lose data or corrupt settings, so don\'t use them day to day. Versions only move forward: after installing one, you can\'t return to a release until a release with a higher build number is published.';
 
   @override
   String get updatesSelfTestConfirm => 'I am a developer, switch anyway';
@@ -2151,7 +2151,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get updatesHint =>
-      'Check for new versions and release notes automatically. Automatic mode downloads in the background and waits for your confirmation to install, without interrupting playback.';
+      'Check for new versions automatically. Automatic mode downloads in the background and waits for your confirmation to install, without interrupting playback.';
 
   @override
   String get updatesCheck => 'Check for updates';
@@ -2185,7 +2185,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get updatesReadyHint =>
-      'The update has been downloaded and verified. Installation closes the app; you can also continue later from Settings.';
+      'The update has been downloaded and verified. Installing closes the app; you can also continue later in Settings.';
 
   @override
   String get updatesAndroidHint =>
@@ -2252,7 +2252,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsAnimDebugFooter =>
-      'Applies to this run only and resets when the app restarts. Use it to find what drops frames: turn items off one by one and see which one makes it smooth.';
+      'Applies to this run only and resets on restart. Use it to find what drops frames: turn items off one by one and see which makes it smooth.';
 
   @override
   String get settingsAnimDebugResetAll => 'Restore all';
@@ -2309,7 +2309,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsBluetoothLyricsSubtitle =>
-      'While a Bluetooth audio device is connected, the media title shows the current lyric line and artist/album show \"Song - Artist\", so car displays show lyrics line by line';
+      'While a Bluetooth audio device is connected, the media title shows the current lyric line and artist/album show "Song - Artist", so car displays show lyrics line by line';
 
   @override
   String get bluetoothLyricsOff => 'Off';
@@ -2402,4 +2402,274 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get playbackEngineAndroid => 'Android native';
+
+  @override
+  String get backupTitle => 'Playlist backup';
+
+  @override
+  String get backupFooter =>
+      'Browse each account\'s liked songs and playlists, and import any selection into this account.';
+
+  @override
+  String get backupUnsyncedTitle => 'Sync local playlists to Spotify';
+
+  @override
+  String backupUnsyncedSubtitle(int count) {
+    return '$count playlists exist only on this device and are not in your account library yet';
+  }
+
+  @override
+  String get backupEnable => 'Enable playlist backup';
+
+  @override
+  String get backupEnableSubtitle =>
+      'Back up this device\'s account automatically, or other accounts through a separate WebView';
+
+  @override
+  String get backupAutoCurrent => 'Auto-back up this account';
+
+  @override
+  String get backupAutoCurrentSubtitle =>
+      'Save changes right away instead of waiting for the next scheduled backup';
+
+  @override
+  String get backupInterval => 'Backup frequency';
+
+  @override
+  String get backupIntervalSubtitle =>
+      'At least 20 minutes, to avoid server rate limits';
+
+  @override
+  String backupIntervalMinutes(int minutes) {
+    return '$minutes min';
+  }
+
+  @override
+  String backupIntervalHours(int hours) {
+    return '$hours h';
+  }
+
+  @override
+  String backupIntervalDays(int days) {
+    return '$days d';
+  }
+
+  @override
+  String get backupAddAccount => 'Add an account to sync';
+
+  @override
+  String get backupAddAccountSubtitle =>
+      'Sign in to open.spotify.com in a separate WebView to read its saved playlists';
+
+  @override
+  String get backupSyncToAccount => 'Sync backed-up playlists to this account';
+
+  @override
+  String get backupSyncToAccountSubtitle =>
+      'Merge liked songs from the checked accounts into this one and sync their playlists';
+
+  @override
+  String get backupNow => 'Back up all accounts now';
+
+  @override
+  String get backupNowSubtitle =>
+      'Fetch the latest saved items from every account and store them locally';
+
+  @override
+  String backupAccountAdded(String title, int liked, int playlists) {
+    return 'Backed up "$title" ($liked liked songs, $playlists playlists)';
+  }
+
+  @override
+  String backupAccountAddFailed(String error) {
+    return 'Couldn\'t add the backup account: $error';
+  }
+
+  @override
+  String backupSynced(int playlists, int liked) {
+    return 'Synced $playlists playlists and merged $liked liked songs';
+  }
+
+  @override
+  String backupImporting(int count) {
+    return 'Importing $count playlists in the background…';
+  }
+
+  @override
+  String backupImported(int playlists, int liked) {
+    return 'Imported $playlists playlists and merged $liked liked songs';
+  }
+
+  @override
+  String get backupSavedAll => 'Saved playlists from all accounts';
+
+  @override
+  String backupSelectedHeader(int selected, int total) {
+    return 'Saved playlists ($selected of $total selected)';
+  }
+
+  @override
+  String backupImportSelected(int count) {
+    return 'Import selected ($count)';
+  }
+
+  @override
+  String get backupBadgePrevious => 'Previously signed in';
+
+  @override
+  String get backupBadgeExternal => 'External backup account';
+
+  @override
+  String backupAccountTitle(String title, String badge) {
+    return '$title ($badge)';
+  }
+
+  @override
+  String backupAccountSubtitle(int liked, int playlists) {
+    return '$liked liked songs · $playlists playlists saved';
+  }
+
+  @override
+  String get backupIncludeInSync => 'Include in sync';
+
+  @override
+  String get backupRemoveAccount => 'Remove this backup account';
+
+  @override
+  String get backupExitMultiSelect => 'Exit multi-select';
+
+  @override
+  String get backupPickTracksImport => 'Pick songs to import';
+
+  @override
+  String get backupPickTracks => 'Pick songs to save';
+
+  @override
+  String backupDialogImportTitle(String name) {
+    return 'Pick songs to import · $name';
+  }
+
+  @override
+  String backupDialogPickTitle(String name) {
+    return 'Pick songs to save · $name';
+  }
+
+  @override
+  String get backupDeselectAll => 'Deselect all';
+
+  @override
+  String backupSelectedCount(int selected, int total) {
+    return '$selected of $total selected';
+  }
+
+  @override
+  String backupImportedAsPlaylist(int count, String name) {
+    return 'Imported $count songs as the playlist "$name"';
+  }
+
+  @override
+  String backupImportAsPlaylist(int count) {
+    return 'Import as playlist ($count)';
+  }
+
+  @override
+  String get backupImportAsPlaylistShort => 'Import as playlist';
+
+  @override
+  String backupLikedMerged(int count, int added) {
+    return 'Merged $count songs into Liked Songs ($added new)';
+  }
+
+  @override
+  String backupLikedSaved(int count, int added) {
+    return 'Saved $count songs ($added new)';
+  }
+
+  @override
+  String backupMergeLiked(int count) {
+    return 'Merge into Liked Songs ($count)';
+  }
+
+  @override
+  String get backupMergeLikedShort => 'Merge into Liked Songs';
+
+  @override
+  String backupSaveSelected(int count) {
+    return 'Save selected ($count)';
+  }
+
+  @override
+  String get backupLoginTitle => 'Sign in to the Spotify account to back up';
+
+  @override
+  String get playlistSyncTitle => 'Sync playlists to Spotify';
+
+  @override
+  String get playlistSyncIntro =>
+      'In older versions, playlists you saved, created or imported from a backup stayed on this device, so the official app and web player could not see them. Selected playlists are written to your account: other people\'s playlists are added to your library, and your own are recreated under the same name.';
+
+  @override
+  String playlistSyncDone(int count) {
+    return 'Done: $count playlists synced to your account.';
+  }
+
+  @override
+  String playlistSyncPartial(int done, int failed) {
+    return 'Done: $done synced, $failed failed. You can retry the failed ones.';
+  }
+
+  @override
+  String get playlistSyncAllDone =>
+      'All playlists are already synced to Spotify.';
+
+  @override
+  String get playlistSyncRunning => 'Syncing — please keep this page open…';
+
+  @override
+  String playlistSyncSelected(int count) {
+    return '$count selected';
+  }
+
+  @override
+  String get playlistSyncStart => 'Start sync';
+
+  @override
+  String playlistSyncCreate(int count) {
+    return 'Create in your account ($count songs)';
+  }
+
+  @override
+  String get playlistSyncAdd => 'Add to library';
+
+  @override
+  String get playlistSyncStateRunning => 'Syncing…';
+
+  @override
+  String get playlistSyncStateDone => 'Synced';
+
+  @override
+  String playlistSyncStateFailed(String error) {
+    return 'Failed: $error';
+  }
+
+  @override
+  String playlistSyncPromptTitle(int count) {
+    return '$count playlists aren\'t synced to Spotify';
+  }
+
+  @override
+  String get playlistSyncPromptBody =>
+      'In older versions, playlists you saved, created or imported from a backup stayed on this device, so the official app and web player could not see them. Saving and unsaving now sync to your account, and you can sync the leftover playlists now.\n\nYou can also find this later in Settings → Playlist backup.';
+
+  @override
+  String get playlistSyncPromptLater => 'Not now';
+
+  @override
+  String get playlistSyncPromptGo => 'Sync now';
+
+  @override
+  String get playerCanvasPlay => 'Play Canvas';
+
+  @override
+  String get playerCanvasStop => 'Stop Canvas';
 }

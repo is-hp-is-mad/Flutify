@@ -342,10 +342,10 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                               : null,
                         ),
                         tooltip: _selecting
-                            ? '退出多选'
+                            ? l10n.backupExitMultiSelect
                             : (isExternalBackupLikedSongs
-                                  ? '选择部分歌曲一键导入到本账号'
-                                  : '多选收藏歌曲'),
+                                  ? l10n.backupPickTracksImport
+                                  : l10n.backupPickTracks),
                         onPressed: () {
                           setState(() {
                             _selecting = !_selecting;
@@ -530,8 +530,8 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       AppToast.show(
         context,
         isExternalBackupLikedSongs
-            ? '已将所选 ${selectedTracks.length} 首歌曲合并导入到本账号「已点赞的歌曲」（新增 $added 首）'
-            : '已收藏所选 ${selectedTracks.length} 首歌曲（新增 $added 首）',
+            ? context.l10n.backupLikedMerged(selectedTracks.length, added)
+            : context.l10n.backupLikedSaved(selectedTracks.length, added),
         icon: Icons.favorite_rounded,
         tone: ToastTone.success,
       );
@@ -549,7 +549,10 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       library.upsertLocalPlaylist(imported);
       AppToast.show(
         context,
-        '已导入歌单「${playlist.name}」（包含所选 ${selectedTracks.length} 首歌曲）到本账号',
+        context.l10n.backupImportedAsPlaylist(
+          selectedTracks.length,
+          playlist.name,
+        ),
         icon: Icons.playlist_add_check_rounded,
         tone: ToastTone.success,
       );
@@ -583,10 +586,12 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                       : Icons.check_box_outline_blank_rounded,
                   size: 20,
                 ),
-                label: Text(allSelected ? '取消全选' : '全选'),
+                label: Text(
+                  allSelected ? context.l10n.backupDeselectAll : context.l10n.menuSelectAll,
+                ),
               ),
               Text(
-                '已选 ${selectedTracks.length} / ${visible.length} 首',
+                context.l10n.backupSelectedCount(selectedTracks.length, visible.length),
                 style: theme.textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
@@ -596,15 +601,15 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                 icon: const Icon(Icons.favorite_rounded, size: 18),
                 label: Text(
                   isExternalBackupLikedSongs
-                      ? '一键合并到本账号已点赞歌曲'
-                      : '收藏所选歌曲（${selectedTracks.length}）',
+                      ? context.l10n.backupMergeLikedShort
+                      : context.l10n.backupSaveSelected(selectedTracks.length),
                 ),
               ),
               if (isExternalBackupLikedSongs)
                 AppButton.icon(style: M3EButtonStyle.outlined, 
                   onPressed: selectedTracks.isEmpty ? null : importAsPlaylist,
                   icon: const Icon(Icons.library_add_rounded, size: 18),
-                  label: const Text('将所选导入为本账号歌单'),
+                  label: Text(context.l10n.backupImportAsPlaylistShort),
                 ),
             ],
           ),

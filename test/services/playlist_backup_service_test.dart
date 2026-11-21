@@ -303,7 +303,7 @@ void main() {
     await tester.tap(find.text('启用歌单备份'));
     await tester.pumpAndSettle();
 
-    expect(find.text('自动备份本机已登录的账号'), findsOneWidget);
+    expect(find.text('自动备份本机账号'), findsOneWidget);
     expect(find.text('添加要同步歌单的账号'), findsOneWidget);
     expect(find.text('一键同步已备份的歌单到本账号'), findsOneWidget);
 

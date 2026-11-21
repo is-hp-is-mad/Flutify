@@ -365,7 +365,7 @@
   "settingsTaskbarLyricsOpacity": "不透明度",
   "settingsTaskbarLyricsFontSize": "文字サイズ",
   "settingsHomeWidgetsSection": "ホーム画面ウィジェット",
-  "settingsHomeWidgetsSubtitle": "HyperOS ではウィジェット一覧の一番下にある「Android ウィジェット」に Flutify があります。ここで「追加」をタップして直接配置することもでき、長押しでサイズを変更できます",
+  "settingsHomeWidgetsSubtitle": "HyperOS ではウィジェット一覧の最下部「Android ウィジェット」に Flutify があります。ここで「追加」をタップして直接配置することもでき、長押しでサイズを変更できます",
   "homeWidgetNowPlaying": "再生バー",
   "homeWidgetNowPlayingDesc": "アートワーク、曲名と前へ / 再生 / 次へを表示する細長いバー。標準 4×1",
   "homeWidgetAlbumCard": "アルバムカード",
@@ -446,7 +446,7 @@
   "settingsProxyTesting": "Spotify に接続中…",
   "settingsProxyTestOk": "{ms} ms で接続しました",
   "settingsProxyTestFailed": "接続に失敗しました：{error}",
-  "settingsProxyFootnote": "HTTP プロキシに対応しています（Clash、v2rayN などの mixed ポートも利用可能）。ログインページは常にシステムのプロキシ設定に従います。",
+  "settingsProxyFootnote": "HTTP プロキシのみ対応しています（Clash や v2rayN の mixed ポートも利用可）。手動プロキシにはユーザー名とパスワードを設定でき、認証付きの自前リレーに便利です。ログインページは常にシステムのプロキシに従います。",
   "settingsPrivacySection": "プライバシー",
   "settingsClearSearchHistory": "検索履歴を削除",
   "settingsSearchHistoryCount": "検索履歴 {count} 件",
@@ -490,7 +490,7 @@
   "accountSignIn": "ログイン",
   "accountSignOut": "ログアウト",
   "accountSignOutTitle": "ログアウトしますか？",
-  "accountSignOutMessage": "このデバイスのログイン情報とライブラリのキャッシュを削除します。音楽の再生やマイライブラリの表示には再ログインが必要です。",
+  "accountSignOutMessage": "このデバイスのログイン情報とライブラリのキャッシュを削除します。再ログインが必要です。",
   "accountSignOutConfirm": "ログアウト",
   "sleepTimer": "スリープタイマー",
   "sleepTimerMinutes": "{count} 分",
@@ -543,9 +543,9 @@
   "settingsCacheChooseDirectory": "フォルダーを選択",
   "settingsCachePickerFailed": "フォルダー選択を開けませんでした。再試行するか、パスを入力してください。",
   "settingsGatewayAutomatic": "ゲートウェイを自動切り替え",
-  "settingsGatewayAutomaticHelp": "起動時、ネットワーク変更時、復帰時、および 2 分ごとに Cloudflare で接続元の国・地域を確認します。選択したシステム / 手動プロキシを使います。確認に失敗した場合は現在の経路を保持します。",
+  "settingsGatewayAutomaticHelp": "起動時、ネットワーク変更時、復帰時、および 2 分ごとに Cloudflare で接続元の国・地域を確認します（現在のプロキシ設定を使用）。確認に失敗した場合は現在の経路を維持します。",
   "settingsGatewayDirectCountries": "直接接続を許可する国・地域",
-  "settingsGatewayDirectCountriesHelp": "2 文字のコードをカンマかスペースで区切って指定します。空欄の場合は CN のみゲートウェイ経由で、それ以外は直接接続します。指定した場合は一覧内のみ直接接続し、それ以外はゲートウェイ経由になります。",
+  "settingsGatewayDirectCountriesHelp": "2 文字の国・地域コードをカンマまたはスペースで区切って指定します（任意）。空欄の場合は CN のみゲートウェイ経由で、それ以外は直接接続します。指定した場合は一覧内のみ直接接続し、それ以外はゲートウェイ経由になります。",
   "settingsGatewayCountriesInvalid": "US、JP、HK などの 2 文字の国・地域コードを入力してください。",
   "settingsGatewayLookupFailed": "国・地域を確認できませんでした。現在の経路を保持します。",
   "settingsGatewayCountryPending": "ネットワークの国・地域を確認中です。現在の経路を保持します。",
@@ -558,7 +558,7 @@
   "lyricsTranslationFailed": "訳詞を検索できませんでした。タップして再試行",
   "lyricsTranslating": "訳詞を検索中 · タップしてキャンセル",
   "settingsLyricsAutoTranslate": "訳詞を自動表示",
-  "settingsLyricsAutoTranslateSubtitle": "既存の訳詞を検索します。中国語の訳詞は曲名とアーティスト名で QQ Music を優先し、不足時は NetEase、補完が有効なら最後に LRCLIB を検索します。既存の訳詞行を失わず、より完全な結果のみ採用します。簡体字・繁体字は表示言語に従います。",
+  "settingsLyricsAutoTranslateSubtitle": "既存の訳詞を曲名とアーティスト名で検索します。QQ Music、NetEase、補完が有効なら最後に LRCLIB の順です。訳済みの行を失わない、より完全な結果のみ採用し、簡体字・繁体字は表示言語に従います。",
   "settingsLyricsExcludeInterface": "アプリと同じ言語の曲は除外",
   "settingsLyricsExcluded": "他に除外する言語",
   "settingsLyricsExcludedHint": "カンマ区切り：en、ja、zh-Hans（簡体字）、zh-Hant（繁体字）。zh は両方を除外します。空欄で解除します。",
@@ -667,7 +667,7 @@
   "webLoginAuthorizing": "アカウントの認証を完了しています…",
   "webLoginFinishing": "ログインを完了しています…",
   "webLoginBackgroundHint": "ログインが完了しました。残りの手順は自動的に実行されます。",
-  "webLoginGoogleHint": "Google で登録した場合は、ここでメールアドレスとパスワードを使ってログインしてください。パスワードがない場合は、Spotify 公式サイトの「パスワードを忘れた場合」から設定できます。",
+  "webLoginGoogleHint": "Google で登録した場合は、ここでメールアドレスとパスワードでログインしてください。パスワードがない場合は、Spotify 公式サイトの「パスワードを忘れた場合」から設定できます。",
   "loginBrowserFallback": "ブラウザーを開けませんでした。コピーしたログインリンクをブラウザーに貼り付けてください。",
   "loginBrowserTitle": "ブラウザーでログインを完了してください",
   "loginBrowserSubtitle": "ログインしてアクセスを許可すると、自動的に続行します。",
@@ -694,7 +694,7 @@
   "menuSettings": "設定…",
   "playbackErrorFairPlay": "「{track}」を復号できません：このデバイスで FairPlay セッションを作成できませんでした",
   "settingsLyricsBilingual": "コミュニティの歌詞翻訳",
-  "settingsLyricsBilingualSubtitle": "歌詞の読み込み時に QQ Music を優先して中国語の訳詞を取得し、不足時は NetEase、補完が有効なら最後に LRCLIB を検索します。タスクバー歌詞にも使用します。オフでも手動・自動検索は利用でき、曲名とアーティスト名を検索先に送信します。",
+  "settingsLyricsBilingualSubtitle": "歌詞の読み込み時に中国語訳を先読みします。QQ Music、NetEase、補完が有効なら最後に LRCLIB の順に検索し、タスクバー歌詞でも使います。オフでも手動・自動検索は利用でき、曲名とアーティスト名が検索先に送信されます。",
   "settingsProxyAuth": "プロキシ認証（任意）",
   "settingsProxyUsernameHint": "ユーザー名",
   "settingsProxyPasswordHint": "パスワード",
@@ -707,14 +707,14 @@
   "updatesChannelBeta": "ベータ版",
   "updatesChannelSelfTest": "セルフテスト版（開発者向け）",
   "updatesSelfTestWarningTitle": "セルフテスト版に切り替えますか？",
-  "updatesSelfTestWarning": "セルフテスト版は開発者が自分の変更を確認するためのもので、コミットごとに自動生成され、検証は一切行われていません。起動しない、データが失われる、設定が壊れるといった可能性があります。実際の利用や日常使用には絶対に使わないでください。また、バージョンは上げることしかできません。セルフテスト版を入れた後は、より大きいビルド番号の正式版が出るまで正式版に戻れません。",
+  "updatesSelfTestWarning": "セルフテスト版はコミットごとに自動生成され、検証は一切行われていません。起動しない、データが失われる、設定が壊れるなどの可能性があるため、日常使用はしないでください。バージョンは上げることしかできず、セルフテスト版を入れた後は、より大きいビルド番号の正式版が出るまで正式版に戻れません。",
   "updatesSelfTestConfirm": "開発者です。切り替える",
   "updatesBuild": "ビルド {build}",
   "updatesMode": "更新方法",
   "updatesManual": "手動更新",
   "updatesAutomatic": "自動ダウンロード",
   "updatesDisabled": "更新を確認しない",
-  "updatesHint": "新しいバージョンと更新内容を自動確認します。自動モードはバックグラウンドでダウンロードし、再生を中断せず、確認後にインストールします。",
+  "updatesHint": "新しいバージョンを自動確認します。自動モードはバックグラウンドでダウンロードし、再生を中断せず、確認後にインストールします。",
   "updatesCheck": "更新を確認",
   "updatesChecking": "更新を確認中…",
   "updatesCurrent": "現在のバージョン",
@@ -745,7 +745,7 @@
   "webLoginRegionForceSkip": "確認せず続行",
   "webLoginRegionSkipThisRun": "次回起動まで確認しない",
   "settingsAnimDebugSection": "アニメーションのデバッグ（一時）",
-  "settingsAnimDebugFooter": "今回の起動中のみ有効で、アプリを再起動すると元に戻ります。コマ落ちの原因特定に使います。1 つずつオフにして、どれで滑らかになるか確認してください。",
+  "settingsAnimDebugFooter": "今回の起動中のみ有効で、再起動すると元に戻ります。コマ落ちの原因特定に使います。1 つずつオフにして、どれで滑らかになるか確認してください。",
   "settingsAnimDebugResetAll": "すべて元に戻す",
   "settingsAnimDebugAllMotion": "すべてのトランジションをオフ",
   "settingsAnimDebugAllMotionSubtitle": "システムの「アニメーションを削除」と同じで、画面遷移と流れる背景が止まります",
@@ -761,7 +761,7 @@
   "settingsAnimDebugBackgroundSubtitle": "歌詞の背景が静止画のままになります",
   "settingsExternalLyricsSection": "車載・ステータスバー歌詞",
   "settingsBluetoothLyrics": "Bluetooth 歌詞",
-  "settingsBluetoothLyricsSubtitle": "Bluetooth オーディオ機器に接続中、メディア情報のタイトルを現在の歌詞行に、アーティストとアルバムを「曲名 - アーティスト」に置き換え、車載ディスプレイに歌詞を表示します",
+  "settingsBluetoothLyricsSubtitle": "Bluetooth オーディオ機器の接続中は、タイトルに現在の歌詞行、アーティストとアルバムに「曲名 - アーティスト」を表示し、車載ディスプレイで歌詞を 1 行ずつ表示できます",
   "bluetoothLyricsOff": "オフ",
   "bluetoothLyricsCar": "車載機器",
   "bluetoothLyricsAll": "すべての機器",
@@ -788,5 +788,305 @@
   "playbackEngineCurrent": "再生エンジン：{engine}",
   "playbackEngineLocal": "ローカルプレーヤー",
   "playbackEngineWebView": "WebView（ブラウザエンジン）",
-  "playbackEngineAndroid": "Android ネイティブ"
+  "playbackEngineAndroid": "Android ネイティブ",
+  "backupTitle": "プレイリストのバックアップ",
+  "backupFooter": "各アカウントのお気に入りの曲とプレイリストを確認し、選んだ分をこのアカウントに取り込めます。",
+  "backupUnsyncedTitle": "ローカルのプレイリストを Spotify に同期",
+  "backupUnsyncedSubtitle": "{count} 件のプレイリストはこのデバイスにのみ保存されており、アカウントのライブラリには未登録です",
+  "@backupUnsyncedSubtitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupEnable": "プレイリストのバックアップを有効にする",
+  "backupEnableSubtitle": "このデバイスのアカウントを自動でバックアップし、別の WebView 経由で他のアカウントもバックアップできます",
+  "backupAutoCurrent": "このアカウントを自動バックアップ",
+  "backupAutoCurrentSubtitle": "お気に入りの変更を、定期バックアップを待たずにすぐ保存します",
+  "backupInterval": "バックアップの頻度",
+  "backupIntervalSubtitle": "サーバーのレート制限を避けるため、最短 20 分です",
+  "backupIntervalMinutes": "{minutes} 分",
+  "@backupIntervalMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "backupIntervalHours": "{hours} 時間",
+  "@backupIntervalHours": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "backupIntervalDays": "{days} 日",
+  "@backupIntervalDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "backupAddAccount": "同期するアカウントを追加",
+  "backupAddAccountSubtitle": "別の WebView で open.spotify.com にログインし、保存済みのプレイリストを読み込みます",
+  "backupSyncToAccount": "バックアップ済みのプレイリストをこのアカウントに同期",
+  "backupSyncToAccountSubtitle": "チェックしたアカウントのお気に入りの曲をこのアカウントに統合し、プレイリストを同期します",
+  "backupNow": "すべてのアカウントを今すぐバックアップ",
+  "backupNowSubtitle": "各アカウントの最新のお気に入りを取得し、ローカルに保存します",
+  "backupAccountAdded": "「{title}」をバックアップしました（お気に入り {liked} 曲、プレイリスト {playlists} 件）",
+  "@backupAccountAdded": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "liked": {
+        "type": "int"
+      },
+      "playlists": {
+        "type": "int"
+      }
+    }
+  },
+  "backupAccountAddFailed": "バックアップ用アカウントを追加できませんでした: {error}",
+  "@backupAccountAddFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "backupSynced": "プレイリスト {playlists} 件を同期し、お気に入り {liked} 曲を統合しました",
+  "@backupSynced": {
+    "placeholders": {
+      "playlists": {
+        "type": "int"
+      },
+      "liked": {
+        "type": "int"
+      }
+    }
+  },
+  "backupImporting": "プレイリスト {count} 件をバックグラウンドで取り込み中…",
+  "@backupImporting": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupImported": "プレイリスト {playlists} 件を取り込み、お気に入り {liked} 曲を統合しました",
+  "@backupImported": {
+    "placeholders": {
+      "playlists": {
+        "type": "int"
+      },
+      "liked": {
+        "type": "int"
+      }
+    }
+  },
+  "backupSavedAll": "すべてのアカウントのプレイリストを保存しました",
+  "backupSelectedHeader": "保存済みのプレイリスト（{selected} / {total} 件を選択）",
+  "@backupSelectedHeader": {
+    "placeholders": {
+      "selected": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "backupImportSelected": "選択を取り込む（{count}）",
+  "@backupImportSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupBadgePrevious": "以前ログインしたアカウント",
+  "backupBadgeExternal": "外部バックアップアカウント",
+  "backupAccountTitle": "{title}（{badge}）",
+  "@backupAccountTitle": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "badge": {
+        "type": "String"
+      }
+    }
+  },
+  "backupAccountSubtitle": "お気に入り {liked} 曲 · プレイリスト {playlists} 件を保存済み",
+  "@backupAccountSubtitle": {
+    "placeholders": {
+      "liked": {
+        "type": "int"
+      },
+      "playlists": {
+        "type": "int"
+      }
+    }
+  },
+  "backupIncludeInSync": "同期の対象にする",
+  "backupRemoveAccount": "このバックアップアカウントを削除",
+  "backupExitMultiSelect": "複数選択を終了",
+  "backupPickTracksImport": "インポートする曲を選択",
+  "backupPickTracks": "保存する曲を選択",
+  "backupDialogImportTitle": "取り込む曲を選択 · {name}",
+  "@backupDialogImportTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "backupDialogPickTitle": "保存する曲を選択 · {name}",
+  "@backupDialogPickTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "backupDeselectAll": "すべて選択解除",
+  "backupSelectedCount": "{selected} / {total} 曲を選択",
+  "@backupSelectedCount": {
+    "placeholders": {
+      "selected": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "backupImportedAsPlaylist": "選んだ {count} 曲をプレイリスト「{name}」として取り込みました",
+  "@backupImportedAsPlaylist": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "backupImportAsPlaylist": "プレイリストとして取り込む（{count}）",
+  "@backupImportAsPlaylist": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupImportAsPlaylistShort": "プレイリストとして取り込む",
+  "backupLikedMerged": "{count} 曲を「お気に入りの曲」に統合しました（新規 {added} 曲）",
+  "@backupLikedMerged": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "added": {
+        "type": "int"
+      }
+    }
+  },
+  "backupLikedSaved": "{count} 曲を保存しました（新規 {added} 曲）",
+  "@backupLikedSaved": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "added": {
+        "type": "int"
+      }
+    }
+  },
+  "backupMergeLiked": "お気に入りの曲に統合（{count}）",
+  "@backupMergeLiked": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupMergeLikedShort": "お気に入りの曲に統合",
+  "backupSaveSelected": "選択した曲を保存（{count}）",
+  "@backupSaveSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupLoginTitle": "バックアップする Spotify アカウントにログイン",
+  "playlistSyncTitle": "プレイリストを Spotify に同期",
+  "playlistSyncIntro": "以前のバージョンで保存・作成・バックアップから取り込んだプレイリストはこのデバイスにしか保存されておらず、公式アプリや Web プレーヤーには表示されませんでした。選択したものをアカウントに書き込みます。他の人のプレイリストはライブラリに追加し、自分のプレイリストは同じ名前で作り直します。",
+  "playlistSyncDone": "同期が完了しました。{count} 件のプレイリストをアカウントに書き込みました。",
+  "@playlistSyncDone": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistSyncPartial": "同期が完了しました。成功 {done} 件、失敗 {failed} 件。失敗分は再試行できます。",
+  "@playlistSyncPartial": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistSyncAllDone": "すべてのプレイリストが Spotify に同期済みです。",
+  "playlistSyncRunning": "同期中です。このページを閉じないでください…",
+  "playlistSyncSelected": "{count} 件を選択",
+  "@playlistSyncSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistSyncStart": "同期を開始",
+  "playlistSyncCreate": "アカウントに作成（{count} 曲）",
+  "@playlistSyncCreate": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistSyncAdd": "ライブラリに追加",
+  "playlistSyncStateRunning": "同期中…",
+  "playlistSyncStateDone": "同期済み",
+  "playlistSyncStateFailed": "失敗: {error}",
+  "@playlistSyncStateFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistSyncPromptTitle": "{count} 件のプレイリストが Spotify に未同期です",
+  "@playlistSyncPromptTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistSyncPromptBody": "以前のバージョンで保存・作成・バックアップから取り込んだプレイリストはこのデバイスにしか保存されておらず、公式アプリや Web プレーヤーには表示されませんでした。現在は保存・解除がアカウントに同期されます。残っているプレイリストもここで同期できます。\n\n後から「設定 → プレイリストのバックアップ」でも開けます。",
+  "playlistSyncPromptLater": "あとで",
+  "playlistSyncPromptGo": "同期する",
+  "playerCanvasPlay": "Canvas を再生",
+  "playerCanvasStop": "Canvas を停止"
 }

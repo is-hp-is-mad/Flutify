@@ -41,14 +41,11 @@ class _BackupSectionState extends State<BackupSection> {
   final Set<String> _selectedPlaylistIds = {};
   bool _initializedSelection = false;
 
-  static String _intervalLabel(int minutes) => switch (minutes) {
-    20 => '20 分钟',
-    60 => '1 小时',
-    120 => '2 小时',
-    720 => '12 小时',
-    1440 => '1 天',
-    _ => '$minutes 分钟',
-  };
+  static String _intervalLabel(AppLocalizations l10n, int minutes) {
+    if (minutes % 1440 == 0) return l10n.backupIntervalDays(minutes ~/ 1440);
+    if (minutes % 60 == 0) return l10n.backupIntervalHours(minutes ~/ 60);
+    return l10n.backupIntervalMinutes(minutes);
+  }
 
   Future<void> _addAccount(
     BuildContext context,
@@ -80,7 +77,11 @@ class _BackupSectionState extends State<BackupSection> {
       });
       AppToast.show(
         context,
-        '已备份账号「${account.title}」（${account.likedTracks.length} 首已点赞歌曲，${account.playlists.length} 个歌单）',
+        context.l10n.backupAccountAdded(
+          account.title,
+          account.likedTracks.length,
+          account.playlists.length,
+        ),
         icon: Icons.check_circle_rounded,
         tone: ToastTone.success,
       );
@@ -88,7 +89,7 @@ class _BackupSectionState extends State<BackupSection> {
       if (!context.mounted) return;
       AppToast.show(
         context,
-        '添加备份账号失败：$e',
+        context.l10n.backupAccountAddFailed('$e'),
         icon: Icons.error_outline_rounded,
         tone: ToastTone.error,
       );
@@ -103,7 +104,10 @@ class _BackupSectionState extends State<BackupSection> {
     if (!context.mounted) return;
     AppToast.show(
       context,
-      '已同步 ${result.syncedPlaylists} 个备份歌单、合并 ${result.addedLikedTracks} 首已点赞歌曲到本账号',
+      context.l10n.backupSynced(
+        result.syncedPlaylists,
+        result.addedLikedTracks,
+      ),
       icon: Icons.sync_rounded,
       tone: ToastTone.success,
     );
@@ -122,14 +126,17 @@ class _BackupSectionState extends State<BackupSection> {
     // 在后台导入：先提示，界面不等待；完成后再提示结果
     AppToast.show(
       context,
-      '正在后台导入 ${selected.length} 个歌单…',
+      context.l10n.backupImporting(selected.length),
       icon: Icons.downloading_rounded,
     );
     final result = await service.importSelectedPlaylists(selected);
     if (!context.mounted) return;
     AppToast.show(
       context,
-      '已导入所选 ${result.syncedPlaylists} 个歌单、合并 ${result.addedLikedTracks} 首已点赞歌曲到本账号',
+      context.l10n.backupImported(
+        result.syncedPlaylists,
+        result.addedLikedTracks,
+      ),
       icon: Icons.playlist_add_check_rounded,
       tone: ToastTone.success,
     );
@@ -152,7 +159,7 @@ class _BackupSectionState extends State<BackupSection> {
     } else {
       AppToast.show(
         context,
-        '已将全部备份账号的收藏歌单写入本地磁盘',
+        context.l10n.backupSavedAll,
         icon: Icons.save_alt_rounded,
         tone: ToastTone.success,
       );
@@ -176,6 +183,7 @@ class _BackupSectionState extends State<BackupSection> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final prefsProvider = context.watch<PreferencesProvider>();
     final backupService = context.watch<PlaylistBackupService?>();
     final prefs = prefsProvider.prefs;
@@ -220,33 +228,33 @@ class _BackupSectionState extends State<BackupSection> {
         validIds.isNotEmpty && selectedCount == validIds.length;
 
     return SettingsSection(
-      title: '歌单备份',
-      footer: '支持查看各账号自己的已点赞歌曲与歌单；无论是备份的歌曲还是歌单，都支持勾选其中一部分一键导入到当前账号。',
+      title: l10n.backupTitle,
+      footer: l10n.backupFooter,
       children: [
         if (context.watch<LibraryProvider>().unsyncedPlaylists case final unsynced
             when unsynced.isNotEmpty)
           SettingsTile(
-            title: '同步本机歌单到 Spotify',
-            subtitle: '有 ${unsynced.length} 个歌单只保存在本机，没有写进账号的音乐库',
+            title: l10n.backupUnsyncedTitle,
+            subtitle: l10n.backupUnsyncedSubtitle(unsynced.length),
             trailing: const Icon(Icons.chevron_right_rounded),
             onTap: () => PlaylistSyncScreen.open(context),
           ),
         SettingsSwitchTile(
-          title: '启用歌单备份',
-          subtitle: '支持本机账号自动备份与独立 WebView 多账号收藏歌单备份落盘',
+          title: l10n.backupEnable,
+          subtitle: l10n.backupEnableSubtitle,
           value: enabled,
           onChanged: (value) => updatePrefs(backupEnabled: value),
         ),
         if (enabled) ...[
           SettingsSwitchTile(
-            title: '自动备份本机已登录的账号',
-            subtitle: '本机账号的收藏更改立即落盘，不等定时轮询',
+            title: l10n.backupAutoCurrent,
+            subtitle: l10n.backupAutoCurrentSubtitle,
             value: prefs.backupAutoCurrentAccount,
             onChanged: (value) => updatePrefs(autoCurrent: value),
           ),
           SettingsTile(
-            title: '自动备份频率',
-            subtitle: '最短 20 分钟以防止触发服务端限流',
+            title: l10n.backupInterval,
+            subtitle: l10n.backupIntervalSubtitle,
             trailing: context.tokens.hyperMaterial
                 ? _HyperIntervalButton(
                     value: AppPreferences.backupIntervalOptions.contains(
@@ -254,7 +262,7 @@ class _BackupSectionState extends State<BackupSection> {
                     )
                         ? prefs.backupIntervalMinutes
                         : AppPreferences.defaultBackupIntervalMinutes,
-                    labelOf: _intervalLabel,
+                    labelOf: (m) => _intervalLabel(l10n, m),
                     onChanged: (value) => updatePrefs(intervalMinutes: value),
                   )
                 : DropdownButtonHideUnderline(
@@ -268,7 +276,7 @@ class _BackupSectionState extends State<BackupSection> {
                   for (final minutes in AppPreferences.backupIntervalOptions)
                     DropdownMenuItem<int>(
                       value: minutes,
-                      child: Text(_intervalLabel(minutes)),
+                      child: Text(_intervalLabel(l10n, minutes)),
                     ),
                 ],
                 onChanged: (value) {
@@ -279,8 +287,8 @@ class _BackupSectionState extends State<BackupSection> {
           ),
           if (backupService != null) ...[
             SettingsTile(
-              title: '添加要同步歌单的账号',
-              subtitle: '使用独立 WebView 资料登录 open.spotify.com 并读取其已收藏歌曲的歌单',
+              title: l10n.backupAddAccount,
+              subtitle: l10n.backupAddAccountSubtitle,
               trailing: backingUp
                   ? const SizedBox(
                       width: 20,
@@ -293,16 +301,16 @@ class _BackupSectionState extends State<BackupSection> {
                   : () => _addAccount(context, backupService),
             ),
             SettingsTile(
-              title: '一键同步已备份的歌单到本账号',
-              subtitle: '将下方已勾选账号的收藏歌曲合并进已点赞歌曲，并同步歌单到当前账号',
+              title: l10n.backupSyncToAccount,
+              subtitle: l10n.backupSyncToAccountSubtitle,
               trailing: const Icon(Icons.sync_rounded),
               onTap: accounts.isEmpty || backingUp
                   ? null
                   : () => _syncToCurrentAccount(context, backupService),
             ),
             SettingsTile(
-              title: '立即备份全部账号',
-              subtitle: '手动拉取各账号最新收藏并写入本地磁盘',
+              title: l10n.backupNow,
+              subtitle: l10n.backupNowSubtitle,
               trailing: const Icon(Icons.backup_rounded),
               onTap: backingUp
                   ? null
@@ -342,7 +350,10 @@ class _BackupSectionState extends State<BackupSection> {
                           },
                         ),
                         Text(
-                          '已落盘的备份歌单（已选 $selectedCount / ${playlists.length}）',
+                          l10n.backupSelectedHeader(
+                            selectedCount,
+                            playlists.length,
+                          ),
                           style: theme.textTheme.labelMedium?.copyWith(
                             color: colorScheme.onSurfaceVariant,
                             fontWeight: FontWeight.w600,
@@ -363,7 +374,7 @@ class _BackupSectionState extends State<BackupSection> {
                         Icons.playlist_add_check_rounded,
                         size: 18,
                       ),
-                      label: Text('一键导入所选歌单（$selectedCount）'),
+                      label: Text(l10n.backupImportSelected(selectedCount)),
                     ),
                   ],
                 ),
@@ -411,18 +422,21 @@ class _BackupAccountTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     // 没有会话凭据的账号是以前在本机登录过的账号（只保留最后一次的快照，不会再远程刷新）
+    final l10n = context.l10n;
     final badge = account.spDc.isEmpty && account.accessToken.isEmpty
-        ? '以前登录的账号'
-        : '外部备份账号';
+        ? l10n.backupBadgePrevious
+        : l10n.backupBadgeExternal;
     return SettingsTile(
-      title: '${account.title}（$badge）',
-      subtitle:
-          '已落盘 ${account.likedTracks.length} 首已点赞歌曲 · ${account.playlists.length} 个歌单',
+      title: l10n.backupAccountTitle(account.title, badge),
+      subtitle: l10n.backupAccountSubtitle(
+        account.likedTracks.length,
+        account.playlists.length,
+      ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Tooltip(
-            message: '参与一键同步到本账号',
+            message: l10n.backupIncludeInSync,
             child: AppSwitch(
               value: account.syncToLocal,
               onChanged: onToggleSync,
@@ -434,7 +448,7 @@ class _BackupAccountTile extends StatelessWidget {
                 Icons.delete_outline_rounded,
                 color: colorScheme.error,
               ),
-              tooltip: '移除该备份账号',
+              tooltip: l10n.backupRemoveAccount,
               onPressed: onRemove,
             ),
         ],
@@ -533,8 +547,8 @@ class _BackedUpPlaylistTile extends StatelessWidget {
               IconButton(
                 icon: const Icon(Icons.checklist_rounded, size: 22),
                 tooltip: isExternalBackupLiked
-                    ? '选择部分歌曲一键导入到本账号'
-                    : '多选收藏歌曲',
+                    ? l10n.backupPickTracksImport
+                    : l10n.backupPickTracks,
                 onPressed: onPickTracks,
               ),
             Icon(
@@ -577,6 +591,7 @@ class _TrackImportDialogState extends State<_TrackImportDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final tracks = widget.playlist.tracks;
     final allIds = tracks.map((t) => t.id).where((id) => id.isNotEmpty).toSet();
     final allSelected =
@@ -587,8 +602,8 @@ class _TrackImportDialogState extends State<_TrackImportDialog> {
 
     return FlutifyDialog(
       title: isExternalBackupLiked
-          ? '选择要导入的歌曲 · ${widget.playlist.name}'
-          : '多选收藏歌曲 · ${widget.playlist.name}',
+          ? l10n.backupDialogImportTitle(widget.playlist.name)
+          : l10n.backupDialogPickTitle(widget.playlist.name),
       // CheckboxListTile 需要 Material 祖先
       content: Material(
         type: MaterialType.transparency,
@@ -617,10 +632,10 @@ class _TrackImportDialogState extends State<_TrackImportDialog> {
                         : Icons.check_box_outline_blank_rounded,
                     size: 20,
                   ),
-                  label: Text(allSelected ? '取消全选' : '全选'),
+                  label: Text(allSelected ? l10n.backupDeselectAll : l10n.menuSelectAll),
                 ),
                 const Spacer(),
-                Text('已选 ${selected.length} / ${tracks.length} 首'),
+                Text(l10n.backupSelectedCount(selected.length, tracks.length)),
               ],
             ),
             const Divider(height: 1),
@@ -664,7 +679,7 @@ class _TrackImportDialogState extends State<_TrackImportDialog> {
       actions: [
         AppButton.text(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
+          child: Text(l10n.commonCancel),
         ),
         if (isExternalBackupLiked)
           AppButton.icon(
@@ -682,13 +697,16 @@ class _TrackImportDialogState extends State<_TrackImportDialog> {
                     Navigator.of(context).pop();
                     AppToast.show(
                       context,
-                      '已将所选 ${selected.length} 首歌曲作为歌单「${widget.playlist.name}」导入到本账号',
+                      l10n.backupImportedAsPlaylist(
+                        selected.length,
+                        widget.playlist.name,
+                      ),
                       icon: Icons.playlist_add_check_rounded,
                       tone: ToastTone.success,
                     );
                   },
             icon: const Icon(Icons.library_add_rounded, size: 18),
-            label: Text('导入所选为歌单（${selected.length}）'),
+            label: Text(l10n.backupImportAsPlaylist(selected.length)),
           ),
         AppButton.icon(
           style: M3EButtonStyle.filled,
@@ -702,8 +720,8 @@ class _TrackImportDialogState extends State<_TrackImportDialog> {
                   AppToast.show(
                     context,
                     isExternalBackupLiked
-                        ? '已将所选 ${selected.length} 首歌曲合并导入到本账号「已点赞的歌曲」（新增 $added 首）'
-                        : '已收藏所选 ${selected.length} 首歌曲（新增 $added 首）',
+                        ? l10n.backupLikedMerged(selected.length, added)
+                        : l10n.backupLikedSaved(selected.length, added),
                     icon: Icons.favorite_rounded,
                     tone: ToastTone.success,
                   );
@@ -711,8 +729,8 @@ class _TrackImportDialogState extends State<_TrackImportDialog> {
           icon: const Icon(Icons.favorite_rounded, size: 18),
           label: Text(
             isExternalBackupLiked
-                ? '合并到已点赞歌曲（${selected.length}）'
-                : '收藏所选歌曲（${selected.length}）',
+                ? l10n.backupMergeLiked(selected.length)
+                : l10n.backupSaveSelected(selected.length),
           ),
         ),
       ],

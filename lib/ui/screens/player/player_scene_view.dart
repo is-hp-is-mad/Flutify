@@ -364,8 +364,8 @@ class _PlayerSceneViewState extends State<PlayerSceneView> {
                                     size: 38,
                                     selected: _canvasPlaying,
                                     tooltip: _canvasPlaying
-                                        ? '停止 Canvas'
-                                        : '播放 Canvas',
+                                        ? context.l10n.playerCanvasStop
+                                        : context.l10n.playerCanvasPlay,
                                     onPressed: () => setState(
                                       () => _canvasPlaying = !_canvasPlaying,
                                     ),

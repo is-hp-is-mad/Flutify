@@ -362,7 +362,7 @@
   "regionCheckEnabled": "启用地区检测",
   "regionCheckEnabledHint": "关闭后不再发起任何检测，也不拦截登录与播放",
   "regionCheckOnNetworkChange": "网络变动时自动复查",
-  "regionCheckOnNetworkChangeHint": "切换 Wi-Fi / 代理后重新检测一次；关闭则不复查，只在起播时用上一次的结果",
+  "regionCheckOnNetworkChangeHint": "切换 Wi-Fi / 代理后重新检测；关闭则只在起播时沿用上次结果",
   "regionCheckSkipThisRun": "本次打开跳过检测",
   "regionCheckSkipThisRunHint": "只在本次运行生效，下次启动恢复检测",
   "playbackErrorRegionSkipAction": "跳过本次",
@@ -653,7 +653,7 @@
   "settingsLyricsSourceDisabled": "已在「补全歌词」中关闭",
   "settingsLyricsSourceDrag": "拖动排序",
   "settingsLyricsBilingual": "社区歌词翻译",
-  "settingsLyricsBilingualSubtitle": "加载歌词时预取中文译词，优先 QQ 音乐，缺失或不完整时查网易云，启用补全时最后查 LRCLIB，也供任务栏歌词使用。关闭后仍可手动或自动查询；曲名与歌手会发送到查询来源。",
+  "settingsLyricsBilingualSubtitle": "加载歌词时预取中文译词，依次查 QQ 音乐、网易云，启用补全时最后查 LRCLIB，任务栏歌词同样使用。关闭后仍可手动或自动查询；会向查询来源发送曲名与歌手。",
   "settingsTaskbarLyricsSection": "任务栏歌词",
   "settingsTaskbarLyrics": "在任务栏显示歌词",
   "settingsTaskbarLyricsSubtitle": "任务栏图标居中时显示在左侧，居左时显示在系统托盘左边；任务栏竖向时自动停用。悬停显示播放控制，点按打开 Flutify，右键重新获取歌词",
@@ -663,7 +663,7 @@
   "settingsTaskbarLyricsOpacity": "不透明度",
   "settingsTaskbarLyricsFontSize": "字号",
   "settingsHomeWidgetsSection": "桌面小组件",
-  "settingsHomeWidgetsSubtitle": "澎湃 OS 的小组件列表里，Flutify 在最底部的「安卓小部件」分区；也可以在这里点「添加」直接放到桌面，之后长按可调整大小",
+  "settingsHomeWidgetsSubtitle": "在澎湃 OS 小组件列表底部的「安卓小部件」分区找到 Flutify，也可点「添加」直接放到桌面，长按可调整大小",
   "homeWidgetNowPlaying": "播放条",
   "homeWidgetNowPlayingDesc": "细长横条，封面、歌名与上一首 / 播放 / 下一首；默认 4×1",
   "homeWidgetAlbumCard": "专辑卡片",
@@ -741,7 +741,7 @@
   "settingsConnectDeviceNameSubtitle": "其他设备的设备列表里显示的名字，留空使用默认名",
   "settingsConnectUseDeviceName": "使用设备名称",
   "settingsConnectReportOnLaunch": "启动时同步播放状态",
-  "settingsConnectReportOnLaunchSubtitle": "打开 Flutify 后即使还没播放，也让其他设备看到 Flutify 上的当前歌曲（会接管正在空闲的播放会话）",
+  "settingsConnectReportOnLaunchSubtitle": "打开 Flutify 后即使未播放，也让其他设备看到当前歌曲（会接管空闲的播放会话）",
   "settingsRemoteLyricsLead": "远程歌词提前",
   "settingsRemoteLyricsLeadSubtitle": "其他设备上播放时，歌词比演唱慢就调大，快就调小",
   "settingsNetworkSection": "网络",
@@ -788,7 +788,7 @@
       }
     }
   },
-  "settingsProxyFootnote": "仅支持 HTTP 代理（Clash、v2rayN 等的混合端口即可）；手动代理可填用户名 / 密码，适合自建带认证的跨区反代。登录页面始终跟随系统代理设置。",
+  "settingsProxyFootnote": "仅支持 HTTP 代理（Clash、v2rayN 的混合端口即可）。手动代理可填用户名 / 密码，适合带认证的自建反代；登录页始终跟随系统代理。",
   "settingsPrivacySection": "隐私",
   "settingsClearSearchHistory": "清除搜索记录",
   "settingsSearchHistoryCount": "{count} 条记录",
@@ -853,7 +853,7 @@
   "accountSignIn": "登录",
   "accountSignOut": "退出登录",
   "accountSignOutTitle": "退出登录？",
-  "accountSignOutMessage": "将清除本机保存的登录信息与媒体库缓存，退出后需重新登录才能播放和查看媒体库。",
+  "accountSignOutMessage": "将清除本机的登录信息和媒体库缓存，退出后需重新登录。",
   "accountSignOutConfirm": "退出",
   "sleepTimer": "睡眠定时器",
   "sleepTimerMinutes": "{count} 分钟",
@@ -945,7 +945,7 @@
   "settingsCacheApplication": "安装 / 便携程序目录",
   "settingsCacheCustom": "自定义目录",
   "settingsClearAllCache": "清理所有缓存",
-  "settingsClearAllCacheHelp": "清理音频、封面、歌词和浏览器临时缓存，保留登录、设置、收藏和播放记录。正在播放或下载的音频会保留。",
+  "settingsClearAllCacheHelp": "清理音频、封面、歌词和浏览器临时缓存，保留登录、设置、收藏和播放记录；正在播放或下载的音频不受影响。",
   "settingsCacheLocationHelp": "已有缓存会迁移到新位置，校验成功后删除旧文件。正在播放或下载的音频将在释放后继续迁移。自定义位置使用所选目录下的 FlutifyCache 文件夹。",
   "settingsCacheMigrated": "已迁移 {files} 个文件，{deferred} 个使用中，{failed} 个未成功",
   "@settingsCacheMigrated": {
@@ -981,9 +981,9 @@
   "settingsCacheChooseDirectory": "选择文件夹",
   "settingsCachePickerFailed": "无法打开系统文件夹选择器，请重试或手动输入路径。",
   "settingsGatewayAutomatic": "自动开关反代",
-  "settingsGatewayAutomaticHelp": "启动、网络变化、回到应用及每 2 分钟通过 Cloudflare 查询出口国家/地区；遵循已选择的系统或手动代理。查询失败保留当前状态。",
+  "settingsGatewayAutomaticHelp": "启动、网络变化、回到应用及每 2 分钟通过 Cloudflare 查询出口国家 / 地区，遵循当前代理设置；查询失败则保持现状。",
   "settingsGatewayDirectCountries": "允许直连的国家/地区代码",
-  "settingsGatewayDirectCountriesHelp": "可选，填写两位代码，以逗号或空格分隔。留空：CN 开启反代，其余直连；填写后：仅列表内国家/地区直连，其余开启反代。",
+  "settingsGatewayDirectCountriesHelp": "可选，填两位国家 / 地区代码，用逗号或空格分隔。留空：仅 CN 开启反代，其余直连；填写后：仅列表内直连，其余开启反代。",
   "settingsGatewayCountriesInvalid": "请输入两位国家/地区代码，例如 US、JP、HK。",
   "settingsGatewayLookupFailed": "国家/地区查询失败，已保留当前连接方式。",
   "settingsGatewayCountryPending": "等待查询网络所在国家/地区，暂时保留当前连接方式。",
@@ -1006,7 +1006,7 @@
   "lyricsTranslationFailed": "译词查找失败，点击重试",
   "lyricsTranslating": "正在查找译词 · 点击取消",
   "settingsLyricsAutoTranslate": "自动翻译歌词",
-  "settingsLyricsAutoTranslateSubtitle": "自动查找已有译文。中文译词按曲名、歌手优先查询 QQ 音乐，缺失或不完整时查网易云，启用补全时最后查 LRCLIB；只采用不丢失已译行的更完整版本。简繁体跟随界面。",
+  "settingsLyricsAutoTranslateSubtitle": "自动查找现有译文：按曲名、歌手依次查 QQ 音乐、网易云，启用补全时最后查 LRCLIB；只采用不丢失已译行的更完整版本，简繁体跟随界面。",
   "settingsLyricsExcludeInterface": "不自动翻译界面语言",
   "settingsLyricsExcluded": "其他不自动翻译的语言",
   "settingsLyricsExcludedHint": "用逗号分隔：en, ja, zh-Hans（简体）, zh-Hant（繁体）；zh 排除全部中文，留空清除",
@@ -1040,7 +1040,7 @@
   "webLoginAuthorizing": "正在完成账号授权…",
   "webLoginFinishing": "正在完成登录…",
   "webLoginBackgroundHint": "登录已完成，剩下的步骤在后台自动进行",
-  "webLoginGoogleHint": "用 Google 注册的账号：请在此处使用「邮箱 + 密码」登录；没有密码可先在 Spotify 官网「忘记密码」设置一个。",
+  "webLoginGoogleHint": "用 Google 注册的账号请用「邮箱 + 密码」登录；没有密码可先在 Spotify 官网通过「忘记密码」设置。",
   "loginBrowserFallback": "无法自动打开浏览器，登录链接已复制，请粘贴到浏览器中打开",
   "loginBrowserTitle": "在浏览器中完成登录",
   "loginBrowserSubtitle": "登录并同意授权后，这里会自动继续",
@@ -1061,7 +1061,7 @@
   "updatesChannelBeta": "测试版（Beta）",
   "updatesChannelSelfTest": "自测版（开发者自测）",
   "updatesSelfTestWarningTitle": "切换到自测版？",
-  "updatesSelfTestWarning": "自测版是开发者自测用的版本，每次提交代码都会自动生成，没有经过任何验证，可能无法启动、丢失数据或损坏设置。不得用于实际生产或日常使用！另外，版本只能升不能降：装上自测版后，要等正式版的实质版本号超过它才能回到正式版。",
+  "updatesSelfTestWarning": "自测版由每次提交自动生成，未经任何验证，可能无法启动、丢失数据或损坏设置，请勿日常使用。版本只能升不能降：装上自测版后，需等正式版版本号超过它才能回到正式版。",
   "updatesSelfTestConfirm": "我是开发者，仍然切换",
   "updatesBuild": "实质版本号 {build}",
   "@updatesBuild": {
@@ -1075,7 +1075,7 @@
   "updatesManual": "手动更新",
   "updatesAutomatic": "自动下载更新",
   "updatesDisabled": "不检查更新",
-  "updatesHint": "自动检查新版本和更新内容。自动模式在后台下载，完成后由你确认安装，不会中断播放。",
+  "updatesHint": "自动检查新版本。自动模式在后台下载，完成后由你确认安装，不会中断播放。",
   "updatesCheck": "检查更新",
   "updatesChecking": "正在检查更新…",
   "updatesCurrent": "当前版本",
@@ -1086,7 +1086,7 @@
   "updatesDownload": "下载更新",
   "updatesDownloading": "正在下载并校验…",
   "updatesReady": "更新已就绪",
-  "updatesReadyHint": "更新包已下载并通过校验。安装会关闭应用；也可以稍后从设置中继续。",
+  "updatesReadyHint": "更新包已下载并校验通过。安装会关闭应用，也可稍后在设置中继续。",
   "updatesAndroidHint": "APK 已下载并通过校验。确认后打开系统安装程序。",
   "updatesInstall": "重启并安装",
   "updatesInstallApk": "安装 APK",
@@ -1106,7 +1106,7 @@
   "webLoginRegionForceSkip": "强制跳过",
   "webLoginRegionSkipThisRun": "本次打开跳过检测",
   "settingsAnimDebugSection": "动画调试（临时）",
-  "settingsAnimDebugFooter": "仅本次运行有效，重启应用后自动恢复。用于定位卡顿：逐项关闭，看关掉哪一项后变流畅。",
+  "settingsAnimDebugFooter": "仅本次运行有效，重启后恢复。用于定位卡顿：逐项关闭，看哪一项关掉后变流畅。",
   "settingsAnimDebugResetAll": "全部恢复",
   "settingsAnimDebugAllMotion": "关闭所有过渡动画",
   "settingsAnimDebugAllMotionSubtitle": "等同系统“移除动画”：界面过渡与流动背景都会停止",
@@ -1122,7 +1122,7 @@
   "settingsAnimDebugBackgroundSubtitle": "歌词背景停在静态画面",
   "settingsExternalLyricsSection": "车机与状态栏歌词",
   "settingsBluetoothLyrics": "蓝牙歌词",
-  "settingsBluetoothLyricsSubtitle": "连接蓝牙音频设备时，把媒体信息的标题换成当前歌词行，艺人与专辑换成「歌名 - 艺人」，车机屏幕即可逐句显示歌词",
+  "settingsBluetoothLyricsSubtitle": "连接蓝牙音频设备时，标题显示当前歌词行，艺人与专辑显示「歌名 - 艺人」，车机屏幕可逐句显示歌词",
   "bluetoothLyricsOff": "关闭",
   "bluetoothLyricsCar": "车载设备",
   "bluetoothLyricsAll": "所有设备",
@@ -1150,5 +1150,305 @@
   "playbackEngineLocal": "本机播放器",
   "playbackEngineWebView": "WebView（浏览器内核）",
   "playbackEngineAndroid": "Android 原生播放",
-  "@playbackEngineCurrent": {"description": "设备面板里显示当前实际出声的播放引擎", "placeholders": {"engine": {"type": "String"}}}
+  "@playbackEngineCurrent": {"description": "设备面板里显示当前实际出声的播放引擎", "placeholders": {"engine": {"type": "String"}}},
+  "backupTitle": "歌单备份",
+  "backupFooter": "查看各账号的已点赞歌曲和歌单，可勾选其中一部分一键导入当前账号。",
+  "backupUnsyncedTitle": "同步本机歌单到 Spotify",
+  "backupUnsyncedSubtitle": "有 {count} 个歌单只保存在本机，尚未写入账号音乐库",
+  "@backupUnsyncedSubtitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupEnable": "启用歌单备份",
+  "backupEnableSubtitle": "自动备份本机账号，也可通过独立 WebView 备份其他账号的收藏歌单",
+  "backupAutoCurrent": "自动备份本机账号",
+  "backupAutoCurrentSubtitle": "收藏变动后立即保存，不等定时备份",
+  "backupInterval": "备份频率",
+  "backupIntervalSubtitle": "最短 20 分钟，避免触发服务端限流",
+  "backupIntervalMinutes": "{minutes} 分钟",
+  "@backupIntervalMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "backupIntervalHours": "{hours} 小时",
+  "@backupIntervalHours": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "backupIntervalDays": "{days} 天",
+  "@backupIntervalDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "backupAddAccount": "添加要同步歌单的账号",
+  "backupAddAccountSubtitle": "在独立 WebView 中登录 open.spotify.com，读取其收藏的歌单",
+  "backupSyncToAccount": "一键同步已备份的歌单到本账号",
+  "backupSyncToAccountSubtitle": "把已勾选账号的已点赞歌曲并入本账号，歌单同步到本账号",
+  "backupNow": "立即备份全部账号",
+  "backupNowSubtitle": "拉取各账号最新收藏并保存到本地",
+  "backupAccountAdded": "已备份账号「{title}」（{liked} 首已点赞歌曲，{playlists} 个歌单）",
+  "@backupAccountAdded": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "liked": {
+        "type": "int"
+      },
+      "playlists": {
+        "type": "int"
+      }
+    }
+  },
+  "backupAccountAddFailed": "添加备份账号失败：{error}",
+  "@backupAccountAddFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "backupSynced": "已同步 {playlists} 个歌单，并入 {liked} 首已点赞歌曲",
+  "@backupSynced": {
+    "placeholders": {
+      "playlists": {
+        "type": "int"
+      },
+      "liked": {
+        "type": "int"
+      }
+    }
+  },
+  "backupImporting": "正在后台导入 {count} 个歌单…",
+  "@backupImporting": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupImported": "已导入 {playlists} 个歌单，并入 {liked} 首已点赞歌曲",
+  "@backupImported": {
+    "placeholders": {
+      "playlists": {
+        "type": "int"
+      },
+      "liked": {
+        "type": "int"
+      }
+    }
+  },
+  "backupSavedAll": "已保存全部账号的收藏歌单",
+  "backupSelectedHeader": "已保存的歌单（已选 {selected} / {total}）",
+  "@backupSelectedHeader": {
+    "placeholders": {
+      "selected": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "backupImportSelected": "导入所选歌单（{count}）",
+  "@backupImportSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupBadgePrevious": "以前登录的账号",
+  "backupBadgeExternal": "外部备份账号",
+  "backupAccountTitle": "{title}（{badge}）",
+  "@backupAccountTitle": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "badge": {
+        "type": "String"
+      }
+    }
+  },
+  "backupAccountSubtitle": "已保存 {liked} 首已点赞歌曲 · {playlists} 个歌单",
+  "@backupAccountSubtitle": {
+    "placeholders": {
+      "liked": {
+        "type": "int"
+      },
+      "playlists": {
+        "type": "int"
+      }
+    }
+  },
+  "backupIncludeInSync": "参与一键同步",
+  "backupRemoveAccount": "移除该备份账号",
+  "backupExitMultiSelect": "退出多选",
+  "backupPickTracksImport": "选择部分歌曲导入",
+  "backupPickTracks": "多选收藏歌曲",
+  "backupDialogImportTitle": "选择要导入的歌曲 · {name}",
+  "@backupDialogImportTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "backupDialogPickTitle": "选择要收藏的歌曲 · {name}",
+  "@backupDialogPickTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "backupDeselectAll": "取消全选",
+  "backupSelectedCount": "已选 {selected} / {total} 首",
+  "@backupSelectedCount": {
+    "placeholders": {
+      "selected": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "backupImportedAsPlaylist": "已将所选 {count} 首歌曲导入为歌单「{name}」",
+  "@backupImportedAsPlaylist": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "backupImportAsPlaylist": "导入为歌单（{count}）",
+  "@backupImportAsPlaylist": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupImportAsPlaylistShort": "导入为本账号歌单",
+  "backupLikedMerged": "已将 {count} 首歌曲并入「已点赞的歌曲」（新增 {added} 首）",
+  "@backupLikedMerged": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "added": {
+        "type": "int"
+      }
+    }
+  },
+  "backupLikedSaved": "已收藏 {count} 首歌曲（新增 {added} 首）",
+  "@backupLikedSaved": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "added": {
+        "type": "int"
+      }
+    }
+  },
+  "backupMergeLiked": "并入已点赞歌曲（{count}）",
+  "@backupMergeLiked": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupMergeLikedShort": "并入已点赞歌曲",
+  "backupSaveSelected": "收藏所选歌曲（{count}）",
+  "@backupSaveSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupLoginTitle": "登录要备份的 Spotify 账号",
+  "playlistSyncTitle": "同步歌单到 Spotify",
+  "playlistSyncIntro": "旧版本中收藏、新建或从备份导入的歌单只保存在本机，官方客户端和网页版看不到。勾选后写入当前账号：他人的歌单加入音乐库，本机歌单在账号中新建同名歌单。",
+  "playlistSyncDone": "同步完成：{count} 个歌单已写入账号。",
+  "@playlistSyncDone": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistSyncPartial": "同步完成：成功 {done} 个，失败 {failed} 个，可重试。",
+  "@playlistSyncPartial": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistSyncAllDone": "所有歌单都已同步到 Spotify。",
+  "playlistSyncRunning": "正在同步，请勿关闭此页面…",
+  "playlistSyncSelected": "已选 {count} 个",
+  "@playlistSyncSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistSyncStart": "开始同步",
+  "playlistSyncCreate": "在账号中新建歌单（{count} 首）",
+  "@playlistSyncCreate": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistSyncAdd": "加入音乐库",
+  "playlistSyncStateRunning": "正在同步…",
+  "playlistSyncStateDone": "已同步",
+  "playlistSyncStateFailed": "失败：{error}",
+  "@playlistSyncStateFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistSyncPromptTitle": "有 {count} 个歌单未同步到 Spotify",
+  "@playlistSyncPromptTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistSyncPromptBody": "旧版本中收藏、新建或从备份导入的歌单只保存在本机，官方客户端和网页版看不到。现在收藏 / 取消收藏会同步到账号，之前遗留的歌单可补同步。\n\n之后也可在「设置 → 歌单备份」找到入口。",
+  "playlistSyncPromptLater": "以后再说",
+  "playlistSyncPromptGo": "去同步",
+  "playerCanvasPlay": "播放 Canvas",
+  "playerCanvasStop": "停止 Canvas"
 }
