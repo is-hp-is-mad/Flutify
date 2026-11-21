@@ -7,12 +7,15 @@ import 'package:media_kit/media_kit.dart' as mk;
 import 'package:media_kit_video/media_kit_video.dart' as mkv;
 import 'package:path_provider/path_provider.dart';
 
-/// 桌面三平台是否可用 media_kit 原生视频纹理。
+/// 桌面三平台 + Android 是否可用 media_kit 原生视频纹理。
 bool get mpvVideoSupported =>
     !kIsWeb &&
-    (Platform.isWindows || Platform.isMacOS || Platform.isLinux);
+    (Platform.isWindows ||
+        Platform.isMacOS ||
+        Platform.isLinux ||
+        Platform.isAndroid);
 
-/// 静音循环播放一段视频到 Flutter 纹理（media_kit / libmpv），桌面全平台通用。
+/// 静音循环播放一段视频到 Flutter 纹理（media_kit / libmpv），桌面 + Android 通用。
 ///
 /// 两种输入源二选一：
 /// - [url]：HTTPS CDN 地址（发现流短视频、Canvas 动画封面），media_kit 直接流式播放；

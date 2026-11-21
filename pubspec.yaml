@@ -69,6 +69,7 @@ dependencies:
   media_kit_libs_linux: ^1.2.1
   # macOS 桌面艺人动态视频（libmpv video build）
   media_kit_libs_macos_video: ^1.0.8
+  media_kit_libs_android_video: ^1.3.6
   crypto: ^3.0.7
   url_launcher: ^6.3.2
   window_manager: ^0.5.2
