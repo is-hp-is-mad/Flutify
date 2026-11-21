@@ -11,6 +11,7 @@ import '../../src/rust/api/pathfinder.dart' as rust_pf;
 import '../rust_backend_bridge.dart';
 import '../../models/album.dart';
 import '../../models/artist.dart';
+import '../../models/artist_overview.dart';
 import '../../models/category.dart';
 import '../../models/editable_playlist.dart';
 import '../../models/catalog_page.dart';
@@ -293,6 +294,16 @@ class DesktopDataSource {
     fromRust: RustPathfinderDto.artist,
     parse: PathfinderParsers.artistPage,
   );
+
+  /// 与 [artistPage] 同一次查询（命中缓存），解析其余分区。
+  Future<ArtistOverview> artistOverview(String id) async {
+    final data = await _query(PathfinderOperation.queryArtistOverview, {
+      'uri': 'spotify:artist:$id',
+      'locale': '',
+      'preReleaseV2': false,
+    });
+    return PathfinderParsers.artistOverview(data);
+  }
 
   Future<List<SpotifyAlbum>> artistAlbums(String id) async {
     return (await artistAlbumsPage(id)).items;

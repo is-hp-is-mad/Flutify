@@ -478,6 +478,26 @@ class AppLocalizationsZh extends AppLocalizations {
   String get artistFollowing => '已关注';
 
   @override
+  String get artistLatestRelease => '最新发行';
+
+  @override
+  String get artistAlbums => '专辑';
+
+  @override
+  String get artistSingles => '单曲和 EP';
+
+  @override
+  String get artistRelated => '粉丝也喜欢';
+
+  @override
+  String get artistAbout => '关于';
+
+  @override
+  String artistMonthlyListeners(String count) {
+    return '$count 位月听众';
+  }
+
+  @override
   String get playingFromPlaylist => '正在播放歌单';
 
   @override
@@ -995,6 +1015,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsReduceMotionSubtitle => '关闭流动背景、过渡与悬停等装饰性动画';
+
+  @override
+  String get settingsIncreaseContrast => '增加对比度';
+
+  @override
+  String get settingsIncreaseContrastSubtitle => '提高前景和背景的颜色对比。打开后专辑页不再使用封面颜色。';
 
   @override
   String get settingsPowerSaving => '省电模式';
@@ -1867,6 +1893,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsCanvasSubtitle => '播放时显示官方短片；无 Canvas 或减少动态效果时显示静态封面。';
 
   @override
+  String get settingsAppleMusicArtist => 'Apple Music 艺人视频';
+
+  @override
+  String get settingsAppleMusicArtistSubtitle =>
+      '优先播放可用的 Apple Music 艺人视频；否则保留 Spotify 原有照片。会向 Apple 发送艺人名。';
+
+  @override
   String get settingsLanguageZhHant => '繁體中文';
 
   @override
@@ -2712,6 +2745,26 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get artistFollowing => '已關注';
 
   @override
+  String get artistLatestRelease => '最新發行';
+
+  @override
+  String get artistAlbums => '專輯';
+
+  @override
+  String get artistSingles => '單曲和 EP';
+
+  @override
+  String get artistRelated => '粉絲也喜歡';
+
+  @override
+  String get artistAbout => '關於';
+
+  @override
+  String artistMonthlyListeners(String count) {
+    return '$count 位每月聽眾';
+  }
+
+  @override
   String get playingFromPlaylist => '正在播放歌單';
 
   @override
@@ -3229,6 +3282,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get settingsReduceMotionSubtitle => '關閉流動背景、過渡與懸停等裝飾性動畫';
+
+  @override
+  String get settingsIncreaseContrast => '增加對比度';
+
+  @override
+  String get settingsIncreaseContrastSubtitle => '提高前景和背景的顏色對比。打開後專輯頁不再使用封面顏色。';
 
   @override
   String get settingsPowerSaving => '省電模式';
@@ -4098,6 +4157,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get settingsCanvasSubtitle => '播放時顯示官方短片；無 Canvas 或減少動態效果時顯示靜態封面。';
+
+  @override
+  String get settingsAppleMusicArtist => 'Apple Music 藝人影片';
+
+  @override
+  String get settingsAppleMusicArtistSubtitle =>
+      '優先播放可用的 Apple Music 藝人影片；否則保留 Spotify 原有照片。會向 Apple 傳送藝人名稱。';
 
   @override
   String get settingsLanguageZhHant => '繁體中文';

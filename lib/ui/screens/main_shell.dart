@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/theme/artist_artwork_scheme.dart';
+import '../../providers/appearance_provider.dart';
+
 import '../../models/album.dart';
 import '../../models/app_preferences.dart';
 import '../../models/artist.dart';
@@ -268,28 +271,30 @@ class _MainShellState extends State<MainShell> {
   Map<ShortcutActivator, VoidCallback> _shortcuts() {
     final settings = AppShortcuts.of(context);
     return {
-    ...PlaybackShortcuts.bindings(context),
-    ?AppShortcuts.activator(settings, AppShortcut.search): _searchFocus.requestFocus,
-    PlatformShortcuts.primary(LogicalKeyboardKey.keyL):
-        _searchFocus.requestFocus,
-    ?AppShortcuts.activator(settings, AppShortcut.back): _navigateBack,
-    ?AppShortcuts.activator(settings, AppShortcut.forward): _navigateForward,
-    // 浏览器式后退 / 前进：鼠标驱动（如 Logi Options+）常把侧键模拟成 ⌘[ / ⌘]
-    if (PlatformShortcuts.useMeta) ...{
-      const SingleActivator(LogicalKeyboardKey.bracketLeft, meta: true):
-          _navigateBack,
-      const SingleActivator(LogicalKeyboardKey.bracketRight, meta: true):
-          _navigateForward,
-    },
-    ?AppShortcuts.activator(settings, AppShortcut.immersive): () => ImmersiveLyricsScreen.open(context),
-    // Mac 键盘上 F11 默认是「显示桌面」：另给 ⌘⇧F（与 Apple Music 全屏播放器同键，菜单栏「窗口」里有同一项）
-    if (PlatformShortcuts.useMeta)
-      const SingleActivator(
-        LogicalKeyboardKey.keyF,
-        meta: true,
-        shift: true,
-      ): () =>
+      ...PlaybackShortcuts.bindings(context),
+      ?AppShortcuts.activator(settings, AppShortcut.search):
+          _searchFocus.requestFocus,
+      PlatformShortcuts.primary(LogicalKeyboardKey.keyL):
+          _searchFocus.requestFocus,
+      ?AppShortcuts.activator(settings, AppShortcut.back): _navigateBack,
+      ?AppShortcuts.activator(settings, AppShortcut.forward): _navigateForward,
+      // 浏览器式后退 / 前进：鼠标驱动（如 Logi Options+）常把侧键模拟成 ⌘[ / ⌘]
+      if (PlatformShortcuts.useMeta) ...{
+        const SingleActivator(LogicalKeyboardKey.bracketLeft, meta: true):
+            _navigateBack,
+        const SingleActivator(LogicalKeyboardKey.bracketRight, meta: true):
+            _navigateForward,
+      },
+      ?AppShortcuts.activator(settings, AppShortcut.immersive): () =>
           ImmersiveLyricsScreen.open(context),
+      // Mac 键盘上 F11 默认是「显示桌面」：另给 ⌘⇧F（与 Apple Music 全屏播放器同键，菜单栏「窗口」里有同一项）
+      if (PlatformShortcuts.useMeta)
+        const SingleActivator(
+          LogicalKeyboardKey.keyF,
+          meta: true,
+          shift: true,
+        ): () =>
+            ImmersiveLyricsScreen.open(context),
     };
   }
 
@@ -408,6 +413,8 @@ class _MainShellState extends State<MainShell> {
     }
 
     // 移动端：内容铺到底部导航之下（毛玻璃透出内容），导航与迷你播放器高度经 MediaQuery 传给页面。
+    // 播放页为全屏呈现（对标 Apple Music wantsFullScreen：底层页面保持 1:1 静止，仅由路由遮罩压暗；
+    // 不做半屏卡片式的 0.93 缩放与结构切树，避免点开瞬间重挂 TabNavigator 导致整窗抖动）。
     // 当前 Tab 的顶层是全屏沉浸页（发现流）时整条边框隐藏，见 ShellChrome。
     final pages = NotificationListener<ScrollNotification>(
       onNotification: _barFold.handle,
@@ -424,11 +431,60 @@ class _MainShellState extends State<MainShell> {
           body: pages,
           bottomNavigationBar: hidden
               ? null
-              : MobileBottomBar(
-                  selectedIndex: _currentIndex,
-                  onSelected: _select,
-                  fold: _barFold,
+              : _BackdropTheme(
+                  backdrop: ShellChrome.instance.backdropFor(
+                    _navigatorKeys[_currentIndex].currentState,
+                  ),
+                  child: MobileBottomBar(
+                    selectedIndex: _currentIndex,
+                    onSelected: _select,
+                    fold: _barFold,
+                  ),
                 ),
+        );
+      },
+    );
+  }
+}
+
+/// 当前页自带底色（艺人页、专辑页）时，让底部导航与迷你播放栏按该底色取深浅主题，
+/// 并把表面色换成页面底色；对标 Apple Music 的 FloatingElementColorScheme（亮度 < 0.43 视为深色，
+/// 250ms 过渡，离开页面后恢复应用主题）。
+class _BackdropTheme extends StatelessWidget {
+  final Color? backdrop;
+  final Widget child;
+
+  const _BackdropTheme({required this.backdrop, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final base = Theme.of(context);
+    final appearance = context.watch<AppearanceProvider?>();
+    // 只对底色做补间：整份 ThemeData 互相 lerp 会在文字样式 inherit 不一致时断言失败
+    return TweenAnimationBuilder<Color?>(
+      tween: ColorTween(end: backdrop ?? base.scaffoldBackgroundColor),
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.decelerate,
+      child: child,
+      builder: (context, color, child) {
+        if (color == null ||
+            (backdrop == null && color == base.scaffoldBackgroundColor)) {
+          return child!;
+        }
+        final brightness =
+            ArtistArtworkScheme.appleLuminance(color) <
+                ArtistArtworkScheme.darkLuminanceThreshold
+            ? Brightness.dark
+            : Brightness.light;
+        final themed = brightness == base.brightness
+            ? base
+            : appearance?.theme(brightness) ?? base;
+        return Theme(
+          data: themed.copyWith(
+            scaffoldBackgroundColor: color,
+            colorScheme: themed.colorScheme.copyWith(surface: color),
+          ),
+          child: child!,
         );
       },
     );

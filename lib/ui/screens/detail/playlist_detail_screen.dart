@@ -18,6 +18,7 @@ import '../../../services/spotify_api_service.dart';
 import '../../shell/shell_breakpoints.dart';
 import '../../widgets/content_bottom_spacer.dart';
 import '../../widgets/menu/desktop_menu.dart';
+import '../../widgets/menu/mobile_menu.dart';
 import '../../widgets/share/share_button.dart';
 import '../../widgets/sliver_clip.dart';
 import '../../widgets/toast/app_toast.dart';
@@ -364,17 +365,29 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                       FlutifyPopupMenuButton<String>(
                         icon: const Icon(Icons.more_horiz_rounded, size: 28),
                         tooltip: l10n.commonMoreOptions,
+                        morph: true,
                         onSelected: (value) {
                           if (value == 'delete') {
                             library.deletePlaylist(playlist.id);
                             Navigator.pop(context);
                           }
                         },
-                        itemBuilder: (_) => [
-                          PopupMenuItem(
-                            value: 'delete',
-                            child: Text(l10n.playlistDelete),
-                          ),
+                        itemBuilder: (context) => [
+                          // 手机上的形变菜单用 Apple 式菜单行（删除为红色）；桌面照旧
+                          if (ShellBreakpoints.isDesktop(
+                            MediaQuery.sizeOf(context).width,
+                          ))
+                            PopupMenuItem(
+                              value: 'delete',
+                              child: Text(l10n.playlistDelete),
+                            )
+                          else
+                            MobileMenu.item(
+                              'delete',
+                              Icons.delete_outline_rounded,
+                              l10n.playlistDelete,
+                              destructive: true,
+                            ),
                         ],
                       ),
                   ],

@@ -489,6 +489,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get artistFollowing => 'Following';
 
   @override
+  String get artistLatestRelease => 'Latest Release';
+
+  @override
+  String get artistAlbums => 'Albums';
+
+  @override
+  String get artistSingles => 'Singles & EPs';
+
+  @override
+  String get artistRelated => 'Fans Also Like';
+
+  @override
+  String get artistAbout => 'About';
+
+  @override
+  String artistMonthlyListeners(String count) {
+    return '$count monthly listeners';
+  }
+
+  @override
   String get playingFromPlaylist => 'PLAYING FROM PLAYLIST';
 
   @override
@@ -1027,6 +1047,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsReduceMotionSubtitle =>
       'Turns off flowing backgrounds, transitions and hover animations';
+
+  @override
+  String get settingsIncreaseContrast => 'Increase Contrast';
+
+  @override
+  String get settingsIncreaseContrastSubtitle =>
+      'Increase color contrast between foreground and background. Album pages use the normal background.';
 
   @override
   String get settingsPowerSaving => 'Power saving';
@@ -1964,6 +1991,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsCanvasSubtitle =>
       'Show official looping artwork during playback. Use still artwork when unavailable or when reduced motion is enabled.';
+
+  @override
+  String get settingsAppleMusicArtist => 'Apple Music artist videos';
+
+  @override
+  String get settingsAppleMusicArtistSubtitle =>
+      'Play Apple Music artist videos when available; otherwise keep the original Spotify artist photo. Sends the artist name to Apple.';
 
   @override
   String get settingsLanguageZhHant => '繁體中文';

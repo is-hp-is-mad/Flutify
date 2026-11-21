@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../core/constants/spotify_endpoints.dart';
+import '../core/platform/flutify_platform.dart';
 import '../models/album.dart';
 import '../models/artist.dart';
+import '../models/artist_overview.dart';
 import '../models/category.dart';
 import '../models/catalog_page.dart';
 import '../l10n/app_locale.dart';
@@ -26,6 +28,7 @@ import 'library/web_api_library_source.dart';
 import 'rust_backend_bridge.dart';
 import 'lyrics_service.dart';
 import 'canvas/canvas_service.dart';
+import 'apple_music/apple_music_artist_service.dart';
 import 'pathfinder/desktop_data_source.dart';
 import 'pathfinder/pathfinder_client.dart';
 import 'podcast/podcast_service.dart';
@@ -64,6 +67,13 @@ class SpotifyApiService {
   final AuthSessionStore _storage;
   final http.Client _client;
   late final CanvasService canvas = CanvasService(_client, headers: _headers);
+
+  /// Apple Music 艺人头图 / 动态视频（公开目录接口，与 Spotify 账号无关）。
+  /// 测试环境不发请求（[FlutifyPlatform.isTest]）。
+  late final AppleMusicArtistService appleMusicArtist = AppleMusicArtistService(
+    _client,
+    enabled: !FlutifyPlatform.isTest,
+  );
 
   /// 官方竖滑发现流（Watch Feed）：搜索页「Discover something new」与 feed 本体。
   late final WatchFeedService watchFeed = WatchFeedService(
@@ -453,6 +463,17 @@ class SpotifyApiService {
     if (_useDesktop)
       return _desktopLoad(() async => (await _desktop.artistPage(id))?.artist);
     return SpotifyArtist.fromJson(await _getJson('/artists/$id'));
+  }
+
+  /// 艺人页附加分区（头图、简介、月听众、最新发行、专辑 / 单曲、类似艺人）。
+  /// 只有桌面版会话的内部接口提供这些字段；其余会话或失败时返回空信息，不阻塞艺人页。
+  Future<ArtistOverview> getArtistOverview(String id) async {
+    if (!_useDesktop) return const ArtistOverview();
+    try {
+      return await _desktop.artistOverview(id);
+    } catch (_) {
+      return const ArtistOverview();
+    }
   }
 
   /// 专辑曲目。/albums/{id}/tracks 返回的是 simplified track（不含 album 字段），

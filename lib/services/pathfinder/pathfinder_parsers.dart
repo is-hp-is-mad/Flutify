@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/album.dart';
 import '../../models/artist.dart';
+import '../../models/artist_overview.dart';
 import '../../models/category.dart';
 import '../../models/catalog_page.dart';
 import '../../models/image.dart';
@@ -23,21 +24,48 @@ class PathfinderParsers {
   /// `spotify:track:xxx` → `xxx`。
   static String idFromUri(String uri) => uri.isEmpty ? '' : uri.substring(uri.lastIndexOf(':') + 1);
 
-  /// 图片 sources：[{url, width|maxWidth, height|maxHeight}]，按宽度从大到小排列（模型取第一张作封面）。
+  /// 图片 sources：[{url, width|maxWidth, height|maxHeight, size?}]，按宽度从大到小排列（模型取第一张作封面）。
+  /// 部分接口省略数值尺寸时，按 Spotify 图片尺寸标识或 CDN 哈希前缀兜底排序，避免把 64/300px 缩略图排到前面。
   static List<SpotifyImage> images(Object? sources) {
     final list = <SpotifyImage>[];
     for (final s in _list(sources)) {
       final m = _map(s);
       final url = m?['url'];
       if (url is! String || url.isEmpty) continue;
-      list.add(SpotifyImage(
-        url: url,
-        width: _int(m!['width']) ?? _int(m['maxWidth']),
-        height: _int(m['height']) ?? _int(m['maxHeight']),
-      ));
+      final w =
+          _int(m!['width']) ??
+          _int(m['maxWidth']) ??
+          _inferredImageWidth(url, m['size']);
+      list.add(
+        SpotifyImage(
+          url: url,
+          width: w,
+          height: _int(m['height']) ?? _int(m['maxHeight']) ?? w,
+        ),
+      );
     }
     list.sort((a, b) => (b.width ?? 0).compareTo(a.width ?? 0));
     return list;
+  }
+
+  static int? _inferredImageWidth(String url, Object? sizeLabel) {
+    switch (sizeLabel) {
+      case 'XLARGE':
+      case 'xlarge':
+        return 640;
+      case 'LARGE':
+      case 'large':
+      case 'DEFAULT':
+      case 'default':
+        return 300;
+      case 'SMALL':
+      case 'small':
+        return 64;
+    }
+    if (url.contains('ab67616d0000b273')) return 640;
+    if (url.contains('ab67616d00001e02')) return 300;
+    if (url.contains('ab67616d00004851')) return 64;
+    return null;
   }
 
   /// 解开 `{__typename: XxxResponseWrapper | XxxWrapper, data: {...}}` 包装；非包装对象原样返回。
@@ -274,6 +302,32 @@ class PathfinderParsers {
         .whereType<SpotifyTrack>()
         .toList();
     return (artist: parsed, topTracks: topTracks);
+  }
+
+  /// queryArtistOverview 里艺人页其余分区：头图、简介、月听众、最新发行、专辑 / 单曲、类似艺人。
+  /// 缺失的字段留空，对应分区不显示。
+  static ArtistOverview artistOverview(Map<String, dynamic> data) {
+    final union = _map(data['artistUnion']);
+    final parsed = artist(union);
+    final fallback = parsed == null ? null : [parsed];
+    final discography = _map(union?['discography']);
+    final stats = _map(union?['stats']);
+    List<SpotifyAlbum> releases(Object? group) => _list(_map(group)?['items'])
+        .map((i) {
+          final items = _list(_map(_map(i)?['releases'])?['items']);
+          return items.isEmpty ? null : album(items.first, fallbackArtists: fallback);
+        })
+        .whereType<SpotifyAlbum>()
+        .toList();
+    return ArtistOverview(
+      headerImages: images(_map(_map(union?['visuals'])?['headerImage'])?['sources']),
+      biography: stripHtml(_map(_map(union?['profile'])?['biography'])?['text'] as String? ?? ''),
+      monthlyListeners: _int(stats?['monthlyListeners']),
+      latestRelease: album(discography?['latest'], fallbackArtists: fallback),
+      albums: releases(discography?['albums']),
+      singles: releases(discography?['singles']),
+      relatedArtists: _artists(_map(_map(union?['relatedContent'])?['relatedArtists'])),
+    );
   }
 
   /// queryArtistDiscographyAll：每个条目的 releases 取第一个版本。

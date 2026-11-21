@@ -1,5 +1,6 @@
 import 'package:flutify_app/core/utils/artwork_palette.dart';
 import 'package:flutify_app/main.dart';
+import 'package:flutify_app/ui/screens/player/player_expansion.dart';
 import 'package:flutify_app/models/artist.dart';
 import 'package:flutify_app/models/lyrics.dart';
 import 'package:flutify_app/models/track.dart';
@@ -126,7 +127,7 @@ void main() {
         if (viaCover) {
           final cover = find.descendant(
             of: player,
-            matching: find.byType(Hero),
+            matching: find.byType(PlayerArtworkHero),
           );
           await tester.tapAt(tester.getCenter(cover));
         } else {
@@ -182,7 +183,7 @@ void main() {
           find.descendant(of: player, matching: find.byTooltip('歌词')),
         );
         await _frames(tester);
-        final hero = find.descendant(of: player, matching: find.byType(Hero));
+        final hero = find.descendant(of: player, matching: find.byType(PlayerArtworkHero));
         expect(hero, findsOneWidget);
         expect(tester.getSize(hero).width, inInclusiveRange(56, 64));
         final card = tester.getRect(

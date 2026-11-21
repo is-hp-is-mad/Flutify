@@ -6,13 +6,15 @@ import '../../../../core/utils/artwork_palette.dart';
 import '../../../shell/shell_breakpoints.dart';
 import '../../../widgets/cover_image.dart';
 
-// 歌单 / 专辑 / 艺人详情页的大头图（Spotify 新版桌面端风格）。
+// 歌单 / 专辑 / 艺人 / 播客详情页的大头图（Spotify 新版桌面端风格）。
 //
-// 结构：
+// 歌单、艺人、播客：
 //   CollectionTintScope（取封面主色，向下传递色调）
 //     └ CustomScrollView
 //         ├ CollectionHero（吸顶头部，滚动收起为 64px 标题栏）
 //         └ CollectionHeroFade（操作行底色：承接头部渐变淡出到页面底色）
+//
+// 专辑页不走 CollectionTintScope，改由 [CollectionHero.pageColor] 铺整页封面色。
 
 /// 取一次封面主色，供 [CollectionHero] 与 [CollectionHeroFade] 共用。
 class CollectionTintScope extends StatelessWidget {
@@ -106,6 +108,9 @@ class CollectionHero extends StatefulWidget {
   /// 收起后标题栏左侧的操作（通常是 36–44px 的播放键）。
   final Widget? collapsedAction;
 
+  /// 整页封面色。传入后头部渐变与收起栏都用这个颜色，不再向主题底色淡出。
+  final Color? pageColor;
+
   const CollectionHero({
     super.key,
     required this.typeLabel,
@@ -115,6 +120,7 @@ class CollectionHero extends StatefulWidget {
     this.circularCover = false,
     this.meta,
     this.collapsedAction,
+    this.pageColor,
   });
 
   @override
@@ -130,8 +136,9 @@ class _CollectionHeroState extends State<CollectionHero> {
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-    final tone = CollectionTint.maybeOf(context) ?? CollectionTint.toneFor(const Color(0xFF3A3A48), brightness);
+    final scheme = Theme.of(context).colorScheme;
+    final tone = widget.pageColor ?? CollectionTint.maybeOf(context) ?? scheme.surface;
+    final flat = widget.pageColor != null;
     final topPadding = MediaQuery.paddingOf(context).top;
     final inDesktopShell = ShellBreakpoints.isDesktop(MediaQuery.sizeOf(context).width);
     final showBack = !inDesktopShell && (ModalRoute.of(context)?.canPop ?? false);
@@ -147,6 +154,7 @@ class _CollectionHeroState extends State<CollectionHero> {
           delegate: _HeroDelegate(
             hero: widget,
             tone: tone,
+            flat: flat,
             wide: width >= 600,
             width: width,
             topPadding: topPadding,
@@ -161,6 +169,7 @@ class _CollectionHeroState extends State<CollectionHero> {
 class _HeroDelegate extends SliverPersistentHeaderDelegate {
   final CollectionHero hero;
   final Color tone;
+  final bool flat;
   final bool wide;
   final double width;
   final double topPadding;
@@ -169,6 +178,7 @@ class _HeroDelegate extends SliverPersistentHeaderDelegate {
   _HeroDelegate({
     required this.hero,
     required this.tone,
+    required this.flat,
     required this.wide,
     required this.width,
     required this.topPadding,
@@ -196,12 +206,17 @@ class _HeroDelegate extends SliverPersistentHeaderDelegate {
     final barOpacity = ((t - 0.55) / 0.45).clamp(0.0, 1.0);
 
     final brightness = Theme.of(context).brightness;
-    final barColor = brightness == Brightness.dark
-        ? Color.lerp(tone, Colors.black, 0.3)!
-        : Color.lerp(tone, Colors.black, 0.08)!;
-    final barForeground = ThemeData.estimateBrightnessForColor(barColor) == Brightness.dark
-        ? Colors.white
-        : const Color(0xFF15161B);
+    final barColor = flat
+        ? tone
+        : brightness == Brightness.dark
+            ? Color.lerp(tone, Colors.black, 0.3)!
+            : Color.lerp(tone, Colors.black, 0.08)!;
+    final barForeground = flat
+        ? scheme.onSurface
+        : ThemeData.estimateBrightnessForColor(barColor) == Brightness.dark
+            ? Colors.white
+            : const Color(0xFF15161B);
+    final bottom = flat ? tone : CollectionTint.heroBottom(tone, scheme);
 
     return ClipRect(
       child: Stack(
@@ -220,7 +235,7 @@ class _HeroDelegate extends SliverPersistentHeaderDelegate {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [tone, CollectionTint.heroBottom(tone, scheme)],
+                    colors: [tone, bottom],
                   ),
                 ),
               ),
@@ -251,7 +266,7 @@ class _HeroDelegate extends SliverPersistentHeaderDelegate {
               ignoring: barOpacity == 0,
               child: Opacity(
                 opacity: barOpacity,
-                child: context.tokens.hyperMaterial
+                child: !flat && context.tokens.hyperMaterial
                     ? Stack(
                         fit: StackFit.expand,
                         children: [
@@ -308,7 +323,7 @@ class _HeroDelegate extends SliverPersistentHeaderDelegate {
             Positioned(
               left: 8,
               top: topPadding + 12,
-              child: _BackCircle(floating: shrinkOffset > 10),
+              child: HeroBackButton(floating: shrinkOffset > 10),
             ),
         ],
       ),
@@ -319,6 +334,7 @@ class _HeroDelegate extends SliverPersistentHeaderDelegate {
   bool shouldRebuild(_HeroDelegate old) =>
       old.hero != hero ||
       old.tone != tone ||
+      old.flat != flat ||
       old.wide != wide ||
       old.width != width ||
       old.topPadding != topPadding ||
@@ -505,10 +521,10 @@ class _HeroCover extends StatelessWidget {
   }
 }
 
-/// 移动端返回键：半透明黑底圆钮，在任何封面色上都清晰。
-class _BackCircle extends StatelessWidget {
+/// 移动端返回键：半透明黑底圆钮，在任何封面色上都清晰（详情页与艺人页头图共用）。
+class HeroBackButton extends StatelessWidget {
   final bool floating;
-  const _BackCircle({this.floating = false});
+  const HeroBackButton({super.key, this.floating = false});
 
   @override
   Widget build(BuildContext context) {

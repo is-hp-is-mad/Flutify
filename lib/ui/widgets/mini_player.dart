@@ -34,8 +34,54 @@ class MiniPlayer extends StatelessWidget {
     final track = context.select<PlaybackProvider, SpotifyTrack?>(
       (p) => p.currentTrack,
     );
-    if (track == null) return const SizedBox.shrink();
+    // T1.2 出现/消失：尺寸收放（AnimatedSize）+ 滑入淡出（AnimatedSwitcher）。
+    // Apple 观感：滑入 ~0.5s、几乎无过冲（临界阻尼量级）。
+    // Reduce Motion / 动效禁用：零时长动画会在布局期瞬时换子
+    // （RenderAnimatedSize mutated in its own performLayout），直接旁路。
+    final appearDuration = context.motion(const Duration(milliseconds: 420));
+    final fadeDuration = context.motion(const Duration(milliseconds: 380));
+    if (appearDuration <= Duration.zero || fadeDuration <= Duration.zero) {
+      return track == null
+          ? const SizedBox.shrink()
+          : _buildPill(context, track);
+    }
+    return AnimatedSize(
+      duration: appearDuration,
+      curve: PlayerExpansionMotion.curve,
+      alignment: Alignment.bottomCenter,
+      child: AnimatedSwitcher(
+        duration: fadeDuration,
+        switchInCurve: Curves.easeOut,
+        switchOutCurve: Curves.easeIn,
+        transitionBuilder: (child, animation) => FadeTransition(
+          opacity: animation,
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0, 0.4),
+              end: Offset.zero,
+            ).animate(animation),
+            child: child,
+          ),
+        ),
+        layoutBuilder: (currentChild, previousChildren) => Stack(
+          alignment: Alignment.bottomCenter,
+          clipBehavior: Clip.none,
+          children: [...previousChildren, ?currentChild],
+        ),
+        child: track == null
+            ? const SizedBox(
+                width: double.infinity,
+                key: ValueKey('mini-player-empty'),
+              )
+            : KeyedSubtree(
+                key: const ValueKey('mini-player-pill'),
+                child: _buildPill(context, track),
+              ),
+      ),
+    );
+  }
 
+  Widget _buildPill(BuildContext context, SpotifyTrack track) {
     // 方正风格下胶囊换成 16px 圆角矩形，其余风格保持胶囊
     final tokens = context.tokens;
     final ShapeBorder shape = tokens.squareCorners
@@ -53,47 +99,40 @@ class MiniPlayer extends StatelessWidget {
             key: const ValueKey('mini-player-expansion-source'),
             color: background,
             translucent: tokens.hyperMaterial,
-            borderRadius: tokens.squareCorners
-                ? tokens.radius(16)
-                : BorderRadius.circular(32),
-            compactChild: _MiniPlayerRow(track: track, showArtwork: false),
+            borderRadius: MiniPlayerStyle.surfaceRadius(context),
+            // 展开外壳里的两份副本（不含封面，封面单独飞行）：封面色上的白字、玻璃上的原样
+            compactChild: MiniPlayerDock.carry(
+              context,
+              _MiniPlayerFace(
+                track: track,
+                showArtwork: false,
+                onSurface: false,
+              ),
+            ),
+            material: MiniPlayerStyle.expansionMaterial(
+              context,
+              MiniPlayerDock.carry(
+                context,
+                _MiniPlayerFace(track: track, showArtwork: false),
+              ),
+            ),
             child: MiniPlayerSurface(
               background: background,
               shape: shape,
               child: Material(
                 type: MaterialType.transparency,
-                child: InkWell(
-                  customBorder: shape,
-                  mouseCursor: SystemMouseCursors.click,
-                  onTap: () => FullPlayerSheet.show(context),
-                  child: MiniPlayerSwipe(
-                    onSwipe: (next) {
-                      final playback = context.read<PlaybackProvider>();
-                      next ? playback.nextTrack() : playback.previousTrack();
-                    },
-                    child: Stack(
-                      children: [
-                        _MiniPlayerRow(track: track),
-                        // 细进度线：左右内缩到胶囊直线段内，避开两端圆弧
-                        Positioned(
-                          left: 28,
-                          right: 28,
-                          bottom: 3,
-                          child: MiniPlayerFoldAway(
-                            fold: MiniPlayerDock.maybeOf(context),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(1),
-                              child: PlaybackProgressLine(
-                                height: 2,
-                                color: MiniPlayerStyle.foreground(context),
-                                backgroundColor: MiniPlayerStyle.foreground(
-                                  context,
-                                ).withAlpha(40),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                // 上滑跟手打开播放页（Apple Music 迷你条行为）；横滑切歌、点按照旧
+                child: PlayerOpenDrag(
+                  child: InkWell(
+                    customBorder: shape,
+                    mouseCursor: SystemMouseCursors.click,
+                    onTap: () => FullPlayerSheet.show(context),
+                    child: MiniPlayerSwipe(
+                      onSwipe: (next) {
+                        final playback = context.read<PlaybackProvider>();
+                        next ? playback.nextTrack() : playback.previousTrack();
+                      },
+                      child: _MiniPlayerFace(track: track),
                     ),
                   ),
                 ),
@@ -106,11 +145,66 @@ class MiniPlayer extends StatelessWidget {
   }
 }
 
+/// 迷你条上画的全部内容：那一行 + 底部细进度线。
+///
+/// 展开外壳用的是不含封面的副本（[showArtwork] 为 false），和真身同一套布局，
+/// 外壳落回迷你条时逐像素对上；[onSurface] 为 false 时画在封面色上（白字）。
+class _MiniPlayerFace extends StatelessWidget {
+  final SpotifyTrack track;
+  final bool showArtwork;
+  final bool onSurface;
+
+  const _MiniPlayerFace({
+    required this.track,
+    this.showArtwork = true,
+    this.onSurface = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final foreground = MiniPlayerStyle.foreground(
+      context,
+      onSurface: onSurface,
+    );
+    return Stack(
+      children: [
+        _MiniPlayerRow(
+          track: track,
+          showArtwork: showArtwork,
+          onSurface: onSurface,
+        ),
+        // 细进度线：左右内缩到胶囊直线段内，避开两端圆弧
+        Positioned(
+          left: 28,
+          right: 28,
+          bottom: 3,
+          child: MiniPlayerFoldAway(
+            fold: MiniPlayerDock.maybeOf(context),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(1),
+              child: PlaybackProgressLine(
+                height: 2,
+                color: foreground,
+                backgroundColor: foreground.withAlpha(40),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _MiniPlayerRow extends StatelessWidget {
   final SpotifyTrack track;
   final bool showArtwork;
+  final bool onSurface;
 
-  const _MiniPlayerRow({required this.track, this.showArtwork = true});
+  const _MiniPlayerRow({
+    required this.track,
+    this.showArtwork = true,
+    this.onSurface = true,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -131,11 +225,11 @@ class _MiniPlayerRow extends StatelessWidget {
         final artwork = MiniPlayerStyle.artworkSize(context);
         final foreground = MiniPlayerStyle.foreground(
           context,
-          onSurface: showArtwork,
+          onSurface: onSurface,
         );
         final secondary = MiniPlayerStyle.secondary(
           context,
-          onSurface: showArtwork,
+          onSurface: onSurface,
         );
 
         return Padding(

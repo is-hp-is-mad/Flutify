@@ -31,6 +31,32 @@ abstract final class MiniPlayerStyle {
       onSurface && context.tokens.hyperMaterial
       ? Theme.of(context).colorScheme.onSurfaceVariant
       : Colors.white70;
+
+  /// 胶囊表面的圆角；展开外壳从同一个圆角出发。
+  static BorderRadius surfaceRadius(BuildContext context) {
+    final tokens = context.tokens;
+    if (tokens.squareCorners) return tokens.radius(16);
+    return BorderRadius.circular(tokens.hyperMaterial ? 24 : 32);
+  }
+
+  /// 柔光玻璃迷你条交给展开外壳的材质：外壳在 P=0 时原样画出这条迷你条，再长成播放页。
+  /// [row] 是迷你条上的内容不含封面的副本。不透明的迷你条没有材质（外壳直接用封面色）。
+  static PlayerPillMaterial? expansionMaterial(
+    BuildContext context,
+    Widget row,
+  ) => context.tokens.hyperMaterial ? (surface: _glass, row: row) : null;
+
+  static Widget _glass(
+    BuildContext context,
+    BorderRadius radius, [
+    Widget child = const SizedBox.expand(),
+  ]) => HyperBlendSurface(
+    material: HyperBlendSurface.bar(context),
+    borderRadius: radius,
+    bloom: HyperBlendSurface.barBloom(context),
+    shadow: true,
+    child: child,
+  );
 }
 
 /// 外边距与宽度。
@@ -41,8 +67,13 @@ class MiniPlayerBounds extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Android 悬浮栏自己定位和定宽
-    if (MiniPlayerDock.maybeOf(context) != null) return child;
+    // Android 悬浮栏自己定位和定宽；收起时爱心隐藏后行高仍保持 56dp，避免与外框高度错位
+    if (MiniPlayerDock.maybeOf(context) != null) {
+      return ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 56),
+        child: child,
+      );
+    }
     if (!context.tokens.hyperMaterial) {
       return Padding(
         padding: const EdgeInsets.fromLTRB(10, 6, 10, 8),
@@ -57,10 +88,7 @@ class MiniPlayerBounds extends StatelessWidget {
         return Padding(
           padding: const EdgeInsets.fromLTRB(0, 6, 0, 8),
           child: Center(
-            child: SizedBox(
-              width: barW,
-              child: child,
-            ),
+            child: SizedBox(width: barW, child: child),
           ),
         );
       },
@@ -78,6 +106,13 @@ class MiniPlayerDock extends InheritedWidget {
   /// 不登记依赖：只读一次动画对象，进度由 [MiniPlayerFoldAway] 自己监听。
   static Animation<double>? maybeOf(BuildContext context) =>
       context.getInheritedWidgetOfExactType<MiniPlayerDock>()?.fold;
+
+  /// 把 [child] 带到别处时保留同一个悬浮栏语境：展开外壳在播放页路由里画迷你条内容的副本，
+  /// 副本要和悬浮栏里的真身排得一样。
+  static Widget carry(BuildContext context, Widget child) {
+    final fold = maybeOf(context);
+    return fold == null ? child : MiniPlayerDock(fold: fold, child: child);
+  }
 
   @override
   bool updateShouldNotify(MiniPlayerDock oldWidget) => fold != oldWidget.fold;
@@ -139,14 +174,10 @@ class MiniPlayerSurface extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = context.tokens;
     if (tokens.hyperMaterial) {
-      return HyperBlendSurface(
-        material: HyperBlendSurface.bar(context),
-        borderRadius: tokens.squareCorners
-            ? tokens.radius(16)
-            : BorderRadius.circular(24),
-        bloom: HyperBlendSurface.barBloom(context),
-        shadow: true,
-        child: child,
+      return MiniPlayerStyle._glass(
+        context,
+        MiniPlayerStyle.surfaceRadius(context),
+        child,
       );
     }
     return AnimatedContainer(

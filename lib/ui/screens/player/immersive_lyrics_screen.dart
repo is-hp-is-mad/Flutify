@@ -23,6 +23,7 @@ import '../../widgets/track_menu.dart';
 import 'lyrics/lyrics_backdrop.dart';
 import 'lyrics/lyrics_translation_controls.dart';
 import 'player_scene_view.dart';
+import '../../widgets/menu/apple_more_menu_route.dart';
 
 /// 桌面沉浸式歌词：窗口外壳 + 全端共用的播放器场景（[PlayerSceneView]）。
 ///
@@ -280,30 +281,33 @@ class _ImmersiveLyricsScreenState extends State<ImmersiveLyricsScreen> {
                               ),
                               controlsFooter: _VolumeRow(remote: remote),
                               // 「更多」按钮贴在歌名行的红心右边
-                              titleTrailing: Builder(
-                                // 独立 context：菜单锚定在按钮下方
-                                builder: (buttonContext) => IconButton(
-                                  icon: const Icon(
-                                    Icons.more_horiz_rounded,
-                                    size: 24,
-                                  ),
-                                  color: Colors.white,
-                                  tooltip: l10n.commonMoreOptions,
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints.tightFor(
-                                    width: 40,
-                                    height: 40,
-                                  ),
-                                  onPressed: () => TrackMenu.show(
-                                    buttonContext,
-                                    track,
-                                    onConnect: () {
-                                      _activity.value++;
-                                      PlayerSceneView.toggleDevices(
-                                        context,
-                                        _devicesOpen,
-                                      );
-                                    },
+                              titleTrailing: AppleMoreMenuSource(
+                                child: Builder(
+                                  // 独立 context：菜单锚定在按钮下方
+                                  builder: (buttonContext) => IconButton(
+                                    icon: const Icon(
+                                      Icons.more_horiz_rounded,
+                                      size: 24,
+                                    ),
+                                    color: Colors.white,
+                                    tooltip: l10n.commonMoreOptions,
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints.tightFor(
+                                      width: 40,
+                                      height: 40,
+                                    ),
+                                    onPressed: () => TrackMenu.show(
+                                      buttonContext,
+                                      track,
+                                      morph: true,
+                                      onConnect: () {
+                                        _activity.value++;
+                                        PlayerSceneView.toggleDevices(
+                                          context,
+                                          _devicesOpen,
+                                        );
+                                      },
+                                    ),
                                   ),
                                 ),
                               ),

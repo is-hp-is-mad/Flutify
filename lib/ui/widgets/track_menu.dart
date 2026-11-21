@@ -15,6 +15,7 @@ import '../shell/shell_breakpoints.dart';
 import 'cover_image.dart';
 import 'create_playlist_dialog.dart';
 import 'keyboard_shortcuts.dart';
+import 'menu/apple_more_menu_route.dart';
 import 'menu/desktop_menu.dart';
 import 'menu/mobile_menu.dart';
 import 'share/share_sheet.dart';
@@ -58,12 +59,20 @@ class TrackMenu {
   TrackMenu._();
 
   /// [position] 为全局坐标；为空时按 [context] 对应组件的左下角弹出（用于按钮触发）。
+  ///
+  /// [morph] 为 true 时（⋯ 按钮）在手机宽度上从按钮形变出 Apple Music 式上下文菜单
+  /// （[AppleMoreMenu]），「加入歌单」「前往艺人（多位）」在同一菜单里切换到二级层。
   static Future<void> show(
     BuildContext context,
     SpotifyTrack track, {
     Offset? position,
     VoidCallback? onConnect,
+    bool morph = false,
   }) {
+    if (morph &&
+        !ShellBreakpoints.isDesktop(MediaQuery.sizeOf(context).width)) {
+      return _showMorph(context, track, onConnect);
+    }
     // 柔光玻璃主题下：全尺寸统一使用悬浮果冻菜单（顶部快捷操作 + 分组大号菜单项）
     if (context.tokens.hyperMaterial) {
       return _showMobile(
@@ -96,8 +105,12 @@ class TrackMenu {
     SpotifyTrack track,
     TrackAction action,
   ) => switch (action) {
-    TrackAction.artist => track.artists.isNotEmpty,
-    TrackAction.album => track.album != null && track.album!.id.isNotEmpty,
+    TrackAction.artist =>
+      track.artists.isNotEmpty && !TrackMenuScope.hidesNavigation(context),
+    TrackAction.album =>
+      track.album != null &&
+          track.album!.id.isNotEmpty &&
+          !TrackMenuScope.hidesNavigation(context),
     TrackAction.share => ShareTarget.track(track).isShareable,
     TrackAction.sleepTimer => context.read<SleepTimerProvider?>() != null,
     _ => true,
@@ -347,6 +360,150 @@ class TrackMenu {
     await perform(context, track, action, position: position);
   }
 
+  /// ⋯ 按钮的形变菜单：版式同移动端柔光玻璃菜单，二级菜单在原位切换。
+  static Future<void> _showMorph(
+    BuildContext context,
+    SpotifyTrack track,
+    VoidCallback? onConnect,
+  ) async {
+    final l10n = context.l10n;
+    final library = context.read<LibraryProvider>();
+    final liked = library.isLiked(track.id);
+    final timerOn = context.read<SleepTimerProvider?>()?.active ?? false;
+    final primary = Theme.of(context).colorScheme.primary;
+    const connectId = '\u0000connect';
+    const createId = _PlaylistPick('\u0000new');
+    bool has(TrackAction a) => isAvailable(context, track, a);
+    final multipleArtists = has(TrackAction.artist) && track.artists.length > 1;
+
+    final action = await AppleMoreMenu.show<Object>(
+      context,
+      [
+        MobileMenuActionRow<Object>([
+          MobileMenuAction(
+            TrackAction.addToPlaylist,
+            Icons.add_circle_outline_rounded,
+            l10n.trackQuickAdd,
+          ),
+          MobileMenuAction(
+            TrackAction.like,
+            liked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+            liked ? l10n.trackQuickLiked : l10n.trackQuickLike,
+            color: liked ? primary : null,
+          ),
+          if (has(TrackAction.share))
+            MobileMenuAction(
+              TrackAction.share,
+              Icons.ios_share_rounded,
+              l10n.commonShare,
+            ),
+        ]),
+        MobileMenu.divider,
+        MobileMenu.item(
+          TrackAction.addToPlaylist,
+          Icons.playlist_add_rounded,
+          l10n.trackAddToPlaylist,
+          submenu: true,
+        ),
+        MobileMenu.divider,
+        MobileMenu.item(
+          TrackAction.queue,
+          Icons.queue_music_rounded,
+          l10n.trackAddToQueue,
+          subtitle: track.name,
+        ),
+        MobileMenu.item(
+          TrackAction.radio,
+          Icons.sensors_rounded,
+          l10n.trackGoToRadio,
+        ),
+        if (has(TrackAction.sleepTimer))
+          MobileMenu.item(
+            TrackAction.sleepTimer,
+            timerOn ? Icons.bedtime_rounded : Icons.bedtime_outlined,
+            l10n.sleepTimer,
+            iconColor: timerOn ? primary : null,
+          ),
+        MobileMenu.divider,
+        if (has(TrackAction.album))
+          MobileMenu.item(
+            TrackAction.album,
+            Icons.album_outlined,
+            l10n.trackGoToAlbum,
+            subtitle: track.album!.name,
+          ),
+        if (has(TrackAction.artist))
+          MobileMenu.item(
+            TrackAction.artist,
+            Icons.person_outline_rounded,
+            l10n.trackGoToArtist(track.artists.length),
+            subtitle: track.artistNames,
+            submenu: multipleArtists,
+          ),
+        MobileMenu.item(
+          TrackAction.credits,
+          Icons.info_outline_rounded,
+          l10n.trackViewCredits,
+        ),
+        if (onConnect != null) ...[
+          MobileMenu.divider,
+          MobileMenu.item<Object>(
+            connectId,
+            Icons.cast_connected_rounded,
+            l10n.deviceConnectShort,
+          ),
+        ],
+      ],
+      submenus: {
+        TrackAction.addToPlaylist: AppleSubmenu(
+          title: l10n.trackAddToPlaylist,
+          items: () => [
+            MobileMenu.item<Object>(
+              createId,
+              Icons.add_rounded,
+              l10n.trackNewPlaylist,
+            ),
+            if (library.ownPlaylists.isNotEmpty) MobileMenu.divider,
+            for (final playlist in library.ownPlaylists)
+              MobileMenu.item<Object>(
+                _PlaylistPick(playlist.id),
+                playlist.tracks.any((t) => t.id == track.id)
+                    ? Icons.check_circle_rounded
+                    : Icons.queue_music_rounded,
+                playlist.name,
+                iconColor: playlist.tracks.any((t) => t.id == track.id)
+                    ? primary
+                    : null,
+              ),
+          ],
+        ),
+        if (multipleArtists)
+          TrackAction.artist: AppleSubmenu(
+            title: l10n.trackGoToArtist(track.artists.length),
+            items: () => [
+              for (var i = 0; i < track.artists.length; i++)
+                MobileMenu.item<Object>(
+                  _ArtistPick(i),
+                  Icons.person_outline_rounded,
+                  track.artists[i].name,
+                ),
+            ],
+          ),
+      },
+    );
+    if (action == null || !context.mounted) return;
+    switch (action) {
+      case connectId:
+        onConnect?.call();
+      case _ArtistPick(:final index):
+        AppRoutes.openArtist(context, track.artists[index]);
+      case _PlaylistPick(:final id):
+        await _addPicked(context, track, id == createId.id ? null : id);
+      case TrackAction():
+        await perform(context, track, action);
+    }
+  }
+
   /// 执行操作；[position] 为二级菜单弹出位置（快捷键触发时为鼠标位置）。
   static Future<void> perform(
     BuildContext context,
@@ -490,8 +647,18 @@ class TrackMenu {
       await addToAccountPlaylist(context, library, remote, track);
       return;
     }
+    await _addPicked(context, track, id == createId ? null : id);
+  }
 
-    if (id == createId) {
+  /// 把曲目加入 [id] 指向的歌单；[id] 为 null 时先新建歌单。
+  static Future<void> _addPicked(
+    BuildContext context,
+    SpotifyTrack track,
+    String? id,
+  ) async {
+    final l10n = context.l10n;
+    final library = context.read<LibraryProvider>();
+    if (id == null) {
       final name = await CreatePlaylistDialog.show(context);
       if (name == null || !context.mounted) return;
       final created = library.createPlaylist(name);
@@ -547,4 +714,53 @@ class TrackMenu {
       );
     }
   }
+}
+
+/// 形变菜单二级层里选中的歌单。
+class _PlaylistPick {
+  const _PlaylistPick(this.id);
+
+  final String id;
+
+  @override
+  bool operator ==(Object other) => other is _PlaylistPick && other.id == id;
+
+  @override
+  int get hashCode => id.hashCode;
+}
+
+/// 形变菜单二级层里选中的艺人（多位艺人时）。
+class _ArtistPick {
+  const _ArtistPick(this.index);
+
+  final int index;
+
+  @override
+  bool operator ==(Object other) =>
+      other is _ArtistPick && other.index == index;
+
+  @override
+  int get hashCode => index.hashCode;
+}
+
+/// 包住一组曲目行，调整其「更多」菜单。
+///
+/// [hideNavigation] 为 true 时不出现「前往专辑」「前往艺人」：专辑页的曲目都属于
+/// 当前专辑，艺人入口就在页头，菜单里再放一次是重复的（Apple Music 专辑页也没有）。
+class TrackMenuScope extends InheritedWidget {
+  const TrackMenuScope({
+    super.key,
+    this.hideNavigation = false,
+    required super.child,
+  });
+
+  final bool hideNavigation;
+
+  static bool hidesNavigation(BuildContext context) =>
+      context.getInheritedWidgetOfExactType<TrackMenuScope>()?.hideNavigation ??
+      false;
+
+  @override
+  bool updateShouldNotify(TrackMenuScope oldWidget) =>
+      hideNavigation != oldWidget.hideNavigation;
 }

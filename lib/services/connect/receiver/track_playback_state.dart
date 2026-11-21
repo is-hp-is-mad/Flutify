@@ -55,7 +55,12 @@ class TpTrack {
     final images = [
       for (final i in (meta['images'] as List? ?? const []))
         if (i is Map && i['url'] is String)
-          (url: i['url'] as String, w: (i['width'] as num?)?.toInt() ?? 0),
+          (
+            url: i['url'] as String,
+            w:
+                (i['width'] as num?)?.toInt() ??
+                _inferredImageWidth(i['url'] as String, i['size']),
+          ),
     ]..sort((a, b) => b.w.compareTo(a.w));
     return TpTrack(
       uri: meta['uri'] as String? ?? '',
@@ -75,6 +80,26 @@ class TpTrack {
           (meta['uri'] as String? ?? '').startsWith('spotify:ad:'),
       imageUrls: [for (final i in images) i.url],
     );
+  }
+
+  static int _inferredImageWidth(String url, Object? sizeLabel) {
+    switch (sizeLabel) {
+      case 'XLARGE':
+      case 'xlarge':
+        return 640;
+      case 'LARGE':
+      case 'large':
+      case 'DEFAULT':
+      case 'default':
+        return 300;
+      case 'SMALL':
+      case 'small':
+        return 64;
+    }
+    if (url.contains('ab67616d0000b273')) return 640;
+    if (url.contains('ab67616d00001e02')) return 300;
+    if (url.contains('ab67616d00004851')) return 64;
+    return 0;
   }
 }
 

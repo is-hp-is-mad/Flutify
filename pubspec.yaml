@@ -53,6 +53,7 @@ dependencies:
     path: rust_builder
   connectivity_plus: ^7.0.0
   material_3_expressive: ^1.1.2
+  material_color_utilities: ^0.13.0
   # 本地补丁：增加输出设备选择（畅联「本机音频设备」），见 packages/just_audio_media_kit/FLUTIFY_PATCH.md
   just_audio_media_kit:
     path: packages/just_audio_media_kit

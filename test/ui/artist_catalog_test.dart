@@ -278,8 +278,21 @@ void main() {
           .read<PlaybackProvider>();
       expect(playback.currentTrack?.id, catalog.id);
       expect(playback.playbackContext.uri, artist.contextUri);
+      // ⋯ on a phone morphs into the Apple Music style context menu ...
       await tester.tap(
         find.descendant(of: tile, matching: find.byTooltip('更多选项')),
+      );
+      await settle(tester);
+      expect(
+        find.byKey(const ValueKey('apple-more-menu-shell')),
+        findsOneWidget,
+      );
+      await tester.tapAt(const Offset(4, 4));
+      await settle(tester);
+      expect(find.byKey(const ValueKey('apple-more-menu-shell')), findsNothing);
+      // ... while a long press still opens the full options sheet.
+      await tester.longPress(
+        find.descendant(of: tile, matching: find.text('Beyond the top tracks')),
       );
       await settle(tester);
       expect(find.byType(TrackOptionsSheet), findsOneWidget);

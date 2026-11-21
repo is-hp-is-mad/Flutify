@@ -90,6 +90,9 @@ class AppearanceSettings {
   /// 整窗帧率上限（fps）；0 = 跟随屏幕刷新率。动画仍按真实时间推进，只是出帧更少。
   final int frameRateLimit;
 
+  /// 增加对比度：专辑页改用普通主题底色，不再铺封面色。与「跟随封面取色」无关。
+  final bool increaseContrast;
+
   static const int minFrameRateLimit = 30;
   static const int maxFrameRateLimit = 240;
 
@@ -110,6 +113,7 @@ class AppearanceSettings {
     this.reduceMotion = false,
     this.powerSaving = false,
     this.frameRateLimit = 0,
+    this.increaseContrast = false,
   });
 
   static const AppearanceSettings defaults = AppearanceSettings();
@@ -128,6 +132,7 @@ class AppearanceSettings {
     bool? reduceMotion,
     bool? powerSaving,
     int? frameRateLimit,
+    bool? increaseContrast,
   }) {
     return AppearanceSettings(
       themeMode: themeMode ?? this.themeMode,
@@ -143,6 +148,7 @@ class AppearanceSettings {
       reduceMotion: reduceMotion ?? this.reduceMotion,
       powerSaving: powerSaving ?? this.powerSaving,
       frameRateLimit: frameRateLimit ?? this.frameRateLimit,
+      increaseContrast: increaseContrast ?? this.increaseContrast,
     );
   }
 
@@ -160,6 +166,7 @@ class AppearanceSettings {
         'reduceMotion': reduceMotion,
         'powerSaving': powerSaving,
         'frameRateLimit': frameRateLimit,
+        'increaseContrast': increaseContrast,
       };
 
   /// 宽松解析：缺失或非法的字段回退到默认值，旧版本保存的设置也能读。
@@ -188,6 +195,7 @@ class AppearanceSettings {
       cornerStyle: pick(CornerStyle.values, json['cornerStyle'], d.cornerStyle),
       reduceMotion: json['reduceMotion'] is bool ? json['reduceMotion'] as bool : d.reduceMotion,
       powerSaving: json['powerSaving'] is bool ? json['powerSaving'] as bool : d.powerSaving,
+      increaseContrast: json['increaseContrast'] is bool ? json['increaseContrast'] as bool : d.increaseContrast,
       // 0 = 跟随屏幕；其余夹到合法区间
       frameRateLimit: json['frameRateLimit'] is int && json['frameRateLimit'] != 0
           ? (json['frameRateLimit'] as int).clamp(minFrameRateLimit, maxFrameRateLimit)
@@ -210,7 +218,8 @@ class AppearanceSettings {
       other.cornerStyle == cornerStyle &&
       other.reduceMotion == reduceMotion &&
       other.powerSaving == powerSaving &&
-      other.frameRateLimit == frameRateLimit;
+      other.frameRateLimit == frameRateLimit &&
+      other.increaseContrast == increaseContrast;
 
   @override
   int get hashCode => Object.hash(
@@ -227,5 +236,6 @@ class AppearanceSettings {
         reduceMotion,
         powerSaving,
         frameRateLimit,
+        increaseContrast,
       );
 }

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutify_app/core/utils/artwork_palette.dart';
 import 'package:flutify_app/main.dart';
+import 'package:flutify_app/ui/screens/player/player_expansion.dart';
 import 'package:flutify_app/models/album.dart';
 import 'package:flutify_app/models/artist.dart';
 import 'package:flutify_app/models/image.dart';
@@ -354,7 +355,7 @@ void main() {
         final artistElement = tester.element(artist);
         final originalSize = tester.widget<MarqueeText>(title).style!.fontSize!;
         final originalArtistRect = tester.getRect(artist);
-        final cover = _inPlayer(find.byType(Hero));
+        final cover = _inPlayer(find.byType(PlayerArtworkHero));
         final largeCover = tester.getRect(cover);
 
         await tester.tap(_inPlayer(find.byTooltip('歌词')));
@@ -427,7 +428,7 @@ void main() {
     tester,
   ) async {
     final session = await _open(tester);
-    final cover = _inPlayer(find.byType(Hero));
+    final cover = _inPlayer(find.byType(PlayerArtworkHero));
     expect(tester.getSize(cover).width, lessThan(70));
 
     await tester.tapAt(tester.getCenter(cover));
