@@ -108,7 +108,40 @@ class UpdateService extends ChangeNotifier {
 
   Future<void> _start() async {
     await (_restoreFuture ??= _restoreReady());
+    await cleanupInstalledUpdates();
     await check();
+  }
+
+  bool _cleaned = false;
+
+  /// 清理已安装（或已作废）的更新残留：启动时执行一次，删掉下载目录里除「仍待安装的安装包」
+  /// 之外的全部内容（旧的安装包、下载中断留下的临时目录、Windows 更新脚本的工作目录）。
+  /// Windows 的工作目录可能还被更新助手占用，所以只删超过 10 分钟没动过的；任何失败都忽略。
+  Future<void> cleanupInstalledUpdates() async {
+    if (_cleaned || _disposed || busy) return;
+    _cleaned = true;
+    try {
+      final root = await installer.downloadDirectory();
+      if (!await root.exists()) return;
+      final keepFile = status == UpdateStatus.ready ? package : null;
+      final keepDir = keepFile?.parent.path;
+      final now = DateTime.now();
+      await for (final entry in root.list(followLinks: false)) {
+        final name = p.basename(entry.path);
+        try {
+          if (keepFile != null && (name == 'pending.json' || entry.path == keepDir)) continue;
+          if (name.startsWith('apply-') &&
+              now.difference((await entry.stat()).modified) < const Duration(minutes: 10)) {
+            continue;
+          }
+          await entry.delete(recursive: true);
+        } catch (e) {
+          debugPrint('[Updates] Cleanup skipped $name: $e');
+        }
+      }
+    } catch (e) {
+      debugPrint('[Updates] Cleanup failed: $e');
+    }
   }
 
   Future<void> _restoreReady() async {

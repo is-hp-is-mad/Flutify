@@ -166,4 +166,19 @@ void main() {
     expect(updates.release, isNull);
     expect(storage.updates.updateMode, 'disabled');
   });
+
+  test('cleanup removes leftovers of installed updates but keeps a pending package', () async {
+    final stale = Directory(p.join(installer.root.path, 'download-old'));
+    await stale.create(recursive: true);
+    await File(p.join(stale.path, name)).writeAsBytes(bytes);
+    await File(p.join(installer.root.path, 'pending.json')).writeAsString('{}');
+    final fresh = Directory(p.join(installer.root.path, 'apply-fresh'));
+    await fresh.create();
+    final updates = service();
+    await updates.cleanupInstalledUpdates();
+    expect(await stale.exists(), isFalse);
+    expect(await File(p.join(installer.root.path, 'pending.json')).exists(), isFalse);
+    // Recent Windows helper work directories may still be in use.
+    expect(await fresh.exists(), isTrue);
+  });
 }
