@@ -27,6 +27,9 @@ class _LoginAuth extends Fake with ChangeNotifier implements AuthProvider {
 
   @override
   String? get error => null;
+
+  @override
+  AuthFailure? get failure => null;
 }
 
 /// 登录页在小屏手机上的冒烟测试：只有「在浏览器中登录」一种方式、无布局溢出、可关闭。
