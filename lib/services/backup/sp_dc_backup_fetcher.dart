@@ -520,11 +520,11 @@ class SpDcBackupFetcher {
         .get(Uri.parse(url), headers: headers)
         .timeout(const Duration(seconds: 15));
     if (res.statusCode != 200) {
-      throw HttpException('备份请求失败（HTTP ${res.statusCode}）', uri: Uri.parse(url));
+      throw HttpException('Backup request failed (HTTP ${res.statusCode})', uri: Uri.parse(url));
     }
     final decoded = jsonDecode(utf8.decode(res.bodyBytes));
     if (decoded is! Map<String, dynamic>) {
-      throw const FormatException('备份响应格式异常');
+      throw const FormatException('Unexpected backup response format');
     }
     return decoded;
   }

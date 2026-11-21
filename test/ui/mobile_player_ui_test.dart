@@ -260,7 +260,7 @@ void main() {
       );
 
       await tester.tap(
-        find.descendant(of: player, matching: find.byTooltip('播放队列')),
+        find.descendant(of: player, matching: find.byTooltip('队列')),
       );
       await settle(tester);
       expect(
@@ -399,7 +399,7 @@ void main() {
           final folded = tester.getRect(card);
           expect(folded.top, greaterThan(expanded.top));
           await tester.tap(
-            find.descendant(of: player, matching: find.byTooltip('播放队列')),
+            find.descendant(of: player, matching: find.byTooltip('队列')),
           );
           await tester.pump();
           for (var frame = 0; frame < 33; frame++) {
@@ -429,7 +429,7 @@ void main() {
     await settle(tester);
     final player = find.byType(FullPlayerSheet);
     await tester.tap(
-      find.descendant(of: player, matching: find.byTooltip('播放队列')),
+      find.descendant(of: player, matching: find.byTooltip('队列')),
     );
     await settle(tester);
     final queue = find.byType(QueueList);
@@ -496,7 +496,7 @@ void main() {
       final player = find.byType(FullPlayerSheet);
       final toggle = find.descendant(
         of: player,
-        matching: find.byTooltip('播放队列'),
+        matching: find.byTooltip('队列'),
       );
       await tester.tap(toggle);
       await tester.pump();

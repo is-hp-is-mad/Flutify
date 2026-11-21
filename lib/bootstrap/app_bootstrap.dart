@@ -76,15 +76,15 @@ Future<Widget> _initializeMockApp(
   ValueChanged<String> reportStage,
   LaunchArgs launchArgs,
 ) async {
-  reportStage('准备 Mock 自测环境');
+  reportStage('Preparing mock self-test environment');
   await RustCore.initialize();
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   await OrientationPolicy.apply();
 
-  reportStage('初始化 Mock 数据与本地封面服务');
+  reportStage('Initializing mock data and local cover server');
   final mock = await MockBootstrap.create();
 
-  reportStage('准备窗口');
+  reportStage('Preparing window');
   await DesktopWindow.init(mock.storageService.preferences);
   DesktopWindow.addBeforeCloseHook(() => mock.coverServer.close());
 
@@ -136,7 +136,7 @@ Future<Widget> initializeFlutifyApp(
   if (launchArgs.mockMode) {
     return _initializeMockApp(reportStage, launchArgs);
   }
-  reportStage('准备运行环境');
+  reportStage('Preparing runtime');
   await WindowsTrustStore.initialize();
 
   // just_audio 自身没有 Windows / Linux 实现，需在创建任何 AudioPlayer 之前
@@ -151,7 +151,7 @@ Future<Widget> initializeFlutifyApp(
   // 手机锁定竖屏（平板 / 桌面不限制）
   await OrientationPolicy.apply();
 
-  reportStage('读取设置');
+  reportStage('Loading settings');
   final storageService = await StorageService.init();
   // 柔光玻璃的图标要在第一帧之前就位，否则启动时先闪一下 Material 图标
   if (_savedHyperMaterial(storageService.preferences)) {
@@ -173,7 +173,7 @@ Future<Widget> initializeFlutifyApp(
     ProxyHttpOverrides.certificateRejectionHandler = (certificate) =>
         unawaited(WindowsTrustStore.learnRootFor(certificate));
   }
-  reportStage('配置网络');
+  reportStage('Configuring network');
   await loadLocalDeviceName();
   final initialPrefs = AppPreferences.decode(
     storageService.preferences.preferencesJson,
@@ -189,7 +189,7 @@ Future<Widget> initializeFlutifyApp(
       )
       .timeout(const Duration(milliseconds: 1500), onTimeout: () {});
 
-  reportStage('初始化音频服务');
+  reportStage('Initializing audio service');
   final audioPlayerService = AudioPlayerService();
   final spotifyApiService = SpotifyApiService(storageService.auth);
   final authService = SpotifyAuthService(storageService.auth);
@@ -197,7 +197,7 @@ Future<Widget> initializeFlutifyApp(
   // --- EME（Widevine）全曲播放链路 ---
   final webTokenService = WebTokenService(storageService.auth);
   final emePlayer = EmePlayer();
-  reportStage('启动本地播放服务');
+  reportStage('Starting local playback service');
   await emePlayer.init();
   final licenseClient = WidevineLicenseClient(
     client: SessionHttpClient(storageService.auth, http.Client()),
@@ -233,7 +233,7 @@ Future<Widget> initializeFlutifyApp(
     eme: drmEngine,
   );
 
-  reportStage('读取应用目录');
+  reportStage('Resolving app directory');
   final supportDir = await getApplicationSupportDirectory();
   PlaylistBackupService.defaultDiskFile = File(
     '${supportDir.path}${Platform.pathSeparator}playlist_backups.json',
@@ -245,18 +245,18 @@ Future<Widget> initializeFlutifyApp(
     supportDir.path,
     legacyArtworkDirectory: legacyArtworkDirectory,
   );
-  reportStage('准备缓存目录');
+  reportStage('Preparing cache directory');
   await audioCacheLocation.initialize();
   final artworkCache = ArtworkCache(audioCacheLocation);
   final sessionStore = FilePlaybackSessionStore(
     File('${supportDir.path}${Platform.pathSeparator}playback_session.json'),
   );
 
-  reportStage('准备窗口');
+  reportStage('Preparing window');
   await DesktopWindow.init(storageService.preferences);
   DesktopWindow.addBeforeCloseHook(EmePlayer.disposeExternalBrowser);
 
-  reportStage('连接系统媒体控制');
+  reportStage('Connecting system media controls');
   final systemControls = await SystemMediaControls.create(
     artworkFile: (url) async => (await artworkCache.getSingleFile(url)).path,
   );
@@ -322,7 +322,7 @@ Future<Widget> initializeFlutifyApp(
   audioCacheLocation.audioInUse = emeTrackSource.isCacheFileInUse;
   audioCacheLocation.prepareLegacyArtwork = () =>
       ArtworkCache.prepareLegacy(audioCacheLocation.legacyArtworkDirectory!);
-  reportStage('迁移旧缓存');
+  reportStage('Migrating old cache');
   await audioCacheLocation.resumeMigrations();
   emeTrackSource.maxCacheBytes =
       storageService.cache.audioCacheLimitMb * 1024 * 1024;

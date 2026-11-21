@@ -43,7 +43,7 @@ class ClientTokenService {
     final granted = body is Map ? body['granted_token'] : null;
     final token = granted is Map ? granted['token'] : null;
     if (token is! String || token.isEmpty) {
-      throw StateError('client-token 申请失败：未返回令牌（${body is Map ? body['response_type'] : 'invalid'}）');
+      throw StateError('Requesting the client token failed: no token returned (${body is Map ? body['response_type'] : 'invalid'})');
     }
     int seconds(Object? v, int fallback) => v is num ? v.toInt() : fallback;
     final refreshAfter = seconds(granted['refresh_after_seconds'], 1209600);

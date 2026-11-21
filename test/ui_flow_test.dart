@@ -140,7 +140,7 @@ void main() {
       findsNothing,
     );
 
-    await tester.tap(find.byTooltip('播放队列'));
+    await tester.tap(find.byTooltip('队列'));
     await settle(tester);
     expect(find.text('接下来播放：Synthetic Mix'), findsOneWidget);
   });
@@ -194,24 +194,24 @@ void main() {
     expect(find.text('登录后查看你的音乐库'), findsOneWidget);
 
     // 收起 / 展开音乐库
-    await tester.tap(find.byTooltip('收起音乐库'));
+    await tester.tap(find.byTooltip('折叠音乐库'));
     await settle(tester);
     expect(find.byTooltip('展开音乐库'), findsOneWidget);
     expect(find.text('登录后查看你的音乐库'), findsNothing);
     await tester.tap(find.byTooltip('展开音乐库'));
     await settle(tester);
-    expect(find.byTooltip('收起音乐库'), findsOneWidget);
+    expect(find.byTooltip('折叠音乐库'), findsOneWidget);
 
     // ≥ 1280：右栏默认停靠在「正在播放」，没有标签切换；播放栏队列键切到独立的「播放队列」面板，再隐藏
     expect(find.byType(NowPlayingPanel), findsOneWidget);
-    expect(find.widgetWithText(FilterPill, '播放队列'), findsNothing);
+    expect(find.widgetWithText(FilterPill, '队列'), findsNothing);
     // 无曲目时播放栏只有占位，直接调用队列键对应的操作
     tester
         .element(find.byType(NowPlayingPanel))
         .read<ShellLayoutController>()
         .togglePanel(RightPanel.queue);
     await settle(tester);
-    expect(find.text('播放队列'), findsWidgets, reason: '面板标题随之切换');
+    expect(find.text('队列'), findsWidgets, reason: '面板标题随之切换');
     expect(find.byType(QueueList), findsOneWidget);
     await tester.tap(find.byTooltip('隐藏'));
     await settle(tester);
@@ -252,11 +252,11 @@ void main() {
       expect(find.byType(NowPlayingDetails), findsOneWidget);
 
       // 播放栏队列键：切到独立的队列面板；再按一次关闭
-      await tester.tap(find.byTooltip('播放队列'));
+      await tester.tap(find.byTooltip('队列'));
       await settle(tester);
       expect(find.byType(QueueList), findsOneWidget);
       expect(find.byType(PanelLyricsCard), findsNothing);
-      await tester.tap(find.byTooltip('播放队列'));
+      await tester.tap(find.byTooltip('队列'));
       await settle(tester);
       expect(find.byType(NowPlayingPanel), findsNothing);
     },
@@ -269,7 +269,7 @@ void main() {
 
     // 1100 – 1280：右栏为浮层，启动时不遮挡内容
     expect(find.byType(NowPlayingPanel), findsNothing);
-    expect(find.byTooltip('收起音乐库'), findsOneWidget);
+    expect(find.byTooltip('折叠音乐库'), findsOneWidget);
   });
 
   testWidgets('mobile: library filters, sort and grid view', (tester) async {
@@ -303,7 +303,7 @@ void main() {
     await settle(tester);
     expect(find.byType(GridView), findsOneWidget);
 
-    await tester.tap(find.byTooltip('清除筛选'));
+    await tester.tap(find.byTooltip('清除筛选条件'));
     await settle(tester);
     expect(find.text('Remote Mix'), findsOneWidget);
   });

@@ -267,11 +267,13 @@ abstract class RustLibApi extends BaseApi {
   Future<RustPodcastEpisodeDto> crateApiBackendRustFetchPodcastEpisode({
     required String episodeId,
     required String proxy,
+    required String acceptLanguage,
   });
 
   Future<RustPodcastShowDto> crateApiBackendRustFetchPodcastShow({
     required String showId,
     required String proxy,
+    required String acceptLanguage,
   });
 
   Future<List<RustPlaylistSummaryDto>> crateApiBackendRustFetchRootlist({
@@ -1791,6 +1793,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   Future<RustPodcastEpisodeDto> crateApiBackendRustFetchPodcastEpisode({
     required String episodeId,
     required String proxy,
+    required String acceptLanguage,
   }) {
     return handler.executeNormal(
       NormalTask(
@@ -1798,6 +1801,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(episodeId, serializer);
           sse_encode_String(proxy, serializer);
+          sse_encode_String(acceptLanguage, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -1810,7 +1814,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: sse_decode_String,
         ),
         constMeta: kCrateApiBackendRustFetchPodcastEpisodeConstMeta,
-        argValues: [episodeId, proxy],
+        argValues: [episodeId, proxy, acceptLanguage],
         apiImpl: this,
       ),
     );
@@ -1819,13 +1823,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TaskConstMeta get kCrateApiBackendRustFetchPodcastEpisodeConstMeta =>
       const TaskConstMeta(
         debugName: "rust_fetch_podcast_episode",
-        argNames: ["episodeId", "proxy"],
+        argNames: ["episodeId", "proxy", "acceptLanguage"],
       );
 
   @override
   Future<RustPodcastShowDto> crateApiBackendRustFetchPodcastShow({
     required String showId,
     required String proxy,
+    required String acceptLanguage,
   }) {
     return handler.executeNormal(
       NormalTask(
@@ -1833,6 +1838,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(showId, serializer);
           sse_encode_String(proxy, serializer);
+          sse_encode_String(acceptLanguage, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -1845,7 +1851,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: sse_decode_String,
         ),
         constMeta: kCrateApiBackendRustFetchPodcastShowConstMeta,
-        argValues: [showId, proxy],
+        argValues: [showId, proxy, acceptLanguage],
         apiImpl: this,
       ),
     );
@@ -1854,7 +1860,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TaskConstMeta get kCrateApiBackendRustFetchPodcastShowConstMeta =>
       const TaskConstMeta(
         debugName: "rust_fetch_podcast_show",
-        argNames: ["showId", "proxy"],
+        argNames: ["showId", "proxy", "acceptLanguage"],
       );
 
   @override

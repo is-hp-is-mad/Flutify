@@ -157,7 +157,7 @@ class _TrackCreditsViewState extends State<TrackCreditsView> {
               }
               if (snapshot.hasError) {
                 return _Message(
-                  text: snapshot.error.toString(),
+                  text: l10n.creditsFailed,
                   action: AppButton.text(onPressed: _retry, child: Text(l10n.commonRetry)),
                 );
               }

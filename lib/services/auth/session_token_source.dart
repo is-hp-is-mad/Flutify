@@ -66,7 +66,7 @@ class RustSessionTokenSource implements SessionTokenSource {
       if (status != null) throw WebTokenHttpException(status);
       if (msg.contains('auth:')) throw WebSignInRequiredException();
       if (msg.contains('decode:')) {
-        throw StateError('铸造 Web token 失败：响应无效');
+        throw StateError('Minting the web token failed: invalid response');
       }
       return null; // connect: / timeout: / request: 等传输错误交回 Dart
     }
@@ -91,7 +91,7 @@ class RustSessionTokenSource implements SessionTokenSource {
       final status = _httpStatus(msg);
       if (status != null) throw StateError('client-token HTTP $status');
       if (msg.contains('auth:') || msg.contains('decode:')) {
-        throw StateError('client-token 申请失败：$msg');
+        throw StateError('Requesting the client token failed: $msg');
       }
       return null;
     }

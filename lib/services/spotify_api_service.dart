@@ -43,6 +43,11 @@ class SpotifyDataException implements Exception {
 
   const SpotifyDataException(this.message, [this.statusCode]);
 
+  /// 没有找到对应的内容（本地构造，不来自 Spotify 响应）；调用方用 `identical` 判断，不要比较文案。
+  static const SpotifyDataException notFound = SpotifyDataException(
+    '没有找到对应的内容',
+  );
+
   /// 需要先登录。
   static const SpotifyDataException notSignedIn = SpotifyDataException(
     '请先登录 Spotify 账号',
@@ -203,7 +208,7 @@ class SpotifyApiService {
   Future<T> _desktopLoad<T>(Future<T?> Function() load) async {
     try {
       final value = await load();
-      if (value == null) throw const SpotifyDataException('没有找到对应的内容');
+      if (value == null) throw SpotifyDataException.notFound;
       return value;
     } on SpotifyDataException {
       rethrow;
@@ -358,7 +363,7 @@ class SpotifyApiService {
     final home = await getHome();
     return home.sections.firstWhere(
       (s) => s.uri == uri,
-      orElse: () => throw const SpotifyDataException('没有找到对应的内容'),
+      orElse: () => throw SpotifyDataException.notFound,
     );
   }
 

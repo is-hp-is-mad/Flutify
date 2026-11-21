@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutify_app/l10n/app_localizations.dart';
 import 'package:flutify_app/ui/widgets/app_startup.dart';
 import 'package:flutify_app/ui/widgets/flutify_progress.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +8,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  // 测试环境系统语言为 en_US：启动失败页按系统语言取文案。
+  final l10n = lookupAppLocalizations(const Locale('en'));
   testWidgets(
     'first frame is visible while initialization waits, then opens app',
     (tester) async {
@@ -58,12 +61,12 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('启动失败：准备缓存目录'), findsOneWidget);
+    expect(find.text(l10n.startupFailed('准备缓存目录')), findsOneWidget);
     expect(find.text('Bad state: cache unavailable'), findsOneWidget);
     expect(_anySpinner, findsNothing);
     // File I/O in readLogTail needs real async execution in a widget test.
     await tester.runAsync(() async {
-      await tester.tap(find.text('复制诊断信息'));
+      await tester.tap(find.text(l10n.startupCopyDiagnostics));
       for (var i = 0; copied == null && i < 100; i++) {
         await Future<void>.delayed(const Duration(milliseconds: 10));
       }
@@ -85,11 +88,11 @@ void main() {
         ),
       );
       await tester.pump(const Duration(seconds: 21));
-      expect(find.text('复制诊断信息'), findsNothing);
+      expect(find.text(l10n.startupCopyDiagnostics), findsNothing);
       expect(_anySpinner, findsNothing);
       await tester.pump(const Duration(seconds: 40));
-      expect(find.textContaining('初始化超时'), findsOneWidget);
-      expect(find.text('复制诊断信息'), findsOneWidget);
+      expect(find.textContaining(l10n.startupTimeout('连接系统媒体控制')), findsOneWidget);
+      expect(find.text(l10n.startupCopyDiagnostics), findsOneWidget);
       pending.complete(const MaterialApp(home: Text('Ready')));
       await tester.pumpAndSettle();
       expect(find.text('Ready'), findsOneWidget);

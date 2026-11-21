@@ -7,6 +7,8 @@ import '../../../providers/library_provider.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/cover_image.dart';
 import '../../widgets/flutify_progress.dart';
+import '../../../l10n/l10n.dart';
+import '../../widgets/library_error_text.dart';
 
 enum _SyncState { pending, running, done, failed }
 
@@ -54,7 +56,7 @@ class _PlaylistSyncScreenState extends State<PlaylistSyncScreen> {
         _states[p.id] = _SyncState.done;
       } catch (e) {
         _states[p.id] = _SyncState.failed;
-        _errors[p.id] = '$e';
+        _errors[p.id] = mounted ? libraryErrorText(context.l10n, e) : '$e';
       }
       if (mounted) setState(() {});
     }
@@ -68,6 +70,7 @@ class _PlaylistSyncScreenState extends State<PlaylistSyncScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    final l10n = context.l10n;
     final done = _count(_SyncState.done);
     final failed = _count(_SyncState.failed);
     final finished = !_running && (done + failed) > 0;
@@ -77,7 +80,7 @@ class _PlaylistSyncScreenState extends State<PlaylistSyncScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('同步歌单到 Spotify'),
+        title: Text(l10n.playlistSyncTitle),
         leading: IconButton(
           icon: const Icon(Icons.close_rounded),
           onPressed: _running ? null : () => Navigator.of(context).pop(),
@@ -89,9 +92,7 @@ class _PlaylistSyncScreenState extends State<PlaylistSyncScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
             child: Text(
-              '旧版本里在 Flutify 收藏、新建或从备份导入的歌单只保存在本机，没有写进你的 Spotify 账号，'
-              '所以官方客户端和网页版的音乐库里看不到。勾选的歌单会写进当前账号：'
-              '别人的歌单加入音乐库，本机歌单在账号里新建同名歌单并写入曲目。',
+              l10n.playlistSyncIntro,
               style: theme.textTheme.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
             ),
           ),
@@ -99,7 +100,9 @@ class _PlaylistSyncScreenState extends State<PlaylistSyncScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
               child: Text(
-                failed == 0 ? '同步完成：$done 个歌单已写进账号。' : '同步完成：成功 $done 个，失败 $failed 个，可以重试失败的歌单。',
+                failed == 0
+                    ? l10n.playlistSyncDone(done)
+                    : l10n.playlistSyncPartial(done, failed),
                 style: theme.textTheme.titleSmall?.copyWith(
                   color: failed == 0 ? colors.primary : colors.error,
                 ),
@@ -107,7 +110,7 @@ class _PlaylistSyncScreenState extends State<PlaylistSyncScreen> {
             ),
           Expanded(
             child: _items.isEmpty
-                ? Center(child: Text('所有歌单都已同步到 Spotify。', style: theme.textTheme.bodyLarge))
+                ? Center(child: Text(l10n.playlistSyncAllDone, style: theme.textTheme.bodyLarge))
                 : ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                     itemCount: _items.length,
@@ -122,7 +125,9 @@ class _PlaylistSyncScreenState extends State<PlaylistSyncScreen> {
                 children: [
                   Expanded(
                     child: Text(
-                      _running ? '正在同步，请不要关闭此页面…' : '已选 $pendingSelected 个',
+                      _running
+                          ? l10n.playlistSyncRunning
+                          : l10n.playlistSyncSelected(pendingSelected),
                       style: theme.textTheme.bodyMedium,
                     ),
                   ),
@@ -131,12 +136,12 @@ class _PlaylistSyncScreenState extends State<PlaylistSyncScreen> {
                   else if (finished && pendingSelected == 0)
                     AppButton.filled(
                       onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('完成'),
+                      child: Text(l10n.commonDone),
                     )
                   else
                     AppButton.filled(
                       onPressed: pendingSelected == 0 ? null : _start,
-                      child: Text(failed > 0 ? '重试' : '开始同步'),
+                      child: Text(failed > 0 ? l10n.commonRetry : l10n.playlistSyncStart),
                     ),
                 ],
               ),
@@ -154,12 +159,13 @@ class _PlaylistSyncScreenState extends State<PlaylistSyncScreen> {
     final own = library.isOwnPlaylist(p.id);
     final count = p.tracks.isNotEmpty ? p.tracks.length : p.totalTracks;
     final state = _states[p.id] ?? _SyncState.pending;
-    final action = own ? '在账号里新建歌单（$count 首）' : '加入音乐库';
+    final l10n = context.l10n;
+    final action = own ? l10n.playlistSyncCreate(l10n.songCount(count)) : l10n.playlistSyncAdd;
     final (String status, Color color) = switch (state) {
       _SyncState.pending => (action, colors.onSurfaceVariant),
-      _SyncState.running => ('正在同步…', colors.primary),
-      _SyncState.done => ('已同步', colors.primary),
-      _SyncState.failed => ('失败：${_errors[p.id] ?? ''}', colors.error),
+      _SyncState.running => (l10n.playlistSyncStateRunning, colors.primary),
+      _SyncState.done => (l10n.playlistSyncStateDone, colors.primary),
+      _SyncState.failed => (l10n.playlistSyncStateFailed(_errors[p.id] ?? ''), colors.error),
     };
     final locked = _running || state == _SyncState.done;
     return InkWell(

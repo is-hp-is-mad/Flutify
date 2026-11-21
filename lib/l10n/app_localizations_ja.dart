@@ -132,7 +132,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get commonRetry => '再試行';
 
   @override
-  String get commonLoadMore => 'さらに読み込む';
+  String get commonLoadMore => 'さらに表示';
 
   @override
   String get commonMoreOptions => 'その他のオプション';
@@ -144,7 +144,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get commonSeeMore => 'もっと見る';
 
   @override
-  String get commonShowLess => '表示を減らす';
+  String get commonShowLess => '折りたたむ';
 
   @override
   String get commonSettings => '設定';
@@ -258,7 +258,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get greetingMorning => 'おはようございます';
+  String get greetingMorning => 'おはよう';
 
   @override
   String get greetingAfternoon => 'こんにちは';
@@ -460,10 +460,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get artistNoSongs => '表示できる曲はまだありません。';
 
   @override
-  String get artistDiscography => 'ディスコグラフィー';
+  String get artistDiscography => 'ディスコグラフィ';
 
   @override
-  String get artistFollow => 'フォロー';
+  String get artistFollow => 'フォローする';
 
   @override
   String get artistFollowing => 'フォロー中';
@@ -478,10 +478,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get artistSingles => 'シングル & EP';
 
   @override
-  String get artistRelated => 'ファンはこちらも';
+  String get artistRelated => 'ファンの間で人気';
 
   @override
-  String get artistAbout => '概要';
+  String get artistAbout => '詳細情報';
 
   @override
   String artistMonthlyListeners(String count) {
@@ -522,19 +522,19 @@ class AppLocalizationsJa extends AppLocalizations {
   String get playerThisDevice => 'このデバイスで再生中';
 
   @override
-  String get playerShuffleOn => 'シャッフルをオン';
+  String get playerShuffleOn => 'シャッフルを有効にする';
 
   @override
-  String get playerShuffleOff => 'シャッフルをオフ';
+  String get playerShuffleOff => 'シャッフルを無効にする';
 
   @override
-  String get playerRepeatOn => 'リピートをオン';
+  String get playerRepeatOn => 'リピートを有効にする';
 
   @override
-  String get playerRepeatOneOn => '1 曲リピートをオン';
+  String get playerRepeatOneOn => '1曲リピートを有効';
 
   @override
-  String get playerRepeatOff => 'リピートをオフ';
+  String get playerRepeatOff => 'リピートを無効にする';
 
   @override
   String get playerNext => '次へ';
@@ -546,7 +546,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get playerMute => 'ミュート';
 
   @override
-  String get playerUnmute => 'ミュートを解除';
+  String get playerUnmute => 'ミュート解除';
 
   @override
   String get playerLyricsFullscreen => '歌詞を全画面表示';
@@ -636,13 +636,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get detailLoadFailed => '読み込めませんでした。接続を確認して再試行してください。';
 
   @override
-  String get queueTitle => '再生キュー';
+  String get queueTitle => '次に再生';
 
   @override
-  String get queueNextInQueue => 'キュー内の次の曲';
+  String get queueNextInQueue => '次に再生される曲';
 
   @override
-  String get queueClear => 'キューをクリア';
+  String get queueClear => '[次に再生]をクリア';
 
   @override
   String get queueNextUp => '次に再生';
@@ -671,7 +671,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get lyricsUnavailableMessage => 'この曲の歌詞はまだありません。\n音楽をお楽しみください！';
 
   @override
-  String get lyricsUnsynced => 'この歌詞は曲と同期していません。';
+  String get lyricsUnsynced => 'この歌詞はまだ曲と同期されていません。';
 
   @override
   String get lyricsFromLrclib => '歌詞の提供：LRCLIB';
@@ -775,22 +775,22 @@ class AppLocalizationsJa extends AppLocalizations {
   String get trackAddToPlaylist => 'プレイリストに追加';
 
   @override
-  String get trackAddToQueue => '再生キューに追加';
+  String get trackAddToQueue => '[次に再生] に追加';
 
   @override
-  String get trackGoToAlbum => 'アルバムを表示';
+  String get trackGoToAlbum => 'アルバムに移動';
 
   @override
-  String get trackGoToRadio => 'ソングラジオを表示';
+  String get trackGoToRadio => 'ソングラジオに移動';
 
   @override
-  String get trackViewCredits => 'クレジットを表示';
+  String get trackViewCredits => '楽曲クレジットを表示';
 
   @override
   String get creditsTitle => 'クレジット';
 
   @override
-  String get creditsSources => '提供元';
+  String get creditsSources => '出典';
 
   @override
   String get creditsEmpty => 'この曲のクレジットはありません';
@@ -803,19 +803,19 @@ class AppLocalizationsJa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'アーティストを表示',
+      other: 'アーティストに移動',
     );
     return '$_temp0';
   }
 
   @override
-  String get trackNewPlaylist => '新しいプレイリスト';
+  String get trackNewPlaylist => '新規プレイリスト';
 
   @override
   String get trackQuickAdd => '追加';
 
   @override
-  String get trackQuickLike => 'お気に入り';
+  String get trackQuickLike => 'いいね！';
 
   @override
   String get trackQuickLiked => 'お気に入り済み';
@@ -827,7 +827,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get toastLikeRemoved => 'お気に入りの曲から削除しました';
 
   @override
-  String get toastAddedToQueue => '再生キューに追加しました';
+  String get toastAddedToQueue => '[次に再生] に追加しました';
 
   @override
   String get shareCopyLink => 'リンクをコピー';
@@ -851,7 +851,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get shareEmbedStandard => '標準';
 
   @override
-  String get shareEmbedCompact => 'コンパクト';
+  String get shareEmbedCompact => '縮小版';
 
   @override
   String get shareEmbedDark => 'ダーク';
@@ -1194,7 +1194,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsLyricsBilingualSubtitle =>
-      '歌詞の読み込み時に QQ Music を優先して中国語の訳詞を取得し、不足時は NetEase、補完が有効なら最後に LRCLIB を検索します。タスクバー歌詞にも使用します。オフでも手動・自動検索は利用でき、曲名とアーティスト名を検索先に送信します。';
+      '歌詞の読み込み時に中国語訳を先読みします。QQ Music、NetEase、補完が有効なら最後に LRCLIB の順に検索し、タスクバー歌詞でも使います。オフでも手動・自動検索は利用でき、曲名とアーティスト名が検索先に送信されます。';
 
   @override
   String get settingsTaskbarLyricsSection => 'タスクバー歌詞';
@@ -1226,10 +1226,10 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsHomeWidgetsSubtitle =>
-      'HyperOS ではウィジェット一覧の一番下にある「Android ウィジェット」に Flutify があります。ここで「追加」をタップして直接配置することもでき、長押しでサイズを変更できます';
+      'HyperOS ではウィジェット一覧の最下部「Android ウィジェット」に Flutify があります。ここで「追加」をタップして直接配置することもでき、長押しでサイズを変更できます';
 
   @override
-  String get homeWidgetNowPlaying => '再生バー';
+  String get homeWidgetNowPlaying => '再生中バー';
 
   @override
   String get homeWidgetNowPlayingDesc =>
@@ -1251,7 +1251,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get homeWidgetUpNext => '次に再生';
 
   @override
-  String get homeWidgetUpNextDesc => '再生中の曲とキュー。行をタップするとその曲を再生。標準 4×3';
+  String get homeWidgetUpNextDesc => '再生中の曲と次に再生の一覧。行をタップするとその曲を再生。標準 4×3';
 
   @override
   String get homeWidgetAdd => '追加';
@@ -1509,7 +1509,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsProxyFootnote =>
-      'HTTP プロキシに対応しています（Clash、v2rayN などの mixed ポートも利用可能）。ログインページは常にシステムのプロキシ設定に従います。';
+      'HTTP プロキシのみ対応しています（Clash や v2rayN の mixed ポートも利用可）。手動プロキシにはユーザー名とパスワードを設定でき、認証付きの自前リレーに便利です。ログインページは常にシステムのプロキシに従います。';
 
   @override
   String get settingsPrivacySection => 'プライバシー';
@@ -1651,7 +1651,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get accountSignOutMessage =>
-      'このデバイスのログイン情報とライブラリのキャッシュを削除します。音楽の再生やマイライブラリの表示には再ログインが必要です。';
+      'このデバイスのログイン情報とライブラリのキャッシュを削除します。再ログインが必要です。';
 
   @override
   String get accountSignOutConfirm => 'ログアウト';
@@ -1668,10 +1668,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get sleepTimerHour => '1 時間';
 
   @override
-  String get sleepTimerEndOfTrack => '曲の終わりまで';
+  String get sleepTimerEndOfTrack => '曲の終了時';
 
   @override
-  String get sleepTimerOff => 'タイマーをオフ';
+  String get sleepTimerOff => 'タイマーをオフにする';
 
   @override
   String sleepTimerRemaining(String time) {
@@ -1707,7 +1707,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get trackColumnAddedAt => '追加日';
 
   @override
-  String get trackColumnDuration => '再生時間';
+  String get trackColumnDuration => '長さ';
 
   @override
   String get trackSortBy => '並べ替え';
@@ -1722,7 +1722,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get trackViewList => 'リスト';
 
   @override
-  String get trackViewCompact => 'コンパクト';
+  String get trackViewCompact => '縮小版';
 
   @override
   String get trackSearchHint => 'プレイリスト内を検索';
@@ -1835,14 +1835,14 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsGatewayAutomaticHelp =>
-      '起動時、ネットワーク変更時、復帰時、および 2 分ごとに Cloudflare で接続元の国・地域を確認します。選択したシステム / 手動プロキシを使います。確認に失敗した場合は現在の経路を保持します。';
+      '起動時、ネットワーク変更時、復帰時、および 2 分ごとに Cloudflare で接続元の国・地域を確認します（現在のプロキシ設定を使用）。確認に失敗した場合は現在の経路を維持します。';
 
   @override
   String get settingsGatewayDirectCountries => '直接接続を許可する国・地域';
 
   @override
   String get settingsGatewayDirectCountriesHelp =>
-      '2 文字のコードをカンマかスペースで区切って指定します。空欄の場合は CN のみゲートウェイ経由で、それ以外は直接接続します。指定した場合は一覧内のみ直接接続し、それ以外はゲートウェイ経由になります。';
+      '2 文字の国・地域コードをカンマまたはスペースで区切って指定します（任意）。空欄の場合は CN のみゲートウェイ経由で、それ以外は直接接続します。指定した場合は一覧内のみ直接接続し、それ以外はゲートウェイ経由になります。';
 
   @override
   String get settingsGatewayCountriesInvalid =>
@@ -1885,7 +1885,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsLyricsAutoTranslateSubtitle =>
-      '既存の訳詞を検索します。中国語の訳詞は曲名とアーティスト名で QQ Music を優先し、不足時は NetEase、補完が有効なら最後に LRCLIB を検索します。既存の訳詞行を失わず、より完全な結果のみ採用します。簡体字・繁体字は表示言語に従います。';
+      '既存の訳詞を曲名とアーティスト名で検索します。QQ Music、NetEase、補完が有効なら最後に LRCLIB の順です。訳済みの行を失わない、より完全な結果のみ採用し、簡体字・繁体字は表示言語に従います。';
 
   @override
   String get settingsLyricsExcludeInterface => 'アプリと同じ言語の曲は除外';
@@ -1993,7 +1993,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get webLoginGoogleHint =>
-      'Google で登録した場合は、ここでメールアドレスとパスワードを使ってログインしてください。パスワードがない場合は、Spotify 公式サイトの「パスワードを忘れた場合」から設定できます。';
+      'Google で登録した場合は、ここでメールアドレスとパスワードでログインしてください。パスワードがない場合は、Spotify 公式サイトの「パスワードを忘れた場合」から設定できます。';
 
   @override
   String get loginBrowserFallback =>
@@ -2038,7 +2038,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get updatesSelfTestWarning =>
-      'セルフテスト版は開発者が自分の変更を確認するためのもので、コミットごとに自動生成され、検証は一切行われていません。起動しない、データが失われる、設定が壊れるといった可能性があります。実際の利用や日常使用には絶対に使わないでください。また、バージョンは上げることしかできません。セルフテスト版を入れた後は、より大きいビルド番号の正式版が出るまで正式版に戻れません。';
+      'セルフテスト版はコミットごとに自動生成され、検証は一切行われていません。起動しない、データが失われる、設定が壊れるなどの可能性があるため、日常使用はしないでください。バージョンは上げることしかできず、セルフテスト版を入れた後は、より大きいビルド番号の正式版が出るまで正式版に戻れません。';
 
   @override
   String get updatesSelfTestConfirm => '開発者です。切り替える';
@@ -2062,7 +2062,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get updatesHint =>
-      '新しいバージョンと更新内容を自動確認します。自動モードはバックグラウンドでダウンロードし、再生を中断せず、確認後にインストールします。';
+      '新しいバージョンを自動確認します。自動モードはバックグラウンドでダウンロードし、再生を中断せず、確認後にインストールします。';
 
   @override
   String get updatesCheck => '更新を確認';
@@ -2162,7 +2162,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsAnimDebugFooter =>
-      '今回の起動中のみ有効で、アプリを再起動すると元に戻ります。コマ落ちの原因特定に使います。1 つずつオフにして、どれで滑らかになるか確認してください。';
+      '今回の起動中のみ有効で、再起動すると元に戻ります。コマ落ちの原因特定に使います。1 つずつオフにして、どれで滑らかになるか確認してください。';
 
   @override
   String get settingsAnimDebugResetAll => 'すべて元に戻す';
@@ -2215,7 +2215,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsBluetoothLyricsSubtitle =>
-      'Bluetooth オーディオ機器に接続中、メディア情報のタイトルを現在の歌詞行に、アーティストとアルバムを「曲名 - アーティスト」に置き換え、車載ディスプレイに歌詞を表示します';
+      'Bluetooth オーディオ機器の接続中は、タイトルに現在の歌詞行、アーティストとアルバムに「曲名 - アーティスト」を表示し、車載ディスプレイで歌詞を 1 行ずつ表示できます';
 
   @override
   String get bluetoothLyricsOff => 'オフ';
@@ -2302,4 +2302,388 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get playbackEngineAndroid => 'Android ネイティブ';
+
+  @override
+  String get backupTitle => 'プレイリストのバックアップ';
+
+  @override
+  String get backupFooter => '各アカウントのお気に入りの曲とプレイリストを確認し、選んだ分をこのアカウントに取り込めます。';
+
+  @override
+  String get backupUnsyncedTitle => 'ローカルのプレイリストを Spotify に同期';
+
+  @override
+  String backupUnsyncedSubtitle(int count) {
+    return '$count 件のプレイリストはこのデバイスにのみ保存されており、アカウントのライブラリには未登録です';
+  }
+
+  @override
+  String get backupEnable => 'プレイリストのバックアップを有効にする';
+
+  @override
+  String get backupEnableSubtitle =>
+      'このデバイスのアカウントを自動でバックアップし、別の WebView 経由で他のアカウントもバックアップできます';
+
+  @override
+  String get backupAutoCurrent => 'このアカウントを自動バックアップ';
+
+  @override
+  String get backupAutoCurrentSubtitle => 'お気に入りの変更を、定期バックアップを待たずにすぐ保存します';
+
+  @override
+  String get backupInterval => 'バックアップの頻度';
+
+  @override
+  String get backupIntervalSubtitle => 'サーバーのレート制限を避けるため、最短 20 分です';
+
+  @override
+  String backupIntervalMinutes(int minutes) {
+    return '$minutes 分';
+  }
+
+  @override
+  String backupIntervalHours(int hours) {
+    return '$hours 時間';
+  }
+
+  @override
+  String backupIntervalDays(int days) {
+    return '$days 日';
+  }
+
+  @override
+  String get backupAddAccount => '同期するアカウントを追加';
+
+  @override
+  String get backupAddAccountSubtitle =>
+      '別の WebView で open.spotify.com にログインし、保存済みのプレイリストを読み込みます';
+
+  @override
+  String get backupSyncToAccount => 'バックアップ済みのプレイリストをこのアカウントに同期';
+
+  @override
+  String get backupSyncToAccountSubtitle =>
+      'チェックしたアカウントのお気に入りの曲をこのアカウントに統合し、プレイリストを同期します';
+
+  @override
+  String get backupNow => 'すべてのアカウントを今すぐバックアップ';
+
+  @override
+  String get backupNowSubtitle => '各アカウントの最新のお気に入りを取得し、ローカルに保存します';
+
+  @override
+  String backupAccountAdded(String title, String liked, String playlists) {
+    return '「$title」をバックアップしました（$liked、$playlists）';
+  }
+
+  @override
+  String backupAccountAddFailed(String error) {
+    return 'バックアップ用アカウントを追加できませんでした: $error';
+  }
+
+  @override
+  String backupSynced(String playlists, String liked) {
+    return '${playlists}を同期し、${liked}を統合しました';
+  }
+
+  @override
+  String backupImporting(String playlists) {
+    return '${playlists}をバックグラウンドで取り込み中…';
+  }
+
+  @override
+  String backupImported(String playlists, String liked) {
+    return '${playlists}を取り込み、${liked}を統合しました';
+  }
+
+  @override
+  String get backupSavedAll => 'すべてのアカウントのプレイリストを保存しました';
+
+  @override
+  String backupSelectedHeader(int selected, int total) {
+    return '保存済みのプレイリスト（$selected / $total 件を選択）';
+  }
+
+  @override
+  String backupImportSelected(int count) {
+    return '選択を取り込む（$count）';
+  }
+
+  @override
+  String get backupBadgePrevious => '以前ログインしたアカウント';
+
+  @override
+  String get backupBadgeExternal => '外部バックアップアカウント';
+
+  @override
+  String backupAccountTitle(String title, String badge) {
+    return '$title（$badge）';
+  }
+
+  @override
+  String backupAccountSubtitle(String liked, String playlists) {
+    return '$liked · ${playlists}を保存済み';
+  }
+
+  @override
+  String get backupIncludeInSync => '同期の対象にする';
+
+  @override
+  String get backupRemoveAccount => 'このバックアップアカウントを削除';
+
+  @override
+  String get backupExitMultiSelect => '複数選択を終了';
+
+  @override
+  String get backupPickTracksImport => 'インポートする曲を選択';
+
+  @override
+  String get backupPickTracks => '保存する曲を選択';
+
+  @override
+  String backupDialogImportTitle(String name) {
+    return '取り込む曲を選択 · $name';
+  }
+
+  @override
+  String backupDialogPickTitle(String name) {
+    return '保存する曲を選択 · $name';
+  }
+
+  @override
+  String get backupDeselectAll => 'すべて選択解除';
+
+  @override
+  String backupSelectedCount(int selected, int total) {
+    return '$selected / $total 曲を選択';
+  }
+
+  @override
+  String backupImportedAsPlaylist(String songs, String name) {
+    return '選んだ $songs をプレイリスト「$name」として取り込みました';
+  }
+
+  @override
+  String backupImportAsPlaylist(int count) {
+    return 'プレイリストとして取り込む（$count）';
+  }
+
+  @override
+  String get backupImportAsPlaylistShort => 'プレイリストとして取り込む';
+
+  @override
+  String backupLikedMerged(String songs, int added) {
+    return '${songs}を「お気に入りの曲」に統合しました（新規 $added 曲）';
+  }
+
+  @override
+  String backupLikedSaved(String songs, int added) {
+    return '${songs}を保存しました（新規 $added 曲）';
+  }
+
+  @override
+  String backupMergeLiked(int count) {
+    return 'お気に入りの曲に統合（$count）';
+  }
+
+  @override
+  String get backupMergeLikedShort => 'お気に入りの曲に統合';
+
+  @override
+  String backupSaveSelected(int count) {
+    return '選択した曲を保存（$count）';
+  }
+
+  @override
+  String get backupLoginTitle => 'バックアップする Spotify アカウントにログイン';
+
+  @override
+  String get playlistSyncTitle => 'プレイリストを Spotify に同期';
+
+  @override
+  String get playlistSyncIntro =>
+      '以前のバージョンで保存・作成・バックアップから取り込んだプレイリストはこのデバイスにしか保存されておらず、公式アプリや Web プレーヤーには表示されませんでした。選択したものをアカウントに書き込みます。他の人のプレイリストはライブラリに追加し、自分のプレイリストは同じ名前で作り直します。';
+
+  @override
+  String playlistSyncDone(int count) {
+    return '同期が完了しました。$count 件のプレイリストをアカウントに書き込みました。';
+  }
+
+  @override
+  String playlistSyncPartial(int done, int failed) {
+    return '同期が完了しました。成功 $done 件、失敗 $failed 件。失敗分は再試行できます。';
+  }
+
+  @override
+  String get playlistSyncAllDone => 'すべてのプレイリストが Spotify に同期済みです。';
+
+  @override
+  String get playlistSyncRunning => '同期中です。このページを閉じないでください…';
+
+  @override
+  String playlistSyncSelected(int count) {
+    return '$count 件を選択';
+  }
+
+  @override
+  String get playlistSyncStart => '同期を開始';
+
+  @override
+  String playlistSyncCreate(String songs) {
+    return 'アカウントに作成（$songs）';
+  }
+
+  @override
+  String get playlistSyncAdd => 'マイライブラリに追加';
+
+  @override
+  String get playlistSyncStateRunning => '同期中…';
+
+  @override
+  String get playlistSyncStateDone => '同期済み';
+
+  @override
+  String playlistSyncStateFailed(String error) {
+    return '失敗: $error';
+  }
+
+  @override
+  String playlistSyncPromptTitle(int count) {
+    return '$count 件のプレイリストが Spotify に未同期です';
+  }
+
+  @override
+  String get playlistSyncPromptBody =>
+      '以前のバージョンで保存・作成・バックアップから取り込んだプレイリストはこのデバイスにしか保存されておらず、公式アプリや Web プレーヤーには表示されませんでした。現在は保存・解除がアカウントに同期されます。残っているプレイリストもここで同期できます。\n\n後から「設定 → プレイリストのバックアップ」でも開けます。';
+
+  @override
+  String get playlistSyncPromptLater => '後で';
+
+  @override
+  String get playlistSyncPromptGo => '同期する';
+
+  @override
+  String get playerCanvasPlay => 'Canvas を再生';
+
+  @override
+  String get playerCanvasStop => 'Canvas を停止';
+
+  @override
+  String playlistCount(int count) {
+    return '$count 件のプレイリスト';
+  }
+
+  @override
+  String likedSongCount(int count) {
+    return 'お気に入り $count 曲';
+  }
+
+  @override
+  String get authErrorSessionInvalidated => 'ログインの有効期限が切れました。もう一度ログインしてください。';
+
+  @override
+  String get authErrorSessionExpired => 'ログインの有効期限が切れました。もう一度ログインしてください。';
+
+  @override
+  String get authErrorNetwork => 'Spotify に接続できません。ネットワークまたはプロキシを確認してください。';
+
+  @override
+  String authErrorFailed(String detail) {
+    return 'ログインに失敗しました: $detail';
+  }
+
+  @override
+  String webLoginSaveSessionFailed(String detail) {
+    return 'Web セッションを保存できませんでした: $detail';
+  }
+
+  @override
+  String get webLoginSessionRejected =>
+      'Spotify がこのログインを拒否しました（HTTP 401）。再試行してください。繰り返し発生する場合は、プロキシや VPN の出口がブロックされている可能性があります。';
+
+  @override
+  String webLoginTlsIntercepted(String detail) {
+    return 'TLS 証明書の検証に失敗し、Spotify に接続できません（$detail）。プロキシやセキュリティソフトが HTTPS を傍受している場合は、公開証明書を設定するか、一時的に無効にしてください。';
+  }
+
+  @override
+  String webLoginTokenPending(String detail) {
+    return 'Web トークンをまだ取得できません（$detail）。自動で再試行します。';
+  }
+
+  @override
+  String get webLoginPreparationFailed =>
+      'WebView の Cookie を消去できませんでした。もう一度お試しください。';
+
+  @override
+  String get radioFailed => '曲のラジオを開始できませんでした。しばらくしてからもう一度お試しください。';
+
+  @override
+  String startupFailed(String stage) {
+    return '起動に失敗しました: $stage';
+  }
+
+  @override
+  String startupTimeout(String stage) {
+    return '初期化がタイムアウトしました: $stage。アプリを閉じて開き直してください。';
+  }
+
+  @override
+  String get startupCopyHint => '診断情報をコピーして報告し、アプリを閉じて開き直してください。';
+
+  @override
+  String get startupCopyDiagnostics => '診断情報をコピー';
+
+  @override
+  String get hyperGlassPresetLarge => '汎用の大型カード';
+
+  @override
+  String get hyperGlassPresetPurple => 'パープル';
+
+  @override
+  String get hyperGlassPresetBlue => 'ブルー';
+
+  @override
+  String get hyperGlassPresetBionic => 'バイオニックガラス';
+
+  @override
+  String hyperGlassPreviewHint(String name) {
+    return '$name · 長押しで屈折ハイライトを体験';
+  }
+
+  @override
+  String get libraryErrorNotSignedIn => 'ログインしていないため、Spotify アカウントに同期できません。';
+
+  @override
+  String libraryErrorRead(String detail) {
+    return 'ライブラリを読み込めませんでした: $detail';
+  }
+
+  @override
+  String libraryErrorWrite(String detail) {
+    return '同期に失敗しました: $detail';
+  }
+
+  @override
+  String libraryErrorBadResponse(String detail) {
+    return 'Spotify から予期しない形式のデータが返されました: $detail';
+  }
+
+  @override
+  String libraryErrorPartial(String detail) {
+    return 'プレイリストは作成されましたが、曲の追加に失敗しました: $detail';
+  }
+
+  @override
+  String backupFailed(String detail) {
+    return 'バックアップに失敗しました: $detail';
+  }
+
+  @override
+  String backupAccountFailed(String title, String detail) {
+    return '「$title」をバックアップできませんでした: $detail';
+  }
+
+  @override
+  String get creditsFailed => 'クレジットを読み込めませんでした。もう一度お試しください。';
 }

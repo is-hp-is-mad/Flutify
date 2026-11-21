@@ -43,7 +43,11 @@ class Formatters {
       return NumberFormat.compact(locale: l10n.localeName).format(n);
     }
     if (n < 10000) return NumberFormat.decimalPattern('zh').format(n);
-    final (value, unit) = n < 100000000 ? (n / 10000, '万') : (n / 100000000, '亿');
+    // 繁体用「萬 / 億」
+    final hant = l10n.localeName.contains('Hant');
+    final (value, unit) = n < 100000000
+        ? (n / 10000, hant ? '萬' : '万')
+        : (n / 100000000, hant ? '億' : '亿');
     // 保留一位小数，整数时省略「.0」
     final text = value >= 100 ? value.round().toString() : value.toStringAsFixed(1).replaceFirst(RegExp(r'\.0$'), '');
     return '$text $unit';

@@ -78,8 +78,8 @@ void main() {
     for (final label in ['添加', '点赞', '分享']) {
       expect(find.text(label), findsOneWidget);
     }
-    expect(find.text('添加到歌单'), findsOneWidget);
-    expect(find.text('前往专辑'), findsOneWidget);
+    expect(find.text('加入歌单'), findsOneWidget);
+    expect(find.text('转至专辑'), findsOneWidget);
     // 副标题
     expect(find.text('Seven Swans'), findsOneWidget);
     expect(find.text('Sufjan Stevens'), findsOneWidget);
@@ -100,6 +100,6 @@ void main() {
     await _pumpMenu(tester, width: 1280);
 
     expect(find.byType(MobileMenuActionRow<Object>), findsOneWidget);
-    expect(find.text('添加到歌单'), findsOneWidget);
+    expect(find.text('加入歌单'), findsOneWidget);
   });
 }

@@ -52,11 +52,24 @@ abstract class LibrarySource {
 }
 
 /// 媒体库读写失败（网络、鉴权或接口返回非 2xx）。
+/// 媒体库读写失败的类别：界面按类别显示本地化提示。
+enum LibraryErrorKind { notSignedIn, readFailed, writeFailed, badResponse, partialWrite }
+
 class LibrarySourceException implements Exception {
+  /// 中文兜底文案（日志 / 测试用）。
   final String message;
   final int? statusCode;
+  final LibraryErrorKind kind;
 
-  const LibrarySourceException(this.message, [this.statusCode]);
+  /// 底层异常说明（不翻译）；没有时界面用 HTTP 状态码。
+  final String? detail;
+
+  const LibrarySourceException(
+    this.message, [
+    this.statusCode,
+    this.kind = LibraryErrorKind.readFailed,
+    this.detail,
+  ]);
 
   @override
   String toString() => statusCode == null ? message : '$message（HTTP $statusCode）';

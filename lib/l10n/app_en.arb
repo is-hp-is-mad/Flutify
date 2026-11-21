@@ -37,9 +37,9 @@
   "shellHidePanel": "Hide",
   "shellAboutArtist": "About the artist",
   "shellMonthlyFollowers": "{count} followers",
-  "shellSignInTitle": "Sign in to see your library",
+  "shellSignInTitle": "Log in to see your library",
   "shellSignInMessage": "Saved playlists, albums and artists will show up here.",
-  "shellSignIn": "Sign in",
+  "shellSignIn": "Log in",
   "windowMinimize": "Minimize",
   "windowMaximize": "Maximize",
   "windowRestore": "Restore",
@@ -124,8 +124,8 @@
   "homeLoadFailedTitle": "Couldn't load recommendations",
   "homeLoadFailedMessage": "Check your connection and try again.",
   "authSessionExpiredTitle": "Your session has expired",
-  "authSessionExpiredMessage": "Spotify ended this sign-in (for example, you signed out everywhere or changed your password). Please sign in again.",
-  "authSignInAgain": "Sign in again",
+  "authSessionExpiredMessage": "Spotify ended this login (for example, you logged out everywhere or changed your password). Please log in again.",
+  "authSignInAgain": "Log in again",
   "homeEmptyTitle": "Nothing here yet",
   "homeEmptyMessage": "Try another filter, or check back later.",
   "homeClearFilter": "Clear filter",
@@ -207,18 +207,18 @@
   "playerUnmute": "Unmute",
   "playerLyricsFullscreen": "Full-screen lyrics",
   "playerSwipeHint": "Swipe the artwork to change songs",
-  "playbackErrorSignIn": "Sign in to play music",
-  "playbackErrorWebSignIn": "Full-track playback requires a Web sign-in first",
-  "webLoginAction": "Web sign-in",
-  "webLoginSuccess": "Web sign-in complete — full-track playback is ready",
+  "playbackErrorSignIn": "Log in to play music",
+  "playbackErrorWebSignIn": "Full-track playback requires a Web login first",
+  "webLoginAction": "Web login",
+  "webLoginSuccess": "Web login complete — full-track playback is ready",
   "playbackErrorUnavailable": "\"{track}\" isn't available right now",
   "playbackErrorSkipped": "\"{track}\" isn't available right now, skipped",
   "playbackErrorNetwork": "Couldn't load \"{track}\". Check your connection.",
   "playbackErrorRegionBlocked": "Your network exits in mainland China, where Spotify doesn't work. Switch to an overseas node and try again",
   "regionCheckSectionTitle": "Network region check",
-  "regionCheckSectionSubtitle": "Confirm where your network exits before signing in or playing; mainland China stops the list",
+  "regionCheckSectionSubtitle": "Confirm where your network exits before logging in or playing; mainland China stops the list",
   "regionCheckEnabled": "Enable region check",
-  "regionCheckEnabledHint": "When off, no check runs at all and neither sign-in nor playback is blocked",
+  "regionCheckEnabledHint": "When off, no check runs at all and neither login nor playback is blocked",
   "regionCheckOnNetworkChange": "Re-check when the network changes",
   "regionCheckOnNetworkChangeHint": "Detect again after switching Wi-Fi or proxy; when off, the last result is reused until launch",
   "regionCheckSkipThisRun": "Skip checks until next launch",
@@ -226,8 +226,8 @@
   "playbackErrorRegionSkipAction": "Skip this time",
   "playbackErrorWidevine": "Can't decrypt \"{track}\": Widevine DRM is unavailable on this device",
   "playbackErrorFairPlay": "Can't decrypt \"{track}\": this device couldn't create a FairPlay session",
-  "playbackErrorAutoPaused": "{count} songs in a row couldn't play, so playback paused",
-  "detailSignInRequired": "Sign in to see what's here",
+  "playbackErrorAutoPaused": "{count, plural, =1{A song could not be played, so playback was paused} other{{count} songs in a row could not be played, so playback was paused}}",
+  "detailSignInRequired": "Log in to see what's here",
   "detailLoadFailed": "Couldn't load this. Check your connection and try again.",
   "queueTitle": "Queue",
   "queueNextInQueue": "Next in queue",
@@ -264,8 +264,8 @@
   "connectPlayingOn": "Playing on {device}",
   "connectOtherDevices": "Select another device",
   "connectNoDevices": "No other devices found",
-  "connectNoDevicesHint": "Open Spotify on a phone, computer or speaker signed in to the same account",
-  "connectUnavailable": "Sign in with the desktop method to control Spotify on your other devices",
+  "connectNoDevicesHint": "Open Spotify on a phone, computer or speaker logged in to the same account",
+  "connectUnavailable": "Log in with the desktop method to control Spotify on your other devices",
   "connectConnecting": "Connecting to Spotify Connect…",
   "connectOffline": "Connection lost, retrying…",
   "connectSameNetwork": "Same network",
@@ -350,7 +350,7 @@
   "settingsAutoplay": "Autoplay",
   "settingsAutoplaySubtitle": "When your music ends, keep playing similar songs",
   "settingsPauseAfterFailures": "Pause when songs keep failing",
-  "settingsPauseAfterFailuresSubtitle": "Stop auto-skipping after {count} unplayable songs in a row",
+  "settingsPauseAfterFailuresSubtitle": "{count, plural, =1{Stop auto-skipping after 1 unplayable song} other{Stop auto-skipping after {count} unplayable songs in a row}}",
   "settingsMotionSection": "Motion",
   "settingsReduceMotion": "Reduce motion",
   "settingsReduceMotionSubtitle": "Turns off flowing backgrounds, transitions and hover animations",
@@ -409,7 +409,7 @@
   "settingsLyricsSourceDisabled": "Turned off in Fill in missing lyrics",
   "settingsLyricsSourceDrag": "Drag to reorder",
   "settingsLyricsBilingual": "Community lyric translations",
-  "settingsLyricsBilingualSubtitle": "Preload Chinese translations from QQ Music, then NetEase for missing or incomplete lyrics, and finally LRCLIB when fallback is enabled. Also used by taskbar lyrics. Turning this off still allows manual and automatic searches. The song title and artist are sent to queried sources.",
+  "settingsLyricsBilingualSubtitle": "Preload Chinese translations from QQ Music, then NetEase, and finally LRCLIB when fallback is on. Taskbar lyrics use them too. Turning this off still allows manual and automatic searches. The song title and artist are sent to the sources.",
   "settingsTaskbarLyricsSection": "Taskbar lyrics",
   "settingsTaskbarLyrics": "Show lyrics on the taskbar",
   "settingsTaskbarLyricsSubtitle": "Shown on the left when taskbar icons are centered, or just left of the system tray when left-aligned; paused on vertical taskbars. Hover for playback controls, click to open Flutify, right-click to reload lyrics",
@@ -419,7 +419,7 @@
   "settingsTaskbarLyricsOpacity": "Opacity",
   "settingsTaskbarLyricsFontSize": "Font size",
   "settingsHomeWidgetsSection": "Home screen widgets",
-  "settingsHomeWidgetsSubtitle": "On HyperOS, Flutify is in the Android widgets section at the bottom of the widget list. You can also tap Add here to place one directly, then long-press it to resize",
+  "settingsHomeWidgetsSubtitle": "On HyperOS, find Flutify under Android widgets at the bottom of the widget list, or tap Add here to place one directly. Long-press to resize",
   "homeWidgetNowPlaying": "Now Playing bar",
   "homeWidgetNowPlayingDesc": "Slim bar with artwork, title and previous / play / next; 4×1 by default",
   "homeWidgetAlbumCard": "Album card",
@@ -512,7 +512,7 @@
   "settingsProxyTesting": "Connecting to Spotify…",
   "settingsProxyTestOk": "Connected in {ms} ms",
   "settingsProxyTestFailed": "Connection failed: {error}",
-  "settingsProxyFootnote": "Only HTTP proxies are supported (the mixed port of Clash, v2rayN, etc. works); a manual proxy may use a username/password, e.g. a self-hosted relay in another region. The sign-in page always follows the system proxy settings.",
+  "settingsProxyFootnote": "Only HTTP proxies are supported (the mixed port of Clash or v2rayN works). A manual proxy may use a username and password, e.g. a self-hosted relay. The login page always follows the system proxy.",
   "settingsPrivacySection": "Privacy",
   "settingsClearSearchHistory": "Clear search history",
   "settingsSearchHistoryCount": "{count, plural, =1{1 search} other{{count} searches}}",
@@ -552,14 +552,14 @@
   "shortcutImmersiveMode": "In full-screen lyrics: fill screen / window",
   "shortcutExitImmersive": "Exit full-screen lyrics",
   "accountTitle": "Spotify account",
-  "accountSignedOutMessage": "Sign in to sync your library",
-  "accountSignIn": "Sign in",
-  "accountSignOut": "Sign out",
-  "accountSignOutTitle": "Sign out?",
-  "accountSignOutMessage": "Your saved sign-in and library cache will be removed from this device. You'll need to sign in again to play music and view your library.",
-  "accountSignOutConfirm": "Sign out",
+  "accountSignedOutMessage": "Log in to sync your library",
+  "accountSignIn": "Log in",
+  "accountSignOut": "Log out",
+  "accountSignOutTitle": "Log out?",
+  "accountSignOutMessage": "Your saved login and library cache will be removed from this device. You'll need to log in again.",
+  "accountSignOutConfirm": "Log out",
   "sleepTimer": "Sleep timer",
-  "sleepTimerMinutes": "{count} minutes",
+  "sleepTimerMinutes": "{count, plural, =1{1 minute} other{{count} minutes}}",
   "sleepTimerHour": "1 hour",
   "sleepTimerEndOfTrack": "End of track",
   "sleepTimerOff": "Turn off timer",
@@ -585,7 +585,7 @@
   "addedDaysAgo": "{count, plural, =1{1 day ago} other{{count} days ago}}",
   "addedWeeksAgo": "{count, plural, =1{1 week ago} other{{count} weeks ago}}",
   "settingsGateway": "Spotify gateway",
-  "settingsGatewayDescription": "Connect to Spotify APIs, media and Connect through your server. Browser sign-in stays on Spotify. Applies to new connections after saving.",
+  "settingsGatewayDescription": "Connect to Spotify APIs, media and Connect through your server. Browser login stays on Spotify. Applies to new connections after saving.",
   "settingsGatewayUrl": "Gateway URL (including path)",
   "settingsGatewayUser": "Gateway username",
   "settingsGatewayPassword": "Gateway password",
@@ -599,7 +599,7 @@
   "settingsCacheApplication": "Installation / portable app directory",
   "settingsCacheCustom": "Custom directory",
   "settingsClearAllCache": "Clear all caches",
-  "settingsClearAllCacheHelp": "Clear audio, artwork, lyrics and browser temporary caches. Keep your login, settings, library and playback history. Audio in use or downloading is retained.",
+  "settingsClearAllCacheHelp": "Clear audio, artwork, lyrics and browser temporary caches. Your login, settings, library and playback history are kept, as is audio in use or downloading.",
   "settingsCacheLocationHelp": "Existing caches are moved and originals deleted after verification. Audio in use or downloading is moved when released. Custom locations use a FlutifyCache folder inside the selected directory.",
   "settingsCacheMigrated": "Moved {files} files; {deferred} in use; {failed} unsuccessful",
   "@settingsCacheMigrated": {
@@ -635,9 +635,9 @@
   "settingsCacheChooseDirectory": "Choose folder",
   "settingsCachePickerFailed": "Couldn't open the folder picker. Try again or enter a path.",
   "settingsGatewayAutomatic": "Switch gateway automatically",
-  "settingsGatewayAutomaticHelp": "Check the network's exit country/region using Cloudflare on startup, network changes, resume and every 2 minutes. Uses your selected system/manual proxy. Failed checks keep the current route.",
+  "settingsGatewayAutomaticHelp": "Checks the exit country/region through Cloudflare on launch, network changes, resume and every 2 minutes, using your current proxy settings. If a check fails, the current route stays.",
   "settingsGatewayDirectCountries": "Countries/regions allowed to connect directly",
-  "settingsGatewayDirectCountriesHelp": "Optional two-letter codes separated by commas or spaces. Empty: CN uses the gateway, all others connect directly. Filled: only listed countries/regions connect directly; all others use the gateway.",
+  "settingsGatewayDirectCountriesHelp": "Optional two-letter codes separated by commas or spaces. Empty: only CN uses the gateway and the rest connect directly. Filled: only listed countries/regions connect directly and the rest use the gateway.",
   "settingsGatewayCountriesInvalid": "Use two-letter country/region codes, for example US, JP, HK.",
   "settingsGatewayLookupFailed": "Country/region lookup failed; keeping the current route.",
   "settingsGatewayCountryPending": "Waiting for the network's country/region; keeping the current route.",
@@ -660,7 +660,7 @@
   "lyricsTranslationFailed": "Could not find translations. Tap to retry",
   "lyricsTranslating": "Finding translations · Tap to cancel",
   "settingsLyricsAutoTranslate": "Translate lyrics automatically",
-  "settingsLyricsAutoTranslateSubtitle": "Find existing translations. Chinese translations search QQ Music first using the song title and artist, then NetEase for missing or incomplete lyrics, and finally LRCLIB when fallback is enabled. More complete results must keep every previously translated line. Chinese script follows the interface.",
+  "settingsLyricsAutoTranslateSubtitle": "Find existing translations by song title and artist: QQ Music, then NetEase, and finally LRCLIB when fallback is on. A more complete result is used only if it keeps every line already translated. Chinese script follows the interface.",
   "settingsLyricsExcludeInterface": "Skip the interface language",
   "settingsLyricsExcluded": "Other languages to skip",
   "settingsLyricsExcludedHint": "Comma-separated: en, ja, zh-Hans (Simplified), zh-Hant (Traditional); zh excludes both. Leave empty to clear.",
@@ -674,31 +674,31 @@
   "settingsLanguageJa": "日本語",
   "homeRefresh": "Refresh home",
   "homeRefreshFailed": "Could not refresh. Check your connection and try again.",
-  "loginTitle": "Sign in to Spotify",
-  "loginSubtitle": "Sign in once on Spotify’s official page.\nThe remaining authorization steps finish automatically.",
-  "loginTermsNotice": "Signing in as an official client does not comply with Spotify’s terms of service. Consider using a secondary account.",
+  "loginTitle": "Log in to Spotify",
+  "loginSubtitle": "Log in once on Spotify’s official page.\nThe remaining authorization steps finish automatically.",
+  "loginTermsNotice": "Logging in as an official client does not comply with Spotify’s terms of service. Consider using a secondary account.",
   "loginPasswordPrivate": "Flutify does not access your password",
-  "loginOfficialPage": "Sign in using Spotify’s official page",
-  "loginRemoteDevices": "Control your other Spotify devices after signing in",
-  "loginSignedInAs": "Signed in as {name}",
+  "loginOfficialPage": "Log in using Spotify’s official page",
+  "loginRemoteDevices": "Control your other Spotify devices after logging in",
+  "loginSignedInAs": "Logged in as {name}",
   "loginPlaybackReady": "Full-track playback is ready",
   "loginBack": "Back",
-  "loginFailed": "Sign-in failed",
-  "webLoginTitle": "Full-track playback: Web sign-in",
-  "webLoginCardTitle": "Full-track playback (Web sign-in)",
+  "loginFailed": "Login failed",
+  "webLoginTitle": "Full-track playback: Web login",
+  "webLoginCardTitle": "Full-track playback (Web login)",
   "webLoginReady": "Ready to play full tracks",
-  "webLoginRequired": "Sign in once to enable full-track playback",
+  "webLoginRequired": "Log in once to enable full-track playback",
   "webLoginConsentHint": "If the page asks for confirmation, select Agree to finish authorization. The other steps have completed automatically.",
   "webLoginPreparing": "Preparing playback credentials…",
   "webLoginAuthorizing": "Completing account authorization…",
-  "webLoginFinishing": "Finishing sign-in…",
-  "webLoginBackgroundHint": "You are signed in. The remaining steps will finish automatically.",
-  "webLoginGoogleHint": "Registered with Google? Sign in here with your email and password. If you do not have a password, set one using “Forgot password” on Spotify’s website.",
-  "loginBrowserFallback": "Could not open the browser. The sign-in link was copied; paste it into your browser.",
-  "loginBrowserTitle": "Finish signing in with your browser",
-  "loginBrowserSubtitle": "This page will continue automatically after you sign in and approve access.",
+  "webLoginFinishing": "Finishing login…",
+  "webLoginBackgroundHint": "You are logged in. The remaining steps will finish automatically.",
+  "webLoginGoogleHint": "Registered with Google? Log in here with your email and password. If you have no password, set one with “Forgot password” on Spotify’s website.",
+  "loginBrowserFallback": "Could not open the browser. The login link was copied; paste it into your browser.",
+  "loginBrowserTitle": "Finish logging in with your browser",
+  "loginBrowserSubtitle": "This page will continue automatically after you log in and approve access.",
   "loginReopen": "Reopen",
-  "loginLinkCopied": "Sign-in link copied",
+  "loginLinkCopied": "Login link copied",
   "loginCopyLink": "Copy link",
   "@loginSignedInAs": {
     "placeholders": {
@@ -714,14 +714,14 @@
   "updatesChannelBeta": "Beta",
   "updatesChannelSelfTest": "Self-test (developers only)",
   "updatesSelfTestWarningTitle": "Switch to self-test builds?",
-  "updatesSelfTestWarning": "Self-test builds are for developers testing their own changes. One is produced automatically for every commit, with no verification at all, and it may fail to start, lose data or corrupt your settings. Do not use them for real work or daily listening. Versions also only move forward: after installing a self-test build you cannot return to a release until a release with a higher build number is published.",
+  "updatesSelfTestWarning": "Self-test builds are generated automatically for every commit and are completely unverified. They may fail to start, lose data or corrupt settings, so don't use them day to day. Versions only move forward: after installing one, you can't return to a release until a release with a higher build number is published.",
   "updatesSelfTestConfirm": "I am a developer, switch anyway",
   "updatesBuild": "build {build}",
   "updatesMode": "Update preference",
   "updatesManual": "Manual update",
   "updatesAutomatic": "Download automatically",
   "updatesDisabled": "Do not check",
-  "updatesHint": "Check for new versions and release notes automatically. Automatic mode downloads in the background and waits for your confirmation to install, without interrupting playback.",
+  "updatesHint": "Check for new versions automatically. Automatic mode downloads in the background and waits for your confirmation to install, without interrupting playback.",
   "updatesCheck": "Check for updates",
   "updatesChecking": "Checking for updates…",
   "updatesCurrent": "Current version",
@@ -732,7 +732,7 @@
   "updatesDownload": "Download update",
   "updatesDownloading": "Downloading and verifying…",
   "updatesReady": "Update ready",
-  "updatesReadyHint": "The update has been downloaded and verified. Installation closes the app; you can also continue later from Settings.",
+  "updatesReadyHint": "The update has been downloaded and verified. Installing closes the app; you can also continue later in Settings.",
   "updatesAndroidHint": "The APK has been downloaded and verified. Confirm to open the system installer.",
   "updatesInstall": "Restart and install",
   "updatesInstallApk": "Install APK",
@@ -745,14 +745,14 @@
   "updatesUnsupported": "In-app installation is unavailable on this platform. Use the release page to update manually.",
   "updatesDetails": "View update",
   "webLoginRegionChecking": "Checking network region…",
-  "webLoginRegionCheckingHint": "Confirming where your network exits before the sign-in page loads, so sign-in doesn't fail in an unsupported region.",
+  "webLoginRegionCheckingHint": "Confirming where your network exits before the login page loads, so login doesn't fail in an unsupported region.",
   "webLoginRegionBlockedTitle": "Your network exits in mainland China",
-  "webLoginRegionBlockedBody": "Spotify isn't available in mainland China, so signing in will likely fail or be restricted. Turn on a proxy, switch to an overseas node, then check again.",
+  "webLoginRegionBlockedBody": "Spotify isn't available in mainland China, so logging in will likely fail or be restricted. Turn on a proxy, switch to an overseas node, then check again.",
   "webLoginRegionRecheck": "Check again",
   "webLoginRegionForceSkip": "Skip anyway",
   "webLoginRegionSkipThisRun": "Skip checks until next launch",
   "settingsAnimDebugSection": "Animation debugging (temporary)",
-  "settingsAnimDebugFooter": "Applies to this run only and resets when the app restarts. Use it to find what drops frames: turn items off one by one and see which one makes it smooth.",
+  "settingsAnimDebugFooter": "Applies to this run only and resets on restart. Use it to find what drops frames: turn items off one by one and see which makes it smooth.",
   "settingsAnimDebugResetAll": "Restore all",
   "settingsAnimDebugAllMotion": "Turn off all transition animations",
   "settingsAnimDebugAllMotionSubtitle": "Same as the system “remove animations”: UI transitions and the flowing background stop",
@@ -795,5 +795,442 @@
   "playbackEngineCurrent": "Playback engine: {engine}",
   "playbackEngineLocal": "Local player",
   "playbackEngineWebView": "WebView (browser engine)",
-  "playbackEngineAndroid": "Android native"
+  "playbackEngineAndroid": "Android native",
+  "backupTitle": "Playlist backup",
+  "backupFooter": "Browse each account's liked songs and playlists, and import any selection into this account.",
+  "backupUnsyncedTitle": "Sync local playlists to Spotify",
+  "backupUnsyncedSubtitle": "{count, plural, =1{1 playlist exists only on this device and is not in your account library yet} other{{count} playlists exist only on this device and are not in your account library yet}}",
+  "@backupUnsyncedSubtitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupEnable": "Enable playlist backup",
+  "backupEnableSubtitle": "Back up this device's account automatically, or other accounts through a separate WebView",
+  "backupAutoCurrent": "Auto-back up this account",
+  "backupAutoCurrentSubtitle": "Save changes right away instead of waiting for the next scheduled backup",
+  "backupInterval": "Backup frequency",
+  "backupIntervalSubtitle": "At least 20 minutes, to avoid server rate limits",
+  "backupIntervalMinutes": "{minutes} min",
+  "@backupIntervalMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "backupIntervalHours": "{hours} h",
+  "@backupIntervalHours": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "backupIntervalDays": "{days} d",
+  "@backupIntervalDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "backupAddAccount": "Add an account to sync",
+  "backupAddAccountSubtitle": "Log in to open.spotify.com in a separate WebView to read its saved playlists",
+  "backupSyncToAccount": "Sync backed-up playlists to this account",
+  "backupSyncToAccountSubtitle": "Merge liked songs from the checked accounts into this one and sync their playlists",
+  "backupNow": "Back up all accounts now",
+  "backupNowSubtitle": "Fetch the latest saved items from every account and store them locally",
+  "backupAccountAdded": "Backed up \"{title}\" ({liked}, {playlists})",
+  "@backupAccountAdded": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "liked": {
+        "type": "String"
+      },
+      "playlists": {
+        "type": "String"
+      }
+    }
+  },
+  "backupAccountAddFailed": "Couldn't add the backup account: {error}",
+  "@backupAccountAddFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "backupSynced": "Synced {playlists} and merged {liked}",
+  "@backupSynced": {
+    "placeholders": {
+      "playlists": {
+        "type": "String"
+      },
+      "liked": {
+        "type": "String"
+      }
+    }
+  },
+  "backupImporting": "Importing {playlists} in the background…",
+  "@backupImporting": {
+    "placeholders": {
+      "playlists": {
+        "type": "String"
+      }
+    }
+  },
+  "backupImported": "Imported {playlists} and merged {liked}",
+  "@backupImported": {
+    "placeholders": {
+      "playlists": {
+        "type": "String"
+      },
+      "liked": {
+        "type": "String"
+      }
+    }
+  },
+  "backupSavedAll": "Saved playlists from all accounts",
+  "backupSelectedHeader": "Saved playlists ({selected} of {total} selected)",
+  "@backupSelectedHeader": {
+    "placeholders": {
+      "selected": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "backupImportSelected": "Import selected ({count})",
+  "@backupImportSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupBadgePrevious": "Previously logged in",
+  "backupBadgeExternal": "External backup account",
+  "backupAccountTitle": "{title} ({badge})",
+  "@backupAccountTitle": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "badge": {
+        "type": "String"
+      }
+    }
+  },
+  "backupAccountSubtitle": "{liked} · {playlists} saved",
+  "@backupAccountSubtitle": {
+    "placeholders": {
+      "liked": {
+        "type": "String"
+      },
+      "playlists": {
+        "type": "String"
+      }
+    }
+  },
+  "backupIncludeInSync": "Include in sync",
+  "backupRemoveAccount": "Remove this backup account",
+  "backupExitMultiSelect": "Exit multi-select",
+  "backupPickTracksImport": "Pick songs to import",
+  "backupPickTracks": "Pick songs to save",
+  "backupDialogImportTitle": "Pick songs to import · {name}",
+  "@backupDialogImportTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "backupDialogPickTitle": "Pick songs to save · {name}",
+  "@backupDialogPickTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "backupDeselectAll": "Deselect all",
+  "backupSelectedCount": "{selected} of {total} selected",
+  "@backupSelectedCount": {
+    "placeholders": {
+      "selected": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "backupImportedAsPlaylist": "Imported {songs} as the playlist \"{name}\"",
+  "@backupImportedAsPlaylist": {
+    "placeholders": {
+      "songs": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "backupImportAsPlaylist": "Import as playlist ({count})",
+  "@backupImportAsPlaylist": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupImportAsPlaylistShort": "Import as playlist",
+  "backupLikedMerged": "Merged {songs} into Liked Songs ({added} new)",
+  "@backupLikedMerged": {
+    "placeholders": {
+      "songs": {
+        "type": "String"
+      },
+      "added": {
+        "type": "int"
+      }
+    }
+  },
+  "backupLikedSaved": "Saved {songs} ({added} new)",
+  "@backupLikedSaved": {
+    "placeholders": {
+      "songs": {
+        "type": "String"
+      },
+      "added": {
+        "type": "int"
+      }
+    }
+  },
+  "backupMergeLiked": "Merge into Liked Songs ({count})",
+  "@backupMergeLiked": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupMergeLikedShort": "Merge into Liked Songs",
+  "backupSaveSelected": "Save selected ({count})",
+  "@backupSaveSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupLoginTitle": "Log in to the Spotify account to back up",
+  "playlistSyncTitle": "Sync playlists to Spotify",
+  "playlistSyncIntro": "In older versions, playlists you saved, created or imported from a backup stayed on this device, so the official app and web player could not see them. Selected playlists are written to your account: other people's playlists are added to your library, and your own are recreated under the same name.",
+  "playlistSyncDone": "{count, plural, =1{Done: 1 playlist synced to your account.} other{Done: {count} playlists synced to your account.}}",
+  "@playlistSyncDone": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistSyncPartial": "Done: {done} synced, {failed} failed. You can retry the failed ones.",
+  "@playlistSyncPartial": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistSyncAllDone": "All playlists are already synced to Spotify.",
+  "playlistSyncRunning": "Syncing — please keep this page open…",
+  "playlistSyncSelected": "{count} selected",
+  "@playlistSyncSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistSyncStart": "Start sync",
+  "playlistSyncCreate": "Create in your account ({songs})",
+  "@playlistSyncCreate": {
+    "placeholders": {
+      "songs": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistSyncAdd": "Add to library",
+  "playlistSyncStateRunning": "Syncing…",
+  "playlistSyncStateDone": "Synced",
+  "playlistSyncStateFailed": "Failed: {error}",
+  "@playlistSyncStateFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistSyncPromptTitle": "{count, plural, =1{1 playlist is not synced to Spotify} other{{count} playlists are not synced to Spotify}}",
+  "@playlistSyncPromptTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistSyncPromptBody": "In older versions, playlists you saved, created or imported from a backup stayed on this device, so the official app and web player could not see them. Saving and unsaving now sync to your account, and you can sync the leftover playlists now.\n\nYou can also find this later in Settings → Playlist backup.",
+  "playlistSyncPromptLater": "Not now",
+  "playlistSyncPromptGo": "Sync now",
+  "playerCanvasPlay": "Play Canvas",
+  "playerCanvasStop": "Stop Canvas",
+  "playlistCount": "{count, plural, =1{1 playlist} other{{count} playlists}}",
+  "@playlistCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "likedSongCount": "{count, plural, =1{1 liked song} other{{count} liked songs}}",
+  "@likedSongCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "authErrorSessionInvalidated": "Your login is no longer valid. Please log in again.",
+  "authErrorSessionExpired": "Your login has expired. Please log in again.",
+  "authErrorNetwork": "Can't reach Spotify. Check your network or proxy.",
+  "authErrorFailed": "Login failed: {detail}",
+  "@authErrorFailed": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "webLoginSaveSessionFailed": "Couldn't save the web session: {detail}",
+  "@webLoginSaveSessionFailed": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "webLoginSessionRejected": "Spotify rejected this login (HTTP 401). Try again; if it keeps happening, your proxy or VPN exit is probably blocked.",
+  "webLoginTlsIntercepted": "TLS certificate verification failed, so Spotify can't be reached ({detail}). If a proxy or security software is intercepting HTTPS, give it a public certificate or turn it off.",
+  "@webLoginTlsIntercepted": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "webLoginTokenPending": "Couldn't get the web token yet ({detail}). Retrying automatically.",
+  "@webLoginTokenPending": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "webLoginPreparationFailed": "Couldn't clear WebView cookies. Please try again.",
+  "radioFailed": "Couldn't start the song radio. Try again later.",
+  "startupFailed": "Startup failed: {stage}",
+  "@startupFailed": {
+    "placeholders": {
+      "stage": {
+        "type": "String"
+      }
+    }
+  },
+  "startupTimeout": "Initialization timed out: {stage}. Close and reopen the app.",
+  "@startupTimeout": {
+    "placeholders": {
+      "stage": {
+        "type": "String"
+      }
+    }
+  },
+  "startupCopyHint": "Copy the diagnostics and report them, then close and reopen the app.",
+  "startupCopyDiagnostics": "Copy diagnostics",
+  "hyperGlassPresetLarge": "Large card",
+  "hyperGlassPresetPurple": "Purple tint",
+  "hyperGlassPresetBlue": "Blue tint",
+  "hyperGlassPresetBionic": "Bionic glass",
+  "hyperGlassPreviewHint": "{name} · Press and hold to feel the refraction highlight",
+  "@hyperGlassPreviewHint": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "libraryErrorNotSignedIn": "Not logged in, so nothing can be synced to your Spotify account.",
+  "libraryErrorRead": "Couldn't read your library: {detail}",
+  "@libraryErrorRead": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "libraryErrorWrite": "Sync failed: {detail}",
+  "@libraryErrorWrite": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "libraryErrorBadResponse": "Spotify returned unexpected data: {detail}",
+  "@libraryErrorBadResponse": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "libraryErrorPartial": "The playlist was created, but adding its songs failed: {detail}",
+  "@libraryErrorPartial": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "backupFailed": "Backup failed: {detail}",
+  "@backupFailed": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "backupAccountFailed": "Couldn't back up \"{title}\": {detail}",
+  "@backupAccountFailed": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "creditsFailed": "Couldn't load the credits. Please try again."
 }

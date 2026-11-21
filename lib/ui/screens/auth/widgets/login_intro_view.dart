@@ -22,7 +22,7 @@ class LoginIntroView extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final error = context.select<AuthProvider, String?>((a) => a.error);
+    final failure = context.select<AuthProvider, AuthFailure?>((a) => a.failure);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -60,7 +60,9 @@ class LoginIntroView extends StatelessWidget {
             label: Text(context.l10n.accountSignIn),
           ),
         ),
-        AuthErrorBanner(message: error),
+        AuthErrorBanner(
+          message: failure == null ? null : authFailureText(context.l10n, failure),
+        ),
         const SizedBox(height: 20),
         Text(
           context.l10n.loginTermsNotice,
@@ -150,3 +152,13 @@ class _Point extends StatelessWidget {
     );
   }
 }
+
+/// 登录失败原因对应的本地化提示。
+String authFailureText(AppLocalizations l10n, AuthFailure failure) =>
+    switch (failure.kind) {
+      AuthFailureKind.sessionInvalidated => l10n.authErrorSessionInvalidated,
+      AuthFailureKind.sessionExpired => l10n.authErrorSessionExpired,
+      AuthFailureKind.network => l10n.authErrorNetwork,
+      AuthFailureKind.message => failure.detail,
+      AuthFailureKind.failed => l10n.authErrorFailed(failure.detail),
+    };

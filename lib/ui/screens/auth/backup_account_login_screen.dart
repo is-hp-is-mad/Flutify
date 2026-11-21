@@ -363,7 +363,7 @@ return '';
     final l10n = context.l10n;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('登录要备份的 Spotify 账号'),
+        title: Text(l10n.backupLoginTitle),
         leading: IconButton(
           icon: const Icon(Icons.close_rounded),
           tooltip: l10n.commonClose,

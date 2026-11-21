@@ -56,7 +56,7 @@ class AuthSessionStore {
     if (epoch != _sessionEpoch ||
         _sessionCleanup != null ||
         cookieCleanupPending) {
-      throw StateError('登录状态已清除，请重新登录');
+      throw StateError('Login state was cleared; please log in again');
     }
   }
 
@@ -65,7 +65,7 @@ class AuthSessionStore {
   Future<void> writeSession(int epoch, List<Future<bool> Function()> writes) {
     checkSession(epoch);
     return Future.wait(writes.map((write) => write())).then((results) {
-      if (results.any((ok) => !ok)) throw StateError('无法保存登录凭据');
+      if (results.any((ok) => !ok)) throw StateError('Could not save the login credentials');
       checkSession(epoch);
     });
   }
@@ -93,11 +93,11 @@ class AuthSessionStore {
 
   Future<void> _retryCookieCleanup() async {
     final clear = clearWebViewCookies;
-    if (clear == null) throw StateError('WebView Cookie 清理尚未就绪');
+    if (clear == null) throw StateError('WebView cookie cleanup is not ready');
     await clearLogin();
     await clear();
     if (!await _prefs.remove('auth_cookie_cleanup_pending')) {
-      throw StateError('无法保存 Cookie 清理状态');
+      throw StateError('Could not save the cookie cleanup state');
     }
     _cookieCleanupNeeded = false;
   }
@@ -117,7 +117,7 @@ class AuthSessionStore {
           _cookieCleanupNeeded = true;
           writes.add(
             _prefs.setBool('auth_cookie_cleanup_pending', true).then((ok) {
-              if (!ok) throw StateError('无法保存 Cookie 清理状态');
+              if (!ok) throw StateError('Could not save the cookie cleanup state');
             }),
           );
         }
@@ -273,6 +273,6 @@ class AuthSessionStore {
       _keyWebAccessToken,
       _keyWebAccessTokenExpiry,
     ].map(_prefs.remove));
-    if (results.any((ok) => !ok)) throw StateError('无法清除登录凭据');
+    if (results.any((ok) => !ok)) throw StateError('Could not clear the login credentials');
   }
 }

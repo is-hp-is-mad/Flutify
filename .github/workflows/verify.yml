@@ -94,6 +94,8 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
+      - name: Check l10n ARB files
+        run: python3 tool/check_l10n.py
       - run: flutter pub get
       - name: Analyze (fail on errors only)
         run: flutter analyze --no-fatal-infos --no-fatal-warnings lib test

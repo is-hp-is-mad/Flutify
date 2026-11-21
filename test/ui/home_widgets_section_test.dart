@@ -40,7 +40,7 @@ void main() {
     await tester.pumpWidget(app(WidgetBridge(artworkFile: (_) async => null)));
 
     expect(find.text('桌面小组件'), findsOneWidget);
-    for (final name in ['播放条', '专辑卡片', '方形封面', '待播清单']) {
+    for (final name in ['当前播放栏', '专辑卡片', '方形封面', '待播清单']) {
       expect(find.text(name), findsOneWidget);
     }
 

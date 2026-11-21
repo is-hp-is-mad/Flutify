@@ -25,8 +25,8 @@ void main() {
   group('ModelLabels localization interception', () {
     test('homeChipLabel intercepts english labels in Chinese locale', () {
       final l10n = lookupAppLocalizations(const Locale('zh'));
-      expect(l10n.homeChipLabel('Following'), '已关注');
-      expect(l10n.homeChipLabel('', 'sub-following'), '已关注');
+      expect(l10n.homeChipLabel('Following'), '关注中');
+      expect(l10n.homeChipLabel('', 'sub-following'), '关注中');
       expect(l10n.homeChipLabel('Music'), '音乐');
       expect(l10n.homeChipLabel('Podcasts'), '播客');
       expect(l10n.homeChipLabel('Audiobooks'), '有声书');
@@ -41,7 +41,7 @@ void main() {
       final zhHant = lookupAppLocalizations(
         const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
       );
-      expect(zhHant.homeChipLabel('Following'), '已關注');
+      expect(zhHant.homeChipLabel('Following'), '追蹤中');
       expect(zhHant.homeChipLabel('Audiobooks'), '有聲書');
       expect(zhHant.homeChipLabel('Downloaded'), '已下載');
 
@@ -64,7 +64,7 @@ void main() {
       expect(l10n.categoryName('wellness', 'wellness'), '疗愈健康');
 
       final ja = lookupAppLocalizations(const Locale('ja'));
-      expect(ja.categoryName('toplists', 'toplists'), 'ランキング');
+      expect(ja.categoryName('toplists', 'toplists'), 'チャート');
       expect(ja.categoryName('pop', 'pop'), 'ポップ');
       expect(ja.categoryName('rock', 'rock'), 'ロック');
       expect(ja.categoryName('mandopop', 'mandopop'), 'マンドポップ');
@@ -78,12 +78,12 @@ void main() {
       expect(l10n.homeSectionTitle('Your top mixes'), '你的专属合辑');
       expect(l10n.homeSectionTitle('Popular Playlists'), '热门歌单');
       expect(l10n.homeSectionTitle('Trending now'), '当前流行');
-      expect(l10n.homeSectionTitle('New releases'), '最新发行');
+      expect(l10n.homeSectionTitle('New releases'), '新歌热播');
       expect(l10n.homeSectionTitle('Radar'), '音乐雷达');
 
       final ja = lookupAppLocalizations(const Locale('ja'));
-      expect(ja.homeSectionTitle('Recently played'), '最近の再生');
-      expect(ja.homeSectionTitle('Made For You'), 'あなたへのおすすめ');
+      expect(ja.homeSectionTitle('Recently played'), '最近再生したコンテンツ');
+      expect(ja.homeSectionTitle('Made For You'), 'メイド・フォー・ユー');
       expect(ja.homeSectionTitle('Jump back in'), 'もう一度聴く');
       expect(ja.homeSectionTitle('Popular Playlists'), '人気のプレイリスト');
       expect(ja.homeSectionTitle('Trending now'), '急上昇中');

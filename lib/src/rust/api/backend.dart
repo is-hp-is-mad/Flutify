@@ -359,9 +359,11 @@ RustSpotifyLyricsDto? rustParseColorLyricsJson({required List<int> body}) =>
 Future<RustPodcastShowDto> rustFetchPodcastShow({
   required String showId,
   required String proxy,
+  required String acceptLanguage,
 }) => RustLib.instance.api.crateApiBackendRustFetchPodcastShow(
   showId: showId,
   proxy: proxy,
+  acceptLanguage: acceptLanguage,
 );
 
 RustPodcastShowDto rustParsePodcastShowHtml({
@@ -375,9 +377,11 @@ RustPodcastShowDto rustParsePodcastShowHtml({
 Future<RustPodcastEpisodeDto> rustFetchPodcastEpisode({
   required String episodeId,
   required String proxy,
+  required String acceptLanguage,
 }) => RustLib.instance.api.crateApiBackendRustFetchPodcastEpisode(
   episodeId: episodeId,
   proxy: proxy,
+  acceptLanguage: acceptLanguage,
 );
 
 RustPodcastEpisodeDto rustParsePodcastEpisodeHtml({

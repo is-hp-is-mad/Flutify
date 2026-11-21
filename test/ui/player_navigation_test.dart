@@ -164,7 +164,7 @@ void main() {
             await _openPlayer(tester, player);
             await _openMenu(tester, player);
             await tester.tap(
-              find.text(destination == 'album' ? '前往专辑' : '前往艺人'),
+              find.text(destination == 'album' ? '转至专辑' : '转至艺人'),
             );
             await _settle(tester);
             if (destination == 'guest artist') {
@@ -255,14 +255,14 @@ void main() {
         expect(playerRoute.isCurrent, isTrue);
 
         await _openMenu(tester, player);
-        await tester.tap(find.text('前往艺人'));
+        await tester.tap(find.text('转至艺人'));
         await _settle(tester);
         root.pop(); // Cancel the multi-artist picker.
         await _settle(tester);
         expect(playerRoute.isCurrent, isTrue);
 
         await _openMenu(tester, player);
-        await tester.tap(find.text('添加到播放队列'));
+        await tester.tap(find.text('加入播放队列'));
         await _settle(tester);
         expect(playback.userQueue, hasLength(1));
         expect(playerRoute.isCurrent, isTrue);

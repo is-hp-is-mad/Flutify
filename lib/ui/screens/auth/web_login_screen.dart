@@ -271,7 +271,7 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
       if (mounted && !_done && revision == _pageRevision) {
         setState(() {
           _webViewReady = false;
-          _preparationError = 'WebView Cookie 清理失败，请重试';
+          _preparationError = context.l10n.webLoginPreparationFailed;
         });
       }
     } finally {
@@ -480,12 +480,18 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
           if (stage != WebLoginStage.done)
             const FlutifyLinearProgress(thickness: 4),
           if (stage == WebLoginStage.webSignIn) const _GoogleAccountHint(),
-          if (_flow.notice != null)
-            _NoticeBar(text: _flow.notice!, icon: Icons.info_outline_rounded),
+          if (_flow.noticeIssue != null)
+            _NoticeBar(
+              text: _issueText(context.l10n, _flow.noticeIssue!),
+              icon: Icons.info_outline_rounded,
+            ),
           if (stage == WebLoginStage.failed || _preparationError != null)
             _NoticeBar(
               text:
-                  _preparationError ?? _flow.error ?? context.l10n.loginFailed,
+                  _preparationError ??
+                  (_flow.errorIssue == null
+                      ? context.l10n.loginFailed
+                      : _issueText(context.l10n, _flow.errorIssue!)),
               icon: Icons.error_outline_rounded,
               actionLabel: context.l10n.commonRetry,
               onAction: _retry,
@@ -793,3 +799,14 @@ class _NoticeBar extends StatelessWidget {
     );
   }
 }
+
+/// 登录流程问题对应的本地化提示。
+String _issueText(AppLocalizations l10n, WebLoginIssue issue) =>
+    switch (issue.kind) {
+      WebLoginIssueKind.saveSessionFailed =>
+        l10n.webLoginSaveSessionFailed(issue.detail),
+      WebLoginIssueKind.sessionRejected => l10n.webLoginSessionRejected,
+      WebLoginIssueKind.tlsIntercepted =>
+        l10n.webLoginTlsIntercepted(issue.detail),
+      WebLoginIssueKind.tokenPending => l10n.webLoginTokenPending(issue.detail),
+    };

@@ -328,7 +328,7 @@ void main() {
           .lyricsMode,
       isFalse,
     );
-    await tester.tap(_inPlayer(find.byTooltip('播放队列')));
+    await tester.tap(_inPlayer(find.byTooltip('队列')));
     await _frames(tester);
     expect(
       tester
@@ -486,8 +486,8 @@ void main() {
         await tester.tap(_inPlayer(find.text(text)).first);
         await _frames(tester);
 
-        expect(find.text('前往专辑'), findsOneWidget);
-        expect(find.text('前往艺人'), findsNWidgets(2));
+        expect(find.text('转至专辑'), findsOneWidget);
+        expect(find.text('转至艺人'), findsNWidgets(2));
         expect(find.text(_album.name), findsOneWidget);
         expect(find.text(_artist.name), findsOneWidget);
         expect(find.text(_guest.name), findsOneWidget);
@@ -561,7 +561,7 @@ void main() {
         .element(find.byType(FullPlayerSheet))
         .read<LibraryProvider>();
     expect(library.isLiked(_track.id), isTrue);
-    expect(find.text('前往专辑'), findsNothing);
+    expect(find.text('转至专辑'), findsNothing);
     expect(session.audio.seeks, isEmpty);
     await _unmount(tester);
   });
@@ -577,7 +577,7 @@ void main() {
       await tester.tapAt(Offset(rect.right - 2, rect.bottom - 2));
       await _frames(tester);
 
-      expect(find.text('前往专辑'), findsOneWidget);
+      expect(find.text('转至专辑'), findsOneWidget);
       expect(session.audio.seeks, isEmpty);
       await _unmount(tester);
     },
@@ -592,9 +592,9 @@ void main() {
     await tester.tap(header);
     await tester.tap(header);
     await _frames(tester);
-    expect(find.text('前往专辑'), findsOneWidget);
+    expect(find.text('转至专辑'), findsOneWidget);
     final tile = tester.widget<ListTile>(
-      find.ancestor(of: find.text('前往专辑'), matching: find.byType(ListTile)),
+      find.ancestor(of: find.text('转至专辑'), matching: find.byType(ListTile)),
     );
     tile.onTap!();
     tile.onTap!();
@@ -620,7 +620,7 @@ void main() {
       final session = await _open(tester, track: track);
       await tester.tap(_inPlayer(find.text(track.name)).first);
       await _frames(tester);
-      for (final label in ['前往专辑', '前往艺人']) {
+      for (final label in ['转至专辑', '转至艺人']) {
         final tile = tester.widget<ListTile>(
           find.ancestor(of: find.text(label), matching: find.byType(ListTile)),
         );
@@ -656,11 +656,11 @@ void main() {
       await tester.tap(_inPlayer(find.text(track.name)).first);
       await _frames(tester);
       final albumTile = find.ancestor(
-        of: find.text('前往专辑'),
+        of: find.text('转至专辑'),
         matching: find.byType(ListTile),
       );
       final artistTile = find.ancestor(
-        of: find.text('前往艺人'),
+        of: find.text('转至艺人'),
         matching: find.byType(ListTile),
       );
       expect(
@@ -693,7 +693,7 @@ void main() {
       );
       await tester.tap(_inPlayer(find.text(_track.name)).first);
       await _frames(tester);
-      expect(find.text('前往艺人'), findsNWidgets(2));
+      expect(find.text('转至艺人'), findsNWidgets(2));
       expect(session.api.artistRequests, [_artist.id, _guest.id]);
       first.complete(
         const SpotifyArtist(
@@ -719,7 +719,7 @@ void main() {
         'https://example.invalid/resolved.jpg',
       );
       Navigator.of(
-        tester.element(find.text('前往专辑')),
+        tester.element(find.text('转至专辑')),
         rootNavigator: true,
       ).pop();
       await _frames(tester);
@@ -749,7 +749,7 @@ void main() {
     await _frames(tester);
     expect(tester.getTopLeft(header).dy, expandedTop);
 
-    Navigator.of(tester.element(find.text('前往专辑')), rootNavigator: true).pop();
+    Navigator.of(tester.element(find.text('转至专辑')), rootNavigator: true).pop();
     await _frames(tester);
     expect(
       tester

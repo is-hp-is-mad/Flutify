@@ -45,8 +45,8 @@ void main() {
 
     expect(find.byType(NavigationBar), findsNothing);
     expect(find.byTooltip('主页'), findsOneWidget);
-    expect(find.byTooltip('后退'), findsOneWidget);
+    expect(find.byTooltip('返回'), findsOneWidget);
     expect(find.text('你想听什么？'), findsOneWidget);
-    expect(find.byTooltip('收起音乐库'), findsOneWidget);
+    expect(find.byTooltip('折叠音乐库'), findsOneWidget);
   });
 }

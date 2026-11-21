@@ -89,7 +89,7 @@ void main() {
     setUpAll(initializeDateFormatting);
 
     test('relative within a month, then a full date', () {
-      expect(AddedDateFormat.format(zh, DateTime(2026, 10, 1, 0, 5), now: now), '今天');
+      expect(AddedDateFormat.format(zh, DateTime(2026, 10, 1, 0, 5), now: now), '今日');
       // 昨晚加入：按自然日算 1 天前
       expect(AddedDateFormat.format(zh, DateTime(2026, 9, 30, 23), now: now), '1 天前');
       expect(AddedDateFormat.format(en, DateTime(2026, 9, 28), now: now), '3 days ago');
