@@ -42,9 +42,9 @@ test('unified build.yml keeps least-privilege read-only top-level permissions an
   assert.equal((source.match(/persist-credentials: false/g) || []).length, checkouts.length);
 });
 
-test('auto-runs skip tests; manual and scheduled runs execute tests and publish', () => {
+test('pull_request runs skip tool tests; push, manual and scheduled runs execute tests and publish when allowed', () => {
   const prepare = job('prepare');
-  assert.match(prepare, /if: github\.event_name == 'workflow_dispatch' \|\| github\.event_name == 'schedule'/);
+  assert.match(prepare, /if: github\.event_name != 'pull_request'/);
   assert.match(prepare, /use_release_signing: \$\{\{ steps\.config\.outputs\.use_release_signing \}\}/);
   assert.match(job('android'), /if: needs\.prepare\.outputs\.run_tests == 'true'/);
   assert.match(job('windows'), /if: needs\.prepare\.outputs\.run_tests == 'true'/);
