@@ -45,21 +45,38 @@ function Wait-Until([scriptblock]$condition, [int]$seconds) {
     return $false
 }
 
+# 不用 Start-Process -Wait：它会连子进程一起等。安装包的 [Run] postinstall 在静默安装时也会
+# 自动启动 Flutify.exe，-Wait 会一直等到应用退出（即永远）。这里只等安装 / 卸载进程本身，并设超时。
+function Start-Limited([string]$file, [string[]]$arguments, [int]$seconds) {
+    $proc = Start-Process -FilePath $file -ArgumentList $arguments -PassThru
+    if (-not $proc.WaitForExit($seconds * 1000)) {
+        Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+        throw "Timed out after ${seconds}s: $file"
+    }
+    return $proc.ExitCode
+}
+
+function Stop-App {
+    Get-Process -Name 'Flutify' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+    $null = Wait-Until { -not (Get-Process -Name 'Flutify' -ErrorAction SilentlyContinue) } 15
+}
+
 function Install-App([string]$name) {
-    $p = Start-Process -FilePath $Setup -PassThru -Wait -ArgumentList @(
-        '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/DIR=`"$installDir`"", "/LOG=`"$logDir\$name-install.log`"")
-    Check ($p.ExitCode -eq 0) "installer exit code 0 (got $($p.ExitCode))"
+    $code = Start-Limited $Setup @(
+        '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/DIR=`"$installDir`"", "/LOG=`"$logDir\$name-install.log`"") 180
+    Check ($code -eq 0) "installer exit code 0 (got $code)"
     Check (Test-Path -LiteralPath (Join-Path $installDir 'Flutify.exe')) 'Flutify.exe installed'
     Check (Test-Path -LiteralPath (Join-Path $installDir 'unins000.exe')) 'uninstaller installed'
 }
 
 # 启动应用让它写入运行时痕迹；应用没能启动 / 没写时用脚本补上，保证卸载断言有对象，并给出警告。
 function Run-App {
-    $exe = Join-Path $installDir 'Flutify.exe'
-    $proc = Start-Process -FilePath $exe -PassThru
+    # 静默安装结束时安装包可能已经启动了应用（[Run] postinstall）；没有才自己启动一个。
+    if (-not (Get-Process -Name 'Flutify' -ErrorAction SilentlyContinue)) {
+        $null = Start-Process -FilePath (Join-Path $installDir 'Flutify.exe') -PassThru
+    }
     $wrote = Wait-Until { (Test-Path $identityKey) -and (Test-Path -LiteralPath $runtimeLink) } 40
-    if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
-    $null = $proc.WaitForExit(15000)
+    Stop-App
     if (-not $wrote) {
         Write-Host "::warning::Flutify.exe did not write its runtime identity within 40s on this runner; planting it manually."
         New-Item -Path $identityKey -Force | Out-Null
@@ -84,7 +101,9 @@ function Uninstall-App([string]$name, [string[]]$extra) {
     $unins = Join-Path $installDir 'unins000.exe'
     Check (Test-Path -LiteralPath $unins) 'unins000.exe exists before uninstall'
     $argList = @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/LOG=`"$logDir\$name-uninstall.log`"") + $extra
-    $p = Start-Process -FilePath $unins -PassThru -Wait -ArgumentList $argList
+    Stop-App
+    $code = Start-Limited $unins $argList 120
+    Check ($code -eq 0) "uninstaller exit code 0 (got $code)"
     # unins000.exe 会把自己复制到临时目录再继续，原进程很快退出：等它真的删完。
     $gone = Wait-Until { -not (Test-Path -LiteralPath $unins) } 90
     Check $gone 'uninstaller finished (unins000.exe removed)'
