@@ -42,15 +42,26 @@ class FlutifyDialog extends StatelessWidget {
     final bottom =
         context.tokens.hyperMaterial &&
         MediaQuery.sizeOf(context).width < 600;
-    return Align(
-      alignment: bottom ? Alignment.bottomCenter : Alignment.center,
-      child: Padding(
-        padding: bottom
-            ? const EdgeInsets.fromLTRB(16, 24, 16, 24)
-            : const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
-        child: Material(
-          type: MaterialType.transparency,
-          child: M3EComponentTheme(builder: _buildDialog),
+    final inset = bottom
+        ? const EdgeInsets.fromLTRB(16, 24, 16, 24)
+        : const EdgeInsets.symmetric(horizontal: 40, vertical: 24);
+    // 与 Material [Dialog] 一致：让出软键盘占用的区域，避免输入框被键盘遮挡
+    return AnimatedPadding(
+      padding: MediaQuery.viewInsetsOf(context) + inset,
+      duration: const Duration(milliseconds: 100),
+      curve: Curves.decelerate,
+      child: MediaQuery.removeViewInsets(
+        removeLeft: true,
+        removeTop: true,
+        removeRight: true,
+        removeBottom: true,
+        context: context,
+        child: Align(
+          alignment: bottom ? Alignment.bottomCenter : Alignment.center,
+          child: Material(
+            type: MaterialType.transparency,
+            child: M3EComponentTheme(builder: _buildDialog),
+          ),
         ),
       ),
     );

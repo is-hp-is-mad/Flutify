@@ -58,4 +58,40 @@ void main() {
         .first;
     expect(tester.getSize(surface).height, lessThan(300));
   });
+
+  testWidgets('键盘弹起时对话框整体上移，输入框与按钮不被遮挡', (tester) async {
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1;
+    tester.view.viewInsets = const FakeViewPadding(bottom: 360);
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: FlutifyDialog(
+          title: '反代',
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (var i = 0; i < 6; i++) const SizedBox(height: 40),
+                const TextField(key: ValueKey('field')),
+              ],
+            ),
+          ),
+          actions: [TextButton(onPressed: () {}, child: const Text('应用'))],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(tester.getBottomLeft(find.text('应用')).dy, lessThanOrEqualTo(440));
+
+    await tester.tap(find.byKey(const ValueKey('field')));
+    await tester.pumpAndSettle();
+    expect(
+      tester.getBottomLeft(find.byKey(const ValueKey('field'))).dy,
+      lessThanOrEqualTo(440),
+    );
+  });
 }
