@@ -1,7 +1,7 @@
 // 决定本次 Build 运行要不要编译、发到哪个通道、打什么标签。
 //
 // 三个通道（每次编译都发布，区别只在通道）：
-// - self-test：推送到 main 自动发，开发者自测用；
+// - self-test：具有仓库写 / 管理权限的人推送到 main 自动发，开发者自测用（PR、外部贡献者不发）；
 // - beta：某个 self-test 版经人工确认没问题后，手动运行工作流提升；
 // - release：正式版。每天定时运行，最新 beta 发布满 24 小时且之后没有任何新开的 issue 才自动发；也可手动提升。
 //
@@ -119,7 +119,11 @@ function releaseConfig(env, deps) {
   const tag = `v${base}.${build}${SUFFIX[channel]}`;
   const existing = deps.resolveTag(tag);
   if (existing && existing !== sha) throw new Error(`Tag ${tag} points to another commit.`);
-  const isAutoRun = env.GITHUB_EVENT_NAME === 'push' || env.GITHUB_EVENT_NAME === 'pull_request';
+  // 自动构建（push / PR）默认只编译不发布；只有「仓库管理权限人员（admin / maintain / write）推送到 main」
+  // 触发的构建才发 self-test。PR、fork、其他分支、无权限者推送一律不发布。
+  const trustedPush = env.GITHUB_EVENT_NAME === 'push' && env.GITHUB_REF === 'refs/heads/main' &&
+    Boolean(deps.actorCanPublish && deps.actorCanPublish(env.GITHUB_ACTOR));
+  const isAutoRun = (env.GITHUB_EVENT_NAME === 'push' || env.GITHUB_EVENT_NAME === 'pull_request') && !trustedPush;
   const useReleaseSigning = !isAutoRun
     || (env.GITHUB_EVENT_NAME === 'push' && env.GITHUB_REF === 'refs/heads/main');
   return {
@@ -163,6 +167,13 @@ if (require.main === module) {
             encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'],
           }).trim());
         } catch { return null; }
+      },
+      actorCanPublish: (actor) => {
+        if (!/^[A-Za-z0-9-]{1,39}(\[bot\])?$/.test(actor || '')) return false;
+        try {
+          const role = gh(['api', `repos/${repo}/collaborators/${actor}/permission`, '--jq', '.permission']).trim();
+          return ['admin', 'maintain', 'write'].includes(role);
+        } catch { return false; }
       },
       listReleases: () => releases ??= JSON.parse(gh([
         'api', `repos/${repo}/releases?per_page=100`, '--jq', '[.[] | {tag_name, draft, published_at}]',

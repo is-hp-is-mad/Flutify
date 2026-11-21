@@ -56,6 +56,17 @@ test('auto-runs (push/PR) only build (no publish, no tests); manual dispatch pub
   assert.equal(pr.use_release_signing, 'false');
 });
 
+test('only a pusher with repository write access publishes a self-test from main', () => {
+  const trusted = { ...deps(), actorCanPublish: (a) => a === 'owner' };
+  const ok = releaseConfig({ ...base, GITHUB_ACTOR: 'owner' }, trusted);
+  assert.equal(ok.publish, 'true');
+  assert.equal(ok.run_tests, 'true');
+  assert.equal(ok.channel, 'self-test');
+  assert.equal(releaseConfig({ ...base, GITHUB_ACTOR: 'stranger' }, trusted).publish, 'false');
+  assert.equal(releaseConfig({ ...base, GITHUB_ACTOR: 'owner', GITHUB_REF: 'refs/heads/feature' }, trusted).publish, 'false');
+  assert.equal(releaseConfig({ ...base, GITHUB_ACTOR: 'owner', GITHUB_EVENT_NAME: 'pull_request' }, trusted).publish, 'false');
+});
+
 test('beta is only produced from a published self-test build after manual confirmation', () => {
   const env = { ...base, GITHUB_EVENT_NAME: 'workflow_dispatch', CHANNEL: 'beta', SOURCE_TAG: 'v0.18.140-selftest' };
   const state = deps({ releases: [release('v0.18.140-selftest')] });

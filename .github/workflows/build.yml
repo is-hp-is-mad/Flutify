@@ -1,5 +1,5 @@
 # 构建并发布 Android / Windows / macOS / Linux 安装包。每次编译都会打标签发布，区别只在通道：
-# - self-test：推送到 main 自动发布，开发者自测用（预发布）。
+# - self-test：具有仓库写 / 管理权限的人推送到 main 自动发布，开发者自测用（预发布）；PR、外部贡献者触发的构建只编译不发布。
 # - beta：手动运行，选 channel=beta、填要提升的 self-test 标签，并勾选「已亲自验证」才会编译发布（预发布）。
 # - release：正式版。每天 10:00（北京时间）定时运行：最新 beta 发布满 24 小时且之后没有任何新开的 issue 才自动发布；
 #   也可手动运行，把某个 beta 标签提升为正式版。
@@ -71,7 +71,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+      - if: github.event_name != 'pull_request'
         run: node --test tool/test_*.cjs
       - id: config
         env:
@@ -79,6 +79,7 @@ jobs:
           CHANNEL: ${{ inputs.channel }}
           SOURCE_TAG: ${{ inputs.source_tag }}
           CONFIRMED: ${{ inputs.confirmed_tested }}
+          GITHUB_ACTOR: ${{ github.actor }}
         run: node tool/release_config.cjs
 
   android:
