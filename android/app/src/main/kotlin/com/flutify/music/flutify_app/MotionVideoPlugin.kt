@@ -61,12 +61,13 @@ class MotionVideoPlugin private constructor(
             when (call.method) {
                 "create" -> {
                     val bytes = call.argument<ByteArray>("bytes")
-                    if (bytes == null || bytes.isEmpty()) {
-                        result.error("motion_video_args", "create 需要 bytes", null)
+                    val url = call.argument<String>("url")
+                    if ((bytes == null || bytes.isEmpty()) && url.isNullOrEmpty()) {
+                        result.error("motion_video_args", "create 需要 bytes 或 url", null)
                         return
                     }
                     val playing = call.argument<Boolean>("playing") ?: true
-                    result.success(create(bytes, playing))
+                    result.success(create(bytes, url, playing))
                 }
                 "setPlaying" -> {
                     val video = videos[call.argument<Number>("id")?.toLong()]
@@ -84,12 +85,20 @@ class MotionVideoPlugin private constructor(
         }
     }
 
-    private fun create(bytes: ByteArray, playing: Boolean): Long {
+    private fun create(bytes: ByteArray?, url: String?, playing: Boolean): Long {
         val producer = textures.createSurfaceProducer()
         val id = producer.id()
-        cacheDir.mkdirs()
-        val file = File(cacheDir, "$id.mp4")
-        file.writeBytes(bytes)
+        val file: File?
+        val mediaUri: Uri
+        if (bytes != null && bytes.isNotEmpty()) {
+            cacheDir.mkdirs()
+            file = File(cacheDir, "$id.mp4")
+            file.writeBytes(bytes)
+            mediaUri = Uri.fromFile(file)
+        } else {
+            file = null
+            mediaUri = Uri.parse(url!!)
+        }
 
         val player = ExoPlayer.Builder(context)
             .setMediaSourceFactory(DefaultMediaSourceFactory(context, extractorsFactory()))
@@ -138,7 +147,7 @@ class MotionVideoPlugin private constructor(
             }
         })
 
-        player.setMediaItem(MediaItem.fromUri(Uri.fromFile(file)))
+        player.setMediaItem(MediaItem.fromUri(mediaUri))
         player.playWhenReady = playing
         player.prepare()
         return id
@@ -147,12 +156,12 @@ class MotionVideoPlugin private constructor(
     private class Video(
         val producer: TextureRegistry.SurfaceProducer,
         val player: ExoPlayer,
-        val file: File,
+        val file: File?,
     ) {
         fun release() {
             player.release()
             producer.release()
-            file.delete()
+            file?.delete()
         }
     }
 }

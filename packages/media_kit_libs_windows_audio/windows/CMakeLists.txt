@@ -12,11 +12,11 @@ if(FLUTTER_TARGET_PLATFORM STREQUAL "windows-arm64")
   set(LIBMPV_URL "https://github.com/media-kit/libmpv-win32-video-cmake/releases/download/20241021/${LIBMPV}")
   set(LIBMPV_SHA256 "d445d02ab2ee60b1b5988f08ce4d2394cdcc594e98321b746a313313e96133ae")
 elseif(FLUTTER_TARGET_PLATFORM STREQUAL "windows-x64")
-  # Flutify: switched from audio-only to video build to enable native texture
-  # video playback for artist motion videos on desktop (instead of WebView).
-  set(LIBMPV "mpv-dev-x86_64-20230924-git-652a1dd.7z")
-  set(LIBMPV_URL "https://github.com/media-kit/libmpv-win32-video-build/releases/download/2023-09-24/${LIBMPV}")
-  set(LIBMPV_SHA256 "d5f0694b08c124e785d858d00082f3e3b158dd9138bfc48c0382bf1eb443a5fc")
+  # Flutify: uses the video-enabled libmpv build (matching ARM64) for native
+  # texture video playback (artist motion video, watch feed, canvas artwork).
+  set(LIBMPV "mpv-dev-x86_64-20241021-git-0f78584.7z")
+  set(LIBMPV_URL "https://github.com/media-kit/libmpv-win32-video-cmake/releases/download/20241021/${LIBMPV}")
+  set(LIBMPV_SHA256 "e23701df0adc1fe57c8ede3ff313513b0b80519870058c2d35ff02754284a007")
 else()
   message(FATAL_ERROR "Unsupported libmpv target: ${FLUTTER_TARGET_PLATFORM}")
 endif()

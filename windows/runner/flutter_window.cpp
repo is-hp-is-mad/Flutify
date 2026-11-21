@@ -37,6 +37,9 @@ bool FlutterWindow::OnCreate() {
   media_controls_ = std::make_unique<MediaControls>(GetHandle(), messenger);
   snap_layout_ = std::make_unique<SnapLayout>(GetHandle(), flutter_controller_->view()->GetNativeWindow(), messenger);
   taskbar_lyrics_ = std::make_unique<TaskbarLyrics>(GetHandle(), messenger);
+  motion_video_ = std::make_unique<MotionVideoPlugin>(
+      flutter_controller_->engine()->GetRegistrarForPlugin("MotionVideoPlugin"),
+      messenger);
   protocol_ = std::make_unique<protocol_handler::ProtocolChannel>(
       messenger, std::move(initial_link_));
   protocol_handler::MarkMainWindow(GetHandle());
@@ -55,6 +58,7 @@ bool FlutterWindow::OnCreate() {
 
 void FlutterWindow::OnDestroy() {
   // 先于引擎释放：它们持有引擎的 MethodChannel
+  motion_video_ = nullptr;
   taskbar_lyrics_ = nullptr;
   protocol_ = nullptr;
   trust_store_ = nullptr;

@@ -8,6 +8,7 @@
 #endif
 
 #include "flutter/generated_plugin_registrant.h"
+#include "motion_video_plugin.h"
 
 struct _MyApplication {
   GtkApplication parent_instance;
@@ -96,6 +97,10 @@ static void my_application_activate(GApplication* application) {
   gtk_widget_realize(GTK_WIDGET(view));
 
   fl_register_plugins(FL_PLUGIN_REGISTRY(view));
+  g_autoptr(FlPluginRegistrar) motion_video_registrar =
+      fl_plugin_registry_get_registrar_for_plugin(FL_PLUGIN_REGISTRY(view),
+                                                  "MotionVideoPlugin");
+  motion_video_plugin_register(motion_video_registrar);
 
   g_autoptr(FlStandardMethodCodec) codec = fl_standard_method_codec_new();
   self->protocol_channel = fl_method_channel_new(

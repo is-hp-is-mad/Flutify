@@ -1,69 +1,126 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io' show Platform;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 import '../../core/platform/flutify_platform.dart';
-import '../../services/eme/eme_player.dart';
-import 'mpv_looping_video.dart';
 
-/// 静音循环播放一段 MP4（铺满、居中裁切）。
+/// 将 fMP4（`moof` -> `traf` -> `tfdt`）的首个 `baseMediaDecodeTime` 归零。
 ///
-/// 第一帧出现前、失败或超时时显示 [placeholder]（通常是同一位艺人的静态照片），
-/// 因此调用方总能直接叠在照片上。[playing] 为 false 时保留播放器、停在当前帧。
+/// Apple Music 的 HLS fMP4 常从 10s 开始计时；归零后在 macOS AVPlayer、
+/// Windows / Linux libmpv 以及 Android ExoPlayer 上都能从 0s 立即起播并无缝循环。
+@visibleForTesting
+Uint8List normalizeFmp4Tfdt(Uint8List bytes) {
+  if (bytes.length < 16) return bytes;
+  final view = ByteData.sublistView(bytes);
+  int? baseTime;
+  final patches = <({int offset, int version, int value})>[];
+
+  void scanBoxes(int start, int end) {
+    var pos = start;
+    while (pos + 8 <= end) {
+      var boxSize = view.getUint32(pos);
+      final type = view.getUint32(pos + 4);
+      var headerSize = 8;
+      if (boxSize == 1) {
+        if (pos + 16 > end) break;
+        boxSize = view.getUint64(pos + 8);
+        headerSize = 16;
+      } else if (boxSize == 0) {
+        boxSize = end - pos;
+      }
+      if (boxSize < headerSize || pos + boxSize > end) break;
+      final boxEnd = pos + boxSize;
+
+      // 'moof' = 0x6d6f6f66, 'traf' = 0x74726166, 'tfdt' = 0x74666474
+      if (type == 0x6d6f6f66 || type == 0x74726166) {
+        scanBoxes(pos + headerSize, boxEnd);
+      } else if (type == 0x74666474 && pos + headerSize + 4 <= boxEnd) {
+        final version = bytes[pos + headerSize];
+        final timeOffset = pos + headerSize + 4;
+        if (version == 0 && timeOffset + 4 <= boxEnd) {
+          final t = view.getUint32(timeOffset);
+          baseTime ??= t;
+          if (baseTime! > 0 && t >= baseTime!) {
+            patches.add((offset: timeOffset, version: 0, value: t - baseTime!));
+          }
+        } else if (version == 1 && timeOffset + 8 <= boxEnd) {
+          final t = view.getUint64(timeOffset);
+          baseTime ??= t;
+          if (baseTime! > 0 && t >= baseTime!) {
+            patches.add((offset: timeOffset, version: 1, value: t - baseTime!));
+          }
+        }
+      }
+      pos = boxEnd;
+    }
+  }
+
+  scanBoxes(0, bytes.length);
+  if (patches.isEmpty || (baseTime ?? 0) == 0) return bytes;
+
+  final copy = Uint8List.fromList(bytes);
+  final outView = ByteData.sublistView(copy);
+  for (final p in patches) {
+    if (p.version == 0) {
+      outView.setUint32(p.offset, p.value);
+    } else {
+      outView.setUint64(p.offset, p.value);
+    }
+  }
+  return copy;
+}
+
+/// 静音循环播放一段 MP4（铺满、居中裁切），四端均走原生纹理（`com.flutify/motion_video`）：
 ///
-/// - Android：原生 ExoPlayer 硬解到 Flutter 纹理（`MotionVideoPlugin`），与页面同层合成，
-///   滚动、缩放都不经过平台视图；应用退到后台或页面被盖住时自动暂停。
-/// - Windows / macOS / Linux：media_kit（libmpv）硬解到 Flutter 纹理，与 Android 同等效果。
-/// - iOS：内容以 data: URL 交给内嵌 WebView 的 `<video>`，CSP 禁止一切网络请求。
+/// - Android：ExoPlayer 硬解到 Flutter `SurfaceProducer` 纹理；
+/// - Windows：libmpv 解码到 Flutter PixelBuffer 纹理；
+/// - Linux：libmpv 解码到 Flutter `FlPixelBufferTexture` 纹理；
+/// - macOS：AVPlayer + `AVPlayerItemVideoOutput` 硬解到 Flutter `CVPixelBuffer` 纹理。
+///
+/// 第一帧出现前、失败或超时时显示 [placeholder]；[playing] 为 false 时保留播放器、停在当前帧；
+/// [active] 为 false 时不创建原生播放器，直接显示 [placeholder]。
 class MotionVideo extends StatelessWidget {
-  final Uint8List bytes;
+  final Uint8List? bytes;
+  final String? url;
   final Widget placeholder;
+  final bool active;
   final bool playing;
 
   const MotionVideo({
     super.key,
-    required this.bytes,
+    this.bytes,
+    this.url,
     required this.placeholder,
+    this.active = true,
     this.playing = true,
-  });
+  }) : assert(bytes != null || url != null, 'bytes 或 url 至少传一个');
 
   @override
   Widget build(BuildContext context) {
-    if (FlutifyPlatform.isTest) return placeholder;
-    if (!kIsWeb && Platform.isAndroid) {
-      return _TextureMotionVideo(
-        bytes: bytes,
-        placeholder: placeholder,
-        playing: playing,
-      );
-    }
-    // 桌面端（Windows / macOS / Linux）：media_kit 纹理播放
-    if (mpvVideoSupported) {
-      return MpvLoopingVideo(
-        bytes: bytes,
-        placeholder: placeholder,
-        playing: playing,
-      );
-    }
-    // iOS 仍走 WebView；不支持 WebView 的平台显示占位
-    if (!FlutifyPlatform.supportsInAppWebView) return placeholder;
-    return _WebMotionVideo(bytes: bytes, placeholder: placeholder);
+    if (FlutifyPlatform.isTest || !active) return placeholder;
+    final hasBytes = bytes != null && bytes!.isNotEmpty;
+    final hasUrl = url != null && url!.startsWith('https://');
+    if (!hasBytes && !hasUrl) return placeholder;
+    return _TextureMotionVideo(
+      bytes: hasBytes ? bytes : null,
+      url: hasBytes ? null : url,
+      placeholder: placeholder,
+      playing: playing,
+    );
   }
 }
 
-/// Android 纹理实现：每个实例对应原生侧一个播放器，纹理 id 即实例 id。
+/// 原生纹理实现：每个实例对应原生侧一个播放器，纹理 id 即实例 id。
 class _TextureMotionVideo extends StatefulWidget {
-  final Uint8List bytes;
+  final Uint8List? bytes;
+  final String? url;
   final Widget placeholder;
   final bool playing;
 
   const _TextureMotionVideo({
     required this.bytes,
+    required this.url,
     required this.placeholder,
     required this.playing,
   });
@@ -93,6 +150,7 @@ class _TextureMotionVideoState extends State<_TextureMotionVideo>
           state.setState(() => state._size = Size(width, height));
         }
       case 'ready':
+        state._timeout?.cancel();
         state.setState(() => state._ready = true);
       case 'error':
         state._fail();
@@ -105,6 +163,7 @@ class _TextureMotionVideoState extends State<_TextureMotionVideo>
   bool _failed = false;
   bool _foreground = true;
   bool _visible = true;
+  Timer? _timeout;
 
   /// 已告知原生侧的播放状态，避免重复调用。
   bool? _sentPlaying;
@@ -138,7 +197,8 @@ class _TextureMotionVideoState extends State<_TextureMotionVideo>
   @override
   void didUpdateWidget(covariant _TextureMotionVideo oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!identical(oldWidget.bytes, widget.bytes)) {
+    if (!identical(oldWidget.bytes, widget.bytes) ||
+        oldWidget.url != widget.url) {
       _release();
       _size = null;
       _ready = _failed = false;
@@ -161,12 +221,26 @@ class _TextureMotionVideoState extends State<_TextureMotionVideo>
     super.dispose();
   }
 
+  void _armTimeout(int revision) {
+    _timeout?.cancel();
+    if (!_shouldPlay || _ready) return;
+    _timeout = Timer(const Duration(seconds: 10), () {
+      if (mounted && revision == _revision && !_ready && _shouldPlay) {
+        _fail();
+      }
+    });
+  }
+
   Future<void> _create() async {
     final revision = _revision;
     final playing = _shouldPlay;
+    _armTimeout(revision);
     try {
+      final rawBytes = widget.bytes;
+      final normalized = rawBytes != null ? normalizeFmp4Tfdt(rawBytes) : null;
       final id = await _channel.invokeMethod<int>('create', {
-        'bytes': widget.bytes,
+        'bytes': ?normalized,
+        'url': ?widget.url,
         'playing': playing,
       });
       if (id == null) return _fail();
@@ -186,6 +260,11 @@ class _TextureMotionVideoState extends State<_TextureMotionVideo>
   void _syncPlaying() {
     final id = _id;
     final playing = _shouldPlay;
+    if (playing && !_ready) {
+      _armTimeout(_revision);
+    } else if (!playing) {
+      _timeout?.cancel();
+    }
     if (id == null || _sentPlaying == playing) return;
     _sentPlaying = playing;
     _channel
@@ -195,6 +274,8 @@ class _TextureMotionVideoState extends State<_TextureMotionVideo>
 
   void _release() {
     _revision++;
+    _timeout?.cancel();
+    _timeout = null;
     final id = _id;
     _id = null;
     _sentPlaying = null;
@@ -245,115 +326,4 @@ class _TextureMotionVideoState extends State<_TextureMotionVideo>
       ],
     );
   }
-}
-
-// ---------------------------------------------------------------------------
-// iOS：WebView base64 播放（保留兼容）
-// ---------------------------------------------------------------------------
-
-class _WebMotionVideo extends StatefulWidget {
-  final Uint8List bytes;
-  final Widget placeholder;
-
-  const _WebMotionVideo({required this.bytes, required this.placeholder});
-
-  @override
-  State<_WebMotionVideo> createState() => _WebMotionVideoState();
-}
-
-class _WebMotionVideoState extends State<_WebMotionVideo> {
-  late String _html = _buildHtml(widget.bytes);
-  int _revision = 0;
-  bool _ready = false;
-  bool _failed = false;
-  Timer? _timeout;
-
-  @override
-  void didUpdateWidget(covariant _WebMotionVideo oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (!identical(oldWidget.bytes, widget.bytes)) {
-      _timeout?.cancel();
-      _revision++;
-      _html = _buildHtml(widget.bytes);
-      _ready = _failed = false;
-    }
-  }
-
-  @override
-  void dispose() {
-    _revision++;
-    _timeout?.cancel();
-    super.dispose();
-  }
-
-  void _fail(int revision) {
-    if (!mounted || revision != _revision) return;
-    _timeout?.cancel();
-    setState(() => _failed = true);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_failed) return widget.placeholder;
-    final revision = _revision;
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        widget.placeholder,
-        IgnorePointer(
-          child: InAppWebView(
-            key: ValueKey(revision),
-            webViewEnvironment: EmePlayer.cachedEnvironment,
-            initialSettings: InAppWebViewSettings(
-              mediaPlaybackRequiresUserGesture: false,
-              allowsInlineMediaPlayback: true,
-              transparentBackground: true,
-              disableContextMenu: true,
-              supportZoom: false,
-              disableHorizontalScroll: true,
-              disableVerticalScroll: true,
-            ),
-            initialData: InAppWebViewInitialData(data: _html),
-            onWebViewCreated: (controller) {
-              if (!mounted || revision != _revision) return;
-              _timeout?.cancel();
-              _timeout = Timer(
-                const Duration(seconds: 10),
-                () => _fail(revision),
-              );
-              controller.addJavaScriptHandler(
-                handlerName: 'videoReady',
-                callback: (_) {
-                  if (!mounted || revision != _revision) return;
-                  _timeout?.cancel();
-                  setState(() => _ready = true);
-                },
-              );
-              controller.addJavaScriptHandler(
-                handlerName: 'videoError',
-                callback: (_) => _fail(revision),
-              );
-            },
-            onReceivedError: (_, _, _) => _fail(revision),
-          ),
-        ),
-        // 照片盖在 WebView 上直到第一帧出现，避免透明 / 黑色闪烁
-        if (!_ready) IgnorePointer(child: widget.placeholder),
-      ],
-    );
-  }
-
-  static String _buildHtml(Uint8List bytes) =>
-      '''<!doctype html><html><head>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; media-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
-<style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}video{width:100%;height:100%;object-fit:cover}</style>
-</head><body><video id="v" muted loop playsinline disablepictureinpicture src="data:video/mp4;base64,${base64Encode(bytes)}"></video>
-<script>const v=document.getElementById('v');v.muted=true;v.volume=0;
-function start(){v.play().catch(()=>window.flutter_inappwebview.callHandler('videoError'));}
-v.onplaying=()=>window.flutter_inappwebview.callHandler('videoReady');
-v.onerror=()=>window.flutter_inappwebview.callHandler('videoError');
-document.addEventListener('visibilitychange',()=>document.hidden?v.pause():start());
-if(window.flutter_inappwebview&&window.flutter_inappwebview.callHandler)start();else window.addEventListener('flutterInAppWebViewPlatformReady',start);
-</script></body></html>''';
 }

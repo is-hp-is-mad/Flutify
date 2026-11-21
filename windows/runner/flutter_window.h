@@ -8,6 +8,7 @@
 #include <string>
 
 #include "media_controls.h"
+#include "motion_video_plugin.h"
 #include "protocol_handler.h"
 #include "snap_layout.h"
 #include "system_proxy_windows.h"
@@ -47,6 +48,7 @@ class FlutterWindow : public Win32Window {
 
   // 任务栏歌词（嵌入 Windows 任务栏的歌词窗口）。
   std::unique_ptr<TaskbarLyrics> taskbar_lyrics_;
+  std::unique_ptr<MotionVideoPlugin> motion_video_;
   std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> trust_store_;
   std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>>
       system_proxy_;
