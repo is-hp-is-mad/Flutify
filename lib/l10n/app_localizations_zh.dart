@@ -22,7 +22,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get appTitle => 'Flutify';
 
   @override
-  String get shellBack => '后退';
+  String get shellBack => '返回';
 
   @override
   String get shellForward => '前进';
@@ -34,10 +34,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get shellSearchShortcut => 'Ctrl K';
 
   @override
-  String get shellAccountMenu => '账号';
+  String get shellAccountMenu => '帐号';
 
   @override
-  String get shellCollapseLibrary => '收起音乐库';
+  String get shellCollapseLibrary => '折叠音乐库';
 
   @override
   String get shellExpandLibrary => '展开音乐库';
@@ -81,13 +81,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get menuPlayback => '播放';
 
   @override
-  String get menuNavigate => '导航';
+  String get menuNavigate => '浏览';
 
   @override
   String get menuEdit => '编辑';
 
   @override
-  String get menuUndo => '撤销';
+  String get menuUndo => '撤消';
 
   @override
   String get menuRedo => '重做';
@@ -96,13 +96,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get menuCut => '剪切';
 
   @override
-  String get menuCopy => '拷贝';
+  String get menuCopy => '复制';
 
   @override
   String get menuPaste => '粘贴';
 
   @override
-  String get menuSelectAll => '全选';
+  String get menuSelectAll => '选择全部';
 
   @override
   String get menuWindow => '窗口';
@@ -126,7 +126,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get commonClear => '清除';
 
   @override
-  String get commonRemove => '移除';
+  String get commonRemove => '删除';
 
   @override
   String get commonRetry => '重试';
@@ -189,7 +189,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get podcastPlayed => '已播完';
+  String get podcastPlayed => '已播放';
 
   @override
   String podcastResumeFrom(String position) {
@@ -209,7 +209,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get typeSingle => '单曲';
 
   @override
-  String get typeCompilation => '合辑';
+  String get typeCompilation => '精选辑';
 
   @override
   String get filterAll => '全部';
@@ -268,7 +268,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get greetingMorning => '早上好';
+  String get greetingMorning => '早晨';
 
   @override
   String get greetingAfternoon => '下午好';
@@ -286,13 +286,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get likeAdd => '添加到已点赞的歌曲';
 
   @override
-  String get likeRemove => '从已点赞的歌曲中移除';
+  String get likeRemove => '从已点赞的歌曲中删除';
 
   @override
-  String get libraryAdd => '保存到音乐库';
+  String get libraryAdd => '收藏至音乐库';
 
   @override
-  String get libraryRemove => '从音乐库中移除';
+  String get libraryRemove => '从音乐库中删除';
 
   @override
   String get homeLoadFailedTitle => '无法加载推荐内容';
@@ -317,7 +317,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get homeEmptyMessage => '换个筛选标签看看，或稍后再来。';
 
   @override
-  String get homeClearFilter => '清除筛选';
+  String get homeClearFilter => '清除筛选条件';
 
   @override
   String get homePodcastUnsupported => '暂不支持播客，敬请期待';
@@ -332,7 +332,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get searchHint => '你想听什么？';
 
   @override
-  String get searchRecent => '最近搜索';
+  String get searchRecent => '最近的搜索记录';
 
   @override
   String get searchClearAll => '全部清除';
@@ -411,10 +411,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get libraryCreatePlaylist => '创建歌单';
 
   @override
-  String get libraryClearFilter => '清除筛选';
+  String get libraryClearFilter => '清除筛选条件';
 
   @override
-  String get librarySortRecent => '最近添加';
+  String get librarySortRecent => '最近添加的内容';
 
   @override
   String get librarySortAlphabetical => '按字母顺序';
@@ -469,16 +469,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get artistNoSongs => '暂无可显示的歌曲。';
 
   @override
-  String get artistDiscography => '作品';
+  String get artistDiscography => '唱片目录';
 
   @override
   String get artistFollow => '关注';
 
   @override
-  String get artistFollowing => '已关注';
+  String get artistFollowing => '关注中';
 
   @override
-  String get artistLatestRelease => '最新发行';
+  String get artistLatestRelease => '最新发布';
 
   @override
   String get artistAlbums => '专辑';
@@ -537,13 +537,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get playerShuffleOff => '关闭随机播放';
 
   @override
-  String get playerRepeatOn => '开启列表循环';
+  String get playerRepeatOn => '开启循环播放';
 
   @override
   String get playerRepeatOneOn => '开启单曲循环';
 
   @override
-  String get playerRepeatOff => '关闭循环';
+  String get playerRepeatOff => '关闭循环播放';
 
   @override
   String get playerNext => '下一首';
@@ -643,10 +643,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get detailLoadFailed => '暂时无法加载，请检查网络后重试';
 
   @override
-  String get queueTitle => '播放队列';
+  String get queueTitle => '队列';
 
   @override
-  String get queueNextInQueue => '队列中的下一首';
+  String get queueNextInQueue => '队列中的下一首歌';
 
   @override
   String get queueClear => '清空队列';
@@ -747,10 +747,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get connectOtherDevices => '选择其他设备';
 
   @override
-  String get connectNoDevices => '没有找到其他设备';
+  String get connectNoDevices => '未发现其他设备';
 
   @override
-  String get connectNoDevicesHint => '在手机、电脑或音箱上打开 Spotify，并登录同一账号';
+  String get connectNoDevicesHint => '在手机、电脑或音箱上打开 Spotify，并登录同一帐号';
 
   @override
   String get connectUnavailable => '使用桌面版方式登录后，即可遥控其他设备上的 Spotify';
@@ -765,7 +765,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get connectSameNetwork => '同一网络';
 
   @override
-  String get connectCommandFailed => '操作未成功：免费账号可能不支持远程执行此操作';
+  String get connectCommandFailed => '操作未成功：免费帐号可能不支持远程执行此操作';
 
   @override
   String connectVolumeUnsupported(String device) {
@@ -776,19 +776,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get connectVolume => '设备音量';
 
   @override
-  String get trackAddToPlaylist => '添加到歌单';
+  String get trackAddToPlaylist => '加入歌单';
 
   @override
-  String get trackAddToQueue => '添加到播放队列';
+  String get trackAddToQueue => '加入播放队列';
 
   @override
-  String get trackGoToAlbum => '前往专辑';
+  String get trackGoToAlbum => '转至专辑';
 
   @override
-  String get trackGoToRadio => '前往歌曲电台';
+  String get trackGoToRadio => '转至歌曲电台';
 
   @override
-  String get trackViewCredits => '查看制作人员';
+  String get trackViewCredits => '查看制作人';
 
   @override
   String get creditsTitle => '制作人员';
@@ -807,7 +807,7 @@ class AppLocalizationsZh extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '前往艺人',
+      other: '转至艺人',
     );
     return '$_temp0';
   }
@@ -831,7 +831,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get toastLikeRemoved => '已从已点赞的歌曲中移除';
 
   @override
-  String get toastAddedToQueue => '已添加到播放队列';
+  String get toastAddedToQueue => '已加入播放队列';
 
   @override
   String get shareCopyLink => '复制链接';
@@ -846,7 +846,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get shareCopied => '已复制';
 
   @override
-  String get shareEmbedTitle => '嵌入代码';
+  String get shareEmbedTitle => '嵌入';
 
   @override
   String get shareEmbedSubtitle => '粘贴到网页 HTML 中，即可展示 Spotify 播放器';
@@ -1187,7 +1187,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsLyricsSourceDisabled => '已在「补全歌词」中关闭';
 
   @override
-  String get settingsLyricsSourceDrag => '拖动排序';
+  String get settingsLyricsSourceDrag => '拖动即可重新排序';
 
   @override
   String get settingsLyricsBilingual => '社区歌词翻译';
@@ -1229,7 +1229,7 @@ class AppLocalizationsZh extends AppLocalizations {
       '在澎湃 OS 小组件列表底部的「安卓小组件」分区找到 Flutify，也可点「添加」直接放到桌面，长按可调整大小';
 
   @override
-  String get homeWidgetNowPlaying => '播放条';
+  String get homeWidgetNowPlaying => '当前播放栏';
 
   @override
   String get homeWidgetNowPlayingDesc => '细长横条，封面、歌名与上一首 / 播放 / 下一首；默认 4×1';
@@ -1399,7 +1399,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsConnectEnabled => '启用 Spotify Connect';
 
   @override
-  String get settingsConnectEnabledSubtitle => '显示并遥控同一账号在其他设备上的播放';
+  String get settingsConnectEnabledSubtitle => '显示并遥控同一帐号在其他设备上的播放';
 
   @override
   String get settingsConnectDeviceName => '设备名称';
@@ -1586,7 +1586,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsLicenses => '开源许可';
 
   @override
-  String get shortcutPlayPause => '播放 / 暂停';
+  String get shortcutPlayPause => '播放/暂停';
 
   @override
   String get shortcutNext => '下一首';
@@ -1610,7 +1610,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get shortcutSearch => '搜索';
 
   @override
-  String get shortcutBack => '后退';
+  String get shortcutBack => '返回';
 
   @override
   String get shortcutForward => '前进';
@@ -1625,7 +1625,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get shortcutExitImmersive => '退出全屏歌词';
 
   @override
-  String get accountTitle => 'Spotify 账号';
+  String get accountTitle => 'Spotify 帐号';
 
   @override
   String get accountSignedOutMessage => '登录后同步你的音乐库';
@@ -1657,7 +1657,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get sleepTimerHour => '1 小时';
 
   @override
-  String get sleepTimerEndOfTrack => '本首结束时';
+  String get sleepTimerEndOfTrack => '曲目结束时';
 
   @override
   String get sleepTimerOff => '关闭定时器';
@@ -1714,7 +1714,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get trackViewCompact => '紧凑';
 
   @override
-  String get trackSearchHint => '在歌单中搜索';
+  String get trackSearchHint => '在歌单内搜索';
 
   @override
   String get trackSearchClose => '关闭搜索';
@@ -1725,7 +1725,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get addedToday => '今天';
+  String get addedToday => '今日';
 
   @override
   String addedDaysAgo(int count) {
@@ -1927,7 +1927,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get loginPasswordPrivate => 'Flutify 不接触你的密码';
 
   @override
-  String get loginOfficialPage => '使用 Spotify 官方页面完成账号登录';
+  String get loginOfficialPage => '使用 Spotify 官方页面完成帐号登录';
 
   @override
   String get loginRemoteDevices => '登录后可遥控你的其他 Spotify 设备';
@@ -1965,7 +1965,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get webLoginPreparing => '正在获取播放凭据…';
 
   @override
-  String get webLoginAuthorizing => '正在完成账号授权…';
+  String get webLoginAuthorizing => '正在完成帐号授权…';
 
   @override
   String get webLoginFinishing => '正在完成登录…';
@@ -1975,7 +1975,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get webLoginGoogleHint =>
-      '用 Google 注册的账号请用「邮箱 + 密码」登录；没有密码可先在 Spotify 官网通过「忘记密码」设置。';
+      '用 Google 注册的帐号请用「邮箱 + 密码」登录；没有密码可先在 Spotify 官网通过「忘记密码」设置。';
 
   @override
   String get loginBrowserFallback => '无法自动打开浏览器，登录链接已复制，请粘贴到浏览器中打开';
@@ -2008,7 +2008,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get updatesChannelRelease => '正式版（稳定）';
 
   @override
-  String get updatesChannelBeta => '测试版（Beta）';
+  String get updatesChannelBeta => '测试版';
 
   @override
   String get updatesChannelSelfTest => '自测版（开发者自测）';
@@ -2273,24 +2273,24 @@ class AppLocalizationsZh extends AppLocalizations {
   String get backupTitle => '歌单备份';
 
   @override
-  String get backupFooter => '查看各账号的已点赞歌曲和歌单，可勾选其中一部分一键导入当前账号。';
+  String get backupFooter => '查看各帐号的已点赞歌曲和歌单，可勾选其中一部分一键导入当前帐号。';
 
   @override
   String get backupUnsyncedTitle => '同步本机歌单到 Spotify';
 
   @override
   String backupUnsyncedSubtitle(int count) {
-    return '有 $count 个歌单只保存在本机，尚未写入账号音乐库';
+    return '有 $count 个歌单只保存在本机，尚未写入帐号音乐库';
   }
 
   @override
   String get backupEnable => '启用歌单备份';
 
   @override
-  String get backupEnableSubtitle => '自动备份本机账号，也可通过独立 WebView 备份其他账号的收藏歌单';
+  String get backupEnableSubtitle => '自动备份本机帐号，也可通过独立 WebView 备份其他帐号的收藏歌单';
 
   @override
-  String get backupAutoCurrent => '自动备份本机账号';
+  String get backupAutoCurrent => '自动备份本机帐号';
 
   @override
   String get backupAutoCurrentSubtitle => '收藏变动后立即保存，不等定时备份';
@@ -2317,32 +2317,32 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get backupAddAccount => '添加要同步歌单的账号';
+  String get backupAddAccount => '添加要同步歌单的帐号';
 
   @override
   String get backupAddAccountSubtitle =>
       '在独立 WebView 中登录 open.spotify.com，读取其收藏的歌单';
 
   @override
-  String get backupSyncToAccount => '一键同步已备份的歌单到本账号';
+  String get backupSyncToAccount => '一键同步已备份的歌单到本帐号';
 
   @override
-  String get backupSyncToAccountSubtitle => '把已勾选账号的已点赞歌曲并入本账号，歌单同步到本账号';
+  String get backupSyncToAccountSubtitle => '把已勾选帐号的已点赞歌曲并入本帐号，歌单同步到本帐号';
 
   @override
-  String get backupNow => '立即备份全部账号';
+  String get backupNow => '立即备份全部帐号';
 
   @override
-  String get backupNowSubtitle => '拉取各账号最新收藏并保存到本地';
+  String get backupNowSubtitle => '拉取各帐号最新收藏并保存到本地';
 
   @override
   String backupAccountAdded(String title, String liked, String playlists) {
-    return '已备份账号「$title」（$liked，$playlists）';
+    return '已备份帐号「$title」（$liked，$playlists）';
   }
 
   @override
   String backupAccountAddFailed(String error) {
-    return '添加备份账号失败：$error';
+    return '添加备份帐号失败：$error';
   }
 
   @override
@@ -2361,7 +2361,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get backupSavedAll => '已保存全部账号的收藏歌单';
+  String get backupSavedAll => '已保存全部帐号的收藏歌单';
 
   @override
   String backupSelectedHeader(int selected, int total) {
@@ -2374,10 +2374,10 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get backupBadgePrevious => '以前登录的账号';
+  String get backupBadgePrevious => '以前登录的帐号';
 
   @override
-  String get backupBadgeExternal => '外部备份账号';
+  String get backupBadgeExternal => '外部备份帐号';
 
   @override
   String backupAccountTitle(String title, String badge) {
@@ -2393,7 +2393,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get backupIncludeInSync => '参与一键同步';
 
   @override
-  String get backupRemoveAccount => '移除该备份账号';
+  String get backupRemoveAccount => '移除该备份帐号';
 
   @override
   String get backupExitMultiSelect => '退出多选';
@@ -2433,7 +2433,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get backupImportAsPlaylistShort => '导入为本账号歌单';
+  String get backupImportAsPlaylistShort => '导入为本帐号歌单';
 
   @override
   String backupLikedMerged(String songs, int added) {
@@ -2459,18 +2459,18 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get backupLoginTitle => '登录要备份的 Spotify 账号';
+  String get backupLoginTitle => '登录要备份的 Spotify 帐号';
 
   @override
   String get playlistSyncTitle => '同步歌单到 Spotify';
 
   @override
   String get playlistSyncIntro =>
-      '旧版本中收藏、新建或从备份导入的歌单只保存在本机，官方客户端和网页版看不到。勾选后写入当前账号：他人的歌单加入音乐库，本机歌单在账号中新建同名歌单。';
+      '旧版本中收藏、新建或从备份导入的歌单只保存在本机，官方客户端和网页版看不到。勾选后写入当前帐号：他人的歌单加入音乐库，本机歌单在帐号中新建同名歌单。';
 
   @override
   String playlistSyncDone(int count) {
-    return '同步完成：$count 个歌单已写入账号。';
+    return '同步完成：$count 个歌单已写入帐号。';
   }
 
   @override
@@ -2494,11 +2494,11 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String playlistSyncCreate(String songs) {
-    return '在账号中新建歌单（$songs）';
+    return '在帐号中新建歌单（$songs）';
   }
 
   @override
-  String get playlistSyncAdd => '加入音乐库';
+  String get playlistSyncAdd => '添加到音乐库';
 
   @override
   String get playlistSyncStateRunning => '正在同步…';
@@ -2518,7 +2518,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get playlistSyncPromptBody =>
-      '旧版本中收藏、新建或从备份导入的歌单只保存在本机，官方客户端和网页版看不到。现在收藏 / 取消收藏会同步到账号，之前遗留的歌单可补同步。\n\n之后也可在「设置 → 歌单备份」找到入口。';
+      '旧版本中收藏、新建或从备份导入的歌单只保存在本机，官方客户端和网页版看不到。现在收藏 / 取消收藏会同步到帐号，之前遗留的歌单可补同步。\n\n之后也可在「设置 → 歌单备份」找到入口。';
 
   @override
   String get playlistSyncPromptLater => '以后再说';
@@ -2615,7 +2615,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get libraryErrorNotSignedIn => '未登录，无法同步到 Spotify 账号';
+  String get libraryErrorNotSignedIn => '未登录，无法同步到 Spotify 帐号';
 
   @override
   String libraryErrorRead(String detail) {
@@ -2639,12 +2639,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String backupFailed(String detail) {
-    return '备份账号失败：$detail';
+    return '备份帐号失败：$detail';
   }
 
   @override
   String backupAccountFailed(String title, String detail) {
-    return '账号「$title」备份失败：$detail';
+    return '帐号「$title」备份失败：$detail';
   }
 
   @override
@@ -2669,25 +2669,25 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get appTitle => 'Flutify';
 
   @override
-  String get shellBack => '後退';
+  String get shellBack => '上一頁';
 
   @override
-  String get shellForward => '前進';
+  String get shellForward => '下一頁';
 
   @override
-  String get shellHome => '主頁';
+  String get shellHome => '首頁';
 
   @override
   String get shellSearchShortcut => 'Ctrl K';
 
   @override
-  String get shellAccountMenu => '帳號';
+  String get shellAccountMenu => '帳戶';
 
   @override
-  String get shellCollapseLibrary => '收起音樂庫';
+  String get shellCollapseLibrary => '收合「你的音樂庫」';
 
   @override
-  String get shellExpandLibrary => '展開音樂庫';
+  String get shellExpandLibrary => '展開「你的音樂庫」';
 
   @override
   String get shellPlaybackStatus => '播放狀態';
@@ -2707,7 +2707,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get shellSignInTitle => '登入後查看你的音樂庫';
 
   @override
-  String get shellSignInMessage => '收藏的歌單、專輯和藝人會顯示在這裡。';
+  String get shellSignInMessage => '收藏的播放清單、專輯和藝人會顯示在這裡。';
 
   @override
   String get shellSignIn => '登入';
@@ -2728,7 +2728,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get menuPlayback => '播放';
 
   @override
-  String get menuNavigate => '導覽';
+  String get menuNavigate => '瀏覽';
 
   @override
   String get menuEdit => '編輯';
@@ -2749,7 +2749,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get menuPaste => '貼上';
 
   @override
-  String get menuSelectAll => '全選';
+  String get menuSelectAll => '選擇全部';
 
   @override
   String get menuWindow => '視窗';
@@ -2761,7 +2761,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get commonCancel => '取消';
 
   @override
-  String get commonCreate => '創建';
+  String get commonCreate => '建立';
 
   @override
   String get commonDone => '完成';
@@ -2785,13 +2785,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get commonMoreOptions => '更多選項';
 
   @override
-  String get commonShowAll => '顯示全部';
+  String get commonShowAll => '顯示所有內容';
 
   @override
-  String get commonSeeMore => '查看更多';
+  String get commonSeeMore => '檢視更多';
 
   @override
-  String get commonShowLess => '收起';
+  String get commonShowLess => '顯示較少內容';
 
   @override
   String get commonSettings => '設定';
@@ -2805,13 +2805,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   }
 
   @override
-  String get navHome => '主頁';
+  String get navHome => '首頁';
 
   @override
-  String get navSearch => '搜索';
+  String get navSearch => '搜尋';
 
   @override
-  String get navLibrary => '音樂庫';
+  String get navLibrary => '你的音樂庫';
 
   @override
   String get typeTrack => '歌曲';
@@ -2820,10 +2820,10 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get typeArtist => '藝人';
 
   @override
-  String get typePlaylist => '歌單';
+  String get typePlaylist => '播放清單';
 
   @override
-  String get typePodcast => '播客';
+  String get typePodcast => 'Podcast';
 
   @override
   String podcastEpisodeCount(int count) {
@@ -2859,13 +2859,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get typeCompilation => '合輯';
 
   @override
-  String get filterAll => '全部';
+  String get filterAll => '所有';
 
   @override
   String get filterMusic => '音樂';
 
   @override
-  String get filterPodcasts => '播客';
+  String get filterPodcasts => 'Podcast';
 
   @override
   String get filterSongs => '歌曲';
@@ -2874,7 +2874,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get filterArtists => '藝人';
 
   @override
-  String get filterPlaylists => '歌單';
+  String get filterPlaylists => '播放清單';
 
   @override
   String get filterAlbums => '專輯';
@@ -2915,31 +2915,31 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   }
 
   @override
-  String get greetingMorning => '早上好';
+  String get greetingMorning => '早安';
 
   @override
-  String get greetingAfternoon => '下午好';
+  String get greetingAfternoon => '午安';
 
   @override
-  String get greetingEvening => '晚上好';
+  String get greetingEvening => '晚安';
 
   @override
-  String get likedSongs => '已點贊的歌曲';
+  String get likedSongs => '已按讚的歌曲';
 
   @override
   String get likedSongsDescription => '你喜歡的所有歌曲都在這裡。';
 
   @override
-  String get likeAdd => '添加到已點贊的歌曲';
+  String get likeAdd => '新增到已按讚的歌曲';
 
   @override
-  String get likeRemove => '從已點贊的歌曲中移除';
+  String get likeRemove => '從「已按讚的歌曲」中移除';
 
   @override
-  String get libraryAdd => '保存到音樂庫';
+  String get libraryAdd => '儲存至你的音樂庫';
 
   @override
-  String get libraryRemove => '從音樂庫中移除';
+  String get libraryRemove => '從你的音樂庫中移除';
 
   @override
   String get homeLoadFailedTitle => '無法載入推薦內容';
@@ -2964,13 +2964,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get homeEmptyMessage => '換個篩選標籤看看，或稍後再來。';
 
   @override
-  String get homeClearFilter => '清除篩選';
+  String get homeClearFilter => '清除篩選條件';
 
   @override
-  String get homePodcastUnsupported => '暫不支援播客，敬請期待';
+  String get homePodcastUnsupported => '暫不支援 Podcast，敬請期待';
 
   @override
-  String get homeTypePodcast => '播客';
+  String get homeTypePodcast => 'Podcast';
 
   @override
   String get homeTypeEpisode => '單集';
@@ -2979,7 +2979,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get searchHint => '你想聽什麼？';
 
   @override
-  String get searchRecent => '最近搜索';
+  String get searchRecent => '最近的搜尋';
 
   @override
   String get searchClearAll => '全部清除';
@@ -3049,19 +3049,19 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   }
 
   @override
-  String get librarySearchHint => '在音樂庫中搜索';
+  String get librarySearchHint => '在「你的音樂庫」中搜尋';
 
   @override
-  String get libraryCloseSearch => '關閉搜索';
+  String get libraryCloseSearch => '關閉搜尋';
 
   @override
-  String get libraryCreatePlaylist => '創建歌單';
+  String get libraryCreatePlaylist => '建立播放清單';
 
   @override
-  String get libraryClearFilter => '清除篩選';
+  String get libraryClearFilter => '清除篩選條件';
 
   @override
-  String get librarySortRecent => '最近添加';
+  String get librarySortRecent => '最近新增';
 
   @override
   String get librarySortAlphabetical => '按字母順序';
@@ -3076,24 +3076,24 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get libraryEmptyTitle => '這裡還沒有內容';
 
   @override
-  String get libraryEmptyMessage => '收藏的歌單、藝人和專輯會顯示在這裡。';
+  String get libraryEmptyMessage => '收藏的播放清單、藝人和專輯會顯示在這裡。';
 
   @override
   String libraryNewPlaylistName(int number) {
-    return '我的歌單 #$number';
+    return '我的播放清單 #$number';
   }
 
   @override
-  String get playlistDelete => '刪除歌單';
+  String get playlistDelete => '刪除播放清單';
 
   @override
-  String get playlistLikedEmpty => '你點贊的歌曲會顯示在這裡。\n點按愛心圖標即可收藏歌曲。';
+  String get playlistLikedEmpty => '你按讚的歌曲會顯示在這裡。\n點按愛心圖標即可收藏歌曲。';
 
   @override
-  String get playlistOwnEmpty => '來為你的歌單找些歌曲吧。\n在任意歌曲的選單中選擇“添加到歌單”。';
+  String get playlistOwnEmpty => '來為你的播放清單找些歌曲吧。\n在任意歌曲的選單中選擇“新增到播放清單”。';
 
   @override
-  String get playlistEmpty => '這個歌單還沒有歌曲。';
+  String get playlistEmpty => '這個播放清單還沒有歌曲。';
 
   @override
   String get albumNoTracks => '這張專輯暫無可播放的曲目。';
@@ -3116,13 +3116,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get artistNoSongs => '暫無可顯示的歌曲。';
 
   @override
-  String get artistDiscography => '作品';
+  String get artistDiscography => '音樂作品';
 
   @override
-  String get artistFollow => '關注';
+  String get artistFollow => '追蹤';
 
   @override
-  String get artistFollowing => '已關注';
+  String get artistFollowing => '追蹤中';
 
   @override
   String get artistLatestRelease => '最新發行';
@@ -3137,7 +3137,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get artistRelated => '粉絲也喜歡';
 
   @override
-  String get artistAbout => '關於';
+  String get artistAbout => '簡介';
 
   @override
   String artistMonthlyListeners(String count) {
@@ -3145,7 +3145,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   }
 
   @override
-  String get playingFromPlaylist => '正在播放歌單';
+  String get playingFromPlaylist => '正在播放播放清單';
 
   @override
   String get playingFromAlbum => '正在播放專輯';
@@ -3154,7 +3154,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get playingFromArtist => '正在播放藝人';
 
   @override
-  String get playingFromSearch => '正在播放搜索結果';
+  String get playingFromSearch => '正在播放搜尋結果';
 
   @override
   String get playingFromLibrary => '正在播放音樂庫';
@@ -3169,7 +3169,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get playerNothingPlayingTitle => '當前沒有播放內容';
 
   @override
-  String get playerNothingPlayingMessage => '選擇一首歌曲、專輯或歌單，開始收聽吧。';
+  String get playerNothingPlayingMessage => '選擇一首歌曲、專輯或播放清單，開始收聽吧。';
 
   @override
   String get playerIdleHint => '暫無播放 — 挑點音樂來聽吧';
@@ -3178,19 +3178,19 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get playerThisDevice => '正在本裝置上收聽';
 
   @override
-  String get playerShuffleOn => '開啟隨機播放';
+  String get playerShuffleOn => '啟用隨機播放';
 
   @override
-  String get playerShuffleOff => '關閉隨機播放';
+  String get playerShuffleOff => '停用隨機播放';
 
   @override
-  String get playerRepeatOn => '開啟列表循環';
+  String get playerRepeatOn => '啟用重複播放';
 
   @override
-  String get playerRepeatOneOn => '開啟單曲循環';
+  String get playerRepeatOneOn => '啟用單首重複播放';
 
   @override
-  String get playerRepeatOff => '關閉循環';
+  String get playerRepeatOff => '停用重複播放';
 
   @override
   String get playerNext => '下一首';
@@ -3290,13 +3290,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get detailLoadFailed => '暫時無法載入，請檢查網路後重試';
 
   @override
-  String get queueTitle => '播放佇列';
+  String get queueTitle => '佇列';
 
   @override
-  String get queueNextInQueue => '隊列中的下一首';
+  String get queueNextInQueue => '佇列中下一首';
 
   @override
-  String get queueClear => '清空隊列';
+  String get queueClear => '清除佇列';
 
   @override
   String get queueNextUp => '接下來播放';
@@ -3307,7 +3307,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   }
 
   @override
-  String get queueEmpty => '隊列中暫無待播歌曲';
+  String get queueEmpty => '佇列中暫無待播歌曲';
 
   @override
   String get lyricsTitle => '歌詞';
@@ -3364,7 +3364,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get lyricsUnpinControls => '取消固定控制區';
 
   @override
-  String get deviceConnectTitle => '連接到裝置';
+  String get deviceConnectTitle => '連接至裝置';
 
   @override
   String get deviceConnectShort => '暢聯';
@@ -3394,10 +3394,10 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get connectOtherDevices => '選擇其他裝置';
 
   @override
-  String get connectNoDevices => '沒有找到其他裝置';
+  String get connectNoDevices => '找不到其他裝置';
 
   @override
-  String get connectNoDevicesHint => '在手機、電腦或音箱上打開 Spotify，并登入同一帳號';
+  String get connectNoDevicesHint => '在手機、電腦或音箱上打開 Spotify，并登入同一帳戶';
 
   @override
   String get connectUnavailable => '使用桌面版方式登入後，即可遙控其他裝置上的 Spotify';
@@ -3412,7 +3412,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get connectSameNetwork => '同一網路';
 
   @override
-  String get connectCommandFailed => '操作未成功：免費帳號可能不支援遠程執行此操作';
+  String get connectCommandFailed => '操作未成功：免費帳戶可能不支援遠程執行此操作';
 
   @override
   String connectVolumeUnsupported(String device) {
@@ -3423,19 +3423,19 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get connectVolume => '裝置音量';
 
   @override
-  String get trackAddToPlaylist => '添加到歌單';
+  String get trackAddToPlaylist => '新增至播放清單';
 
   @override
-  String get trackAddToQueue => '添加到播放佇列';
+  String get trackAddToQueue => '新增至佇列';
 
   @override
   String get trackGoToAlbum => '前往專輯';
 
   @override
-  String get trackGoToRadio => '前往歌曲電臺';
+  String get trackGoToRadio => '前往歌曲電台';
 
   @override
-  String get trackViewCredits => '查看制作人員';
+  String get trackViewCredits => '查看製作人員名單';
 
   @override
   String get creditsTitle => '制作人員';
@@ -3454,34 +3454,34 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '前往藝人',
+      other: '前往藝人頁面',
     );
     return '$_temp0';
   }
 
   @override
-  String get trackNewPlaylist => '新建歌單';
+  String get trackNewPlaylist => '建立新清單';
 
   @override
-  String get trackQuickAdd => '添加';
+  String get trackQuickAdd => '新增';
 
   @override
-  String get trackQuickLike => '點贊';
+  String get trackQuickLike => '讚';
 
   @override
-  String get trackQuickLiked => '已點贊';
+  String get trackQuickLiked => '已按讚';
 
   @override
-  String get toastLikeAdded => '已添加到已點贊的歌曲';
+  String get toastLikeAdded => '已新增到已按讚的歌曲';
 
   @override
-  String get toastLikeRemoved => '已從已點贊的歌曲中移除';
+  String get toastLikeRemoved => '已從已按讚的歌曲中移除';
 
   @override
-  String get toastAddedToQueue => '已添加到播放佇列';
+  String get toastAddedToQueue => '新增至佇列';
 
   @override
-  String get shareCopyLink => '復制連結';
+  String get shareCopyLink => '複製連結';
 
   @override
   String get shareCopyUri => '復制 URI';
@@ -3502,7 +3502,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get shareEmbedStandard => '標準';
 
   @override
-  String get shareEmbedCompact => '緊湊';
+  String get shareEmbedCompact => '緊密';
 
   @override
   String get shareEmbedDark => '深色';
@@ -3518,7 +3518,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String toastAddedTo(String name) {
-    return '已添加到「$name」';
+    return '已新增到「$name」';
   }
 
   @override
@@ -3532,13 +3532,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   }
 
   @override
-  String get createPlaylistTitle => '為歌單命名';
+  String get createPlaylistTitle => '為播放清單命名';
 
   @override
-  String get createPlaylistHint => '歌單名稱';
+  String get createPlaylistHint => '播放清單名稱';
 
   @override
-  String get createPlaylistDefaultName => '我的歌單';
+  String get createPlaylistDefaultName => '我的播放清單';
 
   @override
   String get settingsAppearanceSection => '外觀';
@@ -3714,7 +3714,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get settingsLanguage => '界面語言';
 
   @override
-  String get settingsLanguageSubtitle => '同時影響主頁推薦等由 Spotify 提供的文案';
+  String get settingsLanguageSubtitle => '同時影響首頁推薦等由 Spotify 提供的文案';
 
   @override
   String get settingsLanguageSystem => '跟隨系統';
@@ -3834,7 +3834,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get settingsLyricsSourceDisabled => '已在「補全歌詞」中關閉';
 
   @override
-  String get settingsLyricsSourceDrag => '拖曳排序';
+  String get settingsLyricsSourceDrag => '拖曳即可重新排序';
 
   @override
   String get settingsLyricsBilingual => '社群歌詞翻譯';
@@ -3860,7 +3860,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get settingsTaskbarLyricsCustomColor => '自訂顏色';
 
   @override
-  String get settingsTaskbarLyricsChangeColor => '更改';
+  String get settingsTaskbarLyricsChangeColor => '變更';
 
   @override
   String get settingsTaskbarLyricsOpacity => '不透明度';
@@ -3876,7 +3876,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
       '在澎湃 OS 小工具列表底部的「安卓小工具」分區找到 Flutify，也可點「新增」直接放到桌面，長按可調整大小';
 
   @override
-  String get homeWidgetNowPlaying => '播放條';
+  String get homeWidgetNowPlaying => '「現正播放」列';
 
   @override
   String get homeWidgetNowPlayingDesc => '細長橫條，封面、歌名與上一首 / 播放 / 下一首；預設 4×1';
@@ -3994,7 +3994,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get settingsStartPage => '啟動時打開';
 
   @override
-  String get settingsStartPageHome => '主頁';
+  String get settingsStartPageHome => '首頁';
 
   @override
   String get settingsStartPageLibrary => '音樂庫';
@@ -4006,7 +4006,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get settingsDefaultRepeat => '預設循環方式';
 
   @override
-  String get settingsDefaultRepeatSubtitle => '切換歌單、專輯等播放列表時預設生效的循環方式';
+  String get settingsDefaultRepeatSubtitle => '切換播放清單、專輯等播放列表時預設生效的循環方式';
 
   @override
   String get settingsRepeatOff => '不循環';
@@ -4046,7 +4046,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get settingsConnectEnabled => '啟用 Spotify Connect';
 
   @override
-  String get settingsConnectEnabledSubtitle => '顯示并遙控同一帳號在其他裝置上的播放';
+  String get settingsConnectEnabledSubtitle => '顯示并遙控同一帳戶在其他裝置上的播放';
 
   @override
   String get settingsConnectDeviceName => '裝置名稱';
@@ -4154,7 +4154,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get settingsPrivacySection => '隱私';
 
   @override
-  String get settingsClearSearchHistory => '清除搜索記錄';
+  String get settingsClearSearchHistory => '清除搜尋記錄';
 
   @override
   String settingsSearchHistoryCount(int count) {
@@ -4162,7 +4162,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   }
 
   @override
-  String get settingsSearchHistoryEmpty => '沒有搜索記錄';
+  String get settingsSearchHistoryEmpty => '沒有搜尋記錄';
 
   @override
   String get settingsClearLyricsCache => '清除歌詞快取';
@@ -4232,7 +4232,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get settingsLicenses => '開源許可';
 
   @override
-  String get shortcutPlayPause => '播放 / 暫停';
+  String get shortcutPlayPause => '播放/暫停';
 
   @override
   String get shortcutNext => '下一首';
@@ -4253,7 +4253,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get shortcutRepeat => '切換循環模式';
 
   @override
-  String get shortcutSearch => '搜索';
+  String get shortcutSearch => '搜尋';
 
   @override
   String get shortcutBack => '後退';
@@ -4271,7 +4271,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get shortcutExitImmersive => '退出全螢幕歌詞';
 
   @override
-  String get accountTitle => 'Spotify 帳號';
+  String get accountTitle => 'Spotify 帳戶';
 
   @override
   String get accountSignedOutMessage => '登入後同步你的音樂庫';
@@ -4303,7 +4303,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get sleepTimerHour => '1 小時';
 
   @override
-  String get sleepTimerEndOfTrack => '本首結束時';
+  String get sleepTimerEndOfTrack => '歌曲播完時';
 
   @override
   String get sleepTimerOff => '關閉定時器';
@@ -4339,10 +4339,10 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get trackColumnAlbum => '專輯';
 
   @override
-  String get trackColumnAddedAt => '添加日期';
+  String get trackColumnAddedAt => '新增日期';
 
   @override
-  String get trackColumnDuration => '時長';
+  String get trackColumnDuration => '長度';
 
   @override
   String get trackSortBy => '排序方式';
@@ -4354,16 +4354,16 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get trackViewAs => '查看方式';
 
   @override
-  String get trackViewList => '列表';
+  String get trackViewList => '清單';
 
   @override
-  String get trackViewCompact => '緊湊';
+  String get trackViewCompact => '緊密';
 
   @override
-  String get trackSearchHint => '在歌單中搜索';
+  String get trackSearchHint => '在播放清單中搜尋';
 
   @override
-  String get trackSearchClose => '關閉搜索';
+  String get trackSearchClose => '關閉搜尋';
 
   @override
   String trackSearchNoResults(String query) {
@@ -4388,7 +4388,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get settingsGatewayDescription =>
-      '透過自建伺服器連接 Spotify API、媒體和 Connect。瀏覽器登入仍使用 Spotify 原站；保存後新連接生效。';
+      '透過自建伺服器連接 Spotify API、媒體和 Connect。瀏覽器登入仍使用 Spotify 原站；儲存後新連接生效。';
 
   @override
   String get settingsGatewayUrl => '反代地址（包含路徑）';
@@ -4403,7 +4403,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get settingsGatewayInvalid => '請填寫有效的 HTTPS 地址、單段路徑及使用者名和密碼。';
 
   @override
-  String get settingsApply => '保存';
+  String get settingsApply => '儲存';
 
   @override
   String get settingsCacheLocation => '快取位置';
@@ -4567,13 +4567,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get loginSubtitle => '在 Spotify 官方登入頁面登入一次，\n其餘授權皆會自動完成';
 
   @override
-  String get loginTermsNotice => '以官方用戶端身分登入不符合 Spotify 服務條款，建議使用其他帳號。';
+  String get loginTermsNotice => '以官方用戶端身分登入不符合 Spotify 服務條款，建議使用其他帳戶。';
 
   @override
   String get loginPasswordPrivate => 'Flutify 不會接觸你的密碼';
 
   @override
-  String get loginOfficialPage => '使用 Spotify 官方頁面完成帳號登入';
+  String get loginOfficialPage => '使用 Spotify 官方頁面完成帳戶登入';
 
   @override
   String get loginRemoteDevices => '登入後可遙控你的其他 Spotify 裝置';
@@ -4611,7 +4611,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get webLoginPreparing => '正在取得播放憑證…';
 
   @override
-  String get webLoginAuthorizing => '正在完成帳號授權…';
+  String get webLoginAuthorizing => '正在完成帳戶授權…';
 
   @override
   String get webLoginFinishing => '正在完成登入…';
@@ -4621,7 +4621,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get webLoginGoogleHint =>
-      '使用 Google 註冊的帳號請用「電子郵件 + 密碼」登入；沒有密碼可先到 Spotify 官網透過「忘記密碼」設定。';
+      '使用 Google 註冊的帳戶請用「電子郵件 + 密碼」登入；沒有密碼可先到 Spotify 官網透過「忘記密碼」設定。';
 
   @override
   String get loginBrowserFallback => '無法自動開啟瀏覽器，登入連結已複製，請貼到瀏覽器中開啟';
@@ -4654,7 +4654,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get updatesChannelRelease => '正式版（穩定）';
 
   @override
-  String get updatesChannelBeta => '測試版（Beta）';
+  String get updatesChannelBeta => '測試版';
 
   @override
   String get updatesChannelSelfTest => '自測版（開發者自測）';
@@ -4917,27 +4917,27 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get playbackEngineAndroid => 'Android 原生播放';
 
   @override
-  String get backupTitle => '歌單備份';
+  String get backupTitle => '播放清單備份';
 
   @override
-  String get backupFooter => '查看各帳號的已點贊歌曲和歌單，可勾選其中一部分一鍵匯入目前帳號。';
+  String get backupFooter => '查看各帳戶的已按讚歌曲和播放清單，可勾選其中一部分一鍵匯入目前帳戶。';
 
   @override
-  String get backupUnsyncedTitle => '同步本機歌單到 Spotify';
+  String get backupUnsyncedTitle => '同步本機播放清單到 Spotify';
 
   @override
   String backupUnsyncedSubtitle(int count) {
-    return '有 $count 個歌單只儲存在本機，尚未寫入帳號音樂庫';
+    return '有 $count 個播放清單只儲存在本機，尚未寫入帳戶音樂庫';
   }
 
   @override
-  String get backupEnable => '啟用歌單備份';
+  String get backupEnable => '啟用播放清單備份';
 
   @override
-  String get backupEnableSubtitle => '自動備份本機帳號，也可透過獨立 WebView 備份其他帳號的收藏歌單';
+  String get backupEnableSubtitle => '自動備份本機帳戶，也可透過獨立 WebView 備份其他帳戶的收藏播放清單';
 
   @override
-  String get backupAutoCurrent => '自動備份本機帳號';
+  String get backupAutoCurrent => '自動備份本機帳戶';
 
   @override
   String get backupAutoCurrentSubtitle => '收藏變動後立即儲存，不等定時備份';
@@ -4959,32 +4959,32 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   }
 
   @override
-  String get backupAddAccount => '新增要同步歌單的帳號';
+  String get backupAddAccount => '新增要同步播放清單的帳戶';
 
   @override
   String get backupAddAccountSubtitle =>
-      '在獨立 WebView 中登入 open.spotify.com，讀取其收藏的歌單';
+      '在獨立 WebView 中登入 open.spotify.com，讀取其收藏的播放清單';
 
   @override
-  String get backupSyncToAccount => '一鍵同步已備份的歌單到本帳號';
+  String get backupSyncToAccount => '一鍵同步已備份的播放清單到本帳戶';
 
   @override
-  String get backupSyncToAccountSubtitle => '把已勾選帳號的已點贊歌曲併入本帳號，歌單同步到本帳號';
+  String get backupSyncToAccountSubtitle => '把已勾選帳戶的已按讚歌曲併入本帳戶，播放清單同步到本帳戶';
 
   @override
-  String get backupNow => '立即備份全部帳號';
+  String get backupNow => '立即備份全部帳戶';
 
   @override
-  String get backupNowSubtitle => '擷取各帳號最新收藏並儲存到本機';
+  String get backupNowSubtitle => '擷取各帳戶最新收藏並儲存到本機';
 
   @override
   String backupAccountAdded(String title, String liked, String playlists) {
-    return '已備份帳號「$title」（$liked，$playlists）';
+    return '已備份帳戶「$title」（$liked，$playlists）';
   }
 
   @override
   String backupAccountAddFailed(String error) {
-    return '新增備份帳號失敗：$error';
+    return '新增備份帳戶失敗：$error';
   }
 
   @override
@@ -5003,23 +5003,23 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   }
 
   @override
-  String get backupSavedAll => '已儲存全部帳號的收藏歌單';
+  String get backupSavedAll => '已儲存全部帳戶的收藏播放清單';
 
   @override
   String backupSelectedHeader(int selected, int total) {
-    return '已儲存的歌單（已選 $selected / $total）';
+    return '已儲存的播放清單（已選 $selected / $total）';
   }
 
   @override
   String backupImportSelected(int count) {
-    return '匯入所選歌單（$count）';
+    return '匯入所選播放清單（$count）';
   }
 
   @override
-  String get backupBadgePrevious => '先前登入的帳號';
+  String get backupBadgePrevious => '先前登入的帳戶';
 
   @override
-  String get backupBadgeExternal => '外部備份帳號';
+  String get backupBadgeExternal => '外部備份帳戶';
 
   @override
   String backupAccountSubtitle(String liked, String playlists) {
@@ -5030,7 +5030,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get backupIncludeInSync => '參與一鍵同步';
 
   @override
-  String get backupRemoveAccount => '移除該備份帳號';
+  String get backupRemoveAccount => '移除該備份帳戶';
 
   @override
   String get backupExitMultiSelect => '結束多選';
@@ -5061,29 +5061,29 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String backupImportedAsPlaylist(String songs, String name) {
-    return '已將所選 $songs 匯入為歌單「$name」';
+    return '已將所選 $songs 匯入為播放清單「$name」';
   }
 
   @override
   String backupImportAsPlaylist(int count) {
-    return '匯入為歌單（$count）';
+    return '匯入為播放清單（$count）';
   }
 
   @override
-  String get backupImportAsPlaylistShort => '匯入為本帳號歌單';
+  String get backupImportAsPlaylistShort => '匯入為本帳戶播放清單';
 
   @override
   String backupLikedMerged(String songs, int added) {
-    return '已將 $songs 併入「已點贊的歌曲」（新增 $added 首）';
+    return '已將 $songs 併入「已按讚的歌曲」（新增 $added 首）';
   }
 
   @override
   String backupMergeLiked(int count) {
-    return '併入已點贊歌曲（$count）';
+    return '併入已按讚歌曲（$count）';
   }
 
   @override
-  String get backupMergeLikedShort => '併入已點贊歌曲';
+  String get backupMergeLikedShort => '併入已按讚歌曲';
 
   @override
   String backupSaveSelected(int count) {
@@ -5091,18 +5091,18 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   }
 
   @override
-  String get backupLoginTitle => '登入要備份的 Spotify 帳號';
+  String get backupLoginTitle => '登入要備份的 Spotify 帳戶';
 
   @override
-  String get playlistSyncTitle => '同步歌單到 Spotify';
+  String get playlistSyncTitle => '同步播放清單到 Spotify';
 
   @override
   String get playlistSyncIntro =>
-      '舊版本中收藏、新建或從備份匯入的歌單只儲存在本機，官方用戶端和網頁版看不到。勾選後寫入目前帳號：他人的歌單加入音樂庫，本機歌單在帳號中建立同名歌單。';
+      '舊版本中收藏、建立或從備份匯入的播放清單只儲存在本機，官方用戶端和網頁版看不到。勾選後寫入目前帳戶：他人的播放清單加入音樂庫，本機播放清單在帳戶中建立同名播放清單。';
 
   @override
   String playlistSyncDone(int count) {
-    return '同步完成：$count 個歌單已寫入帳號。';
+    return '同步完成：$count 個播放清單已寫入帳戶。';
   }
 
   @override
@@ -5111,7 +5111,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   }
 
   @override
-  String get playlistSyncAllDone => '所有歌單都已同步到 Spotify。';
+  String get playlistSyncAllDone => '所有播放清單都已同步到 Spotify。';
 
   @override
   String get playlistSyncRunning => '正在同步，請勿關閉此頁面…';
@@ -5126,11 +5126,11 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String playlistSyncCreate(String songs) {
-    return '在帳號中建立歌單（$songs）';
+    return '在帳戶中建立播放清單（$songs）';
   }
 
   @override
-  String get playlistSyncAdd => '加入音樂庫';
+  String get playlistSyncAdd => '新增至音樂庫';
 
   @override
   String playlistSyncStateFailed(String error) {
@@ -5139,27 +5139,27 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String playlistSyncPromptTitle(int count) {
-    return '有 $count 個歌單未同步到 Spotify';
+    return '有 $count 個播放清單未同步到 Spotify';
   }
 
   @override
   String get playlistSyncPromptBody =>
-      '舊版本中收藏、新建或從備份匯入的歌單只儲存在本機，官方用戶端和網頁版看不到。現在收藏 / 取消收藏會同步到帳號，之前遺留的歌單可補同步。\n\n之後也可在「設定 → 歌單備份」找到入口。';
+      '舊版本中收藏、建立或從備份匯入的播放清單只儲存在本機，官方用戶端和網頁版看不到。現在收藏 / 取消收藏會同步到帳戶，之前遺留的播放清單可補同步。\n\n之後也可在「設定 → 播放清單備份」找到入口。';
 
   @override
-  String get playlistSyncPromptLater => '以後再說';
+  String get playlistSyncPromptLater => '現在不要';
 
   @override
   String get playlistSyncPromptGo => '前往同步';
 
   @override
   String playlistCount(int count) {
-    return '$count 個歌單';
+    return '$count 個播放清單';
   }
 
   @override
   String likedSongCount(int count) {
-    return '$count 首已點贊歌曲';
+    return '$count 首已按讚歌曲';
   }
 
   @override
@@ -5229,7 +5229,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   }
 
   @override
-  String get libraryErrorNotSignedIn => '未登入，無法同步到 Spotify 帳號';
+  String get libraryErrorNotSignedIn => '未登入，無法同步到 Spotify 帳戶';
 
   @override
   String libraryErrorRead(String detail) {
@@ -5248,17 +5248,17 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String libraryErrorPartial(String detail) {
-    return '歌單已建好，但寫入曲目失敗：$detail';
+    return '播放清單已建好，但寫入曲目失敗：$detail';
   }
 
   @override
   String backupFailed(String detail) {
-    return '備份帳號失敗：$detail';
+    return '備份帳戶失敗：$detail';
   }
 
   @override
   String backupAccountFailed(String title, String detail) {
-    return '帳號「$title」備份失敗：$detail';
+    return '帳戶「$title」備份失敗：$detail';
   }
 
   @override

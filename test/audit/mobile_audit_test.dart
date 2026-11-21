@@ -151,7 +151,7 @@ void main() {
       await shot(tester, '${suffix}_10_lyrics_sheet');
       await tester.tap(find.byTooltip('关闭').last);
       await settle(tester);
-      await tester.tap(find.byTooltip('播放队列'));
+      await tester.tap(find.byTooltip('队列'));
       await settle(tester);
       await shot(tester, '${suffix}_11_player_queue');
       await tester.tap(find.byTooltip('关闭').first);
@@ -247,7 +247,7 @@ void main() {
         trackAudioLoader: FakeTrackAudioSource(),
       ));
       await settle(tester);
-      await tester.tap(find.byTooltip('账号'));
+      await tester.tap(find.byTooltip('帐号'));
       await settle(tester);
       expect(find.byType(SettingsScreen), findsOneWidget);
       await shot(tester, 'desktop_settings_$name');

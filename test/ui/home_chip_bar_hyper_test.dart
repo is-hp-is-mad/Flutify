@@ -83,17 +83,17 @@ void main() {
 
     // 二级分类（subChips）展开为轻量二级选项，英文拦截：Following -> 已关注
     expect(find.byType(FilterPill), findsOneWidget);
-    expect(find.text('已关注'), findsOneWidget);
+    expect(find.text('关注中'), findsOneWidget);
     // 彻底去除了 Spotify 风格的 _ClearPill 独立关闭按钮
     expect(find.byIcon(Icons.close_rounded), findsNothing);
 
     // 点击二级选项「已关注」
-    await tester.tap(find.text('已关注'));
+    await tester.tap(find.text('关注中'));
     await tester.pumpAndSettle();
     expect(selected, 'sub-following');
 
     // 再次点击已选中的二级选项，无缝复位到一级分类「音乐」
-    await tester.tap(find.text('已关注'));
+    await tester.tap(find.text('关注中'));
     await tester.pumpAndSettle();
     expect(selected, 'music');
 
@@ -202,7 +202,7 @@ void main() {
     );
 
     await tester.pumpAndSettle();
-    expect(find.text('已关注'), findsOneWidget);
+    expect(find.text('关注中'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

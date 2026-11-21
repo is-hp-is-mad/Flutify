@@ -132,7 +132,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get commonRetry => '再試行';
 
   @override
-  String get commonLoadMore => 'さらに読み込む';
+  String get commonLoadMore => 'さらに表示';
 
   @override
   String get commonMoreOptions => 'その他のオプション';
@@ -144,7 +144,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get commonSeeMore => 'もっと見る';
 
   @override
-  String get commonShowLess => '表示を減らす';
+  String get commonShowLess => '折りたたむ';
 
   @override
   String get commonSettings => '設定';
@@ -258,7 +258,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get greetingMorning => 'おはようございます';
+  String get greetingMorning => 'おはよう';
 
   @override
   String get greetingAfternoon => 'こんにちは';
@@ -460,10 +460,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get artistNoSongs => '表示できる曲はまだありません。';
 
   @override
-  String get artistDiscography => 'ディスコグラフィー';
+  String get artistDiscography => 'ディスコグラフィ';
 
   @override
-  String get artistFollow => 'フォロー';
+  String get artistFollow => 'フォローする';
 
   @override
   String get artistFollowing => 'フォロー中';
@@ -478,10 +478,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get artistSingles => 'シングル & EP';
 
   @override
-  String get artistRelated => 'ファンはこちらも';
+  String get artistRelated => 'ファンの間で人気';
 
   @override
-  String get artistAbout => '概要';
+  String get artistAbout => '詳細情報';
 
   @override
   String artistMonthlyListeners(String count) {
@@ -522,19 +522,19 @@ class AppLocalizationsJa extends AppLocalizations {
   String get playerThisDevice => 'このデバイスで再生中';
 
   @override
-  String get playerShuffleOn => 'シャッフルをオン';
+  String get playerShuffleOn => 'シャッフルを有効にする';
 
   @override
-  String get playerShuffleOff => 'シャッフルをオフ';
+  String get playerShuffleOff => 'シャッフルを無効にする';
 
   @override
-  String get playerRepeatOn => 'リピートをオン';
+  String get playerRepeatOn => 'リピートを有効にする';
 
   @override
-  String get playerRepeatOneOn => '1 曲リピートをオン';
+  String get playerRepeatOneOn => '1曲リピートを有効';
 
   @override
-  String get playerRepeatOff => 'リピートをオフ';
+  String get playerRepeatOff => 'リピートを無効にする';
 
   @override
   String get playerNext => '次へ';
@@ -546,7 +546,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get playerMute => 'ミュート';
 
   @override
-  String get playerUnmute => 'ミュートを解除';
+  String get playerUnmute => 'ミュート解除';
 
   @override
   String get playerLyricsFullscreen => '歌詞を全画面表示';
@@ -636,13 +636,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get detailLoadFailed => '読み込めませんでした。接続を確認して再試行してください。';
 
   @override
-  String get queueTitle => '再生キュー';
+  String get queueTitle => '次に再生';
 
   @override
-  String get queueNextInQueue => 'キュー内の次の曲';
+  String get queueNextInQueue => '次に再生される曲';
 
   @override
-  String get queueClear => 'キューをクリア';
+  String get queueClear => '[次に再生]をクリア';
 
   @override
   String get queueNextUp => '次に再生';
@@ -671,7 +671,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get lyricsUnavailableMessage => 'この曲の歌詞はまだありません。\n音楽をお楽しみください！';
 
   @override
-  String get lyricsUnsynced => 'この歌詞は曲と同期していません。';
+  String get lyricsUnsynced => 'この歌詞はまだ曲と同期されていません。';
 
   @override
   String get lyricsFromLrclib => '歌詞の提供：LRCLIB';
@@ -775,22 +775,22 @@ class AppLocalizationsJa extends AppLocalizations {
   String get trackAddToPlaylist => 'プレイリストに追加';
 
   @override
-  String get trackAddToQueue => '再生キューに追加';
+  String get trackAddToQueue => '[次に再生] に追加';
 
   @override
-  String get trackGoToAlbum => 'アルバムを表示';
+  String get trackGoToAlbum => 'アルバムに移動';
 
   @override
-  String get trackGoToRadio => 'ソングラジオを表示';
+  String get trackGoToRadio => 'ソングラジオに移動';
 
   @override
-  String get trackViewCredits => 'クレジットを表示';
+  String get trackViewCredits => '楽曲クレジットを表示';
 
   @override
   String get creditsTitle => 'クレジット';
 
   @override
-  String get creditsSources => '提供元';
+  String get creditsSources => '出典';
 
   @override
   String get creditsEmpty => 'この曲のクレジットはありません';
@@ -803,19 +803,19 @@ class AppLocalizationsJa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'アーティストを表示',
+      other: 'アーティストに移動',
     );
     return '$_temp0';
   }
 
   @override
-  String get trackNewPlaylist => '新しいプレイリスト';
+  String get trackNewPlaylist => '新規プレイリスト';
 
   @override
   String get trackQuickAdd => '追加';
 
   @override
-  String get trackQuickLike => 'お気に入り';
+  String get trackQuickLike => 'いいね！';
 
   @override
   String get trackQuickLiked => 'お気に入り済み';
@@ -827,7 +827,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get toastLikeRemoved => 'お気に入りの曲から削除しました';
 
   @override
-  String get toastAddedToQueue => '再生キューに追加しました';
+  String get toastAddedToQueue => '[次に再生] に追加しました';
 
   @override
   String get shareCopyLink => 'リンクをコピー';
@@ -851,7 +851,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get shareEmbedStandard => '標準';
 
   @override
-  String get shareEmbedCompact => 'コンパクト';
+  String get shareEmbedCompact => '縮小版';
 
   @override
   String get shareEmbedDark => 'ダーク';
@@ -1229,7 +1229,7 @@ class AppLocalizationsJa extends AppLocalizations {
       'HyperOS ではウィジェット一覧の最下部「Android ウィジェット」に Flutify があります。ここで「追加」をタップして直接配置することもでき、長押しでサイズを変更できます';
 
   @override
-  String get homeWidgetNowPlaying => '再生バー';
+  String get homeWidgetNowPlaying => '再生中バー';
 
   @override
   String get homeWidgetNowPlayingDesc =>
@@ -1251,7 +1251,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get homeWidgetUpNext => '次に再生';
 
   @override
-  String get homeWidgetUpNextDesc => '再生中の曲とキュー。行をタップするとその曲を再生。標準 4×3';
+  String get homeWidgetUpNextDesc => '再生中の曲と次に再生の一覧。行をタップするとその曲を再生。標準 4×3';
 
   @override
   String get homeWidgetAdd => '追加';
@@ -1668,10 +1668,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get sleepTimerHour => '1 時間';
 
   @override
-  String get sleepTimerEndOfTrack => '曲の終わりまで';
+  String get sleepTimerEndOfTrack => '曲の終了時';
 
   @override
-  String get sleepTimerOff => 'タイマーをオフ';
+  String get sleepTimerOff => 'タイマーをオフにする';
 
   @override
   String sleepTimerRemaining(String time) {
@@ -1707,7 +1707,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get trackColumnAddedAt => '追加日';
 
   @override
-  String get trackColumnDuration => '再生時間';
+  String get trackColumnDuration => '長さ';
 
   @override
   String get trackSortBy => '並べ替え';
@@ -1722,7 +1722,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get trackViewList => 'リスト';
 
   @override
-  String get trackViewCompact => 'コンパクト';
+  String get trackViewCompact => '縮小版';
 
   @override
   String get trackSearchHint => 'プレイリスト内を検索';
@@ -2534,7 +2534,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get playlistSyncAdd => 'ライブラリに追加';
+  String get playlistSyncAdd => 'マイライブラリに追加';
 
   @override
   String get playlistSyncStateRunning => '同期中…';
@@ -2557,7 +2557,7 @@ class AppLocalizationsJa extends AppLocalizations {
       '以前のバージョンで保存・作成・バックアップから取り込んだプレイリストはこのデバイスにしか保存されておらず、公式アプリや Web プレーヤーには表示されませんでした。現在は保存・解除がアカウントに同期されます。残っているプレイリストもここで同期できます。\n\n後から「設定 → プレイリストのバックアップ」でも開けます。';
 
   @override
-  String get playlistSyncPromptLater => 'あとで';
+  String get playlistSyncPromptLater => '後で';
 
   @override
   String get playlistSyncPromptGo => '同期する';

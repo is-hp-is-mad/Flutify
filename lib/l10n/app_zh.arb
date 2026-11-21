@@ -26,12 +26,12 @@
   },
   "@@locale": "zh",
   "appTitle": "Flutify",
-  "shellBack": "后退",
+  "shellBack": "返回",
   "shellForward": "前进",
   "shellHome": "主页",
   "shellSearchShortcut": "Ctrl K",
-  "shellAccountMenu": "账号",
-  "shellCollapseLibrary": "收起音乐库",
+  "shellAccountMenu": "帐号",
+  "shellCollapseLibrary": "折叠音乐库",
   "shellExpandLibrary": "展开音乐库",
   "shellPlaybackStatus": "播放状态",
   "shellHidePanel": "隐藏",
@@ -52,14 +52,14 @@
   "windowRestore": "向下还原",
   "windowClose": "关闭",
   "menuPlayback": "播放",
-  "menuNavigate": "导航",
+  "menuNavigate": "浏览",
   "menuEdit": "编辑",
-  "menuUndo": "撤销",
+  "menuUndo": "撤消",
   "menuRedo": "重做",
   "menuCut": "剪切",
-  "menuCopy": "拷贝",
+  "menuCopy": "复制",
   "menuPaste": "粘贴",
-  "menuSelectAll": "全选",
+  "menuSelectAll": "选择全部",
   "menuWindow": "窗口",
   "menuSettings": "设置…",
   "commonCancel": "取消",
@@ -67,7 +67,7 @@
   "commonDone": "完成",
   "commonClose": "关闭",
   "commonClear": "清除",
-  "commonRemove": "移除",
+  "commonRemove": "删除",
   "commonRetry": "重试",
   "commonLoadMore": "加载更多",
   "@commonLoadMore": {"description": "分页列表加载下一页的按钮"},
@@ -104,7 +104,7 @@
       }
     }
   },
-  "podcastPlayed": "已播完",
+  "podcastPlayed": "已播放",
   "podcastResumeFrom": "播至 {position}",
   "@podcastResumeFrom": {
     "placeholders": {
@@ -117,7 +117,7 @@
   "podcastLoadFailed": "节目加载失败，请检查网络后重试",
   "typeAlbum": "专辑",
   "typeSingle": "单曲",
-  "typeCompilation": "合辑",
+  "typeCompilation": "精选辑",
   "filterAll": "全部",
   "filterMusic": "音乐",
   "filterPodcasts": "播客",
@@ -185,15 +185,15 @@
       }
     }
   },
-  "greetingMorning": "早上好",
+  "greetingMorning": "早晨",
   "greetingAfternoon": "下午好",
   "greetingEvening": "晚上好",
   "likedSongs": "已点赞的歌曲",
   "likedSongsDescription": "你喜欢的所有歌曲都在这里。",
   "likeAdd": "添加到已点赞的歌曲",
-  "likeRemove": "从已点赞的歌曲中移除",
-  "libraryAdd": "保存到音乐库",
-  "libraryRemove": "从音乐库中移除",
+  "likeRemove": "从已点赞的歌曲中删除",
+  "libraryAdd": "收藏至音乐库",
+  "libraryRemove": "从音乐库中删除",
   "homeLoadFailedTitle": "无法加载推荐内容",
   "homeLoadFailedMessage": "请检查网络连接后重试。",
   "authSessionExpiredTitle": "登录已过期",
@@ -201,12 +201,12 @@
   "authSignInAgain": "重新登录",
   "homeEmptyTitle": "这里暂时没有内容",
   "homeEmptyMessage": "换个筛选标签看看，或稍后再来。",
-  "homeClearFilter": "清除筛选",
+  "homeClearFilter": "清除筛选条件",
   "homePodcastUnsupported": "暂不支持播客，敬请期待",
   "homeTypePodcast": "播客",
   "homeTypeEpisode": "单集",
   "searchHint": "你想听什么？",
-  "searchRecent": "最近搜索",
+  "searchRecent": "最近的搜索记录",
   "searchClearAll": "全部清除",
   "searchBrowseAll": "浏览全部",
   "watchFeedDiscoverTitle": "发现新内容",
@@ -259,8 +259,8 @@
   "librarySearchHint": "在音乐库中搜索",
   "libraryCloseSearch": "关闭搜索",
   "libraryCreatePlaylist": "创建歌单",
-  "libraryClearFilter": "清除筛选",
-  "librarySortRecent": "最近添加",
+  "libraryClearFilter": "清除筛选条件",
+  "librarySortRecent": "最近添加的内容",
   "librarySortAlphabetical": "按字母顺序",
   "libraryListView": "列表视图",
   "libraryGridView": "网格视图",
@@ -293,10 +293,10 @@
   "@artistNoAlbums": {"description": "艺人专辑二级页面的空列表提示"},
   "artistNoSongs": "暂无可显示的歌曲。",
   "@artistNoSongs": {"description": "艺人歌曲二级页面的空列表提示"},
-  "artistDiscography": "作品",
+  "artistDiscography": "唱片目录",
   "artistFollow": "关注",
-  "artistFollowing": "已关注",
-  "artistLatestRelease": "最新发行",
+  "artistFollowing": "关注中",
+  "artistLatestRelease": "最新发布",
   "@artistLatestRelease": {"description": "艺人页分区标题：最近一次发行"},
   "artistAlbums": "专辑",
   "artistSingles": "单曲和 EP",
@@ -319,9 +319,9 @@
   "playerThisDevice": "正在本设备上收听",
   "playerShuffleOn": "开启随机播放",
   "playerShuffleOff": "关闭随机播放",
-  "playerRepeatOn": "开启列表循环",
+  "playerRepeatOn": "开启循环播放",
   "playerRepeatOneOn": "开启单曲循环",
-  "playerRepeatOff": "关闭循环",
+  "playerRepeatOff": "关闭循环播放",
   "playerNext": "下一首",
   "playerPrevious": "上一首",
   "playerMute": "静音",
@@ -393,8 +393,8 @@
   },
   "detailSignInRequired": "登录后即可查看这里的内容",
   "detailLoadFailed": "暂时无法加载，请检查网络后重试",
-  "queueTitle": "播放队列",
-  "queueNextInQueue": "队列中的下一首",
+  "queueTitle": "队列",
+  "queueNextInQueue": "队列中的下一首歌",
   "queueClear": "清空队列",
   "queueNextUp": "接下来播放",
   "queueNextFrom": "接下来播放：{name}",
@@ -441,13 +441,13 @@
     }
   },
   "connectOtherDevices": "选择其他设备",
-  "connectNoDevices": "没有找到其他设备",
-  "connectNoDevicesHint": "在手机、电脑或音箱上打开 Spotify，并登录同一账号",
+  "connectNoDevices": "未发现其他设备",
+  "connectNoDevicesHint": "在手机、电脑或音箱上打开 Spotify，并登录同一帐号",
   "connectUnavailable": "使用桌面版方式登录后，即可遥控其他设备上的 Spotify",
   "connectConnecting": "正在连接 Spotify Connect…",
   "connectOffline": "连接已断开，正在重试…",
   "connectSameNetwork": "同一网络",
-  "connectCommandFailed": "操作未成功：免费账号可能不支持远程执行此操作",
+  "connectCommandFailed": "操作未成功：免费帐号可能不支持远程执行此操作",
   "connectVolumeUnsupported": "{device} 不支持远程调节音量",
   "@connectVolumeUnsupported": {
     "placeholders": {
@@ -457,16 +457,16 @@
     }
   },
   "connectVolume": "设备音量",
-  "trackAddToPlaylist": "添加到歌单",
-  "trackAddToQueue": "添加到播放队列",
-  "trackGoToAlbum": "前往专辑",
-  "trackGoToRadio": "前往歌曲电台",
-  "trackViewCredits": "查看制作人员",
+  "trackAddToPlaylist": "加入歌单",
+  "trackAddToQueue": "加入播放队列",
+  "trackGoToAlbum": "转至专辑",
+  "trackGoToRadio": "转至歌曲电台",
+  "trackViewCredits": "查看制作人",
   "creditsTitle": "制作人员",
   "creditsSources": "来源",
   "creditsEmpty": "这首歌暂时没有制作人员信息",
   "radioUnavailable": "这首歌暂时没有歌曲电台",
-  "trackGoToArtist": "{count, plural, other{前往艺人}}",
+  "trackGoToArtist": "{count, plural, other{转至艺人}}",
   "@trackGoToArtist": {
     "placeholders": {
       "count": {
@@ -489,12 +489,12 @@
   },
   "toastLikeAdded": "已添加到已点赞的歌曲",
   "toastLikeRemoved": "已从已点赞的歌曲中移除",
-  "toastAddedToQueue": "已添加到播放队列",
+  "toastAddedToQueue": "已加入播放队列",
   "shareCopyLink": "复制链接",
   "shareCopyUri": "复制 URI",
   "shareOpenWeb": "网页打开",
   "shareCopied": "已复制",
-  "shareEmbedTitle": "嵌入代码",
+  "shareEmbedTitle": "嵌入",
   "shareEmbedSubtitle": "粘贴到网页 HTML 中，即可展示 Spotify 播放器",
   "shareEmbedStandard": "标准",
   "shareEmbedCompact": "紧凑",
@@ -651,7 +651,7 @@
   "settingsLyricsSourceRoleLrclib": "原文与译文",
   "settingsLyricsSourceRoleCommunity": "原文与中文译词",
   "settingsLyricsSourceDisabled": "已在「补全歌词」中关闭",
-  "settingsLyricsSourceDrag": "拖动排序",
+  "settingsLyricsSourceDrag": "拖动即可重新排序",
   "settingsLyricsBilingual": "社区歌词翻译",
   "settingsLyricsBilingualSubtitle": "加载歌词时预取中文译词，依次查 QQ 音乐、网易云，启用补全时最后查 LRCLIB，任务栏歌词同样使用。关闭后仍可手动或自动查询；会向查询来源发送曲名与歌手。",
   "settingsTaskbarLyricsSection": "任务栏歌词",
@@ -664,7 +664,7 @@
   "settingsTaskbarLyricsFontSize": "字号",
   "settingsHomeWidgetsSection": "桌面小组件",
   "settingsHomeWidgetsSubtitle": "在澎湃 OS 小组件列表底部的「安卓小组件」分区找到 Flutify，也可点「添加」直接放到桌面，长按可调整大小",
-  "homeWidgetNowPlaying": "播放条",
+  "homeWidgetNowPlaying": "当前播放栏",
   "homeWidgetNowPlayingDesc": "细长横条，封面、歌名与上一首 / 播放 / 下一首；默认 4×1",
   "homeWidgetAlbumCard": "专辑卡片",
   "homeWidgetAlbumCardDesc": "大封面，背景随封面取色；默认 4×2",
@@ -736,7 +736,7 @@
   "settingsSpotifyLinksSystem": "Windows「默认应用」里已为 spotify: 链接选择了其他程序，请在系统设置中改为 Flutify",
   "settingsConnectSection": "Spotify Connect",
   "settingsConnectEnabled": "启用 Spotify Connect",
-  "settingsConnectEnabledSubtitle": "显示并遥控同一账号在其他设备上的播放",
+  "settingsConnectEnabledSubtitle": "显示并遥控同一帐号在其他设备上的播放",
   "settingsConnectDeviceName": "设备名称",
   "settingsConnectDeviceNameSubtitle": "其他设备的设备列表里显示的名字，留空使用默认名",
   "settingsConnectUseDeviceName": "使用设备名称",
@@ -835,7 +835,7 @@
   "trayQuit": "退出",
   "settingsShortcuts": "键盘快捷键",
   "settingsLicenses": "开源许可",
-  "shortcutPlayPause": "播放 / 暂停",
+  "shortcutPlayPause": "播放/暂停",
   "shortcutNext": "下一首",
   "shortcutPrevious": "上一首",
   "shortcutVolumeUp": "调高音量",
@@ -843,12 +843,12 @@
   "shortcutShuffle": "随机播放",
   "shortcutRepeat": "切换循环模式",
   "shortcutSearch": "搜索",
-  "shortcutBack": "后退",
+  "shortcutBack": "返回",
   "shortcutForward": "前进",
   "shortcutImmersive": "全屏歌词",
   "shortcutImmersiveMode": "全屏歌词中：切换铺满屏幕 / 窗口",
   "shortcutExitImmersive": "退出全屏歌词",
-  "accountTitle": "Spotify 账号",
+  "accountTitle": "Spotify 帐号",
   "accountSignedOutMessage": "登录后同步你的音乐库",
   "accountSignIn": "登录",
   "accountSignOut": "退出登录",
@@ -865,7 +865,7 @@
     }
   },
   "sleepTimerHour": "1 小时",
-  "sleepTimerEndOfTrack": "本首结束时",
+  "sleepTimerEndOfTrack": "曲目结束时",
   "sleepTimerOff": "关闭定时器",
   "sleepTimerRemaining": "睡眠定时器：剩余 {time}",
   "@sleepTimerRemaining": {
@@ -903,7 +903,7 @@
   "trackViewAs": "查看方式",
   "trackViewList": "列表",
   "trackViewCompact": "紧凑",
-  "trackSearchHint": "在歌单中搜索",
+  "trackSearchHint": "在歌单内搜索",
   "trackSearchClose": "关闭搜索",
   "trackSearchNoResults": "找不到「{query}」",
   "@trackSearchNoResults": {
@@ -913,7 +913,7 @@
       }
     }
   },
-  "addedToday": "今天",
+  "addedToday": "今日",
   "addedDaysAgo": "{count} 天前",
   "@addedDaysAgo": {
     "placeholders": {
@@ -1025,7 +1025,7 @@
   "loginSubtitle": "在 Spotify 官方登录页登录一次，\n其余授权全部自动完成",
   "loginTermsNotice": "以官方客户端身份登录不符合 Spotify 服务条款，建议使用小号。",
   "loginPasswordPrivate": "Flutify 不接触你的密码",
-  "loginOfficialPage": "使用 Spotify 官方页面完成账号登录",
+  "loginOfficialPage": "使用 Spotify 官方页面完成帐号登录",
   "loginRemoteDevices": "登录后可遥控你的其他 Spotify 设备",
   "loginSignedInAs": "已登录为 {name}",
   "loginPlaybackReady": "全曲播放已就绪",
@@ -1037,10 +1037,10 @@
   "webLoginRequired": "登录一次以解锁完整曲目播放",
   "webLoginConsentHint": "如果页面在等你确认，请点「同意」完成授权；其余步骤已自动完成",
   "webLoginPreparing": "正在获取播放凭据…",
-  "webLoginAuthorizing": "正在完成账号授权…",
+  "webLoginAuthorizing": "正在完成帐号授权…",
   "webLoginFinishing": "正在完成登录…",
   "webLoginBackgroundHint": "登录已完成，剩下的步骤在后台自动进行",
-  "webLoginGoogleHint": "用 Google 注册的账号请用「邮箱 + 密码」登录；没有密码可先在 Spotify 官网通过「忘记密码」设置。",
+  "webLoginGoogleHint": "用 Google 注册的帐号请用「邮箱 + 密码」登录；没有密码可先在 Spotify 官网通过「忘记密码」设置。",
   "loginBrowserFallback": "无法自动打开浏览器，登录链接已复制，请粘贴到浏览器中打开",
   "loginBrowserTitle": "在浏览器中完成登录",
   "loginBrowserSubtitle": "登录并同意授权后，这里会自动继续",
@@ -1058,7 +1058,7 @@
   "updatesChannel": "更新通道",
   "updatesChannelHint": "只会更新到实质版本号更高的版本，切换通道不会降级。",
   "updatesChannelRelease": "正式版（稳定）",
-  "updatesChannelBeta": "测试版（Beta）",
+  "updatesChannelBeta": "测试版",
   "updatesChannelSelfTest": "自测版（开发者自测）",
   "updatesSelfTestWarningTitle": "切换到自测版？",
   "updatesSelfTestWarning": "自测版由每次提交自动生成，未经任何验证，可能无法启动、丢失数据或损坏设置，请勿日常使用。版本只能升不能降：装上自测版后，需等正式版版本号超过它才能回到正式版。",
@@ -1152,9 +1152,9 @@
   "playbackEngineAndroid": "Android 原生播放",
   "@playbackEngineCurrent": {"description": "设备面板里显示当前实际出声的播放引擎", "placeholders": {"engine": {"type": "String"}}},
   "backupTitle": "歌单备份",
-  "backupFooter": "查看各账号的已点赞歌曲和歌单，可勾选其中一部分一键导入当前账号。",
+  "backupFooter": "查看各帐号的已点赞歌曲和歌单，可勾选其中一部分一键导入当前帐号。",
   "backupUnsyncedTitle": "同步本机歌单到 Spotify",
-  "backupUnsyncedSubtitle": "有 {count} 个歌单只保存在本机，尚未写入账号音乐库",
+  "backupUnsyncedSubtitle": "有 {count} 个歌单只保存在本机，尚未写入帐号音乐库",
   "@backupUnsyncedSubtitle": {
     "placeholders": {
       "count": {
@@ -1163,8 +1163,8 @@
     }
   },
   "backupEnable": "启用歌单备份",
-  "backupEnableSubtitle": "自动备份本机账号，也可通过独立 WebView 备份其他账号的收藏歌单",
-  "backupAutoCurrent": "自动备份本机账号",
+  "backupEnableSubtitle": "自动备份本机帐号，也可通过独立 WebView 备份其他帐号的收藏歌单",
+  "backupAutoCurrent": "自动备份本机帐号",
   "backupAutoCurrentSubtitle": "收藏变动后立即保存，不等定时备份",
   "backupInterval": "备份频率",
   "backupIntervalSubtitle": "最短 20 分钟，避免触发服务端限流",
@@ -1192,13 +1192,13 @@
       }
     }
   },
-  "backupAddAccount": "添加要同步歌单的账号",
+  "backupAddAccount": "添加要同步歌单的帐号",
   "backupAddAccountSubtitle": "在独立 WebView 中登录 open.spotify.com，读取其收藏的歌单",
-  "backupSyncToAccount": "一键同步已备份的歌单到本账号",
-  "backupSyncToAccountSubtitle": "把已勾选账号的已点赞歌曲并入本账号，歌单同步到本账号",
-  "backupNow": "立即备份全部账号",
-  "backupNowSubtitle": "拉取各账号最新收藏并保存到本地",
-  "backupAccountAdded": "已备份账号「{title}」（{liked}，{playlists}）",
+  "backupSyncToAccount": "一键同步已备份的歌单到本帐号",
+  "backupSyncToAccountSubtitle": "把已勾选帐号的已点赞歌曲并入本帐号，歌单同步到本帐号",
+  "backupNow": "立即备份全部帐号",
+  "backupNowSubtitle": "拉取各帐号最新收藏并保存到本地",
+  "backupAccountAdded": "已备份帐号「{title}」（{liked}，{playlists}）",
   "@backupAccountAdded": {
     "placeholders": {
       "title": {
@@ -1212,7 +1212,7 @@
       }
     }
   },
-  "backupAccountAddFailed": "添加备份账号失败：{error}",
+  "backupAccountAddFailed": "添加备份帐号失败：{error}",
   "@backupAccountAddFailed": {
     "placeholders": {
       "error": {
@@ -1250,7 +1250,7 @@
       }
     }
   },
-  "backupSavedAll": "已保存全部账号的收藏歌单",
+  "backupSavedAll": "已保存全部帐号的收藏歌单",
   "backupSelectedHeader": "已保存的歌单（已选 {selected} / {total}）",
   "@backupSelectedHeader": {
     "placeholders": {
@@ -1270,8 +1270,8 @@
       }
     }
   },
-  "backupBadgePrevious": "以前登录的账号",
-  "backupBadgeExternal": "外部备份账号",
+  "backupBadgePrevious": "以前登录的帐号",
+  "backupBadgeExternal": "外部备份帐号",
   "backupAccountTitle": "{title}（{badge}）",
   "@backupAccountTitle": {
     "placeholders": {
@@ -1295,7 +1295,7 @@
     }
   },
   "backupIncludeInSync": "参与一键同步",
-  "backupRemoveAccount": "移除该备份账号",
+  "backupRemoveAccount": "移除该备份帐号",
   "backupExitMultiSelect": "退出多选",
   "backupPickTracksImport": "选择部分歌曲导入",
   "backupPickTracks": "多选收藏歌曲",
@@ -1346,7 +1346,7 @@
       }
     }
   },
-  "backupImportAsPlaylistShort": "导入为本账号歌单",
+  "backupImportAsPlaylistShort": "导入为本帐号歌单",
   "backupLikedMerged": "已将 {songs} 并入「已点赞的歌曲」（新增 {added} 首）",
   "@backupLikedMerged": {
     "placeholders": {
@@ -1386,10 +1386,10 @@
       }
     }
   },
-  "backupLoginTitle": "登录要备份的 Spotify 账号",
+  "backupLoginTitle": "登录要备份的 Spotify 帐号",
   "playlistSyncTitle": "同步歌单到 Spotify",
-  "playlistSyncIntro": "旧版本中收藏、新建或从备份导入的歌单只保存在本机，官方客户端和网页版看不到。勾选后写入当前账号：他人的歌单加入音乐库，本机歌单在账号中新建同名歌单。",
-  "playlistSyncDone": "同步完成：{count} 个歌单已写入账号。",
+  "playlistSyncIntro": "旧版本中收藏、新建或从备份导入的歌单只保存在本机，官方客户端和网页版看不到。勾选后写入当前帐号：他人的歌单加入音乐库，本机歌单在帐号中新建同名歌单。",
+  "playlistSyncDone": "同步完成：{count} 个歌单已写入帐号。",
   "@playlistSyncDone": {
     "placeholders": {
       "count": {
@@ -1419,7 +1419,7 @@
     }
   },
   "playlistSyncStart": "开始同步",
-  "playlistSyncCreate": "在账号中新建歌单（{songs}）",
+  "playlistSyncCreate": "在帐号中新建歌单（{songs}）",
   "@playlistSyncCreate": {
     "placeholders": {
       "songs": {
@@ -1427,7 +1427,7 @@
       }
     }
   },
-  "playlistSyncAdd": "加入音乐库",
+  "playlistSyncAdd": "添加到音乐库",
   "playlistSyncStateRunning": "正在同步…",
   "playlistSyncStateDone": "已同步",
   "playlistSyncStateFailed": "失败：{error}",
@@ -1446,7 +1446,7 @@
       }
     }
   },
-  "playlistSyncPromptBody": "旧版本中收藏、新建或从备份导入的歌单只保存在本机，官方客户端和网页版看不到。现在收藏 / 取消收藏会同步到账号，之前遗留的歌单可补同步。\n\n之后也可在「设置 → 歌单备份」找到入口。",
+  "playlistSyncPromptBody": "旧版本中收藏、新建或从备份导入的歌单只保存在本机，官方客户端和网页版看不到。现在收藏 / 取消收藏会同步到帐号，之前遗留的歌单可补同步。\n\n之后也可在「设置 → 歌单备份」找到入口。",
   "playlistSyncPromptLater": "以后再说",
   "playlistSyncPromptGo": "去同步",
   "playerCanvasPlay": "播放 Canvas",
@@ -1535,7 +1535,7 @@
       }
     }
   },
-  "libraryErrorNotSignedIn": "未登录，无法同步到 Spotify 账号",
+  "libraryErrorNotSignedIn": "未登录，无法同步到 Spotify 帐号",
   "libraryErrorRead": "读取失败：{detail}",
   "@libraryErrorRead": {
     "placeholders": {
@@ -1568,7 +1568,7 @@
       }
     }
   },
-  "backupFailed": "备份账号失败：{detail}",
+  "backupFailed": "备份帐号失败：{detail}",
   "@backupFailed": {
     "placeholders": {
       "detail": {
@@ -1576,7 +1576,7 @@
       }
     }
   },
-  "backupAccountFailed": "账号「{title}」备份失败：{detail}",
+  "backupAccountFailed": "帐号「{title}」备份失败：{detail}",
   "@backupAccountFailed": {
     "placeholders": {
       "title": {

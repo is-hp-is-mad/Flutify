@@ -297,29 +297,29 @@ void main() {
 
     // 默认未开启
     expect(find.text('启用歌单备份'), findsOneWidget);
-    expect(find.text('添加要同步歌单的账号'), findsNothing);
+    expect(find.text('添加要同步歌单的帐号'), findsNothing);
 
     // 打开总开关
     await tester.tap(find.text('启用歌单备份'));
     await tester.pumpAndSettle();
 
-    expect(find.text('自动备份本机账号'), findsOneWidget);
-    expect(find.text('添加要同步歌单的账号'), findsOneWidget);
-    expect(find.text('一键同步已备份的歌单到本账号'), findsOneWidget);
+    expect(find.text('自动备份本机帐号'), findsOneWidget);
+    expect(find.text('添加要同步歌单的帐号'), findsOneWidget);
+    expect(find.text('一键同步已备份的歌单到本帐号'), findsOneWidget);
 
     // 点击添加备份账号
-    await tester.tap(find.text('添加要同步歌单的账号'));
+    await tester.tap(find.text('添加要同步歌单的帐号'));
     await tester.pumpAndSettle();
 
     expect(
-      find.textContaining('vault@example.com（Vault User）（外部备份账号）'),
+      find.textContaining('vault@example.com（Vault User）（外部备份帐号）'),
       findsOneWidget,
     );
     expect(find.text('vault@example.com（Vault User） · 已点赞的歌曲'), findsOneWidget);
     expect(find.text('Vault Favorites'), findsOneWidget);
 
     // 点击一键同步到本账号
-    await tester.tap(find.text('一键同步已备份的歌单到本账号'));
+    await tester.tap(find.text('一键同步已备份的歌单到本帐号'));
     await tester.pumpAndSettle();
 
     expect(library.isLiked(track1.id), isTrue);

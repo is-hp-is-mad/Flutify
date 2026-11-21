@@ -122,7 +122,7 @@ abstract class AppLocalizations {
   /// No description provided for @shellBack.
   ///
   /// In zh, this message translates to:
-  /// **'后退'**
+  /// **'返回'**
   String get shellBack;
 
   /// No description provided for @shellForward.
@@ -146,13 +146,13 @@ abstract class AppLocalizations {
   /// No description provided for @shellAccountMenu.
   ///
   /// In zh, this message translates to:
-  /// **'账号'**
+  /// **'帐号'**
   String get shellAccountMenu;
 
   /// No description provided for @shellCollapseLibrary.
   ///
   /// In zh, this message translates to:
-  /// **'收起音乐库'**
+  /// **'折叠音乐库'**
   String get shellCollapseLibrary;
 
   /// No description provided for @shellExpandLibrary.
@@ -236,7 +236,7 @@ abstract class AppLocalizations {
   /// No description provided for @menuNavigate.
   ///
   /// In zh, this message translates to:
-  /// **'导航'**
+  /// **'浏览'**
   String get menuNavigate;
 
   /// No description provided for @menuEdit.
@@ -248,7 +248,7 @@ abstract class AppLocalizations {
   /// No description provided for @menuUndo.
   ///
   /// In zh, this message translates to:
-  /// **'撤销'**
+  /// **'撤消'**
   String get menuUndo;
 
   /// No description provided for @menuRedo.
@@ -266,7 +266,7 @@ abstract class AppLocalizations {
   /// No description provided for @menuCopy.
   ///
   /// In zh, this message translates to:
-  /// **'拷贝'**
+  /// **'复制'**
   String get menuCopy;
 
   /// No description provided for @menuPaste.
@@ -278,7 +278,7 @@ abstract class AppLocalizations {
   /// No description provided for @menuSelectAll.
   ///
   /// In zh, this message translates to:
-  /// **'全选'**
+  /// **'选择全部'**
   String get menuSelectAll;
 
   /// No description provided for @menuWindow.
@@ -326,7 +326,7 @@ abstract class AppLocalizations {
   /// No description provided for @commonRemove.
   ///
   /// In zh, this message translates to:
-  /// **'移除'**
+  /// **'删除'**
   String get commonRemove;
 
   /// No description provided for @commonRetry.
@@ -434,7 +434,7 @@ abstract class AppLocalizations {
   /// No description provided for @podcastPlayed.
   ///
   /// In zh, this message translates to:
-  /// **'已播完'**
+  /// **'已播放'**
   String get podcastPlayed;
 
   /// No description provided for @podcastResumeFrom.
@@ -470,7 +470,7 @@ abstract class AppLocalizations {
   /// No description provided for @typeCompilation.
   ///
   /// In zh, this message translates to:
-  /// **'合辑'**
+  /// **'精选辑'**
   String get typeCompilation;
 
   /// No description provided for @filterAll.
@@ -554,7 +554,7 @@ abstract class AppLocalizations {
   /// No description provided for @greetingMorning.
   ///
   /// In zh, this message translates to:
-  /// **'早上好'**
+  /// **'早晨'**
   String get greetingMorning;
 
   /// No description provided for @greetingAfternoon.
@@ -590,19 +590,19 @@ abstract class AppLocalizations {
   /// No description provided for @likeRemove.
   ///
   /// In zh, this message translates to:
-  /// **'从已点赞的歌曲中移除'**
+  /// **'从已点赞的歌曲中删除'**
   String get likeRemove;
 
   /// No description provided for @libraryAdd.
   ///
   /// In zh, this message translates to:
-  /// **'保存到音乐库'**
+  /// **'收藏至音乐库'**
   String get libraryAdd;
 
   /// No description provided for @libraryRemove.
   ///
   /// In zh, this message translates to:
-  /// **'从音乐库中移除'**
+  /// **'从音乐库中删除'**
   String get libraryRemove;
 
   /// No description provided for @homeLoadFailedTitle.
@@ -650,7 +650,7 @@ abstract class AppLocalizations {
   /// No description provided for @homeClearFilter.
   ///
   /// In zh, this message translates to:
-  /// **'清除筛选'**
+  /// **'清除筛选条件'**
   String get homeClearFilter;
 
   /// No description provided for @homePodcastUnsupported.
@@ -680,7 +680,7 @@ abstract class AppLocalizations {
   /// No description provided for @searchRecent.
   ///
   /// In zh, this message translates to:
-  /// **'最近搜索'**
+  /// **'最近的搜索记录'**
   String get searchRecent;
 
   /// No description provided for @searchClearAll.
@@ -818,13 +818,13 @@ abstract class AppLocalizations {
   /// No description provided for @libraryClearFilter.
   ///
   /// In zh, this message translates to:
-  /// **'清除筛选'**
+  /// **'清除筛选条件'**
   String get libraryClearFilter;
 
   /// No description provided for @librarySortRecent.
   ///
   /// In zh, this message translates to:
-  /// **'最近添加'**
+  /// **'最近添加的内容'**
   String get librarySortRecent;
 
   /// No description provided for @librarySortAlphabetical.
@@ -926,7 +926,7 @@ abstract class AppLocalizations {
   /// No description provided for @artistDiscography.
   ///
   /// In zh, this message translates to:
-  /// **'作品'**
+  /// **'唱片目录'**
   String get artistDiscography;
 
   /// No description provided for @artistFollow.
@@ -938,13 +938,13 @@ abstract class AppLocalizations {
   /// No description provided for @artistFollowing.
   ///
   /// In zh, this message translates to:
-  /// **'已关注'**
+  /// **'关注中'**
   String get artistFollowing;
 
   /// 艺人页分区标题：最近一次发行
   ///
   /// In zh, this message translates to:
-  /// **'最新发行'**
+  /// **'最新发布'**
   String get artistLatestRelease;
 
   /// No description provided for @artistAlbums.
@@ -1058,7 +1058,7 @@ abstract class AppLocalizations {
   /// No description provided for @playerRepeatOn.
   ///
   /// In zh, this message translates to:
-  /// **'开启列表循环'**
+  /// **'开启循环播放'**
   String get playerRepeatOn;
 
   /// No description provided for @playerRepeatOneOn.
@@ -1070,7 +1070,7 @@ abstract class AppLocalizations {
   /// No description provided for @playerRepeatOff.
   ///
   /// In zh, this message translates to:
-  /// **'关闭循环'**
+  /// **'关闭循环播放'**
   String get playerRepeatOff;
 
   /// No description provided for @playerNext.
@@ -1244,13 +1244,13 @@ abstract class AppLocalizations {
   /// No description provided for @queueTitle.
   ///
   /// In zh, this message translates to:
-  /// **'播放队列'**
+  /// **'队列'**
   String get queueTitle;
 
   /// No description provided for @queueNextInQueue.
   ///
   /// In zh, this message translates to:
-  /// **'队列中的下一首'**
+  /// **'队列中的下一首歌'**
   String get queueNextInQueue;
 
   /// No description provided for @queueClear.
@@ -1442,13 +1442,13 @@ abstract class AppLocalizations {
   /// No description provided for @connectNoDevices.
   ///
   /// In zh, this message translates to:
-  /// **'没有找到其他设备'**
+  /// **'未发现其他设备'**
   String get connectNoDevices;
 
   /// No description provided for @connectNoDevicesHint.
   ///
   /// In zh, this message translates to:
-  /// **'在手机、电脑或音箱上打开 Spotify，并登录同一账号'**
+  /// **'在手机、电脑或音箱上打开 Spotify，并登录同一帐号'**
   String get connectNoDevicesHint;
 
   /// No description provided for @connectUnavailable.
@@ -1478,7 +1478,7 @@ abstract class AppLocalizations {
   /// No description provided for @connectCommandFailed.
   ///
   /// In zh, this message translates to:
-  /// **'操作未成功：免费账号可能不支持远程执行此操作'**
+  /// **'操作未成功：免费帐号可能不支持远程执行此操作'**
   String get connectCommandFailed;
 
   /// No description provided for @connectVolumeUnsupported.
@@ -1496,31 +1496,31 @@ abstract class AppLocalizations {
   /// No description provided for @trackAddToPlaylist.
   ///
   /// In zh, this message translates to:
-  /// **'添加到歌单'**
+  /// **'加入歌单'**
   String get trackAddToPlaylist;
 
   /// No description provided for @trackAddToQueue.
   ///
   /// In zh, this message translates to:
-  /// **'添加到播放队列'**
+  /// **'加入播放队列'**
   String get trackAddToQueue;
 
   /// No description provided for @trackGoToAlbum.
   ///
   /// In zh, this message translates to:
-  /// **'前往专辑'**
+  /// **'转至专辑'**
   String get trackGoToAlbum;
 
   /// No description provided for @trackGoToRadio.
   ///
   /// In zh, this message translates to:
-  /// **'前往歌曲电台'**
+  /// **'转至歌曲电台'**
   String get trackGoToRadio;
 
   /// No description provided for @trackViewCredits.
   ///
   /// In zh, this message translates to:
-  /// **'查看制作人员'**
+  /// **'查看制作人'**
   String get trackViewCredits;
 
   /// No description provided for @creditsTitle.
@@ -1550,7 +1550,7 @@ abstract class AppLocalizations {
   /// No description provided for @trackGoToArtist.
   ///
   /// In zh, this message translates to:
-  /// **'{count, plural, other{前往艺人}}'**
+  /// **'{count, plural, other{转至艺人}}'**
   String trackGoToArtist(int count);
 
   /// No description provided for @trackNewPlaylist.
@@ -1592,7 +1592,7 @@ abstract class AppLocalizations {
   /// No description provided for @toastAddedToQueue.
   ///
   /// In zh, this message translates to:
-  /// **'已添加到播放队列'**
+  /// **'已加入播放队列'**
   String get toastAddedToQueue;
 
   /// No description provided for @shareCopyLink.
@@ -1622,7 +1622,7 @@ abstract class AppLocalizations {
   /// No description provided for @shareEmbedTitle.
   ///
   /// In zh, this message translates to:
-  /// **'嵌入代码'**
+  /// **'嵌入'**
   String get shareEmbedTitle;
 
   /// No description provided for @shareEmbedSubtitle.
@@ -2264,7 +2264,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsLyricsSourceDrag.
   ///
   /// In zh, this message translates to:
-  /// **'拖动排序'**
+  /// **'拖动即可重新排序'**
   String get settingsLyricsSourceDrag;
 
   /// No description provided for @settingsLyricsBilingual.
@@ -2342,7 +2342,7 @@ abstract class AppLocalizations {
   /// No description provided for @homeWidgetNowPlaying.
   ///
   /// In zh, this message translates to:
-  /// **'播放条'**
+  /// **'当前播放栏'**
   String get homeWidgetNowPlaying;
 
   /// No description provided for @homeWidgetNowPlayingDesc.
@@ -2666,7 +2666,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsConnectEnabledSubtitle.
   ///
   /// In zh, this message translates to:
-  /// **'显示并遥控同一账号在其他设备上的播放'**
+  /// **'显示并遥控同一帐号在其他设备上的播放'**
   String get settingsConnectEnabledSubtitle;
 
   /// No description provided for @settingsConnectDeviceName.
@@ -3008,7 +3008,7 @@ abstract class AppLocalizations {
   /// No description provided for @shortcutPlayPause.
   ///
   /// In zh, this message translates to:
-  /// **'播放 / 暂停'**
+  /// **'播放/暂停'**
   String get shortcutPlayPause;
 
   /// No description provided for @shortcutNext.
@@ -3056,7 +3056,7 @@ abstract class AppLocalizations {
   /// No description provided for @shortcutBack.
   ///
   /// In zh, this message translates to:
-  /// **'后退'**
+  /// **'返回'**
   String get shortcutBack;
 
   /// No description provided for @shortcutForward.
@@ -3086,7 +3086,7 @@ abstract class AppLocalizations {
   /// No description provided for @accountTitle.
   ///
   /// In zh, this message translates to:
-  /// **'Spotify 账号'**
+  /// **'Spotify 帐号'**
   String get accountTitle;
 
   /// No description provided for @accountSignedOutMessage.
@@ -3146,7 +3146,7 @@ abstract class AppLocalizations {
   /// No description provided for @sleepTimerEndOfTrack.
   ///
   /// In zh, this message translates to:
-  /// **'本首结束时'**
+  /// **'曲目结束时'**
   String get sleepTimerEndOfTrack;
 
   /// No description provided for @sleepTimerOff.
@@ -3248,7 +3248,7 @@ abstract class AppLocalizations {
   /// No description provided for @trackSearchHint.
   ///
   /// In zh, this message translates to:
-  /// **'在歌单中搜索'**
+  /// **'在歌单内搜索'**
   String get trackSearchHint;
 
   /// No description provided for @trackSearchClose.
@@ -3266,7 +3266,7 @@ abstract class AppLocalizations {
   /// No description provided for @addedToday.
   ///
   /// In zh, this message translates to:
-  /// **'今天'**
+  /// **'今日'**
   String get addedToday;
 
   /// No description provided for @addedDaysAgo.
@@ -3632,7 +3632,7 @@ abstract class AppLocalizations {
   /// No description provided for @loginOfficialPage.
   ///
   /// In zh, this message translates to:
-  /// **'使用 Spotify 官方页面完成账号登录'**
+  /// **'使用 Spotify 官方页面完成帐号登录'**
   String get loginOfficialPage;
 
   /// No description provided for @loginRemoteDevices.
@@ -3704,7 +3704,7 @@ abstract class AppLocalizations {
   /// No description provided for @webLoginAuthorizing.
   ///
   /// In zh, this message translates to:
-  /// **'正在完成账号授权…'**
+  /// **'正在完成帐号授权…'**
   String get webLoginAuthorizing;
 
   /// No description provided for @webLoginFinishing.
@@ -3722,7 +3722,7 @@ abstract class AppLocalizations {
   /// No description provided for @webLoginGoogleHint.
   ///
   /// In zh, this message translates to:
-  /// **'用 Google 注册的账号请用「邮箱 + 密码」登录；没有密码可先在 Spotify 官网通过「忘记密码」设置。'**
+  /// **'用 Google 注册的帐号请用「邮箱 + 密码」登录；没有密码可先在 Spotify 官网通过「忘记密码」设置。'**
   String get webLoginGoogleHint;
 
   /// No description provided for @loginBrowserFallback.
@@ -3788,7 +3788,7 @@ abstract class AppLocalizations {
   /// No description provided for @updatesChannelBeta.
   ///
   /// In zh, this message translates to:
-  /// **'测试版（Beta）'**
+  /// **'测试版'**
   String get updatesChannelBeta;
 
   /// No description provided for @updatesChannelSelfTest.
@@ -4304,7 +4304,7 @@ abstract class AppLocalizations {
   /// No description provided for @backupFooter.
   ///
   /// In zh, this message translates to:
-  /// **'查看各账号的已点赞歌曲和歌单，可勾选其中一部分一键导入当前账号。'**
+  /// **'查看各帐号的已点赞歌曲和歌单，可勾选其中一部分一键导入当前帐号。'**
   String get backupFooter;
 
   /// No description provided for @backupUnsyncedTitle.
@@ -4316,7 +4316,7 @@ abstract class AppLocalizations {
   /// No description provided for @backupUnsyncedSubtitle.
   ///
   /// In zh, this message translates to:
-  /// **'有 {count} 个歌单只保存在本机，尚未写入账号音乐库'**
+  /// **'有 {count} 个歌单只保存在本机，尚未写入帐号音乐库'**
   String backupUnsyncedSubtitle(int count);
 
   /// No description provided for @backupEnable.
@@ -4328,13 +4328,13 @@ abstract class AppLocalizations {
   /// No description provided for @backupEnableSubtitle.
   ///
   /// In zh, this message translates to:
-  /// **'自动备份本机账号，也可通过独立 WebView 备份其他账号的收藏歌单'**
+  /// **'自动备份本机帐号，也可通过独立 WebView 备份其他帐号的收藏歌单'**
   String get backupEnableSubtitle;
 
   /// No description provided for @backupAutoCurrent.
   ///
   /// In zh, this message translates to:
-  /// **'自动备份本机账号'**
+  /// **'自动备份本机帐号'**
   String get backupAutoCurrent;
 
   /// No description provided for @backupAutoCurrentSubtitle.
@@ -4376,7 +4376,7 @@ abstract class AppLocalizations {
   /// No description provided for @backupAddAccount.
   ///
   /// In zh, this message translates to:
-  /// **'添加要同步歌单的账号'**
+  /// **'添加要同步歌单的帐号'**
   String get backupAddAccount;
 
   /// No description provided for @backupAddAccountSubtitle.
@@ -4388,37 +4388,37 @@ abstract class AppLocalizations {
   /// No description provided for @backupSyncToAccount.
   ///
   /// In zh, this message translates to:
-  /// **'一键同步已备份的歌单到本账号'**
+  /// **'一键同步已备份的歌单到本帐号'**
   String get backupSyncToAccount;
 
   /// No description provided for @backupSyncToAccountSubtitle.
   ///
   /// In zh, this message translates to:
-  /// **'把已勾选账号的已点赞歌曲并入本账号，歌单同步到本账号'**
+  /// **'把已勾选帐号的已点赞歌曲并入本帐号，歌单同步到本帐号'**
   String get backupSyncToAccountSubtitle;
 
   /// No description provided for @backupNow.
   ///
   /// In zh, this message translates to:
-  /// **'立即备份全部账号'**
+  /// **'立即备份全部帐号'**
   String get backupNow;
 
   /// No description provided for @backupNowSubtitle.
   ///
   /// In zh, this message translates to:
-  /// **'拉取各账号最新收藏并保存到本地'**
+  /// **'拉取各帐号最新收藏并保存到本地'**
   String get backupNowSubtitle;
 
   /// No description provided for @backupAccountAdded.
   ///
   /// In zh, this message translates to:
-  /// **'已备份账号「{title}」（{liked}，{playlists}）'**
+  /// **'已备份帐号「{title}」（{liked}，{playlists}）'**
   String backupAccountAdded(String title, String liked, String playlists);
 
   /// No description provided for @backupAccountAddFailed.
   ///
   /// In zh, this message translates to:
-  /// **'添加备份账号失败：{error}'**
+  /// **'添加备份帐号失败：{error}'**
   String backupAccountAddFailed(String error);
 
   /// No description provided for @backupSynced.
@@ -4442,7 +4442,7 @@ abstract class AppLocalizations {
   /// No description provided for @backupSavedAll.
   ///
   /// In zh, this message translates to:
-  /// **'已保存全部账号的收藏歌单'**
+  /// **'已保存全部帐号的收藏歌单'**
   String get backupSavedAll;
 
   /// No description provided for @backupSelectedHeader.
@@ -4460,13 +4460,13 @@ abstract class AppLocalizations {
   /// No description provided for @backupBadgePrevious.
   ///
   /// In zh, this message translates to:
-  /// **'以前登录的账号'**
+  /// **'以前登录的帐号'**
   String get backupBadgePrevious;
 
   /// No description provided for @backupBadgeExternal.
   ///
   /// In zh, this message translates to:
-  /// **'外部备份账号'**
+  /// **'外部备份帐号'**
   String get backupBadgeExternal;
 
   /// No description provided for @backupAccountTitle.
@@ -4490,7 +4490,7 @@ abstract class AppLocalizations {
   /// No description provided for @backupRemoveAccount.
   ///
   /// In zh, this message translates to:
-  /// **'移除该备份账号'**
+  /// **'移除该备份帐号'**
   String get backupRemoveAccount;
 
   /// No description provided for @backupExitMultiSelect.
@@ -4550,7 +4550,7 @@ abstract class AppLocalizations {
   /// No description provided for @backupImportAsPlaylistShort.
   ///
   /// In zh, this message translates to:
-  /// **'导入为本账号歌单'**
+  /// **'导入为本帐号歌单'**
   String get backupImportAsPlaylistShort;
 
   /// No description provided for @backupLikedMerged.
@@ -4586,7 +4586,7 @@ abstract class AppLocalizations {
   /// No description provided for @backupLoginTitle.
   ///
   /// In zh, this message translates to:
-  /// **'登录要备份的 Spotify 账号'**
+  /// **'登录要备份的 Spotify 帐号'**
   String get backupLoginTitle;
 
   /// No description provided for @playlistSyncTitle.
@@ -4598,13 +4598,13 @@ abstract class AppLocalizations {
   /// No description provided for @playlistSyncIntro.
   ///
   /// In zh, this message translates to:
-  /// **'旧版本中收藏、新建或从备份导入的歌单只保存在本机，官方客户端和网页版看不到。勾选后写入当前账号：他人的歌单加入音乐库，本机歌单在账号中新建同名歌单。'**
+  /// **'旧版本中收藏、新建或从备份导入的歌单只保存在本机，官方客户端和网页版看不到。勾选后写入当前帐号：他人的歌单加入音乐库，本机歌单在帐号中新建同名歌单。'**
   String get playlistSyncIntro;
 
   /// No description provided for @playlistSyncDone.
   ///
   /// In zh, this message translates to:
-  /// **'同步完成：{count} 个歌单已写入账号。'**
+  /// **'同步完成：{count} 个歌单已写入帐号。'**
   String playlistSyncDone(int count);
 
   /// No description provided for @playlistSyncPartial.
@@ -4640,13 +4640,13 @@ abstract class AppLocalizations {
   /// No description provided for @playlistSyncCreate.
   ///
   /// In zh, this message translates to:
-  /// **'在账号中新建歌单（{songs}）'**
+  /// **'在帐号中新建歌单（{songs}）'**
   String playlistSyncCreate(String songs);
 
   /// No description provided for @playlistSyncAdd.
   ///
   /// In zh, this message translates to:
-  /// **'加入音乐库'**
+  /// **'添加到音乐库'**
   String get playlistSyncAdd;
 
   /// No description provided for @playlistSyncStateRunning.
@@ -4676,7 +4676,7 @@ abstract class AppLocalizations {
   /// No description provided for @playlistSyncPromptBody.
   ///
   /// In zh, this message translates to:
-  /// **'旧版本中收藏、新建或从备份导入的歌单只保存在本机，官方客户端和网页版看不到。现在收藏 / 取消收藏会同步到账号，之前遗留的歌单可补同步。\n\n之后也可在「设置 → 歌单备份」找到入口。'**
+  /// **'旧版本中收藏、新建或从备份导入的歌单只保存在本机，官方客户端和网页版看不到。现在收藏 / 取消收藏会同步到帐号，之前遗留的歌单可补同步。\n\n之后也可在「设置 → 歌单备份」找到入口。'**
   String get playlistSyncPromptBody;
 
   /// No description provided for @playlistSyncPromptLater.
@@ -4832,7 +4832,7 @@ abstract class AppLocalizations {
   /// No description provided for @libraryErrorNotSignedIn.
   ///
   /// In zh, this message translates to:
-  /// **'未登录，无法同步到 Spotify 账号'**
+  /// **'未登录，无法同步到 Spotify 帐号'**
   String get libraryErrorNotSignedIn;
 
   /// No description provided for @libraryErrorRead.
@@ -4862,13 +4862,13 @@ abstract class AppLocalizations {
   /// No description provided for @backupFailed.
   ///
   /// In zh, this message translates to:
-  /// **'备份账号失败：{detail}'**
+  /// **'备份帐号失败：{detail}'**
   String backupFailed(String detail);
 
   /// No description provided for @backupAccountFailed.
   ///
   /// In zh, this message translates to:
-  /// **'账号「{title}」备份失败：{detail}'**
+  /// **'帐号「{title}」备份失败：{detail}'**
   String backupAccountFailed(String title, String detail);
 
   /// No description provided for @creditsFailed.

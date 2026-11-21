@@ -26,13 +26,13 @@
   },
   "@@locale": "zh_Hant",
   "appTitle": "Flutify",
-  "shellBack": "後退",
-  "shellForward": "前進",
-  "shellHome": "主頁",
+  "shellBack": "上一頁",
+  "shellForward": "下一頁",
+  "shellHome": "首頁",
   "shellSearchShortcut": "Ctrl K",
-  "shellAccountMenu": "帳號",
-  "shellCollapseLibrary": "收起音樂庫",
-  "shellExpandLibrary": "展開音樂庫",
+  "shellAccountMenu": "帳戶",
+  "shellCollapseLibrary": "收合「你的音樂庫」",
+  "shellExpandLibrary": "展開「你的音樂庫」",
   "shellPlaybackStatus": "播放狀態",
   "shellHidePanel": "隱藏",
   "shellAboutArtist": "關於藝人",
@@ -45,14 +45,14 @@
     }
   },
   "shellSignInTitle": "登入後查看你的音樂庫",
-  "shellSignInMessage": "收藏的歌單、專輯和藝人會顯示在這裡。",
+  "shellSignInMessage": "收藏的播放清單、專輯和藝人會顯示在這裡。",
   "shellSignIn": "登入",
   "windowMinimize": "最小化",
   "windowMaximize": "最大化",
   "windowRestore": "向下還原",
   "windowClose": "關閉",
   "commonCancel": "取消",
-  "commonCreate": "創建",
+  "commonCreate": "建立",
   "commonDone": "完成",
   "commonClose": "關閉",
   "commonClear": "清除",
@@ -60,9 +60,9 @@
   "commonRetry": "重試",
   "commonLoadMore": "載入更多",
   "commonMoreOptions": "更多選項",
-  "commonShowAll": "顯示全部",
-  "commonSeeMore": "查看更多",
-  "commonShowLess": "收起",
+  "commonShowAll": "顯示所有內容",
+  "commonSeeMore": "檢視更多",
+  "commonShowLess": "顯示較少內容",
   "commonSettings": "設定",
   "commonShare": "分享",
   "subtitleJoin": "{first} · {second}",
@@ -77,13 +77,13 @@
       }
     }
   },
-  "navHome": "主頁",
-  "navSearch": "搜索",
-  "navLibrary": "音樂庫",
+  "navHome": "首頁",
+  "navSearch": "搜尋",
+  "navLibrary": "你的音樂庫",
   "typeTrack": "歌曲",
   "typeArtist": "藝人",
-  "typePlaylist": "歌單",
-  "typePodcast": "播客",
+  "typePlaylist": "播放清單",
+  "typePodcast": "Podcast",
   "podcastEpisodeCount": "{count, plural, other{{count} 集}}",
   "@podcastEpisodeCount": {
     "placeholders": {
@@ -92,7 +92,7 @@
       }
     }
   },
-  "podcastPlayed": "已播完",
+  "podcastPlayed": "已播放",
   "podcastResumeFrom": "播至 {position}",
   "@podcastResumeFrom": {
     "placeholders": {
@@ -106,12 +106,12 @@
   "typeAlbum": "專輯",
   "typeSingle": "單曲",
   "typeCompilation": "合輯",
-  "filterAll": "全部",
+  "filterAll": "所有",
   "filterMusic": "音樂",
-  "filterPodcasts": "播客",
+  "filterPodcasts": "Podcast",
   "filterSongs": "歌曲",
   "filterArtists": "藝人",
-  "filterPlaylists": "歌單",
+  "filterPlaylists": "播放清單",
   "filterAlbums": "專輯",
   "songCount": "{count, plural, other{{count} 首歌曲}}",
   "@songCount": {
@@ -172,15 +172,15 @@
       }
     }
   },
-  "greetingMorning": "早上好",
-  "greetingAfternoon": "下午好",
-  "greetingEvening": "晚上好",
-  "likedSongs": "已點贊的歌曲",
+  "greetingMorning": "早安",
+  "greetingAfternoon": "午安",
+  "greetingEvening": "晚安",
+  "likedSongs": "已按讚的歌曲",
   "likedSongsDescription": "你喜歡的所有歌曲都在這裡。",
-  "likeAdd": "添加到已點贊的歌曲",
-  "likeRemove": "從已點贊的歌曲中移除",
-  "libraryAdd": "保存到音樂庫",
-  "libraryRemove": "從音樂庫中移除",
+  "likeAdd": "新增到已按讚的歌曲",
+  "likeRemove": "從「已按讚的歌曲」中移除",
+  "libraryAdd": "儲存至你的音樂庫",
+  "libraryRemove": "從你的音樂庫中移除",
   "homeLoadFailedTitle": "無法載入推薦內容",
   "homeLoadFailedMessage": "請檢查網路連接後重試。",
   "authSessionExpiredTitle": "登入已過期",
@@ -188,12 +188,12 @@
   "authSignInAgain": "重新登入",
   "homeEmptyTitle": "這裡暫時沒有內容",
   "homeEmptyMessage": "換個篩選標籤看看，或稍後再來。",
-  "homeClearFilter": "清除篩選",
-  "homePodcastUnsupported": "暫不支援播客，敬請期待",
-  "homeTypePodcast": "播客",
+  "homeClearFilter": "清除篩選條件",
+  "homePodcastUnsupported": "暫不支援 Podcast，敬請期待",
+  "homeTypePodcast": "Podcast",
   "homeTypeEpisode": "單集",
   "searchHint": "你想聽什麼？",
-  "searchRecent": "最近搜索",
+  "searchRecent": "最近的搜尋",
   "searchClearAll": "全部清除",
   "searchBrowseAll": "瀏覽全部",
   "watchFeedDiscoverTitle": "探索新內容",
@@ -236,17 +236,17 @@
       }
     }
   },
-  "librarySearchHint": "在音樂庫中搜索",
-  "libraryCloseSearch": "關閉搜索",
-  "libraryCreatePlaylist": "創建歌單",
-  "libraryClearFilter": "清除篩選",
-  "librarySortRecent": "最近添加",
+  "librarySearchHint": "在「你的音樂庫」中搜尋",
+  "libraryCloseSearch": "關閉搜尋",
+  "libraryCreatePlaylist": "建立播放清單",
+  "libraryClearFilter": "清除篩選條件",
+  "librarySortRecent": "最近新增",
   "librarySortAlphabetical": "按字母順序",
   "libraryListView": "列表視圖",
   "libraryGridView": "網格視圖",
   "libraryEmptyTitle": "這裡還沒有內容",
-  "libraryEmptyMessage": "收藏的歌單、藝人和專輯會顯示在這裡。",
-  "libraryNewPlaylistName": "我的歌單 #{number}",
+  "libraryEmptyMessage": "收藏的播放清單、藝人和專輯會顯示在這裡。",
+  "libraryNewPlaylistName": "我的播放清單 #{number}",
   "@libraryNewPlaylistName": {
     "placeholders": {
       "number": {
@@ -254,10 +254,10 @@
       }
     }
   },
-  "playlistDelete": "刪除歌單",
-  "playlistLikedEmpty": "你點贊的歌曲會顯示在這裡。\n點按愛心圖標即可收藏歌曲。",
-  "playlistOwnEmpty": "來為你的歌單找些歌曲吧。\n在任意歌曲的選單中選擇“添加到歌單”。",
-  "playlistEmpty": "這個歌單還沒有歌曲。",
+  "playlistDelete": "刪除播放清單",
+  "playlistLikedEmpty": "你按讚的歌曲會顯示在這裡。\n點按愛心圖標即可收藏歌曲。",
+  "playlistOwnEmpty": "來為你的播放清單找些歌曲吧。\n在任意歌曲的選單中選擇“新增到播放清單”。",
+  "playlistEmpty": "這個播放清單還沒有歌曲。",
   "albumNoTracks": "這張專輯暫無可播放的曲目。",
   "albumMoreBy": "{name} 的更多作品",
   "@albumMoreBy": {
@@ -271,31 +271,31 @@
   "artistNoPopular": "暫無熱門歌曲。",
   "artistNoAlbums": "暫無可顯示的專輯。",
   "artistNoSongs": "暫無可顯示的歌曲。",
-  "artistDiscography": "作品",
-  "artistFollow": "關注",
-  "artistFollowing": "已關注",
+  "artistDiscography": "音樂作品",
+  "artistFollow": "追蹤",
+  "artistFollowing": "追蹤中",
   "artistLatestRelease": "最新發行",
   "artistAlbums": "專輯",
   "artistSingles": "單曲和 EP",
   "artistRelated": "粉絲也喜歡",
-  "artistAbout": "關於",
+  "artistAbout": "簡介",
   "artistMonthlyListeners": "{count} 位每月聽眾",
-  "playingFromPlaylist": "正在播放歌單",
+  "playingFromPlaylist": "正在播放播放清單",
   "playingFromAlbum": "正在播放專輯",
   "playingFromArtist": "正在播放藝人",
-  "playingFromSearch": "正在播放搜索結果",
+  "playingFromSearch": "正在播放搜尋結果",
   "playingFromLibrary": "正在播放音樂庫",
   "nowPlaying": "正在播放",
   "openNowPlaying": "打開正在播放",
   "playerNothingPlayingTitle": "當前沒有播放內容",
-  "playerNothingPlayingMessage": "選擇一首歌曲、專輯或歌單，開始收聽吧。",
+  "playerNothingPlayingMessage": "選擇一首歌曲、專輯或播放清單，開始收聽吧。",
   "playerIdleHint": "暫無播放 — 挑點音樂來聽吧",
   "playerThisDevice": "正在本裝置上收聽",
-  "playerShuffleOn": "開啟隨機播放",
-  "playerShuffleOff": "關閉隨機播放",
-  "playerRepeatOn": "開啟列表循環",
-  "playerRepeatOneOn": "開啟單曲循環",
-  "playerRepeatOff": "關閉循環",
+  "playerShuffleOn": "啟用隨機播放",
+  "playerShuffleOff": "停用隨機播放",
+  "playerRepeatOn": "啟用重複播放",
+  "playerRepeatOneOn": "啟用單首重複播放",
+  "playerRepeatOff": "停用重複播放",
   "playerNext": "下一首",
   "playerPrevious": "上一首",
   "playerMute": "靜音",
@@ -358,9 +358,9 @@
   },
   "detailSignInRequired": "登入後即可查看這裡的內容",
   "detailLoadFailed": "暫時無法載入，請檢查網路後重試",
-  "queueTitle": "播放佇列",
-  "queueNextInQueue": "隊列中的下一首",
-  "queueClear": "清空隊列",
+  "queueTitle": "佇列",
+  "queueNextInQueue": "佇列中下一首",
+  "queueClear": "清除佇列",
   "queueNextUp": "接下來播放",
   "queueNextFrom": "接下來播放：{name}",
   "@queueNextFrom": {
@@ -370,7 +370,7 @@
       }
     }
   },
-  "queueEmpty": "隊列中暫無待播歌曲",
+  "queueEmpty": "佇列中暫無待播歌曲",
   "lyricsTitle": "歌詞",
   "lyricsNotPlaying": "未在播放",
   "lyricsNothingPlayingMessage": "播放一首歌曲，即可在這裡查看歌詞。",
@@ -390,7 +390,7 @@
   "lyricsFillWindow": "只鋪滿視窗（F11）",
   "lyricsPinControls": "固定控制區（不自動收起）",
   "lyricsUnpinControls": "取消固定控制區",
-  "deviceConnectTitle": "連接到裝置",
+  "deviceConnectTitle": "連接至裝置",
   "deviceConnectShort": "暢聯",
   "deviceConnectDescription": "透過 Spotify Connect，可在電腦、手機或智慧型喇叭上無縫播放。",
   "deviceCurrent": "當前收聽裝置",
@@ -406,13 +406,13 @@
     }
   },
   "connectOtherDevices": "選擇其他裝置",
-  "connectNoDevices": "沒有找到其他裝置",
-  "connectNoDevicesHint": "在手機、電腦或音箱上打開 Spotify，并登入同一帳號",
+  "connectNoDevices": "找不到其他裝置",
+  "connectNoDevicesHint": "在手機、電腦或音箱上打開 Spotify，并登入同一帳戶",
   "connectUnavailable": "使用桌面版方式登入後，即可遙控其他裝置上的 Spotify",
   "connectConnecting": "正在連接 Spotify Connect…",
   "connectOffline": "連接已斷開，正在重試…",
   "connectSameNetwork": "同一網路",
-  "connectCommandFailed": "操作未成功：免費帳號可能不支援遠程執行此操作",
+  "connectCommandFailed": "操作未成功：免費帳戶可能不支援遠程執行此操作",
   "connectVolumeUnsupported": "{device} 不支援遠程調節音量",
   "@connectVolumeUnsupported": {
     "placeholders": {
@@ -422,16 +422,16 @@
     }
   },
   "connectVolume": "裝置音量",
-  "trackAddToPlaylist": "添加到歌單",
-  "trackAddToQueue": "添加到播放佇列",
+  "trackAddToPlaylist": "新增至播放清單",
+  "trackAddToQueue": "新增至佇列",
   "trackGoToAlbum": "前往專輯",
-  "trackGoToRadio": "前往歌曲電臺",
-  "trackViewCredits": "查看制作人員",
+  "trackGoToRadio": "前往歌曲電台",
+  "trackViewCredits": "查看製作人員名單",
   "creditsTitle": "制作人員",
   "creditsSources": "來源",
   "creditsEmpty": "這首歌暫時沒有制作人員資訊",
   "radioUnavailable": "這首歌暫時沒有歌曲電臺",
-  "trackGoToArtist": "{count, plural, other{前往藝人}}",
+  "trackGoToArtist": "{count, plural, other{前往藝人頁面}}",
   "@trackGoToArtist": {
     "placeholders": {
       "count": {
@@ -439,26 +439,26 @@
       }
     }
   },
-  "trackNewPlaylist": "新建歌單",
-  "trackQuickAdd": "添加",
-  "trackQuickLike": "點贊",
-  "trackQuickLiked": "已點贊",
-  "toastLikeAdded": "已添加到已點贊的歌曲",
-  "toastLikeRemoved": "已從已點贊的歌曲中移除",
-  "toastAddedToQueue": "已添加到播放佇列",
-  "shareCopyLink": "復制連結",
+  "trackNewPlaylist": "建立新清單",
+  "trackQuickAdd": "新增",
+  "trackQuickLike": "讚",
+  "trackQuickLiked": "已按讚",
+  "toastLikeAdded": "已新增到已按讚的歌曲",
+  "toastLikeRemoved": "已從已按讚的歌曲中移除",
+  "toastAddedToQueue": "新增至佇列",
+  "shareCopyLink": "複製連結",
   "shareCopyUri": "復制 URI",
   "shareOpenWeb": "網頁打開",
   "shareCopied": "已復制",
-  "shareEmbedTitle": "嵌入代碼",
+  "shareEmbedTitle": "嵌入",
   "shareEmbedSubtitle": "粘貼到網頁 HTML 中，即可展示 Spotify 播放器",
   "shareEmbedStandard": "標準",
-  "shareEmbedCompact": "緊湊",
+  "shareEmbedCompact": "緊密",
   "shareEmbedDark": "深色",
   "shareEmbedCopy": "復制代碼",
   "shareEmbedUnavailable": "此裝置的系統 WebView 暫不可用，仍可復制下方嵌入代碼。",
   "shareEmbedFailed": "Spotify 嵌入播放器載入失敗，請檢查網路後重試。",
-  "toastAddedTo": "已添加到「{name}」",
+  "toastAddedTo": "已新增到「{name}」",
   "@toastAddedTo": {
     "placeholders": {
       "name": {
@@ -475,9 +475,9 @@
       }
     }
   },
-  "createPlaylistTitle": "為歌單命名",
-  "createPlaylistHint": "歌單名稱",
-  "createPlaylistDefaultName": "我的歌單",
+  "createPlaylistTitle": "為播放清單命名",
+  "createPlaylistHint": "播放清單名稱",
+  "createPlaylistDefaultName": "我的播放清單",
   "settingsAppearanceSection": "外觀",
   "settingsThemeMode": "主題",
   "settingsThemeSystem": "跟隨系統",
@@ -541,7 +541,7 @@
   "settingsBrightness": "亮度",
   "settingsLanguageSection": "語言",
   "settingsLanguage": "界面語言",
-  "settingsLanguageSubtitle": "同時影響主頁推薦等由 Spotify 提供的文案",
+  "settingsLanguageSubtitle": "同時影響首頁推薦等由 Spotify 提供的文案",
   "settingsLanguageSystem": "跟隨系統",
   "settingsLanguageZh": "简体中文",
   "settingsLanguageEn": "English",
@@ -595,18 +595,18 @@
   "settingsLyricsSourceRoleLrclib": "原文與譯文",
   "settingsLyricsSourceRoleCommunity": "原文與中文譯詞",
   "settingsLyricsSourceDisabled": "已在「補全歌詞」中關閉",
-  "settingsLyricsSourceDrag": "拖曳排序",
+  "settingsLyricsSourceDrag": "拖曳即可重新排序",
   "settingsTaskbarLyricsSection": "工作列歌詞",
   "settingsTaskbarLyrics": "在工作列顯示歌詞",
   "settingsTaskbarLyricsSubtitle": "工作列圖標居中時顯示在左側，居左時顯示在系統托盤左邊；工作列豎向時自動停用。懸停顯示播放控制，點按打開 Flutify，右鍵重新獲取歌詞",
   "settingsTaskbarLyricsColor": "文字顏色",
   "settingsTaskbarLyricsCustomColor": "自訂顏色",
-  "settingsTaskbarLyricsChangeColor": "更改",
+  "settingsTaskbarLyricsChangeColor": "變更",
   "settingsTaskbarLyricsOpacity": "不透明度",
   "settingsTaskbarLyricsFontSize": "字號",
   "settingsHomeWidgetsSection": "桌面小工具",
   "settingsHomeWidgetsSubtitle": "在澎湃 OS 小工具列表底部的「安卓小工具」分區找到 Flutify，也可點「新增」直接放到桌面，長按可調整大小",
-  "homeWidgetNowPlaying": "播放條",
+  "homeWidgetNowPlaying": "「現正播放」列",
   "homeWidgetNowPlayingDesc": "細長橫條，封面、歌名與上一首 / 播放 / 下一首；預設 4×1",
   "homeWidgetAlbumCard": "專輯卡片",
   "homeWidgetAlbumCardDesc": "大封面，背景隨封面取色；預設 4×2",
@@ -651,11 +651,11 @@
   },
   "settingsStartupSection": "啟動",
   "settingsStartPage": "啟動時打開",
-  "settingsStartPageHome": "主頁",
+  "settingsStartPageHome": "首頁",
   "settingsStartPageLibrary": "音樂庫",
   "settingsStartPageLast": "上次位置",
   "settingsDefaultRepeat": "預設循環方式",
-  "settingsDefaultRepeatSubtitle": "切換歌單、專輯等播放列表時預設生效的循環方式",
+  "settingsDefaultRepeatSubtitle": "切換播放清單、專輯等播放列表時預設生效的循環方式",
   "settingsRepeatOff": "不循環",
   "settingsRepeatList": "列表循環",
   "settingsRepeatTrack": "單曲循環",
@@ -667,7 +667,7 @@
   "settingsSpotifyLinksSystem": "Windows「預設應用程式」已為 spotify: 連結選擇其他程式，請在系統設定中改為 Flutify",
   "settingsConnectSection": "Spotify Connect",
   "settingsConnectEnabled": "啟用 Spotify Connect",
-  "settingsConnectEnabledSubtitle": "顯示并遙控同一帳號在其他裝置上的播放",
+  "settingsConnectEnabledSubtitle": "顯示并遙控同一帳戶在其他裝置上的播放",
   "settingsConnectDeviceName": "裝置名稱",
   "settingsConnectDeviceNameSubtitle": "其他裝置的裝置列表裡顯示的名字，留空使用預設名",
   "settingsConnectUseDeviceName": "使用裝置名稱",
@@ -716,7 +716,7 @@
   },
   "settingsProxyFootnote": "僅支援 HTTP 代理（Clash、v2rayN 的混合埠即可）。手動代理可填使用者名稱 / 密碼，適合帶驗證的自建反代；登入頁始終跟隨系統代理。",
   "settingsPrivacySection": "隱私",
-  "settingsClearSearchHistory": "清除搜索記錄",
+  "settingsClearSearchHistory": "清除搜尋記錄",
   "settingsSearchHistoryCount": "{count} 條記錄",
   "@settingsSearchHistoryCount": {
     "placeholders": {
@@ -725,7 +725,7 @@
       }
     }
   },
-  "settingsSearchHistoryEmpty": "沒有搜索記錄",
+  "settingsSearchHistoryEmpty": "沒有搜尋記錄",
   "settingsClearLyricsCache": "清除歌詞快取",
   "settingsClearLyricsCacheSubtitle": "清除後重新從 Spotify 獲取歌詞",
   "settingsCleared": "已清除",
@@ -747,20 +747,20 @@
   "trayQuit": "結束",
   "settingsShortcuts": "鍵盤快捷鍵",
   "settingsLicenses": "開源許可",
-  "shortcutPlayPause": "播放 / 暫停",
+  "shortcutPlayPause": "播放/暫停",
   "shortcutNext": "下一首",
   "shortcutPrevious": "上一首",
   "shortcutVolumeUp": "調高音量",
   "shortcutVolumeDown": "調低音量",
   "shortcutShuffle": "隨機播放",
   "shortcutRepeat": "切換循環模式",
-  "shortcutSearch": "搜索",
-  "shortcutBack": "後退",
+  "shortcutSearch": "搜尋",
+  "shortcutBack": "返回",
   "shortcutForward": "前進",
   "shortcutImmersive": "全螢幕歌詞",
   "shortcutImmersiveMode": "全螢幕歌詞中：切換鋪滿螢幕 / 視窗",
   "shortcutExitImmersive": "退出全螢幕歌詞",
-  "accountTitle": "Spotify 帳號",
+  "accountTitle": "Spotify 帳戶",
   "accountSignedOutMessage": "登入後同步你的音樂庫",
   "accountSignIn": "登入",
   "accountSignOut": "登出",
@@ -777,7 +777,7 @@
     }
   },
   "sleepTimerHour": "1 小時",
-  "sleepTimerEndOfTrack": "本首結束時",
+  "sleepTimerEndOfTrack": "歌曲播完時",
   "sleepTimerOff": "關閉定時器",
   "sleepTimerRemaining": "睡眠定時器：剩餘 {time}",
   "@sleepTimerRemaining": {
@@ -808,15 +808,15 @@
   "trackColumnTitle": "標題",
   "trackColumnArtist": "藝人",
   "trackColumnAlbum": "專輯",
-  "trackColumnAddedAt": "添加日期",
-  "trackColumnDuration": "時長",
+  "trackColumnAddedAt": "新增日期",
+  "trackColumnDuration": "長度",
   "trackSortBy": "排序方式",
   "trackSortCustom": "自訂順序",
   "trackViewAs": "查看方式",
-  "trackViewList": "列表",
-  "trackViewCompact": "緊湊",
-  "trackSearchHint": "在歌單中搜索",
-  "trackSearchClose": "關閉搜索",
+  "trackViewList": "清單",
+  "trackViewCompact": "緊密",
+  "trackSearchHint": "在播放清單中搜尋",
+  "trackSearchClose": "關閉搜尋",
   "trackSearchNoResults": "找不到「{query}」",
   "@trackSearchNoResults": {
     "placeholders": {
@@ -843,12 +843,12 @@
     }
   },
   "settingsGateway": "Spotify 反代",
-  "settingsGatewayDescription": "透過自建伺服器連接 Spotify API、媒體和 Connect。瀏覽器登入仍使用 Spotify 原站；保存後新連接生效。",
+  "settingsGatewayDescription": "透過自建伺服器連接 Spotify API、媒體和 Connect。瀏覽器登入仍使用 Spotify 原站；儲存後新連接生效。",
   "settingsGatewayUrl": "反代地址（包含路徑）",
   "settingsGatewayUser": "反代使用者名",
   "settingsGatewayPassword": "反代密碼",
   "settingsGatewayInvalid": "請填寫有效的 HTTPS 地址、單段路徑及使用者名和密碼。",
-  "settingsApply": "保存",
+  "settingsApply": "儲存",
   "settingsCacheLocation": "快取位置",
   "settingsAudioCacheLocation": "音訊快取位置",
   "settingsArtworkCacheLocation": "封面快取位置",
@@ -934,9 +934,9 @@
   "homeRefreshFailed": "重新整理失敗，請檢查網路後再試。",
   "loginTitle": "登入 Spotify",
   "loginSubtitle": "在 Spotify 官方登入頁面登入一次，\n其餘授權皆會自動完成",
-  "loginTermsNotice": "以官方用戶端身分登入不符合 Spotify 服務條款，建議使用其他帳號。",
+  "loginTermsNotice": "以官方用戶端身分登入不符合 Spotify 服務條款，建議使用其他帳戶。",
   "loginPasswordPrivate": "Flutify 不會接觸你的密碼",
-  "loginOfficialPage": "使用 Spotify 官方頁面完成帳號登入",
+  "loginOfficialPage": "使用 Spotify 官方頁面完成帳戶登入",
   "loginRemoteDevices": "登入後可遙控你的其他 Spotify 裝置",
   "loginSignedInAs": "已登入為 {name}",
   "loginPlaybackReady": "全曲播放已就緒",
@@ -948,10 +948,10 @@
   "webLoginRequired": "登入一次以啟用完整曲目播放",
   "webLoginConsentHint": "如果頁面正在等待確認，請按「同意」完成授權；其餘步驟已自動完成",
   "webLoginPreparing": "正在取得播放憑證…",
-  "webLoginAuthorizing": "正在完成帳號授權…",
+  "webLoginAuthorizing": "正在完成帳戶授權…",
   "webLoginFinishing": "正在完成登入…",
   "webLoginBackgroundHint": "登入已完成，剩餘步驟會在背景自動進行",
-  "webLoginGoogleHint": "使用 Google 註冊的帳號請用「電子郵件 + 密碼」登入；沒有密碼可先到 Spotify 官網透過「忘記密碼」設定。",
+  "webLoginGoogleHint": "使用 Google 註冊的帳戶請用「電子郵件 + 密碼」登入；沒有密碼可先到 Spotify 官網透過「忘記密碼」設定。",
   "loginBrowserFallback": "無法自動開啟瀏覽器，登入連結已複製，請貼到瀏覽器中開啟",
   "loginBrowserTitle": "在瀏覽器中完成登入",
   "loginBrowserSubtitle": "登入並同意授權後，此處會自動繼續",
@@ -966,14 +966,14 @@
     }
   },
   "menuPlayback": "播放",
-  "menuNavigate": "導覽",
+  "menuNavigate": "瀏覽",
   "menuEdit": "編輯",
   "menuUndo": "復原",
   "menuRedo": "重做",
   "menuCut": "剪下",
   "menuCopy": "複製",
   "menuPaste": "貼上",
-  "menuSelectAll": "全選",
+  "menuSelectAll": "選擇全部",
   "menuWindow": "視窗",
   "menuSettings": "設定…",
   "playbackErrorFairPlay": "無法解密「{track}」：此裝置無法建立 FairPlay 工作階段",
@@ -988,7 +988,7 @@
   "updatesChannel": "更新通道",
   "updatesChannelHint": "只會更新到實質版本號更高的版本，切換通道不會降級。",
   "updatesChannelRelease": "正式版（穩定）",
-  "updatesChannelBeta": "測試版（Beta）",
+  "updatesChannelBeta": "測試版",
   "updatesChannelSelfTest": "自測版（開發者自測）",
   "updatesSelfTestWarningTitle": "切換到自測版？",
   "updatesSelfTestWarning": "自測版由每次提交自動產生，未經任何驗證，可能無法啟動、遺失資料或損壞設定，請勿日常使用。版本只能升不能降：裝上自測版後，需等正式版版本號超過它才能回到正式版。",
@@ -1073,10 +1073,10 @@
   "playbackEngineLocal": "本機播放器",
   "playbackEngineWebView": "WebView（瀏覽器核心）",
   "playbackEngineAndroid": "Android 原生播放",
-  "backupTitle": "歌單備份",
-  "backupFooter": "查看各帳號的已點贊歌曲和歌單，可勾選其中一部分一鍵匯入目前帳號。",
-  "backupUnsyncedTitle": "同步本機歌單到 Spotify",
-  "backupUnsyncedSubtitle": "有 {count} 個歌單只儲存在本機，尚未寫入帳號音樂庫",
+  "backupTitle": "播放清單備份",
+  "backupFooter": "查看各帳戶的已按讚歌曲和播放清單，可勾選其中一部分一鍵匯入目前帳戶。",
+  "backupUnsyncedTitle": "同步本機播放清單到 Spotify",
+  "backupUnsyncedSubtitle": "有 {count} 個播放清單只儲存在本機，尚未寫入帳戶音樂庫",
   "@backupUnsyncedSubtitle": {
     "placeholders": {
       "count": {
@@ -1084,9 +1084,9 @@
       }
     }
   },
-  "backupEnable": "啟用歌單備份",
-  "backupEnableSubtitle": "自動備份本機帳號，也可透過獨立 WebView 備份其他帳號的收藏歌單",
-  "backupAutoCurrent": "自動備份本機帳號",
+  "backupEnable": "啟用播放清單備份",
+  "backupEnableSubtitle": "自動備份本機帳戶，也可透過獨立 WebView 備份其他帳戶的收藏播放清單",
+  "backupAutoCurrent": "自動備份本機帳戶",
   "backupAutoCurrentSubtitle": "收藏變動後立即儲存，不等定時備份",
   "backupInterval": "備份頻率",
   "backupIntervalSubtitle": "最短 20 分鐘，避免觸發伺服器限流",
@@ -1114,13 +1114,13 @@
       }
     }
   },
-  "backupAddAccount": "新增要同步歌單的帳號",
-  "backupAddAccountSubtitle": "在獨立 WebView 中登入 open.spotify.com，讀取其收藏的歌單",
-  "backupSyncToAccount": "一鍵同步已備份的歌單到本帳號",
-  "backupSyncToAccountSubtitle": "把已勾選帳號的已點贊歌曲併入本帳號，歌單同步到本帳號",
-  "backupNow": "立即備份全部帳號",
-  "backupNowSubtitle": "擷取各帳號最新收藏並儲存到本機",
-  "backupAccountAdded": "已備份帳號「{title}」（{liked}，{playlists}）",
+  "backupAddAccount": "新增要同步播放清單的帳戶",
+  "backupAddAccountSubtitle": "在獨立 WebView 中登入 open.spotify.com，讀取其收藏的播放清單",
+  "backupSyncToAccount": "一鍵同步已備份的播放清單到本帳戶",
+  "backupSyncToAccountSubtitle": "把已勾選帳戶的已按讚歌曲併入本帳戶，播放清單同步到本帳戶",
+  "backupNow": "立即備份全部帳戶",
+  "backupNowSubtitle": "擷取各帳戶最新收藏並儲存到本機",
+  "backupAccountAdded": "已備份帳戶「{title}」（{liked}，{playlists}）",
   "@backupAccountAdded": {
     "placeholders": {
       "title": {
@@ -1134,7 +1134,7 @@
       }
     }
   },
-  "backupAccountAddFailed": "新增備份帳號失敗：{error}",
+  "backupAccountAddFailed": "新增備份帳戶失敗：{error}",
   "@backupAccountAddFailed": {
     "placeholders": {
       "error": {
@@ -1172,8 +1172,8 @@
       }
     }
   },
-  "backupSavedAll": "已儲存全部帳號的收藏歌單",
-  "backupSelectedHeader": "已儲存的歌單（已選 {selected} / {total}）",
+  "backupSavedAll": "已儲存全部帳戶的收藏播放清單",
+  "backupSelectedHeader": "已儲存的播放清單（已選 {selected} / {total}）",
   "@backupSelectedHeader": {
     "placeholders": {
       "selected": {
@@ -1184,7 +1184,7 @@
       }
     }
   },
-  "backupImportSelected": "匯入所選歌單（{count}）",
+  "backupImportSelected": "匯入所選播放清單（{count}）",
   "@backupImportSelected": {
     "placeholders": {
       "count": {
@@ -1192,8 +1192,8 @@
       }
     }
   },
-  "backupBadgePrevious": "先前登入的帳號",
-  "backupBadgeExternal": "外部備份帳號",
+  "backupBadgePrevious": "先前登入的帳戶",
+  "backupBadgeExternal": "外部備份帳戶",
   "backupAccountTitle": "{title}（{badge}）",
   "@backupAccountTitle": {
     "placeholders": {
@@ -1217,7 +1217,7 @@
     }
   },
   "backupIncludeInSync": "參與一鍵同步",
-  "backupRemoveAccount": "移除該備份帳號",
+  "backupRemoveAccount": "移除該備份帳戶",
   "backupExitMultiSelect": "結束多選",
   "backupPickTracksImport": "選擇部分歌曲匯入",
   "backupPickTracks": "多選收藏歌曲",
@@ -1249,7 +1249,7 @@
       }
     }
   },
-  "backupImportedAsPlaylist": "已將所選 {songs} 匯入為歌單「{name}」",
+  "backupImportedAsPlaylist": "已將所選 {songs} 匯入為播放清單「{name}」",
   "@backupImportedAsPlaylist": {
     "placeholders": {
       "songs": {
@@ -1260,7 +1260,7 @@
       }
     }
   },
-  "backupImportAsPlaylist": "匯入為歌單（{count}）",
+  "backupImportAsPlaylist": "匯入為播放清單（{count}）",
   "@backupImportAsPlaylist": {
     "placeholders": {
       "count": {
@@ -1268,8 +1268,8 @@
       }
     }
   },
-  "backupImportAsPlaylistShort": "匯入為本帳號歌單",
-  "backupLikedMerged": "已將 {songs} 併入「已點贊的歌曲」（新增 {added} 首）",
+  "backupImportAsPlaylistShort": "匯入為本帳戶播放清單",
+  "backupLikedMerged": "已將 {songs} 併入「已按讚的歌曲」（新增 {added} 首）",
   "@backupLikedMerged": {
     "placeholders": {
       "songs": {
@@ -1291,7 +1291,7 @@
       }
     }
   },
-  "backupMergeLiked": "併入已點贊歌曲（{count}）",
+  "backupMergeLiked": "併入已按讚歌曲（{count}）",
   "@backupMergeLiked": {
     "placeholders": {
       "count": {
@@ -1299,7 +1299,7 @@
       }
     }
   },
-  "backupMergeLikedShort": "併入已點贊歌曲",
+  "backupMergeLikedShort": "併入已按讚歌曲",
   "backupSaveSelected": "收藏所選歌曲（{count}）",
   "@backupSaveSelected": {
     "placeholders": {
@@ -1308,10 +1308,10 @@
       }
     }
   },
-  "backupLoginTitle": "登入要備份的 Spotify 帳號",
-  "playlistSyncTitle": "同步歌單到 Spotify",
-  "playlistSyncIntro": "舊版本中收藏、新建或從備份匯入的歌單只儲存在本機，官方用戶端和網頁版看不到。勾選後寫入目前帳號：他人的歌單加入音樂庫，本機歌單在帳號中建立同名歌單。",
-  "playlistSyncDone": "同步完成：{count} 個歌單已寫入帳號。",
+  "backupLoginTitle": "登入要備份的 Spotify 帳戶",
+  "playlistSyncTitle": "同步播放清單到 Spotify",
+  "playlistSyncIntro": "舊版本中收藏、建立或從備份匯入的播放清單只儲存在本機，官方用戶端和網頁版看不到。勾選後寫入目前帳戶：他人的播放清單加入音樂庫，本機播放清單在帳戶中建立同名播放清單。",
+  "playlistSyncDone": "同步完成：{count} 個播放清單已寫入帳戶。",
   "@playlistSyncDone": {
     "placeholders": {
       "count": {
@@ -1330,7 +1330,7 @@
       }
     }
   },
-  "playlistSyncAllDone": "所有歌單都已同步到 Spotify。",
+  "playlistSyncAllDone": "所有播放清單都已同步到 Spotify。",
   "playlistSyncRunning": "正在同步，請勿關閉此頁面…",
   "playlistSyncSelected": "已選 {count} 個",
   "@playlistSyncSelected": {
@@ -1341,7 +1341,7 @@
     }
   },
   "playlistSyncStart": "開始同步",
-  "playlistSyncCreate": "在帳號中建立歌單（{songs}）",
+  "playlistSyncCreate": "在帳戶中建立播放清單（{songs}）",
   "@playlistSyncCreate": {
     "placeholders": {
       "songs": {
@@ -1349,7 +1349,7 @@
       }
     }
   },
-  "playlistSyncAdd": "加入音樂庫",
+  "playlistSyncAdd": "新增至音樂庫",
   "playlistSyncStateRunning": "正在同步…",
   "playlistSyncStateDone": "已同步",
   "playlistSyncStateFailed": "失敗：{error}",
@@ -1360,7 +1360,7 @@
       }
     }
   },
-  "playlistSyncPromptTitle": "有 {count} 個歌單未同步到 Spotify",
+  "playlistSyncPromptTitle": "有 {count} 個播放清單未同步到 Spotify",
   "@playlistSyncPromptTitle": {
     "placeholders": {
       "count": {
@@ -1368,12 +1368,12 @@
       }
     }
   },
-  "playlistSyncPromptBody": "舊版本中收藏、新建或從備份匯入的歌單只儲存在本機，官方用戶端和網頁版看不到。現在收藏 / 取消收藏會同步到帳號，之前遺留的歌單可補同步。\n\n之後也可在「設定 → 歌單備份」找到入口。",
-  "playlistSyncPromptLater": "以後再說",
+  "playlistSyncPromptBody": "舊版本中收藏、建立或從備份匯入的播放清單只儲存在本機，官方用戶端和網頁版看不到。現在收藏 / 取消收藏會同步到帳戶，之前遺留的播放清單可補同步。\n\n之後也可在「設定 → 播放清單備份」找到入口。",
+  "playlistSyncPromptLater": "現在不要",
   "playlistSyncPromptGo": "前往同步",
   "playerCanvasPlay": "播放 Canvas",
   "playerCanvasStop": "停止 Canvas",
-  "playlistCount": "{count} 個歌單",
+  "playlistCount": "{count} 個播放清單",
   "@playlistCount": {
     "placeholders": {
       "count": {
@@ -1381,7 +1381,7 @@
       }
     }
   },
-  "likedSongCount": "{count} 首已點贊歌曲",
+  "likedSongCount": "{count} 首已按讚歌曲",
   "@likedSongCount": {
     "placeholders": {
       "count": {
@@ -1457,7 +1457,7 @@
       }
     }
   },
-  "libraryErrorNotSignedIn": "未登入，無法同步到 Spotify 帳號",
+  "libraryErrorNotSignedIn": "未登入，無法同步到 Spotify 帳戶",
   "libraryErrorRead": "讀取失敗：{detail}",
   "@libraryErrorRead": {
     "placeholders": {
@@ -1482,7 +1482,7 @@
       }
     }
   },
-  "libraryErrorPartial": "歌單已建好，但寫入曲目失敗：{detail}",
+  "libraryErrorPartial": "播放清單已建好，但寫入曲目失敗：{detail}",
   "@libraryErrorPartial": {
     "placeholders": {
       "detail": {
@@ -1490,7 +1490,7 @@
       }
     }
   },
-  "backupFailed": "備份帳號失敗：{detail}",
+  "backupFailed": "備份帳戶失敗：{detail}",
   "@backupFailed": {
     "placeholders": {
       "detail": {
@@ -1498,7 +1498,7 @@
       }
     }
   },
-  "backupAccountFailed": "帳號「{title}」備份失敗：{detail}",
+  "backupAccountFailed": "帳戶「{title}」備份失敗：{detail}",
   "@backupAccountFailed": {
     "placeholders": {
       "title": {
