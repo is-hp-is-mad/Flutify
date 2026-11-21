@@ -954,7 +954,8 @@ jobs:
             --target-apk "$target_apk" \
             --target-tag "$TARGET_TAG" \
             --repo "$GITHUB_REPOSITORY" \
-            --out-dir e2e_out/android
+            --out-dir e2e_out/android \
+            --no-suspend
       - name: Clean InstaBox temp environment & suspend box (keep Flutify installed)
         if: always() && env.INSTABOX_API_KEY != ''
         run: python3 tool/instabox_android_e2e.py cleanup --box "$INSTABOX_NAME" || true

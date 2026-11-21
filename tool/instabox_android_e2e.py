@@ -278,7 +278,10 @@ rm -rf {shlex.quote(BOX_OUT_DIR)} {shlex.quote(BOX_STAGE_DIR)} /data/home/flutif
 """
     runner.exec_box(box_name, clean_cmd, check=False, timeout=120)
     if suspend:
-        runner.run(["instabox", "suspend", box_name], check=False, timeout=120)
+        try:
+            runner.run(["instabox", "suspend", box_name], check=False, timeout=120)
+        except subprocess.TimeoutExpired:
+            print(f"[instabox] Warning: 'instabox suspend {box_name}' timed out after 120s (box cleanup already finished).")
 
 
 def parse_dumpsys_package(output: str) -> tuple[int | None, str | None]:
@@ -903,14 +906,33 @@ def drive_settings_upgrade(
                     break
         if view_or_check is None:
             raise RuntimeError("Missing Check for updates / View update button in Settings")
+        if view_or_check["bounds"][3] > int(height * 0.78):
+            adb_swipe_down_settings(runner, box_name, width, height)
+            time.sleep(1.0)
+            nodes = dump_ui_nodes(runner, box_name)
+            refreshed = (
+                find_node_by_labels(nodes, LABELS_UPDATE_CHECK)
+                or find_node_by_labels(nodes, LABELS_UPDATE_VIEW)
+            )
+            if refreshed is not None:
+                view_or_check = refreshed
         adb_tap(runner, box_name, view_or_check["center"])
 
     # Wait for UpdateDialog (`Download update` or `Install APK`).
     dialog_deadline = time.monotonic() + 60.0
     action_btn = None
     cleared_stale_ready = False
+    last_dialog_ui_sig = ""
+    last_check_tap = time.monotonic()
+    retap_count = 0
     while time.monotonic() < dialog_deadline:
         nodes = dump_ui_nodes(runner, box_name)
+        pkgs = sorted({str(n.get("package", "")) for n in nodes if n.get("package")})
+        labels = [lbl for n in nodes for lbl in _node_labels(n)][:10]
+        ui_sig = f"pkgs={pkgs} labels={labels}"
+        if ui_sig != last_dialog_ui_sig:
+            print(f"[upgrade] Dialog poll UI: {redact_sensitive(ui_sig)}")
+            last_dialog_ui_sig = ui_sig
         if find_node_by_labels(nodes, LABELS_UP_TO_DATE) is not None:
             raise RuntimeError(
                 f"Settings Check for updates reported already up-to-date while box has vCode={previous_vc} < target={target_vc}"
@@ -941,16 +963,34 @@ def drive_settings_upgrade(
                         if check_btn is not None:
                             print(f"[upgrade] Triggering Check for updates for {target_tag}...")
                             adb_tap(runner, box_name, check_btn["center"])
+                            last_check_tap = time.monotonic()
                             break
                         adb_swipe_down_settings(runner, box_name, width, height)
                         time.sleep(1.0)
                     dialog_deadline = time.monotonic() + 60.0
                     continue
             break
+        if (
+            retap_count < 2
+            and (time.monotonic() - last_check_tap) >= 15.0
+            and find_node_by_labels(nodes, LABELS_UPDATE_CHECKING) is None
+        ):
+            retry_btn = (
+                find_node_by_labels(nodes, LABELS_UPDATE_VIEW)
+                or find_node_by_labels(nodes, LABELS_UPDATE_CHECK)
+            )
+            if retry_btn is not None:
+                retap_count += 1
+                print(f"[upgrade] Re-tapping Check/View update in Settings (retry {retap_count}/2)...")
+                adb_tap(runner, box_name, retry_btn["center"])
+                last_check_tap = time.monotonic()
         time.sleep(2.0)
 
     if action_btn is None:
-        raise RuntimeError("Timed out waiting for Update dialog action (Download/Install APK)")
+        raise RuntimeError(
+            "Timed out waiting for Update dialog action (Download/Install APK) "
+            f"(last UI: {redact_sensitive(last_dialog_ui_sig)})"
+        )
 
     if any(
         d.lower() in label.lower()
@@ -1088,9 +1128,32 @@ def run_mock_e2e_and_collect(
     out_dir.mkdir(parents=True, exist_ok=True)
     run_cmd = f"""
 set -euo pipefail
-adb shell am force-stop {shlex.quote(PACKAGE_ID)}
+for attempt in 1 2 3 4 5; do
+  if adb shell "service check activity" 2>/dev/null | grep -q "found" \\
+     && adb shell am force-stop {shlex.quote(PACKAGE_ID)}; then
+    break
+  fi
+  if [ "$attempt" -eq 5 ]; then
+    echo "Android activity service unavailable after $attempt attempts" >&2
+    exit 1
+  fi
+  echo "Waiting for Android activity service before force-stop (attempt $attempt)..."
+  adb wait-for-device || true
+  sleep 3
+done
 adb shell rm -rf {shlex.quote(DEVICE_E2E_DIR)}
-adb shell am start -W -n {shlex.quote(MAIN_ACTIVITY)} --ez flutify_mock true --es flutify_e2e auto
+for attempt in 1 2 3 4 5; do
+  if adb shell am start -W -n {shlex.quote(MAIN_ACTIVITY)} --ez flutify_mock true --es flutify_e2e auto; then
+    break
+  fi
+  if [ "$attempt" -eq 5 ]; then
+    echo "Failed to launch Flutify for E2E after $attempt attempts" >&2
+    exit 1
+  fi
+  echo "Retrying am start after transient activity service failure (attempt $attempt)..."
+  adb wait-for-device || true
+  sleep 3
+done
 for i in $(seq 1 150); do
   if adb shell "test -f {DEVICE_E2E_DIR}/DONE" 2>/dev/null; then
     echo "Android E2E completed after $((i * 2))s"
@@ -1142,6 +1205,7 @@ def run_android_e2e(
     out_dir: Path,
     token: str | None,
     runner: Runner | None = None,
+    suspend_on_exit: bool = True,
 ) -> None:
     """Full orchestrated lifecycle for reused InstaBox Android E2E + Settings upgrade."""
     runner = runner or Runner()
@@ -1275,7 +1339,7 @@ def run_android_e2e(
 
         run_mock_e2e_and_collect(runner, box_name, out_dir)
     finally:
-        clean_environment(runner, box_name, suspend=True)
+        clean_environment(runner, box_name, suspend=suspend_on_exit)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -1288,6 +1352,11 @@ def main(argv: list[str] | None = None) -> int:
     p_run.add_argument("--target-tag", required=True, help="Target release tag (e.g. v0.18.140-selftest)")
     p_run.add_argument("--repo", required=True, help="GitHub repository (owner/repo)")
     p_run.add_argument("--out-dir", required=True, type=Path, help="Local E2E output directory")
+    p_run.add_argument(
+        "--no-suspend",
+        action="store_true",
+        help="Skip suspending the box at exit (use when a subsequent CI cleanup step handles suspend)",
+    )
 
     p_key = sub.add_parser(
         "ensure-fallback-keystore",
@@ -1320,6 +1389,7 @@ def main(argv: list[str] | None = None) -> int:
             out_dir=args.out_dir,
             token=token,
             runner=runner,
+            suspend_on_exit=not args.no_suspend,
         )
         return 0
     return 1

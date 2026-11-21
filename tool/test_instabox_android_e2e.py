@@ -238,6 +238,34 @@ class InstaBoxAndroidE2ETest(unittest.TestCase):
         self.assertTrue(any(c[:2] == ["instabox", "cp"] for c in runner.calls))
         self.assertTrue(any("adb install -r" in c[-1] for c in runner.calls))
 
+    def test_clean_environment_handles_suspend_timeout_gracefully(self) -> None:
+        def handle(cmd):
+            if cmd[:2] == ["instabox", "suspend"]:
+                raise subprocess.TimeoutExpired(cmd, 120)
+            return subprocess.CompletedProcess(cmd, 0, "", "")
+
+        runner = FakeRunner(handle)
+        ib.clean_environment(runner, "my-android", suspend=True)
+        self.assertTrue(any(c[:2] == ["instabox", "suspend"] for c in runner.calls))
+
+    def test_run_mock_e2e_waits_for_activity_service_and_retries_am_start(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            out_dir = Path(tmp) / "out"
+
+            def handle(cmd):
+                if cmd[:2] == ["instabox", "pull"]:
+                    (out_dir / "metrics.json").write_text("{}", encoding="utf-8")
+                return subprocess.CompletedProcess(cmd, 0, "", "")
+
+            runner = FakeRunner(handle)
+            ib.run_mock_e2e_and_collect(runner, "my-android", out_dir)
+            exec_calls = [c for c in runner.calls if c[:2] == ["instabox", "exec"]]
+            self.assertEqual(len(exec_calls), 1)
+            script = exec_calls[0][-1]
+            self.assertIn("service check activity", script)
+            self.assertIn("Retrying am start", script)
+            self.assertIn("adb wait-for-device", script)
+
 
 if __name__ == "__main__":
     unittest.main()
