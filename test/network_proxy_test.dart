@@ -467,12 +467,12 @@ void main() {
           timeout: const Duration(seconds: 5),
           proxy: proxy,
         ),
-        // 407 要单独提示认证失败，而不是笼统的「代理拒绝连接」
+        // 407 要单独提示认证失败，而不是笼统的 “Proxy refused the connection”
         throwsA(
           isA<ProxyTunnelException>().having(
             (e) => e.toString(),
             'message',
-            contains('认证失败'),
+            contains('authentication failed'),
           ),
         ),
       );

@@ -540,7 +540,7 @@ class ProxyHttpOverrides extends HttpOverrides {
     final secure = uri.isScheme('https') || uri.isScheme('wss');
     if (!secure) {
       // 自建隧道只能透明转发；明文 HTTP 需要绝对地址形式，dart:io 做不到经 SOCKS/PAC 的代理
-      throw const SocketException('暂不支持通过 SOCKS / PAC 代理的明文 HTTP 连接');
+      throw const SocketException('Plain HTTP through a SOCKS / PAC proxy is not supported');
     }
     final host = uri.host;
     final port = uri.hasPort ? uri.port : 443;
@@ -559,7 +559,7 @@ class ProxyHttpOverrides extends HttpOverrides {
       tunnelSocket = tunnel.socket;
       if (cancelled) {
         tunnel.socket.destroy();
-        throw const SocketException('连接已取消');
+        throw const SocketException('Connection cancelled');
       }
       // ProxyTunnel 已对底层 Socket 调用 listen() 完成握手，不能再直接交给 SecureSocket.secure；
       // 通过本地回环对端转发一层，让 SecureSocket 获得未监听过的原生 Socket。
@@ -575,7 +575,7 @@ class ProxyHttpOverrides extends HttpOverrides {
         clientSocket.destroy();
         accepted.destroy();
         tunnel.socket.destroy();
-        throw const SocketException('连接已取消');
+        throw const SocketException('Connection cancelled');
       }
       tunnel.input.listen(
         accepted.add,

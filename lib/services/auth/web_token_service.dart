@@ -205,7 +205,7 @@ class WebTokenService {
     final body = jsonDecode(text) as Map<String, dynamic>;
     final token = body['accessToken'] as String?;
     if (token == null || token.isEmpty) {
-      throw StateError('铸造 Web token 失败：响应无 accessToken');
+      throw StateError('Minting the web token failed: response has no accessToken');
     }
     final expiryMs =
         (body['accessTokenExpirationTimestampMs'] as num?)?.toInt() ??

@@ -107,14 +107,14 @@ class TrackPlaybackApi {
         .timeout(const Duration(seconds: 10));
     if (generation != _clientTokenGeneration) return _ensureClientToken();
     if (res.statusCode != 200) {
-      throw StateError('Web client-token 申请失败：HTTP ${res.statusCode}');
+      throw StateError('Requesting the web client token failed: HTTP ${res.statusCode}');
     }
     final granted =
         (jsonDecode(utf8.decode(res.bodyBytes)) as Map)['granted_token']
             as Map?;
     final token = granted?['token'];
     if (token is! String || token.isEmpty) {
-      throw StateError('Web client-token 申请失败：HTTP ${res.statusCode}');
+      throw StateError('Requesting the web client token failed: HTTP ${res.statusCode}');
     }
     final deadlines = [
       granted?['refresh_after_seconds'],

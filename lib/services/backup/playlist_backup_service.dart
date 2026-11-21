@@ -402,7 +402,7 @@ class PlaylistBackupService extends ChangeNotifier {
   ) async {
     final cleanSpDc = credentials.spDc.trim();
     if (cleanSpDc.isEmpty && credentials.accessToken.trim().isEmpty) {
-      throw ArgumentError('WebView 会话凭据不能为空');
+      throw ArgumentError('WebView session credentials must not be empty');
     }
     _activeBackupCount++;
     _lastFailure = null;

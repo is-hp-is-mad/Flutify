@@ -90,16 +90,17 @@ extension ModelLabels on AppLocalizations {
     }
 
     if (key == 'toplists' || key == 'top lists' || key == 'charts' || nameKey == 'top lists' || nameKey == 'charts') {
-      if (isJa) return 'ランキング';
+      if (isJa) return 'チャート';
       return '排行榜';
     }
     if (key == 'pop' || nameKey == 'pop') {
       if (isJa) return 'ポップ';
+      if (isZhHant) return '流行樂';
       return '流行';
     }
     if (key == 'rock' || nameKey == 'rock') {
       if (isJa) return 'ロック';
-      if (isZhHant) return '搖滾';
+      if (isZhHant) return '搖滾樂';
       return '摇滚';
     }
     if (key == 'hiphop' || key == 'hip-hop' || nameKey == 'hip hop' || nameKey == 'hip-hop') {
@@ -109,7 +110,7 @@ extension ModelLabels on AppLocalizations {
     if (key == 'edm_dance' || key == 'dance' || key == 'electronic' || nameKey == 'dance' || nameKey == 'electronic' || nameKey == 'dance/electronic') {
       if (isJa) return 'エレクトロニック';
       if (isZhHant) return '電子';
-      return '电子';
+      return '电音';
     }
     if (key == 'indie' || nameKey == 'indie') {
       if (isJa) return 'インディーズ';
@@ -118,10 +119,12 @@ extension ModelLabels on AppLocalizations {
     }
     if (key == 'classical' || nameKey == 'classical') {
       if (isJa) return 'クラシック';
+      if (isZhHant) return '古典樂';
       return '古典';
     }
     if (key == 'jazz' || nameKey == 'jazz') {
       if (isJa) return 'ジャズ';
+      if (isZhHant) return '爵士樂';
       return '爵士';
     }
     if (key == 'kpop' || key == 'k-pop' || nameKey == 'k-pop') {
@@ -219,6 +222,7 @@ extension ModelLabels on AppLocalizations {
     }
     if (key == 'latin' || nameKey == 'latin') {
       if (isJa) return 'ラテン';
+      if (isZhHant) return '拉丁樂';
       return '拉丁';
     }
     if (key == 'romance' || nameKey == 'romance') {
@@ -251,12 +255,12 @@ extension ModelLabels on AppLocalizations {
     if (!isZh && !isJa) return title;
 
     if (key == 'recently played') {
-      if (isJa) return '最近の再生';
+      if (isJa) return '最近再生したコンテンツ';
       return '最近播放';
     }
     if (key == 'made for you') {
-      if (isJa) return 'あなたへのおすすめ';
-      if (isZhHant) return '為你打造';
+      if (isJa) return 'メイド・フォー・ユー';
+      if (isZhHant) return '專為你打造';
       return '为你打造';
     }
     if (key == 'jump back in') {
@@ -350,18 +354,18 @@ extension ModelLabels on AppLocalizations {
       return '当前流行';
     }
     if (key == 'new releases' || key == 'new release') {
-      if (isJa) return '最新リリース';
+      if (isJa) return 'ニューリリース';
       if (isZhHant) return '最新發行';
-      return '最新发行';
+      return '新歌热播';
     }
     if (key == 'charts') {
-      if (isJa) return 'ランキング';
+      if (isJa) return 'チャート';
       return '排行榜';
     }
     if (key == 'top tracks' || key == 'popular tracks') {
-      if (isJa) return '人気の楽曲';
-      if (isZhHant) return '熱門單曲';
-      return '热门单曲';
+      if (isJa) return '人気のトラック';
+      if (isZhHant) return '熱門曲目';
+      return '热门曲目';
     }
     if (key == "editor's picks" || key == "editors' picks") {
       if (isJa) return 'エディターのおすすめ';

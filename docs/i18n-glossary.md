@@ -5,6 +5,7 @@
 - 提交前运行 `python3 tool/check_l10n.py`（CI 也会跑）：键齐全、占位符一致、en 不含中文、zh_Hant 不含简体字、不使用下面「禁用写法」。
 - 组件里不写硬编码文案，统一 `context.l10n.xxx`；Provider / 服务层不依赖 `BuildContext`：异常带 `kind` / `detail`（中文 `message` 只作日志兜底），界面按 `kind` 显示 ARB 文案。**不要拿文案去判断类型**（用 `identical` / 枚举）。
 - 带数量的文案：英文用 ICU `plural`（`=1{1 song} other{{count} songs}`）；一句话里有多个数量时，把各自已格式化好的短语（`songCount` / `playlistCount` / `likedSongCount`）作为 String 占位符传入。
+- 服务层异常的 `message`（会作为 `detail` 显示给用户的技术说明，如代理 / Chrome / 令牌错误）一律写英文；需要翻译的提示由 UI 层按 `kind` 取 ARB 文案。
 - Spotify 账号语言不一定和界面语言相同：请求头 `Accept-Language` 统一取 `AppLocale.spotifyLanguage`；**不要依赖响应里的中文文案做判断**。
 
 ## 术语表（依据 open.spotify.com 前端的官方用词）
@@ -56,3 +57,6 @@
 
 ## 繁体（台湾用语）
 伺服器、音訊、預設、透過、資訊、程式、資料、支援、選單、自訂、使用者（用戶端除外）、可攜式、驗證，以及上表中的官方用词。简体字和「后 / 于 / 里 / 余」等常见混入写法由 `check_l10n.py` 拦截。
+
+## 主页筛选标签 / 栏目标题 / 分类名（`lib/l10n/model_labels.dart`）
+这几张映射表只在服务端返回英文原文时兜底。已与官方语言包能对上的词（Recently played、Made for you、New releases、Charts、Popular tracks、Pop / Rock / Electronic / Classical / Jazz / Latin、Downloaded 等）采用官方译法；官方语言包里没有的词（如 Jump back in、Heavy rotation 等多数栏目标题）无法核对，保留原译。新增词条时先在官方语言包里按英文原文查一下。

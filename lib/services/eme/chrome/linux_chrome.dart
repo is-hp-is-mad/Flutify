@@ -53,7 +53,7 @@ class CdpSession {
       const Duration(seconds: 30),
       onTimeout: () {
         _pending.remove(id);
-        throw TimeoutException('CDP $method 超时');
+        throw TimeoutException('CDP $method timed out');
       },
     );
   }
@@ -68,7 +68,7 @@ class CdpSession {
       final completer = _pending.remove(id);
       if (completer == null) return;
       if (message.containsKey('error')) {
-        completer.completeError(StateError('CDP 错误：${message['error']}'));
+        completer.completeError(StateError('CDP error: ${message['error']}'));
       } else {
         final result = message['result'];
         completer.complete(
@@ -82,7 +82,7 @@ class CdpSession {
 
   void _onDone() {
     for (final c in _pending.values) {
-      if (!c.isCompleted) c.completeError(StateError('CDP 连接已关闭'));
+      if (!c.isCompleted) c.completeError(StateError('CDP connection closed'));
     }
     _pending.clear();
     if (!_closed.isCompleted) _closed.complete();
@@ -150,7 +150,7 @@ class ChromePage {
         }
       case 'Inspector.detached':
         if (!_loaded.isCompleted) {
-          _loaded.completeError(StateError('Chrome 页面已分离'));
+          _loaded.completeError(StateError('Chrome page detached'));
         }
     }
   }
@@ -266,7 +266,7 @@ class LinuxChrome {
   }) async {
     final exe = findExecutable();
     if (exe == null) {
-      throw StateError('未找到 Chrome / Chromium，无法进行 Widevine 全曲播放');
+      throw StateError('Chrome / Chromium not found; Widevine full-track playback is unavailable');
     }
     await userDataDir.create(recursive: true);
     // 持久化 profile 会残留上一次运行写的 DevToolsActivePort；若不删除，_waitDevTools
@@ -324,7 +324,7 @@ class LinuxChrome {
     while (DateTime.now().isBefore(deadline)) {
       final exited =
           await process.exitCode.timeout(Duration.zero, onTimeout: () => -1);
-      if (exited != -1) throw StateError('Chrome 启动即退出（code=$exited）');
+      if (exited != -1) throw StateError('Chrome exited right after launch (code=$exited)');
       try {
         final file = File('${userDataDir.path}/DevToolsActivePort');
         if (await file.exists()) {
@@ -342,7 +342,7 @@ class LinuxChrome {
       } catch (_) {}
       await Future<void>.delayed(const Duration(milliseconds: 150));
     }
-    throw StateError('Chrome DevTools 未就绪');
+    throw StateError('Chrome DevTools not ready');
   }
 
   Future<List<({String targetId, String? url})>> _pageTargets() async {
@@ -366,7 +366,7 @@ class LinuxChrome {
     });
     final sessionId = attached['sessionId'];
     if (sessionId is! String || sessionId.isEmpty) {
-      throw StateError('附着 Chrome 页面失败');
+      throw StateError('Failed to attach to the Chrome page');
     }
     final page = ChromePage._(browser, sessionId);
     await page.initialize();
@@ -381,14 +381,14 @@ class LinuxChrome {
       if (targets.isNotEmpty) return _attach(targets.first.targetId);
       await Future<void>.delayed(const Duration(milliseconds: 150));
     }
-    throw StateError('未找到 Chrome 页面');
+    throw StateError('Chrome page not found');
   }
 
   /// 新建一个标签页。
   Future<ChromePage> newPage({String url = 'about:blank'}) async {
     final created = await browser.send('Target.createTarget', {'url': url});
     final targetId = created['targetId'];
-    if (targetId is! String) throw StateError('创建 Chrome 标签失败');
+    if (targetId is! String) throw StateError('Failed to create a Chrome tab');
     return _attach(targetId);
   }
 

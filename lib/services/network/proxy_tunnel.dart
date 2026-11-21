@@ -125,7 +125,7 @@ class ProxyTunnel {
         final end = _headerEnd(bytes);
         if (end < 0) {
           if (bytes.length > 16 * 1024) {
-            _fail(established, socket, const ProxyTunnelException('代理响应头过长'));
+            _fail(established, socket, const ProxyTunnelException('Proxy response headers too long'));
           }
           return;
         }
@@ -135,12 +135,12 @@ class ProxyTunnel {
           _fail(
             established,
             socket,
-            ProxyTunnelException('代理认证失败（$status）：请检查用户名与密码'),
+            ProxyTunnelException('Proxy authentication failed ($status): check the username and password'),
           );
           return;
         }
         if (!RegExp(r'^HTTP/1\.[01] 2\d\d').hasMatch(status)) {
-          _fail(established, socket, ProxyTunnelException('代理拒绝连接：$status'));
+          _fail(established, socket, ProxyTunnelException('Proxy refused the connection: $status'));
           return;
         }
         open = true;
@@ -155,7 +155,7 @@ class ProxyTunnel {
           : _fail(established, socket, e),
       onDone: () {
         if (!established.isCompleted) {
-          _fail(established, socket, const ProxyTunnelException('代理关闭了连接'));
+          _fail(established, socket, const ProxyTunnelException('Proxy closed the connection'));
         }
         output.close();
       },
@@ -200,7 +200,7 @@ class ProxyTunnel {
         if (phase == 0) {
           if (pending.length < 2) return;
           if (pending[0] != 5 || pending[1] != 0) {
-            fail(const ProxyTunnelException('SOCKS5 代理不支持免认证连接'));
+            fail(const ProxyTunnelException('SOCKS5 proxy does not support unauthenticated connections'));
             return;
           }
           pending.removeRange(0, 2);
@@ -219,12 +219,12 @@ class ProxyTunnel {
         }
         if (pending.length < 4) return;
         if (pending[0] != 5) {
-          fail(const ProxyTunnelException('SOCKS5 代理响应格式错误'));
+          fail(const ProxyTunnelException('Invalid SOCKS5 proxy response'));
           return;
         }
         if (pending[1] != 0) {
           fail(
-            ProxyTunnelException('SOCKS5 代理拒绝连接：${_socksReply(pending[1])}'),
+            ProxyTunnelException('SOCKS5 proxy refused the connection: ${_socksReply(pending[1])}'),
           );
           return;
         }
@@ -238,7 +238,7 @@ class ProxyTunnel {
           if (pending.length < 5) return;
           addressLength = pending[4];
         } else {
-          fail(const ProxyTunnelException('SOCKS5 代理返回未知地址类型'));
+          fail(const ProxyTunnelException('SOCKS5 proxy returned an unknown address type'));
           return;
         }
         // VER + REP + RSV + ATYP + ADDR + PORT
@@ -268,7 +268,7 @@ class ProxyTunnel {
           : fail(e),
       onDone: () {
         if (!established.isCompleted) {
-          fail(const ProxyTunnelException('代理关闭了连接'));
+          fail(const ProxyTunnelException('Proxy closed the connection'));
         }
         output.close();
       },
