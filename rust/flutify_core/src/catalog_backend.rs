@@ -285,14 +285,20 @@ pub fn parse_podcast_episode_html(
     Ok(episode)
 }
 
-async fn fetch_podcast_html(url: &str) -> Result<String, String> {
+/// `accept_language` 由 Dart 按界面语言传入（如 `zh-TW,zh;q=0.9,en;q=0.8`），空串回退到英文。
+async fn fetch_podcast_html(url: &str, accept_language: &str) -> Result<String, String> {
+    let accept_language = if accept_language.trim().is_empty() {
+        "en;q=0.8"
+    } else {
+        accept_language
+    };
     let client = spotify_session::client_for_url(url)?;
     let res = tokio::time::timeout(
         Duration::from_secs(15),
         client
             .get(url)
             .header("User-Agent", spotify_session::podcast_user_agent())
-            .header("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8")
+            .header("Accept-Language", accept_language)
             .send_routed(),
     )
     .await
@@ -310,14 +316,27 @@ async fn fetch_podcast_html(url: &str) -> Result<String, String> {
     String::from_utf8(bytes.to_vec()).map_err(|_| "页面数据无法解析".to_string())
 }
 
-pub async fn fetch_podcast_show(show_id: &str) -> Result<BackendPodcastShow, String> {
-    let html = fetch_podcast_html(&format!("https://open.spotify.com/show/{show_id}")).await?;
+pub async fn fetch_podcast_show(
+    show_id: &str,
+    accept_language: &str,
+) -> Result<BackendPodcastShow, String> {
+    let html = fetch_podcast_html(
+        &format!("https://open.spotify.com/show/{show_id}"),
+        accept_language,
+    )
+    .await?;
     parse_podcast_show_html(show_id, &html)
 }
 
-pub async fn fetch_podcast_episode(episode_id: &str) -> Result<BackendPodcastEpisode, String> {
-    let html =
-        fetch_podcast_html(&format!("https://open.spotify.com/episode/{episode_id}")).await?;
+pub async fn fetch_podcast_episode(
+    episode_id: &str,
+    accept_language: &str,
+) -> Result<BackendPodcastEpisode, String> {
+    let html = fetch_podcast_html(
+        &format!("https://open.spotify.com/episode/{episode_id}"),
+        accept_language,
+    )
+    .await?;
     parse_podcast_episode_html(episode_id, &html)
 }
 

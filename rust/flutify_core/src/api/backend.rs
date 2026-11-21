@@ -1257,10 +1257,13 @@ pub fn rust_parse_color_lyrics_json(body: Vec<u8>) -> Option<RustSpotifyLyricsDt
 pub async fn rust_fetch_podcast_show(
     show_id: String,
     proxy: String,
+    accept_language: String,
 ) -> Result<RustPodcastShowDto, String> {
     http_client::runtime()
         .spawn(spotify_session::with_request_proxy(proxy, async move {
-            catalog_backend::fetch_podcast_show(&show_id).await.map(Into::into)
+            catalog_backend::fetch_podcast_show(&show_id, &accept_language)
+                .await
+                .map(Into::into)
         }))
         .await
         .map_err(|e| format!("join:{e}"))?
@@ -1277,10 +1280,11 @@ pub fn rust_parse_podcast_show_html(
 pub async fn rust_fetch_podcast_episode(
     episode_id: String,
     proxy: String,
+    accept_language: String,
 ) -> Result<RustPodcastEpisodeDto, String> {
     http_client::runtime()
         .spawn(spotify_session::with_request_proxy(proxy, async move {
-            catalog_backend::fetch_podcast_episode(&episode_id)
+            catalog_backend::fetch_podcast_episode(&episode_id, &accept_language)
                 .await
                 .map(Into::into)
         }))

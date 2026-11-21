@@ -51,7 +51,11 @@ class PodcastService {
     final proxy = await _rustProxy(url);
     if (proxy != null) {
       return _rustCall(
-        () => rust.rustFetchPodcastShow(showId: showId, proxy: proxy),
+        () => rust.rustFetchPodcastShow(
+          showId: showId,
+          proxy: proxy,
+          acceptLanguage: _acceptLanguage,
+        ),
         _showFromDto,
       );
     }
@@ -71,7 +75,11 @@ class PodcastService {
     final proxy = await _rustProxy(url);
     if (proxy != null) {
       return _rustCall(
-        () => rust.rustFetchPodcastEpisode(episodeId: episodeId, proxy: proxy),
+        () => rust.rustFetchPodcastEpisode(
+          episodeId: episodeId,
+          proxy: proxy,
+          acceptLanguage: _acceptLanguage,
+        ),
         _episodeFromDto,
       );
     }
