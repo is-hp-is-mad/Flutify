@@ -2859,7 +2859,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get homeClearFilter => '清除篩選';
 
   @override
-  String get homePodcastUnsupported => '暫不支持播客，敬請期待';
+  String get homePodcastUnsupported => '暫不支援播客，敬請期待';
 
   @override
   String get homeTypePodcast => '播客';
@@ -2982,7 +2982,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get playlistLikedEmpty => '你點贊的歌曲會顯示在這裡。\n點按愛心圖標即可收藏歌曲。';
 
   @override
-  String get playlistOwnEmpty => '來為你的歌單找些歌曲吧。\n在任意歌曲的菜單中選擇“添加到歌單”。';
+  String get playlistOwnEmpty => '來為你的歌單找些歌曲吧。\n在任意歌曲的選單中選擇“添加到歌單”。';
 
   @override
   String get playlistEmpty => '這個歌單還沒有歌曲。';
@@ -3263,7 +3263,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get deviceConnectDescription =>
-      '通過 Spotify Connect，可在電腦、手機或智能音箱上無縫播放。';
+      '透過 Spotify Connect，可在電腦、手機或智慧型喇叭上無縫播放。';
 
   @override
   String get deviceCurrent => '當前收聽裝置';
@@ -3304,11 +3304,11 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get connectSameNetwork => '同一網路';
 
   @override
-  String get connectCommandFailed => '操作未成功：免費帳號可能不支持遠程執行此操作';
+  String get connectCommandFailed => '操作未成功：免費帳號可能不支援遠程執行此操作';
 
   @override
   String connectVolumeUnsupported(String device) {
-    return '$device 不支持遠程調節音量';
+    return '$device 不支援遠程調節音量';
   }
 
   @override
@@ -3457,7 +3457,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get settingsAccentSection => '強調色';
 
   @override
-  String get settingsAccentCustom => '自定義顏色';
+  String get settingsAccentCustom => '自訂顏色';
 
   @override
   String get settingsDynamicAccent => '跟隨封面取色';
@@ -3588,7 +3588,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get settingsResetAppearance => '恢復預設外觀';
 
   @override
-  String get settingsCustomColorTitle => '自定義強調色';
+  String get settingsCustomColorTitle => '自訂強調色';
 
   @override
   String get settingsHue => '色相';
@@ -3621,7 +3621,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get settingsStorageSection => '存儲';
 
   @override
-  String get settingsAudioCache => '音頻快取';
+  String get settingsAudioCache => '音訊快取';
 
   @override
   String settingsAudioCacheUsage(String used, String limit) {
@@ -3638,10 +3638,10 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get settingsAudioCacheLimitSubtitle => '超出後自動刪除最久沒播放的歌曲';
 
   @override
-  String get settingsClearAudioCache => '清除音頻快取';
+  String get settingsClearAudioCache => '清除音訊快取';
 
   @override
-  String get settingsClearAudioCacheTitle => '清除音頻快取？';
+  String get settingsClearAudioCacheTitle => '清除音訊快取？';
 
   @override
   String get settingsClearAudioCacheMessage =>
@@ -3749,7 +3749,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get settingsTaskbarLyricsColor => '文字顏色';
 
   @override
-  String get settingsTaskbarLyricsCustomColor => '自定義顏色';
+  String get settingsTaskbarLyricsCustomColor => '自訂顏色';
 
   @override
   String get settingsTaskbarLyricsChangeColor => '更改';
@@ -3839,7 +3839,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get taskbarLyricsColorAccent => '強調色';
 
   @override
-  String get taskbarLyricsColorCustom => '自定義';
+  String get taskbarLyricsColorCustom => '自訂';
 
   @override
   String get taskbarLyricsMenuOpen => '打開 Flutify';
@@ -3866,7 +3866,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get settingsNormalize => '音量均衡';
 
   @override
-  String get settingsNormalizeSubtitle => '按 Spotify 提供的響度數據，把偏響的歌調低到一致的音量';
+  String get settingsNormalizeSubtitle => '按 Spotify 提供的響度資料，把偏響的歌調低到一致的音量';
 
   @override
   String get settingsFade => '歌曲間淡入淡出';
@@ -3995,7 +3995,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get settingsProxyManualSubtitle => '填寫 HTTP 代理的地址與端口';
 
   @override
-  String get settingsProxyServer => '代理服務器';
+  String get settingsProxyServer => '代理伺服器';
 
   @override
   String get settingsProxyHostHint => '127.0.0.1';
@@ -4240,7 +4240,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get trackSortBy => '排序方式';
 
   @override
-  String get trackSortCustom => '自定義順序';
+  String get trackSortCustom => '自訂順序';
 
   @override
   String get trackViewAs => '查看方式';
@@ -4280,19 +4280,19 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get settingsGatewayDescription =>
-      '通過自建服務器連接 Spotify API、媒體和 Connect。瀏覽器登入仍使用 Spotify 原站；保存後新連接生效。';
+      '透過自建伺服器連接 Spotify API、媒體和 Connect。瀏覽器登入仍使用 Spotify 原站；保存後新連接生效。';
 
   @override
   String get settingsGatewayUrl => '反代地址（包含路徑）';
 
   @override
-  String get settingsGatewayUser => '反代用戶名';
+  String get settingsGatewayUser => '反代使用者名';
 
   @override
   String get settingsGatewayPassword => '反代密碼';
 
   @override
-  String get settingsGatewayInvalid => '請填寫有效的 HTTPS 地址、單段路徑及用戶名和密碼。';
+  String get settingsGatewayInvalid => '請填寫有效的 HTTPS 地址、單段路徑及使用者名和密碼。';
 
   @override
   String get settingsApply => '保存';
@@ -4301,7 +4301,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get settingsCacheLocation => '快取位置';
 
   @override
-  String get settingsAudioCacheLocation => '音頻快取位置';
+  String get settingsAudioCacheLocation => '音訊快取位置';
 
   @override
   String get settingsArtworkCacheLocation => '封面快取位置';
@@ -4310,13 +4310,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get settingsLyricsCacheLocation => '歌詞快取位置';
 
   @override
-  String get settingsCacheAppData => '應用數據目錄（AppData）';
+  String get settingsCacheAppData => '應用資料目錄（AppData）';
 
   @override
-  String get settingsCacheApplication => '安裝 / 便攜程序目錄';
+  String get settingsCacheApplication => '安裝 / 可攜式程式目錄';
 
   @override
-  String get settingsCacheCustom => '自定義目錄';
+  String get settingsCacheCustom => '自訂目錄';
 
   @override
   String get settingsClearAllCache => '清理所有快取';
@@ -4327,7 +4327,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get settingsCacheLocationHelp =>
-      '已有快取會遷移到新位置，校驗成功後刪除舊檔案。正在播放或下載的音頻將在釋放後繼續遷移。自定義位置使用所選目錄下的 FlutifyCache 資料夾。';
+      '已有快取會遷移到新位置，驗證成功後刪除舊檔案。正在播放或下載的音訊將在釋放後繼續遷移。自訂位置使用所選目錄下的 FlutifyCache 資料夾。';
 
   @override
   String settingsCacheMigrated(int files, int deferred, int failed) {

@@ -651,7 +651,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String playbackErrorAutoPaused(int count) {
-    return '$count songs in a row couldn\'t play, so playback paused';
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count songs in a row could not be played, so playback was paused',
+      one: 'A song could not be played, so playback was paused',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -1035,7 +1041,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String settingsPauseAfterFailuresSubtitle(int count) {
-    return 'Stop auto-skipping after $count unplayable songs in a row';
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Stop auto-skipping after $count unplayable songs in a row',
+      one: 'Stop auto-skipping after 1 unplayable song',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -1727,7 +1739,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String sleepTimerMinutes(int count) {
-    return '$count minutes';
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count minutes',
+      one: '1 minute',
+    );
+    return '$_temp0';
   }
 
   @override
