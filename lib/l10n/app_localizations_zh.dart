@@ -1226,7 +1226,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsHomeWidgetsSubtitle =>
-      '在澎湃 OS 小组件列表底部的「安卓小部件」分区找到 Flutify，也可点「添加」直接放到桌面，长按可调整大小';
+      '在澎湃 OS 小组件列表底部的「安卓小组件」分区找到 Flutify，也可点「添加」直接放到桌面，长按可调整大小';
 
   @override
   String get homeWidgetNowPlaying => '播放条';
@@ -1640,7 +1640,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get accountSignOutTitle => '退出登录？';
 
   @override
-  String get accountSignOutMessage => '将清除本机的登录信息和媒体库缓存，退出后需重新登录。';
+  String get accountSignOutMessage => '将清除本机的登录信息和音乐库缓存，退出后需重新登录。';
 
   @override
   String get accountSignOutConfirm => '退出';
@@ -3290,7 +3290,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get detailLoadFailed => '暫時無法載入，請檢查網路後重試';
 
   @override
-  String get queueTitle => '播放隊列';
+  String get queueTitle => '播放佇列';
 
   @override
   String get queueNextInQueue => '隊列中的下一首';
@@ -3426,7 +3426,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get trackAddToPlaylist => '添加到歌單';
 
   @override
-  String get trackAddToQueue => '添加到播放隊列';
+  String get trackAddToQueue => '添加到播放佇列';
 
   @override
   String get trackGoToAlbum => '前往專輯';
@@ -3478,7 +3478,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get toastLikeRemoved => '已從已點贊的歌曲中移除';
 
   @override
-  String get toastAddedToQueue => '已添加到播放隊列';
+  String get toastAddedToQueue => '已添加到播放佇列';
 
   @override
   String get shareCopyLink => '復制連結';
@@ -3844,14 +3844,14 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
       '載入歌詞時預先取得中文譯詞，依序查 QQ 音樂、網易雲，啟用補全時最後查 LRCLIB，工作列歌詞同樣使用。關閉後仍可手動或自動查詢；會向查詢來源傳送曲名與歌手。';
 
   @override
-  String get settingsTaskbarLyricsSection => '任務欄歌詞';
+  String get settingsTaskbarLyricsSection => '工作列歌詞';
 
   @override
-  String get settingsTaskbarLyrics => '在任務欄顯示歌詞';
+  String get settingsTaskbarLyrics => '在工作列顯示歌詞';
 
   @override
   String get settingsTaskbarLyricsSubtitle =>
-      '任務欄圖標居中時顯示在左側，居左時顯示在系統托盤左邊；任務欄豎向時自動停用。懸停顯示播放控制，點按打開 Flutify，右鍵重新獲取歌詞';
+      '工作列圖標居中時顯示在左側，居左時顯示在系統托盤左邊；工作列豎向時自動停用。懸停顯示播放控制，點按打開 Flutify，右鍵重新獲取歌詞';
 
   @override
   String get settingsTaskbarLyricsColor => '文字顏色';
@@ -3956,7 +3956,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get taskbarLyricsMenuRefetch => '重新獲取歌詞';
 
   @override
-  String get taskbarLyricsMenuDisable => '關閉任務欄歌詞';
+  String get taskbarLyricsMenuDisable => '關閉工作列歌詞';
 
   @override
   String get taskbarLyricsPreviewLine1 => '歌詞會在這裡隨歌聲滾動';
@@ -4280,13 +4280,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get accountSignIn => '登入';
 
   @override
-  String get accountSignOut => '退出登入';
+  String get accountSignOut => '登出';
 
   @override
-  String get accountSignOutTitle => '退出登入？';
+  String get accountSignOutTitle => '登出？';
 
   @override
-  String get accountSignOutMessage => '將清除本機的登入資訊和媒體庫快取，登出後需重新登入。';
+  String get accountSignOutMessage => '將清除本機的登入資訊和音樂庫快取，登出後需重新登入。';
 
   @override
   String get accountSignOutConfirm => '退出';

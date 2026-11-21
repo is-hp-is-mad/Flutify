@@ -7,6 +7,7 @@ import '../../models/podcast.dart';
 import '../../src/rust/api/backend.dart' as rust;
 import '../auth/auth_constants.dart';
 import '../rust_backend_bridge.dart';
+import '../../l10n/app_locale.dart';
 
 /// 播客节目数据来源：解析 open.spotify.com 节目页的服务端渲染状态。
 ///
@@ -28,6 +29,13 @@ class PodcastService {
 
   /// 注意：UA 决定返回的页面变体 —— 完整的桌面 Chrome UA 拿到的是无 initialState 的桌面版
   /// SPA 壳；这个精简 UA 才会拿到内嵌实体数据的 mobile-web-player 页面（tool/show_page_probe.py 实测）。
+  /// 跟随界面语言（与 Spotify 接口一致），不再固定简体中文。
+  static String get _acceptLanguage {
+    final lang = AppLocale.spotifyLanguage;
+    final base = lang.split('-').first;
+    return base == lang ? '$lang,en;q=0.8' : '$lang,$base;q=0.9,en;q=0.8';
+  }
+
   static String get _userAgent => SpotifyAuthConstants.podcastUserAgent;
 
   PodcastService([http.Client? client, bool? useRustBackend])
@@ -111,7 +119,7 @@ class PodcastService {
         Uri.parse(url),
         headers: {
           'User-Agent': _userAgent,
-          'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+          'Accept-Language': _acceptLanguage,
         },
       );
     } catch (e) {

@@ -2333,10 +2333,10 @@ abstract class AppLocalizations {
   /// **'桌面小组件'**
   String get settingsHomeWidgetsSection;
 
-  /// 设置页「桌面小组件」分组说明（仅 Android）：澎湃 OS 里经典小组件藏在列表底部的「安卓小部件」分区，这里提供 App 内直接添加
+  /// 设置页「桌面小组件」分组说明（仅 Android）：澎湃 OS 里经典小组件藏在列表底部的「安卓小组件」分区，这里提供 App 内直接添加
   ///
   /// In zh, this message translates to:
-  /// **'在澎湃 OS 小组件列表底部的「安卓小部件」分区找到 Flutify，也可点「添加」直接放到桌面，长按可调整大小'**
+  /// **'在澎湃 OS 小组件列表底部的「安卓小组件」分区找到 Flutify，也可点「添加」直接放到桌面，长按可调整大小'**
   String get settingsHomeWidgetsSubtitle;
 
   /// No description provided for @homeWidgetNowPlaying.
@@ -3116,7 +3116,7 @@ abstract class AppLocalizations {
   /// No description provided for @accountSignOutMessage.
   ///
   /// In zh, this message translates to:
-  /// **'将清除本机的登录信息和媒体库缓存，退出后需重新登录。'**
+  /// **'将清除本机的登录信息和音乐库缓存，退出后需重新登录。'**
   String get accountSignOutMessage;
 
   /// No description provided for @accountSignOutConfirm.

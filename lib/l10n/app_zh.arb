@@ -663,7 +663,7 @@
   "settingsTaskbarLyricsOpacity": "不透明度",
   "settingsTaskbarLyricsFontSize": "字号",
   "settingsHomeWidgetsSection": "桌面小组件",
-  "settingsHomeWidgetsSubtitle": "在澎湃 OS 小组件列表底部的「安卓小部件」分区找到 Flutify，也可点「添加」直接放到桌面，长按可调整大小",
+  "settingsHomeWidgetsSubtitle": "在澎湃 OS 小组件列表底部的「安卓小组件」分区找到 Flutify，也可点「添加」直接放到桌面，长按可调整大小",
   "homeWidgetNowPlaying": "播放条",
   "homeWidgetNowPlayingDesc": "细长横条，封面、歌名与上一首 / 播放 / 下一首；默认 4×1",
   "homeWidgetAlbumCard": "专辑卡片",
@@ -675,7 +675,7 @@
   "homeWidgetAdd": "添加",
   "homeWidgetPinUnsupported": "当前桌面不支持从应用内添加，请长按桌面在小组件列表里添加",
   "@settingsHomeWidgetsSubtitle": {
-    "description": "设置页「桌面小组件」分组说明（仅 Android）：澎湃 OS 里经典小组件藏在列表底部的「安卓小部件」分区，这里提供 App 内直接添加"
+    "description": "设置页「桌面小组件」分组说明（仅 Android）：澎湃 OS 里经典小组件藏在列表底部的「安卓小组件」分区，这里提供 App 内直接添加"
   },
   "settingsCopyLog": "复制诊断日志",
   "settingsCopyLogSubtitle": "反馈问题时粘贴给开发者；日志只含运行记录，不含密码",
@@ -853,7 +853,7 @@
   "accountSignIn": "登录",
   "accountSignOut": "退出登录",
   "accountSignOutTitle": "退出登录？",
-  "accountSignOutMessage": "将清除本机的登录信息和媒体库缓存，退出后需重新登录。",
+  "accountSignOutMessage": "将清除本机的登录信息和音乐库缓存，退出后需重新登录。",
   "accountSignOutConfirm": "退出",
   "sleepTimer": "睡眠定时器",
   "sleepTimerMinutes": "{count} 分钟",

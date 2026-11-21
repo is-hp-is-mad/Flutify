@@ -812,6 +812,10 @@ class _LocalOutputSectionState extends State<_LocalOutputSection> {
     if (name.contains('headphone') ||
         name.contains('headset') ||
         name.contains('耳机') ||
+        name.contains('耳機') ||
+        name.contains('ヘッドホン') ||
+        name.contains('ヘッドフォン') ||
+        name.contains('イヤホン') ||
         name.contains('airpods') ||
         name.contains('buds')) {
       return Icons.headphones_rounded;

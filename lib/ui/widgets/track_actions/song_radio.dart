@@ -22,7 +22,7 @@ class SongRadio {
       final radio = await api.getSongRadio(track);
       if (context.mounted) AppRoutes.openPlaylist(context, radio);
     } on SpotifyDataException catch (e) {
-      final notFound = e.message == '没有找到对应的内容';
+      final notFound = identical(e, SpotifyDataException.notFound);
       AppToast.showOn(
         messenger,
         notFound ? l10n.radioUnavailable : l10n.radioFailed,
