@@ -121,6 +121,13 @@ procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 var
   Command, Previous: String;
 begin
+  if CurUninstallStep = usPostUninstall then
+  begin
+    // Remove {app} if it is now empty (covers reinstalls over a kept
+    // directory where Inno Setup did not record {app} as newly created).
+    RemoveDir(ExpandConstant('{app}'));
+    Exit;
+  end;
   if CurUninstallStep <> usUninstall then
     Exit;
   if RegQueryStringValue(HKCU, 'Software\Classes\spotify\shell\open\command', '', Command) and
