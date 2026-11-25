@@ -359,6 +359,12 @@ pub fn rust_session_clear() {
     spotify_session::clear_session();
 }
 
+/// 界面语言对应的 Accept-Language（`zh-CN` / `zh-TW` / `en` / `ja`），Rust 发出的鉴权请求默认带上。
+#[flutter_rust_bridge::frb(sync)]
+pub fn rust_set_accept_language(language: String) {
+    spotify_session::set_accept_language(language);
+}
+
 pub async fn rust_mint_web_token(sp_dc: String, proxy: String) -> Result<RustTokenResult, String> {
     http_client::runtime()
         .spawn(async move {

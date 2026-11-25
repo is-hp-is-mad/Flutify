@@ -39,7 +39,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.13.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 243491787;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1258016168;
 
 // Section: executor
 
@@ -3045,6 +3045,38 @@ fn wire__crate__api__session_tokens__rust_session_ensure_web_access_token_impl(
         },
     )
 }
+fn wire__crate__api__backend__rust_set_accept_language_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "rust_set_accept_language",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_language = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, ()>((move || {
+                let output_ok = Ok::<_, ()>({
+                    crate::api::backend::rust_set_accept_language(api_language);
+                })?;
+                std::result::Result::Ok(output_ok)
+            })())
+        },
+    )
+}
 fn wire__crate__api__backend__rust_track_playback_request_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -5826,20 +5858,20 @@ fn pde_ffi_dispatcher_primary_impl(
             rust_vec_len,
             data_len,
         ),
-        77 => wire__crate__api__backend__rust_track_playback_request_impl(
+        78 => wire__crate__api__backend__rust_track_playback_request_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        78 => wire__crate__api__backend__rust_write_backup_file_atomic_impl(
+        79 => wire__crate__api__backend__rust_write_backup_file_atomic_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        80 => wire__crate__api__protocol__sha256_file_impl(port, ptr, rust_vec_len, data_len),
-        87 => wire__crate__api__network__websocket_connect_impl(port, ptr, rust_vec_len, data_len),
+        81 => wire__crate__api__protocol__sha256_file_impl(port, ptr, rust_vec_len, data_len),
+        88 => wire__crate__api__network__websocket_connect_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -5917,17 +5949,18 @@ fn pde_ffi_dispatcher_sync_impl(
         ),
         73 => wire__crate__api__backend__rust_session_clear_impl(ptr, rust_vec_len, data_len),
         74 => wire__crate__api__backend__rust_session_configure_impl(ptr, rust_vec_len, data_len),
-        79 => wire__crate__api__lyrics__score_lyric_lang_impl(ptr, rust_vec_len, data_len),
-        81 => wire__crate__api__protocol__spotify_id_from_base16_impl(ptr, rust_vec_len, data_len),
-        82 => wire__crate__api__protocol__spotify_id_from_base62_impl(ptr, rust_vec_len, data_len),
-        83 => wire__crate__api__protocol__spotify_id_to_base16_impl(ptr, rust_vec_len, data_len),
-        84 => wire__crate__api__protocol__spotify_id_to_base62_impl(ptr, rust_vec_len, data_len),
-        85 => wire__crate__api__lyrics__try_merge_bilingual_lines_impl(ptr, rust_vec_len, data_len),
-        86 => wire__crate__api__network__websocket_close_impl(ptr, rust_vec_len, data_len),
-        88 => wire__crate__api__network__websocket_send_impl(ptr, rust_vec_len, data_len),
-        89 => wire__crate__api__lyrics__zh_convert_impl(ptr, rust_vec_len, data_len),
-        90 => wire__crate__api__lyrics__zh_count_simplified_impl(ptr, rust_vec_len, data_len),
-        91 => wire__crate__api__lyrics__zh_count_traditional_impl(ptr, rust_vec_len, data_len),
+        77 => wire__crate__api__backend__rust_set_accept_language_impl(ptr, rust_vec_len, data_len),
+        80 => wire__crate__api__lyrics__score_lyric_lang_impl(ptr, rust_vec_len, data_len),
+        82 => wire__crate__api__protocol__spotify_id_from_base16_impl(ptr, rust_vec_len, data_len),
+        83 => wire__crate__api__protocol__spotify_id_from_base62_impl(ptr, rust_vec_len, data_len),
+        84 => wire__crate__api__protocol__spotify_id_to_base16_impl(ptr, rust_vec_len, data_len),
+        85 => wire__crate__api__protocol__spotify_id_to_base62_impl(ptr, rust_vec_len, data_len),
+        86 => wire__crate__api__lyrics__try_merge_bilingual_lines_impl(ptr, rust_vec_len, data_len),
+        87 => wire__crate__api__network__websocket_close_impl(ptr, rust_vec_len, data_len),
+        89 => wire__crate__api__network__websocket_send_impl(ptr, rust_vec_len, data_len),
+        90 => wire__crate__api__lyrics__zh_convert_impl(ptr, rust_vec_len, data_len),
+        91 => wire__crate__api__lyrics__zh_count_simplified_impl(ptr, rust_vec_len, data_len),
+        92 => wire__crate__api__lyrics__zh_count_traditional_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
