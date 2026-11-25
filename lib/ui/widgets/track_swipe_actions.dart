@@ -128,6 +128,7 @@ class TrackSwipeGestures extends StatelessWidget {
 ///
 /// 行跟手滑开，露出边缘的圆形按钮：滑过一半宽度松手直接执行；只滑开一段则停在按钮宽度，
 /// 再点圆形按钮执行，点行本身或往回滑收起。执行后行弹回原位。
+/// 同一时间只有一行处于滑开状态：开始滑另一行时，之前滑开的那行自动收起。
 /// [leading] 在行左侧（向右滑露出），[trailing] 在行右侧（向左滑露出），都可为 null。
 class TrackSwipeActions extends StatefulWidget {
   final TrackSwipeAction? leading;
@@ -181,6 +182,9 @@ class _TrackSwipeActionsState extends State<TrackSwipeActions>
   double _width = 1;
   bool _armed = false;
 
+  /// 当前滑开（或正在滑动）的那一行。
+  static _TrackSwipeActionsState? _openRow;
+
   double get _triggerExtent => (_width * 0.5).clamp(_revealExtent + 24, 400);
 
   TrackSwipeAction? get _active => _dx > 0
@@ -191,8 +195,17 @@ class _TrackSwipeActionsState extends State<TrackSwipeActions>
 
   @override
   void dispose() {
+    if (_openRow == this) _openRow = null;
     _settle.dispose();
     super.dispose();
+  }
+
+  void _onStart(DragStartDetails _) {
+    final previous = _openRow;
+    if (previous != null && previous != this && previous.mounted) {
+      previous._animateTo(0);
+    }
+    _openRow = this;
   }
 
   void _onUpdate(DragUpdateDetails d) {
@@ -234,6 +247,7 @@ class _TrackSwipeActionsState extends State<TrackSwipeActions>
   }
 
   void _animateTo(double target) {
+    if (target == 0 && _openRow == this) _openRow = null;
     _settle.value = _dx;
     _settle
         .animateWith(
@@ -261,6 +275,7 @@ class _TrackSwipeActionsState extends State<TrackSwipeActions>
         _width = constraints.maxWidth;
         return GestureDetector(
           behavior: HitTestBehavior.translucent,
+          onHorizontalDragStart: _onStart,
           onHorizontalDragUpdate: _onUpdate,
           onHorizontalDragEnd: _onEnd,
           onHorizontalDragCancel: () => _animateTo(0),
