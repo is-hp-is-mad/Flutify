@@ -1913,6 +1913,54 @@ abstract class AppLocalizations {
   /// **'列表播完后自动播放相似的歌曲'**
   String get settingsAutoplaySubtitle;
 
+  /// No description provided for @settingsCustomSection.
+  ///
+  /// In zh, this message translates to:
+  /// **'自定义功能'**
+  String get settingsCustomSection;
+
+  /// No description provided for @settingsSmartPrevious.
+  ///
+  /// In zh, this message translates to:
+  /// **'智能上一首'**
+  String get settingsSmartPrevious;
+
+  /// No description provided for @settingsSmartPreviousSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'播放不到 3.5 秒时点「上一首」切到上一首，否则从头播放这首歌'**
+  String get settingsSmartPreviousSubtitle;
+
+  /// No description provided for @settingsSwipePlayNext.
+  ///
+  /// In zh, this message translates to:
+  /// **'右滑下个播放'**
+  String get settingsSwipePlayNext;
+
+  /// No description provided for @settingsSwipePlayNextSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'在歌单和专辑里向右滑动歌曲，把它排到下一首播放'**
+  String get settingsSwipePlayNextSubtitle;
+
+  /// No description provided for @settingsSwipeLibrary.
+  ///
+  /// In zh, this message translates to:
+  /// **'左滑加入音乐库'**
+  String get settingsSwipeLibrary;
+
+  /// No description provided for @settingsSwipeLibrarySubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'在歌单和专辑里向左滑动歌曲，添加到或移出 Spotify 已点赞的歌曲'**
+  String get settingsSwipeLibrarySubtitle;
+
+  /// No description provided for @toastPlayNext.
+  ///
+  /// In zh, this message translates to:
+  /// **'下个播放'**
+  String get toastPlayNext;
+
   /// No description provided for @settingsPauseAfterFailures.
   ///
   /// In zh, this message translates to:
@@ -4876,7 +4924,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'无法加载制作人员信息，请重试'**
   String get creditsFailed;
-
 }
 
 class _AppLocalizationsDelegate

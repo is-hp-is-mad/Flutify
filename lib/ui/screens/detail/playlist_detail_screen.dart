@@ -26,6 +26,7 @@ import '../../widgets/track_table/track_list_toolbar.dart';
 import '../../widgets/track_table/track_sort.dart';
 import '../../widgets/track_table/track_table_columns.dart';
 import '../../widgets/track_table/track_table_header.dart';
+import '../../widgets/track_swipe_actions.dart';
 import '../../widgets/track_tile.dart';
 import '../watchfeed/widgets/watch_feed_entity_button.dart';
 import 'widgets/collection_hero.dart';
@@ -664,7 +665,46 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
           Expanded(child: tile),
         ],
       );
+      return _ownPlaylistSwipe(tile, track, ownPlaylistId);
     }
+
+    // 自定义功能里的滑动手势：右滑下个播放，左滑加入 / 移出音乐库。
+    // 在行自己的 build 里判断（这里是列表委托回调，不能 select）。
+    final row = tile;
+    return Builder(
+      key: ValueKey('row_${track.id}'),
+      builder: (context) {
+        if (!TrackSwipeGestures.active(context)) {
+          return _ownPlaylistSwipe(row, track, ownPlaylistId);
+        }
+        final swipeToLibrary =
+            context.read<PreferencesProvider?>()?.prefs.swipeToLibrary ?? false;
+        final scheme = Theme.of(context).colorScheme;
+        return TrackSwipeGestures(
+          track: track,
+          // 自建歌单没开左滑入库时，左滑仍是移出歌单
+          trailingOverride: ownPlaylistId != null && !swipeToLibrary
+              ? TrackSwipeAction(
+                  icon: Icons.delete_rounded,
+                  iconColor: scheme.onErrorContainer,
+                  circleColor: scheme.errorContainer,
+                  semanticLabel: context.l10n.commonRemove,
+                  onTriggered: () => context
+                      .read<LibraryProvider>()
+                      .removeTrackFromPlaylist(ownPlaylistId, track.id),
+                )
+              : null,
+          child: row,
+        );
+      },
+    );
+  }
+
+  Widget _ownPlaylistSwipe(
+    Widget tile,
+    SpotifyTrack track,
+    String? ownPlaylistId,
+  ) {
     if (ownPlaylistId == null) return tile;
 
     // 自建歌单支持左滑移除曲目。定高列表里行不能收缩，滑出后立即移除（不做收起动画）

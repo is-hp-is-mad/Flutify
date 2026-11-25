@@ -997,6 +997,32 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsAutoplaySubtitle => 'リストの再生が終わったら似た曲を自動で再生します';
 
   @override
+  String get settingsCustomSection => 'カスタム機能';
+
+  @override
+  String get settingsSmartPrevious => 'スマート前の曲';
+
+  @override
+  String get settingsSmartPreviousSubtitle =>
+      '再生開始から 3.5 秒以内は前の曲へ、それ以降は今の曲を最初から再生します';
+
+  @override
+  String get settingsSwipePlayNext => '右スワイプで次に再生';
+
+  @override
+  String get settingsSwipePlayNextSubtitle => 'プレイリストやアルバムで曲を右にスワイプすると次に再生します';
+
+  @override
+  String get settingsSwipeLibrary => '左スワイプでライブラリに追加';
+
+  @override
+  String get settingsSwipeLibrarySubtitle =>
+      'プレイリストやアルバムで曲を左にスワイプすると Spotify のお気に入りの曲に追加・削除します';
+
+  @override
+  String get toastPlayNext => '次に再生';
+
+  @override
   String get settingsPauseAfterFailures => '再生に失敗し続けたら一時停止';
 
   @override
@@ -2383,17 +2409,17 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String backupSynced(String playlists, String liked) {
-    return '${playlists}を同期し、${liked}を統合しました';
+    return '$playlistsを同期し、$likedを統合しました';
   }
 
   @override
   String backupImporting(String playlists) {
-    return '${playlists}をバックグラウンドで取り込み中…';
+    return '$playlistsをバックグラウンドで取り込み中…';
   }
 
   @override
   String backupImported(String playlists, String liked) {
-    return '${playlists}を取り込み、${liked}を統合しました';
+    return '$playlistsを取り込み、$likedを統合しました';
   }
 
   @override
@@ -2422,7 +2448,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String backupAccountSubtitle(String liked, String playlists) {
-    return '$liked · ${playlists}を保存済み';
+    return '$liked · $playlistsを保存済み';
   }
 
   @override
@@ -2473,12 +2499,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String backupLikedMerged(String songs, int added) {
-    return '${songs}を「お気に入りの曲」に統合しました（新規 $added 曲）';
+    return '$songsを「お気に入りの曲」に統合しました（新規 $added 曲）';
   }
 
   @override
   String backupLikedSaved(String songs, int added) {
-    return '${songs}を保存しました（新規 $added 曲）';
+    return '$songsを保存しました（新規 $added 曲）';
   }
 
   @override

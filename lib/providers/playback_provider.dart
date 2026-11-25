@@ -141,6 +141,10 @@ class PlaybackProvider extends ChangeNotifier
 
   bool _pauseAfterFailures;
   bool _autoplay;
+  bool _smartPrevious;
+
+  /// 开启 [smartPrevious] 时，播放超过这个时长再点「上一首」会回到本曲开头。
+  static const Duration smartPreviousThreshold = Duration(milliseconds: 3500);
 
   /// 最近一次播放失败（成功开始播放新曲目或调用 [clearPlaybackError] 后为 null）。
   PlaybackError? _playbackError;
@@ -233,7 +237,8 @@ class PlaybackProvider extends ChangeNotifier
   }) : _audio = audio,
        _random = random ?? Random(),
        _pauseAfterFailures = _storage.pauseAfterFailures,
-       _autoplay = _storage.autoplay {
+       _autoplay = _storage.autoplay,
+       _smartPrevious = _storage.smartPrevious {
     _volumeCtrl = PlaybackVolumeController(_audio, _storage);
     _initAudioListeners();
     _volumeCtrl.apply();
@@ -343,6 +348,17 @@ class PlaybackProvider extends ChangeNotifier
     if (value == _autoplay) return;
     _autoplay = value;
     _storage.setAutoplay(value);
+    notifyListeners();
+  }
+
+  /// 智能上一首：已播放不足 [smartPreviousThreshold] 时切到上一首，否则从头重播本曲
+  /// （设置页「自定义功能」分组，持久化，默认关闭）。
+  bool get smartPrevious => _smartPrevious;
+
+  void setSmartPrevious(bool value) {
+    if (value == _smartPrevious) return;
+    _smartPrevious = value;
+    _storage.setSmartPrevious(value);
     notifyListeners();
   }
 
@@ -1475,8 +1491,15 @@ class PlaybackProvider extends ChangeNotifier
     return true;
   }
 
-  /// 上一首（不论已播多久都直接切歌，见测试约定）；列表开头在循环模式下回绕到末尾。
-  Future<void> previousTrack() async {
+  /// 上一首：默认不论已播多久都直接切歌（见测试约定）；列表开头在循环模式下回绕到末尾。
+  ///
+  /// 开启 [smartPrevious] 且已播放满 [smartPreviousThreshold] 时改为从头重播本曲；
+  /// 横滑封面 / 迷你条这类明确要切歌的手势传 [allowRestart] 为 false 跳过这条规则。
+  Future<void> previousTrack({bool allowRestart = true}) async {
+    if (allowRestart && _smartPrevious && position >= smartPreviousThreshold) {
+      await seekTo(Duration.zero);
+      return;
+    }
     if (_order.isEmpty) {
       await seekTo(Duration.zero);
       return;
@@ -1724,6 +1747,12 @@ class PlaybackProvider extends ChangeNotifier
 
   void addToQueue(SpotifyTrack track) {
     _userQueue.add(QueueEntry(_nextQueueUid++, track));
+    _queueChanged();
+  }
+
+  /// 下个播放：插到用户队列最前面，当前曲目结束后立刻播放。
+  void playNext(SpotifyTrack track) {
+    _userQueue.insert(0, QueueEntry(_nextQueueUid++, track));
     _queueChanged();
   }
 

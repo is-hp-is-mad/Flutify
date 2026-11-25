@@ -130,7 +130,9 @@ class MiniPlayer extends StatelessWidget {
                     child: MiniPlayerSwipe(
                       onSwipe: (next) {
                         final playback = context.read<PlaybackProvider>();
-                        next ? playback.nextTrack() : playback.previousTrack();
+                        next
+                            ? playback.nextTrack()
+                            : playback.previousTrack(allowRestart: false);
                       },
                       child: _MiniPlayerFace(track: track),
                     ),
