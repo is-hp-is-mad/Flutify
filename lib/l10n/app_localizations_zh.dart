@@ -1023,6 +1023,23 @@ class AppLocalizationsZh extends AppLocalizations {
       '在歌单和专辑里向左滑动歌曲，添加到或移出 Spotify 已点赞的歌曲';
 
   @override
+  String get settingsLyricsKeepAwake => '歌词界面常亮';
+
+  @override
+  String get settingsLyricsKeepAwakeSubtitle =>
+      '打开歌词时屏幕不会自动熄灭。OLED 屏幕长时间显示同一画面可能烧屏';
+
+  @override
+  String get settingsLyricsKeepAwakeWarningTitle => '开启歌词界面常亮？';
+
+  @override
+  String get settingsLyricsKeepAwakeWarningMessage =>
+      '打开歌词期间屏幕会一直亮着、不会自动熄灭，耗电也会增加。\n\nOLED / AMOLED 屏幕长时间显示同一画面（如歌词背景、按钮）可能留下残影，也就是烧屏。不用时请关闭歌词界面或锁屏。';
+
+  @override
+  String get settingsLyricsKeepAwakeEnable => '仍然开启';
+
+  @override
   String get toastPlayNext => '下个播放';
 
   @override
@@ -3694,6 +3711,23 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   @override
   String get settingsSwipeLibrarySubtitle =>
       '在播放清單和專輯中向左滑動歌曲，新增到或移出 Spotify 已按讚的歌曲';
+
+  @override
+  String get settingsLyricsKeepAwake => '歌詞介面恆亮';
+
+  @override
+  String get settingsLyricsKeepAwakeSubtitle =>
+      '打開歌詞時螢幕不會自動關閉。OLED 螢幕長時間顯示同一畫面可能烙印';
+
+  @override
+  String get settingsLyricsKeepAwakeWarningTitle => '要開啟歌詞介面恆亮嗎？';
+
+  @override
+  String get settingsLyricsKeepAwakeWarningMessage =>
+      '打開歌詞期間螢幕會一直亮著、不會自動關閉，耗電也會增加。\n\nOLED / AMOLED 螢幕長時間顯示同一畫面（例如歌詞背景、按鈕）可能留下殘影，也就是烙印。不用時請關閉歌詞介面或鎖定螢幕。';
+
+  @override
+  String get settingsLyricsKeepAwakeEnable => '仍要開啟';
 
   @override
   String get toastPlayNext => '下一首播放';

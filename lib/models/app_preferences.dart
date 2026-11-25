@@ -109,6 +109,9 @@ class AppPreferences {
 
   /// 手机端歌单 / 专辑曲目行左滑加入 / 移出音乐库（同步到 Spotify 账号的已点赞歌曲）。
   final bool swipeToLibrary;
+
+  /// 歌词界面打开时保持屏幕常亮（设置页「自定义功能」，默认关闭；OLED 屏有烧屏风险）。
+  final bool lyricsKeepScreenOn;
   final List<String> lyricsExcludedLanguages;
   final bool lyricsExcludeInterfaceLanguage;
   final bool lyricsAutoTranslate;
@@ -181,6 +184,7 @@ class AppPreferences {
     this.appleMusicArtistMedia = true,
     this.swipeToPlayNext = false,
     this.swipeToLibrary = false,
+    this.lyricsKeepScreenOn = false,
     this.lyricsExcludedLanguages = const [],
     this.lyricsExcludeInterfaceLanguage = true,
     this.lyricsAutoTranslate = true,
@@ -244,6 +248,7 @@ class AppPreferences {
     bool? appleMusicArtistMedia,
     bool? swipeToPlayNext,
     bool? swipeToLibrary,
+    bool? lyricsKeepScreenOn,
     List<String>? lyricsExcludedLanguages,
     bool? lyricsExcludeInterfaceLanguage,
     bool? lyricsAutoTranslate,
@@ -303,6 +308,7 @@ class AppPreferences {
           appleMusicArtistMedia ?? this.appleMusicArtistMedia,
       swipeToPlayNext: swipeToPlayNext ?? this.swipeToPlayNext,
       swipeToLibrary: swipeToLibrary ?? this.swipeToLibrary,
+      lyricsKeepScreenOn: lyricsKeepScreenOn ?? this.lyricsKeepScreenOn,
       lyricsExcludedLanguages:
           lyricsExcludedLanguages ?? this.lyricsExcludedLanguages,
       lyricsExcludeInterfaceLanguage:
@@ -357,6 +363,7 @@ class AppPreferences {
     'appleMusicArtistMedia': appleMusicArtistMedia,
     'swipeToPlayNext': swipeToPlayNext,
     'swipeToLibrary': swipeToLibrary,
+    'lyricsKeepScreenOn': lyricsKeepScreenOn,
     'lyricsExcludedLanguages': lyricsExcludedLanguages,
     'lyricsExcludeInterfaceLanguage': lyricsExcludeInterfaceLanguage,
     'lyricsAutoTranslate': lyricsAutoTranslate,
@@ -460,6 +467,10 @@ class AppPreferences {
       ),
       swipeToPlayNext: flag(json['swipeToPlayNext'], d.swipeToPlayNext),
       swipeToLibrary: flag(json['swipeToLibrary'], d.swipeToLibrary),
+      lyricsKeepScreenOn: flag(
+        json['lyricsKeepScreenOn'],
+        d.lyricsKeepScreenOn,
+      ),
       lyricsExcludedLanguages: json['lyricsExcludedLanguages'] is List
           ? List.unmodifiable(
               (json['lyricsExcludedLanguages'] as List)
@@ -577,6 +588,7 @@ class AppPreferences {
       other.appleMusicArtistMedia == appleMusicArtistMedia &&
       other.swipeToPlayNext == swipeToPlayNext &&
       other.swipeToLibrary == swipeToLibrary &&
+      other.lyricsKeepScreenOn == lyricsKeepScreenOn &&
       listEquals(other.lyricsExcludedLanguages, lyricsExcludedLanguages) &&
       other.lyricsExcludeInterfaceLanguage == lyricsExcludeInterfaceLanguage &&
       other.lyricsAutoTranslate == lyricsAutoTranslate &&
@@ -624,6 +636,7 @@ class AppPreferences {
     appleMusicArtistMedia,
     swipeToPlayNext,
     swipeToLibrary,
+    lyricsKeepScreenOn,
     Object.hashAll(lyricsExcludedLanguages),
     lyricsExcludeInterfaceLanguage,
     lyricsAutoTranslate,

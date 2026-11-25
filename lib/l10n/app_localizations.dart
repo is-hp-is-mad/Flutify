@@ -1955,6 +1955,36 @@ abstract class AppLocalizations {
   /// **'在歌单和专辑里向左滑动歌曲，添加到或移出 Spotify 已点赞的歌曲'**
   String get settingsSwipeLibrarySubtitle;
 
+  /// No description provided for @settingsLyricsKeepAwake.
+  ///
+  /// In zh, this message translates to:
+  /// **'歌词界面常亮'**
+  String get settingsLyricsKeepAwake;
+
+  /// No description provided for @settingsLyricsKeepAwakeSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'打开歌词时屏幕不会自动熄灭。OLED 屏幕长时间显示同一画面可能烧屏'**
+  String get settingsLyricsKeepAwakeSubtitle;
+
+  /// No description provided for @settingsLyricsKeepAwakeWarningTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'开启歌词界面常亮？'**
+  String get settingsLyricsKeepAwakeWarningTitle;
+
+  /// No description provided for @settingsLyricsKeepAwakeWarningMessage.
+  ///
+  /// In zh, this message translates to:
+  /// **'打开歌词期间屏幕会一直亮着、不会自动熄灭，耗电也会增加。\n\nOLED / AMOLED 屏幕长时间显示同一画面（如歌词背景、按钮）可能留下残影，也就是烧屏。不用时请关闭歌词界面或锁屏。'**
+  String get settingsLyricsKeepAwakeWarningMessage;
+
+  /// No description provided for @settingsLyricsKeepAwakeEnable.
+  ///
+  /// In zh, this message translates to:
+  /// **'仍然开启'**
+  String get settingsLyricsKeepAwakeEnable;
+
   /// No description provided for @toastPlayNext.
   ///
   /// In zh, this message translates to:

@@ -1062,6 +1062,24 @@ class AppLocalizationsEn extends AppLocalizations {
       'Swipe a song left in playlists and albums to save it to or remove it from your Spotify Liked Songs';
 
   @override
+  String get settingsLyricsKeepAwake => 'Keep screen on for lyrics';
+
+  @override
+  String get settingsLyricsKeepAwakeSubtitle =>
+      'The screen won\'t turn off while lyrics are open. Showing the same image for a long time can cause burn-in on OLED screens';
+
+  @override
+  String get settingsLyricsKeepAwakeWarningTitle =>
+      'Keep the screen on for lyrics?';
+
+  @override
+  String get settingsLyricsKeepAwakeWarningMessage =>
+      'While lyrics are open, the screen stays on and won\'t turn off by itself, which also uses more battery.\n\nOn OLED / AMOLED screens, showing the same image for a long time (such as the lyrics background or buttons) can leave a permanent ghost image, known as burn-in. Close the lyrics or lock your phone when you\'re not using it.';
+
+  @override
+  String get settingsLyricsKeepAwakeEnable => 'Turn on anyway';
+
+  @override
   String get toastPlayNext => 'Play Next';
 
   @override

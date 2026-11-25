@@ -7,6 +7,7 @@ import '../../../models/playback_context.dart';
 import '../../../models/track.dart';
 import '../../../providers/connect_provider.dart';
 import '../../widgets/cover_image.dart';
+import '../../widgets/lyrics_keep_awake.dart';
 import '../../widgets/menu/desktop_menu.dart';
 import '../../widgets/playback_scrubber.dart';
 import 'android_player_scene.dart';
@@ -382,13 +383,15 @@ class _PlayerSceneViewState extends State<PlayerSceneView> {
             },
           ),
         ),
-        lyrics: LyricsView(
-          appleMusicStyle: true,
-          key: ValueKey((track.id, remote)),
-          track: track,
-          remote: remote,
-          bottomInset: 24,
-          lineCursor: widget.lyricsLineCursor ?? SystemMouseCursors.click,
+        lyrics: LyricsKeepAwake(
+          child: LyricsView(
+            appleMusicStyle: true,
+            key: ValueKey((track.id, remote)),
+            track: track,
+            remote: remote,
+            bottomInset: 24,
+            lineCursor: widget.lyricsLineCursor ?? SystemMouseCursors.click,
+          ),
         ),
         translation: widget.controlsOnLeft
             ? const SizedBox.shrink()

@@ -85,6 +85,8 @@ class MainActivity : AudioServiceActivity() {
         // 歌词外显：Flyme 状态栏歌词、蓝牙（车机）媒体信息换歌词
         LyricBridgePlugin.register(flutterEngine, this)
         AudioOutputPlugin.register(flutterEngine, this)
+        // 自定义功能「歌词界面常亮」
+        ScreenAwakePlugin.register(flutterEngine, this)
         // 系统里点开的 spotify: / open.spotify.com 链接
         SpotifyLinkPlugin.register(flutterEngine, this)
         // 桌面小组件：Dart 播放状态 → WidgetStateStore → 刷新 Now Playing

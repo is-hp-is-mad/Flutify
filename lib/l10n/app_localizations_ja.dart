@@ -1020,6 +1020,23 @@ class AppLocalizationsJa extends AppLocalizations {
       'プレイリストやアルバムで曲を左にスワイプすると Spotify のお気に入りの曲に追加・削除します';
 
   @override
+  String get settingsLyricsKeepAwake => '歌詞画面で画面をオンのままにする';
+
+  @override
+  String get settingsLyricsKeepAwakeSubtitle =>
+      '歌詞を開いている間は画面が自動で消えません。OLED 画面で同じ表示が長く続くと焼き付きが起きることがあります';
+
+  @override
+  String get settingsLyricsKeepAwakeWarningTitle => '歌詞画面で画面をオンのままにしますか？';
+
+  @override
+  String get settingsLyricsKeepAwakeWarningMessage =>
+      '歌詞を開いている間は画面が点灯したままになり、自動で消えません。電池の消費も増えます。\n\nOLED / AMOLED 画面で同じ表示（歌詞の背景やボタンなど）が長く続くと、残像が残る「焼き付き」が起きることがあります。使わないときは歌詞を閉じるか画面をロックしてください。';
+
+  @override
+  String get settingsLyricsKeepAwakeEnable => 'オンにする';
+
+  @override
   String get toastPlayNext => '次に再生';
 
   @override
