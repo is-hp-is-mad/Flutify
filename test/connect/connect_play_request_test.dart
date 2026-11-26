@@ -22,6 +22,70 @@ void main() {
     }
   });
 
+  test('用户排过序的歌单（不随机）：带上整个列表而不是上下文 URI', () {
+    final ctx = const PlaybackContext.playlist(
+      'x',
+      uri: 'spotify:playlist:p1',
+    ).withReordered(true);
+
+    final whole = ConnectPlayRequest.from(
+      context: ctx,
+      tracks: tracks,
+      username: 'me',
+    )!;
+    expect(whole.contextUri, isEmpty);
+    expect(whole.trackUris, [
+      'spotify:track:a',
+      'spotify:track:b',
+      'spotify:track:c',
+    ]);
+    expect(whole.trackUri, isNull);
+    expect(whole.trackIndex, isNull);
+
+    final fromStart = ConnectPlayRequest.from(
+      context: ctx,
+      tracks: tracks,
+      start: tracks[1],
+      username: 'me',
+    )!;
+    expect(fromStart.trackUris, [
+      'spotify:track:a',
+      'spotify:track:b',
+      'spotify:track:c',
+    ]);
+    expect(fromStart.trackUri, 'spotify:track:b');
+    expect(fromStart.trackIndex, 1);
+  });
+
+  test('用户排过序但随机播放：顺序无所谓，仍交给远程展开上下文', () {
+    final ctx = const PlaybackContext.playlist(
+      'x',
+      uri: 'spotify:playlist:p1',
+    ).withReordered(true);
+    final r = ConnectPlayRequest.from(
+      context: ctx,
+      tracks: tracks,
+      username: 'me',
+      shuffle: true,
+    )!;
+    expect(r.contextUri, 'spotify:playlist:p1');
+    expect(r.trackUris, isEmpty);
+  });
+
+  test('用户排过序的已点赞歌曲：不走 collection 上下文，带临时列表', () {
+    final ctx = const PlaybackContext.collection(
+      'Liked',
+      uri: 'spotify:collection:tracks',
+    ).withReordered(true);
+    final r = ConnectPlayRequest.from(
+      context: ctx,
+      tracks: tracks,
+      username: 'me',
+    )!;
+    expect(r.contextUri, isEmpty);
+    expect(r.trackUris, hasLength(3));
+  });
+
   test('从头播放整个上下文：不带 skip_to', () {
     final r = ConnectPlayRequest.from(
       context: const PlaybackContext.album('x', uri: 'spotify:album:a1'),

@@ -6,9 +6,11 @@ import '../../../core/theme/md3e_shapes.dart';
 import '../../../core/utils/pinyin_sort.dart';
 import '../../../l10n/l10n.dart';
 import '../../../models/album.dart';
+import '../../../models/app_preferences.dart';
 import '../../../models/artist.dart';
 import '../../../models/playlist.dart';
 import '../../../providers/library_provider.dart';
+import '../../../providers/preferences_provider.dart';
 import '../../navigation/app_routes.dart';
 import '../../widgets/cover_image.dart';
 import '../../widgets/create_playlist_dialog.dart';
@@ -18,8 +20,6 @@ import '../../widgets/menu/desktop_menu.dart';
 import '../../widgets/user_avatar.dart';
 
 enum _LibraryFilter { playlists, artists, albums }
-
-enum _LibrarySort { recent, alphabetical }
 
 /// 媒体库条目的统一视图模型（歌单 / 艺人 / 专辑）。
 class _LibraryItem {
@@ -56,7 +56,9 @@ class LibraryScreen extends StatefulWidget {
 
 class _LibraryScreenState extends State<LibraryScreen> {
   _LibraryFilter? _filter;
-  _LibrarySort _sort = _LibrarySort.recent;
+
+  /// 没有 PreferencesProvider（部分测试）时只在内存里记排序。
+  LibrarySort _unsavedSort = LibrarySort.recent;
   bool _isGridView = false;
   bool _searching = false;
   final TextEditingController _queryController = TextEditingController();
@@ -77,11 +79,18 @@ class _LibraryScreenState extends State<LibraryScreen> {
     AppRoutes.openPlaylist(context, library.createPlaylist(name));
   }
 
+  void _setSort(LibrarySort sort) {
+    final prefs = context.read<PreferencesProvider?>();
+    if (prefs == null) return setState(() => _unsavedSort = sort);
+    prefs.update(prefs.prefs.copyWith(librarySort: sort));
+  }
+
   List<_LibraryItem> _buildItems(
     List<SpotifyPlaylist> playlists,
     List<SpotifyArtist> artists,
     List<SpotifyAlbum> albums,
     int likedCount,
+    LibrarySort sort,
   ) {
     final library = context.read<LibraryProvider>();
     final l10n = context.l10n;
@@ -130,7 +139,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
         ? items
         : items.where((i) => i.title.toLowerCase().contains(query) || i.subtitle.toLowerCase().contains(query)).toList();
 
-    if (_sort == _LibrarySort.alphabetical) {
+    if (sort == LibrarySort.alphabetical) {
       final pinned = result.where((i) => i.pinned);
       final rest = result.where((i) => !i.pinned).toList()
         ..sort((a, b) => compareByPinyin(a.title, b.title));
@@ -148,7 +157,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
     final artists = context.select<LibraryProvider, List<SpotifyArtist>>((l) => l.artists);
     final albums = context.select<LibraryProvider, List<SpotifyAlbum>>((l) => l.albums);
     final likedCount = context.select<LibraryProvider, int>((l) => l.likedTracks.length);
-    final items = _buildItems(playlists, artists, albums, likedCount);
+    final sort = context.select<PreferencesProvider?, LibrarySort?>((p) => p?.prefs.librarySort) ?? _unsavedSort;
+    final items = _buildItems(playlists, artists, albums, likedCount, sort);
 
     return Scaffold(
       body: SafeArea(
@@ -245,12 +255,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
               padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
               child: Row(
                 children: [
-                  FlutifyPopupMenuButton<_LibrarySort>(
-                    initialValue: _sort,
-                    onSelected: (s) => setState(() => _sort = s),
+                  FlutifyPopupMenuButton<LibrarySort>(
+                    initialValue: sort,
+                    onSelected: _setSort,
                     itemBuilder: (_) => [
-                      PopupMenuItem(value: _LibrarySort.recent, child: Text(l10n.librarySortRecent)),
-                      PopupMenuItem(value: _LibrarySort.alphabetical, child: Text(l10n.librarySortAlphabetical)),
+                      PopupMenuItem(value: LibrarySort.recent, child: Text(l10n.librarySortRecent)),
+                      PopupMenuItem(value: LibrarySort.alphabetical, child: Text(l10n.librarySortAlphabetical)),
                     ],
                     child: Padding(
                       padding: const EdgeInsets.all(8.0),
@@ -260,7 +270,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                           Icon(Icons.swap_vert_rounded, size: 18, color: colorScheme.onSurfaceVariant),
                           const SizedBox(width: 4),
                           Text(
-                            _sort == _LibrarySort.recent ? l10n.librarySortRecent : l10n.librarySortAlphabetical,
+                            sort == LibrarySort.recent ? l10n.librarySortRecent : l10n.librarySortAlphabetical,
                             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: colorScheme.onSurfaceVariant),
                           ),
                         ],

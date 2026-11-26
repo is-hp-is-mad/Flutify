@@ -25,19 +25,25 @@ class ConnectPlayRequest {
 
   /// 由本机的播放参数生成远程请求：[start] 为 null 表示从头播放整个上下文（详情页大播放按钮）。
   ///
+  /// [shuffle]：当前是否随机播放。用户排过序的列表（[PlaybackContext.reordered]）在不随机时也带上整个列表，
+  /// 因为远程按 contextUri 展开的是歌单原顺序；随机时顺序无所谓，仍交给远程展开上下文。
+  ///
   /// 返回 null 表示这次播放无法交给远程设备（起始曲目没有 Spotify URI，如本地文件），应在本机播放。
   static ConnectPlayRequest? from({
     required PlaybackContext context,
     required List<SpotifyTrack> tracks,
     SpotifyTrack? start,
     required String username,
+    bool shuffle = false,
   }) {
     final startUri = start == null ? null : _uriOf(start);
     if (start != null && startUri == null) return null;
 
     var contextUri = context.uri;
     if (contextUri == _likedSongsUri) contextUri = username.isEmpty ? '' : 'spotify:user:$username:collection';
-    if (_contextPrefixes.any(contextUri.startsWith) || contextUri.endsWith(':collection')) {
+    final keepOrder = context.reordered && !shuffle;
+    if (!keepOrder &&
+        (_contextPrefixes.any(contextUri.startsWith) || contextUri.endsWith(':collection'))) {
       return ConnectPlayRequest(contextUri: contextUri, trackUri: startUri);
     }
 

@@ -29,6 +29,9 @@ enum TaskbarLyricsColor { auto, white, black, accent, custom }
 /// - [all]：所有蓝牙音频设备都替换。
 enum BluetoothLyricsMode { off, car, all }
 
+/// 音乐库列表的排序方式（手机「音乐库」页与桌面左栏共用）。
+enum LibrarySort { recent, alphabetical }
+
 /// 非外观类的界面偏好（外观见 `AppearanceSettings`，播放类偏好由 PlaybackProvider 持有）。
 ///
 /// 不可变；整体序列化为一段 JSON 存在 `app_prefs` 键下。
@@ -67,6 +70,12 @@ class AppPreferences {
 
   /// 桌面曲目表格用紧凑视图（无封面、艺人单独一列、行更矮），在歌单页的「查看方式」里切换。
   final bool compactTrackList;
+
+  /// 音乐库列表的排序（手机音乐库页与桌面左栏共用，选一次后一直沿用）。
+  final LibrarySort librarySort;
+
+  /// 各歌单页选过的曲目排序：歌单 id → `TrackSort.encode()` 的结果；没有条目即自定义顺序。
+  final Map<String, String> playlistTrackSorts;
 
   /// 网络代理方式；[proxyHost] / [proxyPort] 只在 [ProxyMode.manual] 下使用（端口 0 表示未填写）。
   final ProxyMode proxyMode;
@@ -159,6 +168,8 @@ class AppPreferences {
     this.connectDeviceName = '',
     this.remoteLyricsLeadMs = 0,
     this.compactTrackList = false,
+    this.librarySort = LibrarySort.recent,
+    this.playlistTrackSorts = const {},
     this.proxyMode = ProxyMode.system,
     this.proxyHost = '',
     this.proxyPort = 0,
@@ -220,6 +231,8 @@ class AppPreferences {
     String? connectDeviceName,
     int? remoteLyricsLeadMs,
     bool? compactTrackList,
+    LibrarySort? librarySort,
+    Map<String, String>? playlistTrackSorts,
     ProxyMode? proxyMode,
     String? proxyHost,
     int? proxyPort,
@@ -265,6 +278,10 @@ class AppPreferences {
       connectDeviceName: connectDeviceName ?? this.connectDeviceName,
       remoteLyricsLeadMs: remoteLyricsLeadMs ?? this.remoteLyricsLeadMs,
       compactTrackList: compactTrackList ?? this.compactTrackList,
+      librarySort: librarySort ?? this.librarySort,
+      playlistTrackSorts: playlistTrackSorts == null
+          ? this.playlistTrackSorts
+          : Map.unmodifiable(playlistTrackSorts),
       proxyMode: proxyMode ?? this.proxyMode,
       proxyHost: proxyHost ?? this.proxyHost,
       proxyPort: proxyPort ?? this.proxyPort,
@@ -329,6 +346,8 @@ class AppPreferences {
     'connectDeviceName': connectDeviceName,
     'remoteLyricsLeadMs': remoteLyricsLeadMs,
     'compactTrackList': compactTrackList,
+    'librarySort': librarySort.name,
+    'playlistTrackSorts': playlistTrackSorts,
     'proxyMode': proxyMode.name,
     'proxyHost': proxyHost,
     'proxyPort': proxyPort,
@@ -375,6 +394,7 @@ class AppPreferences {
     final opacity = json['taskbarLyricsOpacity'];
     final fontScale = json['taskbarLyricsFontScale'];
     final backupInterval = json['backupIntervalMinutes'];
+    final trackSorts = json['playlistTrackSorts'];
     return AppPreferences(
       language: pick(AppLanguage.values, json['language'], d.language),
       lyricsScale: number(
@@ -409,6 +429,17 @@ class AppPreferences {
           ? lead.clamp(-maxRemoteLyricsLeadMs, maxRemoteLyricsLeadMs)
           : 0,
       compactTrackList: flag(json['compactTrackList'], d.compactTrackList),
+      librarySort: pick(LibrarySort.values, json['librarySort'], d.librarySort),
+      playlistTrackSorts: trackSorts is Map
+          ? Map.unmodifiable({
+              for (final e in trackSorts.entries)
+                if (e.key is String &&
+                    (e.key as String).isNotEmpty &&
+                    e.value is String &&
+                    (e.value as String).isNotEmpty)
+                  e.key as String: e.value as String,
+            })
+          : d.playlistTrackSorts,
       proxyMode: pick(ProxyMode.values, json['proxyMode'], d.proxyMode),
       proxyHost: json['proxyHost'] is String
           ? (json['proxyHost'] as String).trim()
@@ -530,6 +561,13 @@ class AppPreferences {
 
   String encode() => jsonEncode(toJson());
 
+  /// 记下歌单 [playlistId] 的曲目排序；[sort] 为 null（自定义顺序）时删掉条目。
+  AppPreferences withPlaylistTrackSort(String playlistId, String? sort) {
+    final next = {...playlistTrackSorts}..remove(playlistId);
+    if (sort != null) next[playlistId] = sort;
+    return copyWith(playlistTrackSorts: next);
+  }
+
   @override
   bool operator ==(Object other) =>
       other is AppPreferences &&
@@ -545,6 +583,8 @@ class AppPreferences {
       other.connectDeviceName == connectDeviceName &&
       other.remoteLyricsLeadMs == remoteLyricsLeadMs &&
       other.compactTrackList == compactTrackList &&
+      other.librarySort == librarySort &&
+      mapEquals(other.playlistTrackSorts, playlistTrackSorts) &&
       other.proxyMode == proxyMode &&
       other.proxyHost == proxyHost &&
       other.proxyPort == proxyPort &&
@@ -590,6 +630,10 @@ class AppPreferences {
     connectDeviceName,
     remoteLyricsLeadMs,
     compactTrackList,
+    librarySort,
+    Object.hashAllUnordered(
+      playlistTrackSorts.entries.map((e) => Object.hash(e.key, e.value)),
+    ),
     proxyMode,
     proxyHost,
     proxyPort,
