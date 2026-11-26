@@ -7,14 +7,17 @@ import '../../../models/playback_context.dart';
 import '../../../models/track.dart';
 import '../../../providers/library_provider.dart';
 import '../../../providers/playback_provider.dart';
+import '../../../providers/preferences_provider.dart';
 import '../../../services/spotify_api_service.dart';
 import '../../navigation/app_routes.dart';
 import '../../widgets/toast/app_toast.dart';
+import '../../widgets/track_table/track_sort.dart';
 
 /// 主页条目（卡片 / 快捷入口 / 推荐流）的点击与播放。
 ///
 /// - 点击：打开对应详情页；播客打开节目页，单集打开所属节目（缺节目 URI 时先经单集页解析）；
-/// - 播放键：先取曲目再整张播放；取不到曲目（未登录 / 网络失败）时退回打开详情页，由详情页说明原因。
+/// - 播放键：先取曲目再整张播放；歌单 / 已点赞的歌曲按用户在歌单页选的排序播放；
+///   取不到曲目（未登录 / 网络失败）时退回打开详情页，由详情页说明原因。
 class HomeItemActions {
   HomeItemActions._();
 
@@ -89,6 +92,7 @@ class HomeItemActions {
     final api = context.read<SpotifyApiService>();
     final playback = context.read<PlaybackProvider>();
     final library = context.read<LibraryProvider>();
+    final prefs = context.read<PreferencesProvider?>();
 
     final (
       List<SpotifyTrack> tracks,
@@ -124,7 +128,21 @@ class HomeItemActions {
       open(context, item);
       return;
     }
-    await playback.playContext(tracks, playContext);
+    // 歌单 / 已点赞的歌曲：按用户在歌单页记下的排序播放（与进歌单页点播放一致）
+    final playlistId = switch (item.kind) {
+      HomeItemKind.likedSongs => LibraryProvider.likedSongsId,
+      HomeItemKind.playlist => item.playlist!.id,
+      _ => null,
+    };
+    final sort = playlistId == null
+        ? TrackSort.custom
+        : TrackSort.decode(
+            prefs?.prefs.playlistTrackSorts[playlistId],
+          ).availableFor(tracks);
+    await playback.playContext(
+      sort.apply(tracks),
+      playContext.withReordered(sort != TrackSort.custom),
+    );
   }
 
   static Future<List<SpotifyTrack>> _guard(

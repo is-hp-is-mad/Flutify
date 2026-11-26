@@ -8,7 +8,7 @@ import 'track_sort.dart';
 
 /// 歌单页操作行右侧的工具（Spotify 桌面端风格）：🔍 歌单内搜索 · 「自定义顺序 ≡」排序 / 查看方式菜单。
 ///
-/// - 搜索：点放大镜展开输入框并聚焦；失焦且没有内容时收起；Esc 清空并收起；
+/// - 搜索：点放大镜展开输入框并聚焦；失焦且没有内容时收起；Esc 清空并收起；展开 / 收起经 [onSearchOpenChanged] 通知（窄布局据此把输入框挪到单独一行）；
 /// - 排序菜单：选中另一个字段按其自然方向排序，再选同一字段反向（与点列表头一致）；
 /// - 查看方式（[onCompactChanged] 非空时显示，仅桌面表格）：列表 / 紧凑。
 class TrackListToolbar extends StatefulWidget {
@@ -23,6 +23,9 @@ class TrackListToolbar extends StatefulWidget {
   final bool compact;
   final ValueChanged<bool>? onCompactChanged;
 
+  /// 搜索框展开 / 收起时通知（手机窄布局据此把输入框挪到单独一行）。
+  final ValueChanged<bool>? onSearchOpenChanged;
+
   const TrackListToolbar({
     super.key,
     required this.query,
@@ -32,6 +35,7 @@ class TrackListToolbar extends StatefulWidget {
     required this.hasAddedAt,
     this.compact = false,
     this.onCompactChanged,
+    this.onSearchOpenChanged,
   });
 
   /// 排序字段的显示名（菜单项与按钮文字共用）。
@@ -75,12 +79,18 @@ class _TrackListToolbarState extends State<TrackListToolbar> {
     super.dispose();
   }
 
+  void _setOpen(bool open) {
+    if (_open == open) return;
+    setState(() => _open = open);
+    widget.onSearchOpenChanged?.call(open);
+  }
+
   void _onFocusChanged() {
-    if (!_focus.hasFocus && _controller.text.isEmpty && _open) setState(() => _open = false);
+    if (!_focus.hasFocus && _controller.text.isEmpty) _setOpen(false);
   }
 
   void _openSearch() {
-    setState(() => _open = true);
+    _setOpen(true);
     _focus.requestFocus();
   }
 
@@ -88,7 +98,7 @@ class _TrackListToolbarState extends State<TrackListToolbar> {
     _controller.clear();
     widget.onQueryChanged('');
     _focus.unfocus();
-    setState(() => _open = false);
+    _setOpen(false);
   }
 
   Future<void> _showMenu(BuildContext anchorContext) async {
@@ -162,11 +172,10 @@ class _TrackListToolbarState extends State<TrackListToolbar> {
           ),
         );
 
-    final search = AnimatedSize(
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOutCubic,
-      alignment: Alignment.centerRight,
-      child: _open
+    // tight 槽位里没有空间放展开 / 收起动画的中途宽度（塞进行里会溢出），直接跳变——
+    // 且此时 _open 走上面的整行分支，这里只剩收起态的图标。
+    Widget search({required bool tight}) {
+      final child = _open
           ? ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: _fieldWidth),
               child: field(height: _fieldHeight(context)),
@@ -176,8 +185,15 @@ class _TrackListToolbarState extends State<TrackListToolbar> {
               color: muted,
               tooltip: l10n.trackSearchHint,
               onPressed: _openSearch,
-            ),
-    );
+            );
+      if (tight) return child;
+      return AnimatedSize(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+        alignment: Alignment.centerRight,
+        child: child,
+      );
+    }
 
     final sortButton = Builder(
       builder: (anchorContext) => TextButton(
@@ -213,7 +229,7 @@ class _TrackListToolbarState extends State<TrackListToolbar> {
           mainAxisSize: MainAxisSize.min,
           children: [
             // 输入框优先：要多少占多少（封顶 _fieldWidth）；空间不够时排序键截断文字
-            search,
+            search(tight: tight),
             const SizedBox(width: 4),
             Flexible(child: sortButton),
           ],

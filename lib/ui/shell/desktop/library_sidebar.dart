@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../l10n/l10n.dart';
+import '../../../models/app_preferences.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/library_provider.dart';
 import '../../../providers/playback_provider.dart';
+import '../../../providers/preferences_provider.dart';
 import '../../navigation/app_routes.dart';
 import '../../screens/auth/login_screen.dart';
 import '../../widgets/create_playlist_dialog.dart';
@@ -39,7 +41,9 @@ class LibrarySidebar extends StatefulWidget {
 
 class _LibrarySidebarState extends State<LibrarySidebar> {
   LibraryKind? _filter;
-  LibrarySort _sort = LibrarySort.recent;
+
+  /// 没有 PreferencesProvider（部分测试）时只在内存里记排序。
+  LibrarySort _unsavedSort = LibrarySort.recent;
   bool _searching = false;
   final TextEditingController _query = TextEditingController();
 
@@ -61,6 +65,12 @@ class _LibrarySidebarState extends State<LibrarySidebar> {
     AppRoutes.openPlaylist(context, library.createPlaylist(name));
   }
 
+  void _setSort(LibrarySort sort) {
+    final prefs = context.read<PreferencesProvider?>();
+    if (prefs == null) return setState(() => _unsavedSort = sort);
+    prefs.update(prefs.prefs.copyWith(librarySort: sort));
+  }
+
   @override
   Widget build(BuildContext context) {
     final signedIn = context.select<AuthProvider, bool>((a) => a.isSignedIn);
@@ -70,13 +80,18 @@ class _LibrarySidebarState extends State<LibrarySidebar> {
       (p) => p.playbackContext.uri,
     );
     final l10n = context.l10n;
+    final sort =
+        context.select<PreferencesProvider?, LibrarySort?>(
+          (p) => p?.prefs.librarySort,
+        ) ??
+        _unsavedSort;
 
     final entries = signedIn
         ? LibrarySidebarEntry.build(
             library: library,
             l10n: l10n,
             filter: widget.compact ? null : _filter,
-            sort: _sort,
+            sort: sort,
             query: widget.compact ? '' : _query.text,
           )
         : const <LibrarySidebarEntry>[];
@@ -98,13 +113,13 @@ class _LibrarySidebarState extends State<LibrarySidebar> {
             _SearchSortRow(
               searching: _searching,
               controller: _query,
-              sort: _sort,
+              sort: sort,
               onSearchToggle: () => setState(() {
                 _searching = !_searching;
                 if (!_searching) _query.clear();
               }),
               onQueryChanged: (_) => setState(() {}),
-              onSortChanged: (s) => setState(() => _sort = s),
+              onSortChanged: _setSort,
             ),
           ],
           Expanded(

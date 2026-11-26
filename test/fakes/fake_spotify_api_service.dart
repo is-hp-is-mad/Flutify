@@ -3,6 +3,7 @@ import 'package:flutify_app/models/category.dart';
 import 'package:flutify_app/models/device.dart';
 import 'package:flutify_app/models/home_feed.dart';
 import 'package:flutify_app/models/lyrics.dart';
+import 'package:flutify_app/models/playlist.dart';
 import 'package:flutify_app/models/track.dart';
 import 'package:flutify_app/models/user_profile.dart';
 import 'package:flutify_app/services/library/library_source.dart';
@@ -22,6 +23,9 @@ class FakeSpotifyApiService extends SpotifyApiService {
   /// 专辑 id → 曲目。
   final Map<String, List<SpotifyTrack>> albumTracks;
 
+  /// 歌单 id → 歌单（曲目含详情）。
+  final Map<String, SpotifyPlaylist> playlists;
+
   /// 主页数据；非空时视为已登录。
   final HomeFeed? homeFeed;
 
@@ -30,6 +34,7 @@ class FakeSpotifyApiService extends SpotifyApiService {
     this.librarySource,
     this.lyricsById = const {},
     this.albumTracks = const {},
+    this.playlists = const {},
     this.homeFeed,
   });
 
@@ -58,4 +63,8 @@ class FakeSpotifyApiService extends SpotifyApiService {
 
   @override
   Future<List<SpotifyTrack>> getAlbumTracks(SpotifyAlbum album) async => albumTracks[album.id] ?? const [];
+
+  @override
+  Future<SpotifyPlaylist> getPlaylist(String id) async =>
+      playlists[id] ?? await super.getPlaylist(id);
 }
