@@ -654,7 +654,8 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count songs in a row could not be played, so playback was paused',
+      other:
+          '$count songs in a row could not be played, so playback was paused',
       one: 'A song could not be played, so playback was paused',
     );
     return '$_temp0';
@@ -1035,6 +1036,51 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsAutoplaySubtitle =>
       'When your music ends, keep playing similar songs';
+
+  @override
+  String get settingsCustomSection => 'Custom features';
+
+  @override
+  String get settingsSmartPrevious => 'Smart previous';
+
+  @override
+  String get settingsSmartPreviousSubtitle =>
+      'Within the first 3.5 seconds, Previous goes to the previous song; after that it restarts the current song';
+
+  @override
+  String get settingsSwipePlayNext => 'Swipe right to play next';
+
+  @override
+  String get settingsSwipePlayNextSubtitle =>
+      'Swipe a song right in playlists and albums to play it next';
+
+  @override
+  String get settingsSwipeLibrary => 'Swipe left to add to library';
+
+  @override
+  String get settingsSwipeLibrarySubtitle =>
+      'Swipe a song left in playlists and albums to save it to or remove it from your Spotify Liked Songs';
+
+  @override
+  String get settingsLyricsKeepAwake => 'Keep screen on for lyrics';
+
+  @override
+  String get settingsLyricsKeepAwakeSubtitle =>
+      'The screen won\'t turn off while lyrics are open. Showing the same image for a long time can cause burn-in on OLED screens';
+
+  @override
+  String get settingsLyricsKeepAwakeWarningTitle =>
+      'Keep the screen on for lyrics?';
+
+  @override
+  String get settingsLyricsKeepAwakeWarningMessage =>
+      'While lyrics are open, the screen stays on and won\'t turn off by itself, which also uses more battery.\n\nOn OLED / AMOLED screens, showing the same image for a long time (such as the lyrics background or buttons) can leave a permanent ghost image, known as burn-in. Close the lyrics or lock your phone when you\'re not using it.';
+
+  @override
+  String get settingsLyricsKeepAwakeEnable => 'Turn on anyway';
+
+  @override
+  String get toastPlayNext => 'Play Next';
 
   @override
   String get settingsPauseAfterFailures => 'Pause when songs keep failing';
@@ -2327,7 +2373,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsBluetoothLyricsSubtitle =>
-      'While a Bluetooth audio device is connected, the media title shows the current lyric line and artist/album show "Song - Artist", so car displays show lyrics line by line';
+      'While a Bluetooth audio device is connected, the media title shows the current lyric line and artist/album show \"Song - Artist\", so car displays show lyrics line by line';
 
   @override
   String get bluetoothLyricsOff => 'Off';
@@ -2436,8 +2482,10 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count playlists exist only on this device and are not in your account library yet',
-      one: '1 playlist exists only on this device and is not in your account library yet',
+      other:
+          '$count playlists exist only on this device and are not in your account library yet',
+      one:
+          '1 playlist exists only on this device and is not in your account library yet',
     );
     return '$_temp0';
   }
@@ -2501,7 +2549,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String backupAccountAdded(String title, String liked, String playlists) {
-    return 'Backed up "$title" ($liked, $playlists)';
+    return 'Backed up \"$title\" ($liked, $playlists)';
   }
 
   @override
@@ -2588,7 +2636,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String backupImportedAsPlaylist(String songs, String name) {
-    return 'Imported $songs as the playlist "$name"';
+    return 'Imported $songs as the playlist \"$name\"';
   }
 
   @override
@@ -2839,7 +2887,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String backupAccountFailed(String title, String detail) {
-    return 'Couldn\'t back up "$title": $detail';
+    return 'Couldn\'t back up \"$title\": $detail';
   }
 
   @override

@@ -1,12 +1,13 @@
 import 'key_value_store.dart';
 
-/// 播放器行为偏好（音量、音量均衡、淡入淡出、失败后暂停、自动播放）。
+/// 播放器行为偏好（音量、音量均衡、淡入淡出、失败后暂停、自动播放、智能上一首）。
 class PlaybackPrefsStore {
   static const String _keyVolume = 'sp_volume';
   static const String _keyPauseAfterFailures = 'play_pause_after_failures';
   static const String _keyAutoplay = 'play_autoplay';
   static const String _keyNormalize = 'play_normalize';
   static const String _keyFadeSeconds = 'play_fade_seconds';
+  static const String _keySmartPrevious = 'play_smart_previous';
 
   final KeyValueStore _prefs;
 
@@ -29,4 +30,8 @@ class PlaybackPrefsStore {
   int get fadeSeconds => _prefs.getInt(_keyFadeSeconds) ?? 0;
   Future<bool> setFadeSeconds(int value) =>
       _prefs.setInt(_keyFadeSeconds, value);
+
+  bool get smartPrevious => _prefs.getBool(_keySmartPrevious) ?? false;
+  Future<bool> setSmartPrevious(bool value) =>
+      _prefs.setBool(_keySmartPrevious, value);
 }

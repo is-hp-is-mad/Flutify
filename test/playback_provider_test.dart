@@ -158,6 +158,57 @@ void main() {
     expect(playback.currentTrack?.id, a.id);
   });
 
+  group('smart previous', () {
+    test('after 3.5 seconds restarts the current track', () async {
+      playback.setSmartPrevious(true);
+      await playback.playTrack(b, contextQueue: [a, b, c], context: ctx);
+      audio.positionController.add(const Duration(seconds: 10));
+
+      await playback.previousTrack();
+      expect(playback.currentTrack?.id, b.id);
+      expect(playback.position, Duration.zero);
+    });
+
+    test('within 3.5 seconds selects the previous track', () async {
+      playback.setSmartPrevious(true);
+      await playback.playTrack(b, contextQueue: [a, b, c], context: ctx);
+      audio.positionController.add(const Duration(milliseconds: 3400));
+
+      await playback.previousTrack();
+      expect(playback.currentTrack?.id, a.id);
+    });
+
+    test('swipe gestures always switch tracks', () async {
+      playback.setSmartPrevious(true);
+      await playback.playTrack(b, contextQueue: [a, b, c], context: ctx);
+      audio.positionController.add(const Duration(seconds: 10));
+
+      await playback.previousTrack(allowRestart: false);
+      expect(playback.currentTrack?.id, a.id);
+    });
+
+    test('is off by default and persisted', () async {
+      expect(playback.smartPrevious, isFalse);
+      playback.setSmartPrevious(true);
+      final reloaded = PlaybackProvider(
+        audio, (await StorageService.init()).playback,
+        audioLoader: loader,
+      );
+      addTearDown(reloaded.dispose);
+      expect(reloaded.smartPrevious, isTrue);
+    });
+  });
+
+  test('playNext puts the track at the front of the user queue', () async {
+    await playback.playTrack(a, contextQueue: [a, b, c], context: ctx);
+    playback.addToQueue(x);
+    playback.playNext(c);
+
+    expect(playback.userQueue.map((e) => e.track.id), [c.id, x.id]);
+    await playback.nextTrack();
+    expect(playback.currentTrack?.id, c.id);
+  });
+
   test(
     'receiver queue expands without reloading and retains history and local tail',
     () async {

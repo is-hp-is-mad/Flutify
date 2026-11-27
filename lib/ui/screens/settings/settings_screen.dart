@@ -9,6 +9,7 @@ import 'sections/accent_section.dart';
 import 'sections/appearance_section.dart';
 import 'sections/backup_section.dart';
 import 'sections/connect_section.dart';
+import 'sections/custom_features_section.dart';
 import 'sections/glass_section.dart';
 import 'sections/home_widgets_section.dart';
 import 'sections/language_section.dart';
@@ -52,6 +53,7 @@ class SettingsScreen extends StatelessWidget {
 /// 单列布局（移动端、窄桌面）的分组顺序：常用的播放 / 歌词在前，一次性操作（存储、隐私）与关于在后。
 const List<Widget> _singleColumn = [
   PlaybackSection(),
+  CustomFeaturesSection(),
   LyricsSection(),
   TaskbarLyricsSection(),
   ExternalLyricsSection(),
@@ -194,6 +196,7 @@ class _DesktopSettings extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: const [
                           PlaybackSection(),
+                          CustomFeaturesSection(),
                           AccentSection(),
                           GlassSection(),
                           ConnectSection(),

@@ -103,6 +103,15 @@ class AppPreferences {
 
   /// 艺人页优先播放 Apple Music 动态视频，否则保留 Spotify 原图（向 Apple 发送艺人名）。
   final bool appleMusicArtistMedia;
+
+  /// 手机端歌单 / 专辑曲目行右滑「下个播放」（设置页「自定义功能」，默认关闭）。
+  final bool swipeToPlayNext;
+
+  /// 手机端歌单 / 专辑曲目行左滑加入 / 移出音乐库（同步到 Spotify 账号的已点赞歌曲）。
+  final bool swipeToLibrary;
+
+  /// 歌词界面打开时保持屏幕常亮（设置页「自定义功能」，默认关闭；OLED 屏有烧屏风险）。
+  final bool lyricsKeepScreenOn;
   final List<String> lyricsExcludedLanguages;
   final bool lyricsExcludeInterfaceLanguage;
   final bool lyricsAutoTranslate;
@@ -173,6 +182,9 @@ class AppPreferences {
     this.lyricsSourceOrder = LyricsSource.defaultOrder,
     this.canvasEnabled = true,
     this.appleMusicArtistMedia = true,
+    this.swipeToPlayNext = false,
+    this.swipeToLibrary = false,
+    this.lyricsKeepScreenOn = false,
     this.lyricsExcludedLanguages = const [],
     this.lyricsExcludeInterfaceLanguage = true,
     this.lyricsAutoTranslate = true,
@@ -234,6 +246,9 @@ class AppPreferences {
     List<LyricsSource>? lyricsSourceOrder,
     bool? canvasEnabled,
     bool? appleMusicArtistMedia,
+    bool? swipeToPlayNext,
+    bool? swipeToLibrary,
+    bool? lyricsKeepScreenOn,
     List<String>? lyricsExcludedLanguages,
     bool? lyricsExcludeInterfaceLanguage,
     bool? lyricsAutoTranslate,
@@ -291,6 +306,9 @@ class AppPreferences {
       canvasEnabled: canvasEnabled ?? this.canvasEnabled,
       appleMusicArtistMedia:
           appleMusicArtistMedia ?? this.appleMusicArtistMedia,
+      swipeToPlayNext: swipeToPlayNext ?? this.swipeToPlayNext,
+      swipeToLibrary: swipeToLibrary ?? this.swipeToLibrary,
+      lyricsKeepScreenOn: lyricsKeepScreenOn ?? this.lyricsKeepScreenOn,
       lyricsExcludedLanguages:
           lyricsExcludedLanguages ?? this.lyricsExcludedLanguages,
       lyricsExcludeInterfaceLanguage:
@@ -343,6 +361,9 @@ class AppPreferences {
     'lyricsSourceOrder': [for (final s in lyricsSourceOrder) s.name],
     'canvasEnabled': canvasEnabled,
     'appleMusicArtistMedia': appleMusicArtistMedia,
+    'swipeToPlayNext': swipeToPlayNext,
+    'swipeToLibrary': swipeToLibrary,
+    'lyricsKeepScreenOn': lyricsKeepScreenOn,
     'lyricsExcludedLanguages': lyricsExcludedLanguages,
     'lyricsExcludeInterfaceLanguage': lyricsExcludeInterfaceLanguage,
     'lyricsAutoTranslate': lyricsAutoTranslate,
@@ -443,6 +464,12 @@ class AppPreferences {
       appleMusicArtistMedia: flag(
         json['appleMusicArtistMedia'],
         d.appleMusicArtistMedia,
+      ),
+      swipeToPlayNext: flag(json['swipeToPlayNext'], d.swipeToPlayNext),
+      swipeToLibrary: flag(json['swipeToLibrary'], d.swipeToLibrary),
+      lyricsKeepScreenOn: flag(
+        json['lyricsKeepScreenOn'],
+        d.lyricsKeepScreenOn,
       ),
       lyricsExcludedLanguages: json['lyricsExcludedLanguages'] is List
           ? List.unmodifiable(
@@ -559,6 +586,9 @@ class AppPreferences {
       listEquals(other.lyricsSourceOrder, lyricsSourceOrder) &&
       other.canvasEnabled == canvasEnabled &&
       other.appleMusicArtistMedia == appleMusicArtistMedia &&
+      other.swipeToPlayNext == swipeToPlayNext &&
+      other.swipeToLibrary == swipeToLibrary &&
+      other.lyricsKeepScreenOn == lyricsKeepScreenOn &&
       listEquals(other.lyricsExcludedLanguages, lyricsExcludedLanguages) &&
       other.lyricsExcludeInterfaceLanguage == lyricsExcludeInterfaceLanguage &&
       other.lyricsAutoTranslate == lyricsAutoTranslate &&
@@ -604,6 +634,9 @@ class AppPreferences {
     Object.hashAll(lyricsSourceOrder),
     canvasEnabled,
     appleMusicArtistMedia,
+    swipeToPlayNext,
+    swipeToLibrary,
+    lyricsKeepScreenOn,
     Object.hashAll(lyricsExcludedLanguages),
     lyricsExcludeInterfaceLanguage,
     lyricsAutoTranslate,

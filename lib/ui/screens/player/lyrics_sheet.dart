@@ -6,6 +6,7 @@ import '../../widgets/connect/now_playing_source.dart';
 import '../../widgets/cover_image.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/liquid_glass.dart';
+import '../../widgets/lyrics_keep_awake.dart';
 import '../../widgets/player_controls.dart';
 import 'lyrics/lyrics_backdrop.dart';
 import 'lyrics/lyrics_glass_controls.dart';
@@ -72,13 +73,15 @@ class LyricsSheet extends StatelessWidget {
                   ),
                 )
               else
-                LyricsView(
-                  appleMusicStyle: true,
-                  key: ValueKey((track.id, remote)),
-                  track: track,
-                  remote: remote,
-                  topInset: _headerHeight,
-                  bottomInset: _controlsHeight + bottomSafe,
+                LyricsKeepAwake(
+                  child: LyricsView(
+                    appleMusicStyle: true,
+                    key: ValueKey((track.id, remote)),
+                    track: track,
+                    remote: remote,
+                    topInset: _headerHeight,
+                    bottomInset: _controlsHeight + bottomSafe,
+                  ),
                 ),
               Positioned(
                 left: 0,

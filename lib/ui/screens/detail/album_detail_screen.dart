@@ -21,6 +21,7 @@ import '../../widgets/content_bottom_spacer.dart';
 import '../../widgets/expressive_card.dart';
 import '../../widgets/share/share_button.dart';
 import '../../widgets/track_menu.dart';
+import '../../widgets/track_swipe_actions.dart';
 import '../../widgets/track_tile.dart';
 import '../watchfeed/widgets/watch_feed_entity_button.dart';
 import 'widgets/collection_hero.dart';
@@ -333,17 +334,20 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
                         // 专辑页曲目菜单不放「前往专辑 / 艺人」
                         final tile = TrackMenuScope(
                           hideNavigation: true,
-                          child: TrackTile(
-                            key: ValueKey(tracks[index].id),
+                          child: TrackSwipeGestures(
                             track: tracks[index],
-                            index: index + 1,
-                            showCover: false,
-                            showLike: false,
-                            showDuration: false,
-                            showDivider: true,
-                            titleMaxLines: 3,
-                            contextQueue: tracks,
-                            playbackContext: playbackContext,
+                            child: TrackTile(
+                              key: ValueKey(tracks[index].id),
+                              track: tracks[index],
+                              index: index + 1,
+                              showCover: false,
+                              showLike: false,
+                              showDuration: false,
+                              showDivider: true,
+                              titleMaxLines: 3,
+                              contextQueue: tracks,
+                              playbackContext: playbackContext,
+                            ),
                           ),
                         );
                         if (index != focusIndex) return tile;

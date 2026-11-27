@@ -68,7 +68,7 @@ class _SwipeableArtworkState extends State<SwipeableArtwork> {
       if (next) {
         playback.nextTrack();
       } else if (previous) {
-        playback.previousTrack();
+        playback.previousTrack(allowRestart: false);
       }
     }
     setState(() {

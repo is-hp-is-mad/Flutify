@@ -1000,6 +1000,49 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsAutoplaySubtitle => '列表播完后自动播放相似的歌曲';
 
   @override
+  String get settingsCustomSection => '自定义功能';
+
+  @override
+  String get settingsSmartPrevious => '智能上一首';
+
+  @override
+  String get settingsSmartPreviousSubtitle =>
+      '播放不到 3.5 秒时点「上一首」切到上一首，否则从头播放这首歌';
+
+  @override
+  String get settingsSwipePlayNext => '右滑下个播放';
+
+  @override
+  String get settingsSwipePlayNextSubtitle => '在歌单和专辑里向右滑动歌曲，把它排到下一首播放';
+
+  @override
+  String get settingsSwipeLibrary => '左滑加入音乐库';
+
+  @override
+  String get settingsSwipeLibrarySubtitle =>
+      '在歌单和专辑里向左滑动歌曲，添加到或移出 Spotify 已点赞的歌曲';
+
+  @override
+  String get settingsLyricsKeepAwake => '歌词界面常亮';
+
+  @override
+  String get settingsLyricsKeepAwakeSubtitle =>
+      '打开歌词时屏幕不会自动熄灭。OLED 屏幕长时间显示同一画面可能烧屏';
+
+  @override
+  String get settingsLyricsKeepAwakeWarningTitle => '开启歌词界面常亮？';
+
+  @override
+  String get settingsLyricsKeepAwakeWarningMessage =>
+      '打开歌词期间屏幕会一直亮着、不会自动熄灭，耗电也会增加。\n\nOLED / AMOLED 屏幕长时间显示同一画面（如歌词背景、按钮）可能留下残影，也就是烧屏。不用时请关闭歌词界面或锁屏。';
+
+  @override
+  String get settingsLyricsKeepAwakeEnable => '仍然开启';
+
+  @override
+  String get toastPlayNext => '下个播放';
+
+  @override
   String get settingsPauseAfterFailures => '连续无法播放时暂停';
 
   @override
@@ -2836,7 +2879,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   }
 
   @override
-  String get podcastPlayed => '已播完';
+  String get podcastPlayed => '已播放';
 
   @override
   String podcastResumeFrom(String position) {
@@ -3493,7 +3536,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get shareCopied => '已復制';
 
   @override
-  String get shareEmbedTitle => '嵌入代碼';
+  String get shareEmbedTitle => '嵌入';
 
   @override
   String get shareEmbedSubtitle => '粘貼到網頁 HTML 中，即可展示 Spotify 播放器';
@@ -3645,6 +3688,49 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get settingsAutoplaySubtitle => '清單播完後自動播放相似的歌曲';
+
+  @override
+  String get settingsCustomSection => '自訂功能';
+
+  @override
+  String get settingsSmartPrevious => '智慧上一首';
+
+  @override
+  String get settingsSmartPreviousSubtitle =>
+      '播放不到 3.5 秒時點「上一首」切到上一首，否則從頭播放這首歌';
+
+  @override
+  String get settingsSwipePlayNext => '右滑下一首播放';
+
+  @override
+  String get settingsSwipePlayNextSubtitle => '在播放清單和專輯中向右滑動歌曲，排到下一首播放';
+
+  @override
+  String get settingsSwipeLibrary => '左滑加入資料庫';
+
+  @override
+  String get settingsSwipeLibrarySubtitle =>
+      '在播放清單和專輯中向左滑動歌曲，新增到或移出 Spotify 已按讚的歌曲';
+
+  @override
+  String get settingsLyricsKeepAwake => '歌詞介面恆亮';
+
+  @override
+  String get settingsLyricsKeepAwakeSubtitle =>
+      '打開歌詞時螢幕不會自動關閉。OLED 螢幕長時間顯示同一畫面可能烙印';
+
+  @override
+  String get settingsLyricsKeepAwakeWarningTitle => '要開啟歌詞介面恆亮嗎？';
+
+  @override
+  String get settingsLyricsKeepAwakeWarningMessage =>
+      '打開歌詞期間螢幕會一直亮著、不會自動關閉，耗電也會增加。\n\nOLED / AMOLED 螢幕長時間顯示同一畫面（例如歌詞背景、按鈕）可能留下殘影，也就是烙印。不用時請關閉歌詞介面或鎖定螢幕。';
+
+  @override
+  String get settingsLyricsKeepAwakeEnable => '仍要開啟';
+
+  @override
+  String get toastPlayNext => '下一首播放';
 
   @override
   String get settingsPauseAfterFailures => '連續無法播放時暫停';
@@ -4256,7 +4342,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get shortcutSearch => '搜尋';
 
   @override
-  String get shortcutBack => '後退';
+  String get shortcutBack => '返回';
 
   @override
   String get shortcutForward => '前進';
@@ -4959,6 +5045,11 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   }
 
   @override
+  String backupIntervalDays(int days) {
+    return '$days 天';
+  }
+
+  @override
   String get backupAddAccount => '新增要同步播放清單的帳戶';
 
   @override
@@ -5022,6 +5113,11 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get backupBadgeExternal => '外部備份帳戶';
 
   @override
+  String backupAccountTitle(String title, String badge) {
+    return '$title（$badge）';
+  }
+
+  @override
   String backupAccountSubtitle(String liked, String playlists) {
     return '已儲存 $liked · $playlists';
   }
@@ -5075,6 +5171,11 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   @override
   String backupLikedMerged(String songs, int added) {
     return '已將 $songs 併入「已按讚的歌曲」（新增 $added 首）';
+  }
+
+  @override
+  String backupLikedSaved(String songs, int added) {
+    return '已收藏 $songs（新增 $added 首）';
   }
 
   @override
@@ -5133,6 +5234,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get playlistSyncAdd => '新增至音樂庫';
 
   @override
+  String get playlistSyncStateRunning => '正在同步…';
+
+  @override
+  String get playlistSyncStateDone => '已同步';
+
+  @override
   String playlistSyncStateFailed(String error) {
     return '失敗：$error';
   }
@@ -5151,6 +5258,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get playlistSyncPromptGo => '前往同步';
+
+  @override
+  String get playerCanvasPlay => '播放 Canvas';
+
+  @override
+  String get playerCanvasStop => '停止 Canvas';
 
   @override
   String playlistCount(int count) {
@@ -5218,10 +5331,16 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get startupCopyDiagnostics => '複製診斷資訊';
 
   @override
+  String get hyperGlassPresetLarge => '通用大卡';
+
+  @override
   String get hyperGlassPresetPurple => '著色紫';
 
   @override
   String get hyperGlassPresetBlue => '著色藍';
+
+  @override
+  String get hyperGlassPresetBionic => '仿生玻璃';
 
   @override
   String hyperGlassPreviewHint(String name) {
