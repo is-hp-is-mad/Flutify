@@ -11,7 +11,6 @@ import 'package:flutter/widgets.dart';
 import 'blend_material.dart';
 import 'glass_filter.dart';
 import 'hyper_glass_renderer.dart';
-import 'native_rom.dart';
 import 'view_shadow.dart';
 
 /// Caps Skia's GPU resource cache (Skia backend only, e.g. Windows / Linux today; a no-op on Impeller).
@@ -426,39 +425,25 @@ class HyperGlass extends StatelessWidget {
     final scene = _SceneScope.of(context);
     // passthrough: the child gets this widget's own constraints (a fixed-size button stays centred,
     // a filling bar keeps filling, a shrink-wrapped menu stays shrink-wrapped).
-    return ListenableBuilder(
-      listenable: hyperRenderController,
-      builder: (context, _) {
-        final useAndroidNative = defaultTargetPlatform == TargetPlatform.android &&
-            hyperRenderController.mode != HyperRenderMode.flutterPort;
-        return Stack(
-          fit: StackFit.passthrough,
-          children: [
-            Positioned.fill(
-              child: useAndroidNative
-                  ? HyperNativeRomSurface(
-                      renderBackend: hyperRenderController.mode.id,
-                      glass: filter,
-                      borderRadius: borderRadius,
-                      bloom: bloom,
-                    )
-                  : _GlassSurface(
-                      scene: scene,
-                      material: filter,
-                      radius: borderRadius,
-                      opacity: opacity,
-                      fx: fx,
-                      bloom: bloom,
-                      press: press,
-                      pressAt: pressAt,
-                      pressOpacity: pressOpacity,
-                      mask: mask,
-                    ),
-            ),
-            if (child != null) child!,
-          ],
-        );
-      },
+    return Stack(
+      fit: StackFit.passthrough,
+      children: [
+        Positioned.fill(
+          child: _GlassSurface(
+            scene: scene,
+            material: filter,
+            radius: borderRadius,
+            opacity: opacity,
+            fx: fx,
+            bloom: bloom,
+            press: press,
+            pressAt: pressAt,
+            pressOpacity: pressOpacity,
+            mask: mask,
+          ),
+        ),
+        if (child != null) child!,
+      ],
     );
   }
 }
@@ -494,38 +479,22 @@ class HyperBlendBlur extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scene = _SceneScope.of(context);
-    return ListenableBuilder(
-      listenable: hyperRenderController,
-      builder: (context, _) {
-        final useAndroidNative = defaultTargetPlatform == TargetPlatform.android &&
-            hyperRenderController.mode != HyperRenderMode.flutterPort;
-        return Stack(
-          fit: StackFit.passthrough, // see HyperGlass.build
-          children: [
-            Positioned.fill(
-              child: useAndroidNative
-                  ? HyperNativeRomSurface(
-                      renderBackend: hyperRenderController.mode.id,
-                      blend: material,
-                      gradientBlur: gradientBlur,
-                      overlayMask: overlayMask,
-                      borderRadius: borderRadius,
-                      bloom: bloom,
-                    )
-                  : _GlassSurface(
-                      scene: scene,
-                      material: material,
-                      radius: borderRadius,
-                      opacity: opacity,
-                      bloom: bloom,
-                      gradientBlur: gradientBlur,
-                      overlayMask: overlayMask,
-                    ),
-            ),
-            if (child != null) child!,
-          ],
-        );
-      },
+    return Stack(
+      fit: StackFit.passthrough, // see HyperGlass.build
+      children: [
+        Positioned.fill(
+          child: _GlassSurface(
+            scene: scene,
+            material: material,
+            radius: borderRadius,
+            opacity: opacity,
+            bloom: bloom,
+            gradientBlur: gradientBlur,
+            overlayMask: overlayMask,
+          ),
+        ),
+        if (child != null) child!,
+      ],
     );
   }
 }

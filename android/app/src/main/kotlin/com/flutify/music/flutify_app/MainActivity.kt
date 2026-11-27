@@ -91,8 +91,6 @@ class MainActivity : AudioServiceActivity() {
         SpotifyLinkPlugin.register(flutterEngine, this)
         // 桌面小组件：Dart 播放状态 → WidgetStateStore → 刷新 Now Playing
         WidgetBridgePlugin.register(flutterEngine, applicationContext)
-        // 小米 HyperOS 柔光玻璃与跨品牌 Android 原生渲染
-        HyperGlassPlugin.register(flutterEngine, this)
         // 艺人页头部动态视频：ExoPlayer 画进 Flutter 纹理
         MotionVideoPlugin.register(flutterEngine, this)
         if (!flutterEngine.plugins.has(AppleMusicBackgroundPlugin::class.java)) {

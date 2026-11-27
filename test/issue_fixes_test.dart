@@ -18,7 +18,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:hyper_glass/hyper_glass.dart';
 
 void main() {
   group('全局快捷键的系统键码（issue #48）', () {
@@ -332,53 +331,12 @@ void main() {
     });
   });
 
-  group('HyperGlass 渲染模式切换（仅 Android 可切，其余平台一律 Flutter 移植）', () {
-    tearDown(() {
-      debugDefaultTargetPlatformOverride = null;
-      hyperRenderController.setMode(HyperRenderMode.flutterPort);
+  test('旧设置里的 hyperRenderMode（已移除的小米原生 / 小米移植）读取后被忽略', () {
+    final settings = AppearanceSettings.fromJson({
+      'glassMaterial': 'hyper',
+      'hyperRenderMode': 'xiaomiNative',
     });
-
-    test('AppearanceSettings 序列化与平台有效模式', () {
-      const settings = AppearanceSettings(
-        glassMaterial: GlassMaterial.hyper,
-        hyperRenderMode: HyperRenderMode.xiaomiNative,
-      );
-      final roundtrip = AppearanceSettings.fromJson(settings.toJson());
-      expect(roundtrip.hyperRenderMode, HyperRenderMode.xiaomiNative);
-
-      for (final platform in [
-        TargetPlatform.windows,
-        TargetPlatform.linux,
-        TargetPlatform.macOS,
-        TargetPlatform.iOS,
-      ]) {
-        debugDefaultTargetPlatformOverride = platform;
-        expect(roundtrip.effectiveHyperRenderMode, HyperRenderMode.flutterPort);
-      }
-
-      debugDefaultTargetPlatformOverride = TargetPlatform.android;
-      expect(roundtrip.effectiveHyperRenderMode, HyperRenderMode.xiaomiNative);
-    });
-
-    test('HyperRenderController 在非 Android 强制 flutterPort，Android 可切三种模式', () {
-      for (final platform in [
-        TargetPlatform.windows,
-        TargetPlatform.linux,
-        TargetPlatform.macOS,
-        TargetPlatform.iOS,
-      ]) {
-        debugDefaultTargetPlatformOverride = platform;
-        hyperRenderController.setMode(HyperRenderMode.xiaomiNative);
-        expect(hyperRenderController.mode, HyperRenderMode.flutterPort);
-        hyperRenderController.setMode(HyperRenderMode.xiaomiPort);
-        expect(hyperRenderController.mode, HyperRenderMode.flutterPort);
-      }
-
-      debugDefaultTargetPlatformOverride = TargetPlatform.android;
-      for (final mode in HyperRenderMode.values) {
-        hyperRenderController.setMode(mode);
-        expect(hyperRenderController.mode, mode);
-      }
-    });
+    expect(settings.glassMaterial, GlassMaterial.hyper);
+    expect(settings.toJson().containsKey('hyperRenderMode'), isFalse);
   });
 }

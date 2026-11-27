@@ -27,7 +27,3 @@ plugins {
 }
 
 include(":app")
-include(":hyperglass")
-val localSdk = file("hyperglass")
-val externalSdk = file("../../../miuiweather/publish/mi-glass-flutter-demo/hyperglass-sdk/hyperglass")
-project(":hyperglass").projectDir = if (localSdk.exists()) localSdk else externalSdk
