@@ -20,9 +20,10 @@ class HyperGlassPreview extends StatefulWidget {
   /// 背景在可见区域外每边多画的宽度（logical px）。
   ///
   /// 玻璃的折射 / 反射会读卡片外约 37 logical px（reflectOffsetPx 110 物理像素 × dpr/3）的背景，
-  /// 而场景只截取自己范围内的背景。卡片离可见边只有 14，没有这圈余量时四边会读到截图外，
+  /// Android（Impeller）上还要先对卡片周围做 LM 模糊（半径 500，约再读出 56），合计约 100，
+  /// 而场景只截取自己范围内的背景。卡片离可见边只有 14，余量不够时四边会读到截图外，
   /// 被拉伸成一圈错位的折射。余量由外层 ClipRRect 裁掉，布局不变。
-  static const double bleed = 48;
+  static const double bleed = 96;
 
   @override
   State<HyperGlassPreview> createState() => _HyperGlassPreviewState();
@@ -129,211 +130,208 @@ class _HyperGlassPreviewState extends State<HyperGlassPreview>
               animation: _menu.listenable,
               builder: (context, _) {
                 final anchor = _anchor();
-                return ListenableBuilder(
-                  listenable: hyperRenderController,
-                  builder: (context, _) => OverflowBox(
-                    minWidth: size.width + 2 * HyperGlassPreview.bleed,
-                    maxWidth: size.width + 2 * HyperGlassPreview.bleed,
-                    minHeight: size.height + 2 * HyperGlassPreview.bleed,
-                    maxHeight: size.height + 2 * HyperGlassPreview.bleed,
-                    child: HyperGlassScene(
-                    animate: _drift.isAnimating || _menu.active || _pressed,
-                    background: background,
-                    child: Padding(
-                    padding: const EdgeInsets.all(HyperGlassPreview.bleed),
-                    child: Stack(
-                      key: _stackKey,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(14),
-                          child: Column(
-                            children: [
-                              Expanded(
-                                child: GestureDetector(
-                                  onTapDown: (_) =>
-                                      setState(() => _pressed = true),
-                                  onTapUp: (_) =>
-                                      setState(() => _pressed = false),
-                                  onTapCancel: () =>
-                                      setState(() => _pressed = false),
-                                  child: Pressable(
-                                    scale: 0.97,
-                                    onTap: () {},
-                                    child: HyperGlass(
-                                      filter: preset.$2,
-                                      borderRadius: tokens.corner(22),
-                                      bloom: dark
-                                          ? BloomTokens.strokeMiddleDark
-                                          : BloomTokens.strokeMiddleLight,
-                                      child: Padding(
-                                        padding: const EdgeInsets.fromLTRB(
-                                          16,
-                                          14,
-                                          14,
-                                          14,
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            Container(
-                                              width: 44,
-                                              height: 44,
-                                              decoration: BoxDecoration(
-                                                color: Colors.white.withValues(
-                                                  alpha: 0.22,
-                                                ),
-                                                borderRadius:
-                                                    BorderRadius.circular(14),
-                                              ),
-                                              child: const Icon(
-                                                Icons.auto_awesome_rounded,
-                                                color: Colors.white,
-                                                size: 24,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 14),
-                                            Expanded(
-                                              child: Column(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.center,
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    '${l10n.settingsHyperGlassPreview} · ${hyperRenderController.mode.label}',
-                                                    maxLines: 1,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    style: const TextStyle(
-                                                      color: Colors.white,
-                                                      fontSize: 15,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(height: 4),
-                                                  Text(
-                                                    context.l10n.hyperGlassPreviewHint(preset.$1(context.l10n)),
-                                                    maxLines: 1,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    style: const TextStyle(
-                                                      color: Colors.white70,
-                                                      fontSize: 12,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            IgnorePointer(
-                                              ignoring: _menu.open,
-                                              child: _BlurButton(
-                                                key: _buttonKey,
-                                                dark: dark,
-                                                label: menuItems[_selected].$2,
-                                                onTap: () => _toggleMenu(true),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
+                return OverflowBox(
+                  minWidth: size.width + 2 * HyperGlassPreview.bleed,
+                  maxWidth: size.width + 2 * HyperGlassPreview.bleed,
+                  minHeight: size.height + 2 * HyperGlassPreview.bleed,
+                  maxHeight: size.height + 2 * HyperGlassPreview.bleed,
+                  child: HyperGlassScene(
+                  animate: _drift.isAnimating || _menu.active || _pressed,
+                  background: background,
+                  child: Padding(
+                  padding: const EdgeInsets.all(HyperGlassPreview.bleed),
+                  child: Stack(
+                    key: _stackKey,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: Column(
+                          children: [
+                            Expanded(
+                              child: GestureDetector(
+                                onTapDown: (_) =>
+                                    setState(() => _pressed = true),
+                                onTapUp: (_) =>
+                                    setState(() => _pressed = false),
+                                onTapCancel: () =>
+                                    setState(() => _pressed = false),
+                                child: Pressable(
+                                  scale: 0.97,
+                                  onTap: () {},
+                                  child: HyperGlass(
+                                    filter: preset.$2,
+                                    borderRadius: tokens.corner(22),
+                                    bloom: dark
+                                        ? BloomTokens.strokeMiddleDark
+                                        : BloomTokens.strokeMiddleLight,
+                                    child: Padding(
+                                      padding: const EdgeInsets.fromLTRB(
+                                        16,
+                                        14,
+                                        14,
+                                        14,
                                       ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              Row(
-                                children: [
-                                  for (final (idx, item) in _presets.indexed)
-                                    Expanded(
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 3,
-                                        ),
-                                        child: GestureDetector(
-                                          onTap: () => setState(
-                                            () => _presetIndex = idx,
-                                          ),
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              vertical: 7,
-                                            ),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            width: 44,
+                                            height: 44,
                                             decoration: BoxDecoration(
-                                              color: idx == _presetIndex
-                                                  ? Colors.white.withValues(
-                                                      alpha: 0.9,
-                                                    )
-                                                  : Colors.black.withValues(
-                                                      alpha: 0.34,
-                                                    ),
-                                              borderRadius:
-                                                  BorderRadius.circular(10),
-                                            ),
-                                            alignment: Alignment.center,
-                                            child: Text(
-                                              item.$1(context.l10n),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: TextStyle(
-                                                color: idx == _presetIndex
-                                                    ? Colors.black87
-                                                    : Colors.white,
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.w600,
+                                              color: Colors.white.withValues(
+                                                alpha: 0.22,
                                               ),
+                                              borderRadius:
+                                                  BorderRadius.circular(14),
+                                            ),
+                                            child: const Icon(
+                                              Icons.auto_awesome_rounded,
+                                              color: Colors.white,
+                                              size: 24,
                                             ),
                                           ),
-                                        ),
+                                          const SizedBox(width: 14),
+                                          Expanded(
+                                            child: Column(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  l10n.settingsHyperGlassPreview,
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 15,
+                                                    fontWeight:
+                                                        FontWeight.w600,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  context.l10n.hyperGlassPreviewHint(preset.$1(context.l10n)),
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: const TextStyle(
+                                                    color: Colors.white70,
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          IgnorePointer(
+                                            ignoring: _menu.open,
+                                            child: _BlurButton(
+                                              key: _buttonKey,
+                                              dark: dark,
+                                              label: menuItems[_selected].$2,
+                                              onTap: () => _toggleMenu(true),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (anchor != null)
-                          Positioned.fill(
-                            child: Theme(
-                              data: Theme.of(context).copyWith(
-                                brightness: dark
-                                    ? Brightness.dark
-                                    : Brightness.light,
-                              ),
-                              child: HyperTheme(
-                                primary: tokens.accent,
-                                child: ArcMenu(
-                                  motion: _menu,
-                                  anchor: anchor,
-                                  menu: menuRectFor(
-                                    anchor,
-                                    size,
-                                    _menuWidth,
-                                    ArcMenu.heightFor(menuItems.length),
-                                    growUp: false,
                                   ),
-                                  onDismiss: () => _toggleMenu(false),
-                                  items: [
-                                    for (final (i, (icon, label))
-                                        in menuItems.indexed)
-                                      HyperMenuItem(
-                                        label,
-                                        () {
-                                          setState(() => _selected = i);
-                                          _toggleMenu(false);
-                                        },
-                                        icon: icon,
-                                        selected: i == _selected,
-                                      ),
-                                  ],
                                 ),
                               ),
                             ),
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                for (final (idx, item) in _presets.indexed)
+                                  Expanded(
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 3,
+                                      ),
+                                      child: GestureDetector(
+                                        onTap: () => setState(
+                                          () => _presetIndex = idx,
+                                        ),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 7,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: idx == _presetIndex
+                                                ? Colors.white.withValues(
+                                                    alpha: 0.9,
+                                                  )
+                                                : Colors.black.withValues(
+                                                    alpha: 0.34,
+                                                  ),
+                                            borderRadius:
+                                                BorderRadius.circular(10),
+                                          ),
+                                          alignment: Alignment.center,
+                                          child: Text(
+                                            item.$1(context.l10n),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              color: idx == _presetIndex
+                                                  ? Colors.black87
+                                                  : Colors.white,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (anchor != null)
+                        Positioned.fill(
+                          child: Theme(
+                            data: Theme.of(context).copyWith(
+                              brightness: dark
+                                  ? Brightness.dark
+                                  : Brightness.light,
+                            ),
+                            child: HyperTheme(
+                              primary: tokens.accent,
+                              child: ArcMenu(
+                                motion: _menu,
+                                anchor: anchor,
+                                menu: menuRectFor(
+                                  anchor,
+                                  size,
+                                  _menuWidth,
+                                  ArcMenu.heightFor(menuItems.length),
+                                  growUp: false,
+                                ),
+                                onDismiss: () => _toggleMenu(false),
+                                items: [
+                                  for (final (i, (icon, label))
+                                      in menuItems.indexed)
+                                    HyperMenuItem(
+                                      label,
+                                      () {
+                                        setState(() => _selected = i);
+                                        _toggleMenu(false);
+                                      },
+                                      icon: icon,
+                                      selected: i == _selected,
+                                    ),
+                                ],
+                              ),
+                            ),
                           ),
-                      ],
-                    ),
-                    ),
+                        ),
+                    ],
                   ),
                   ),
+                ),
                 );
               },
             );

@@ -20,7 +20,9 @@ import 'home_item_card.dart';
 ///   内容区 ≥ [_largeWidth] 时封面 64，否则 48（与官方 small / large 两档一致）；
 ///   悬停时提亮底色并在右侧浮出播放键；
 /// - 手机：2 列、封面 56。
-/// 行高取「封面边长」与「两行标题实测高度」的较大者，字号放大不溢出。
+/// 行高取「封面边长」与「两行标题实测高度」的较大者，字号放大不溢出；封面随行高放大成同样边长，
+/// 始终贴满左侧，由卡片圆角裁出左上 / 左下圆角（手机上两行标题常比 56 高，封面若保持 56 会悬在
+/// 卡片中间，露出不对齐的直角）。
 class HomeShortcutsGrid extends StatelessWidget {
   final List<HomeItem> items;
   final bool desktop;
@@ -51,7 +53,8 @@ class HomeShortcutsGrid extends StatelessWidget {
           final width = constraints.crossAxisExtent;
           final wide = desktop && width >= _wideWidth;
           final columns = wide ? (items.length % 4 == 0 ? 4 : 3) : 2;
-          final cover = desktop ? (width >= _largeWidth ? 64.0 : 48.0) : 56.0;
+          final minCover = desktop ? (width >= _largeWidth ? 64.0 : 48.0) : 56.0;
+          final extent = math.max(minCover, twoLines);
           final tileWidth = (width - _spacing * (columns - 1)) / columns;
 
           return SliverGrid(
@@ -59,12 +62,12 @@ class HomeShortcutsGrid extends StatelessWidget {
               crossAxisCount: columns,
               mainAxisSpacing: _spacing,
               crossAxisSpacing: _spacing,
-              mainAxisExtent: math.max(cover, twoLines),
+              mainAxisExtent: extent,
             ),
             delegate: SliverChildBuilderDelegate(
               (context, index) => _ShortcutTile(
                 item: items[index],
-                cover: cover,
+                cover: extent,
                 titleStyle: titleStyle,
                 // 太窄时不放播放键，把空间留给标题
                 showPlay: desktop && tileWidth >= 200 && HomeItemActions.canPlay(items[index]),
@@ -134,7 +137,7 @@ class _ShortcutTileState extends State<_ShortcutTile> {
       builder: (context, hovered) {
         final content = Row(
           children: [
-            // 封面贴左、上下居中；行高大于封面时（大字号）上下留白
+            // 封面贴左、与行同高，左侧两个角由卡片的圆角裁出
             SizedBox(
               width: cover,
               height: cover,

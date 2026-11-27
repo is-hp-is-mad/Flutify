@@ -153,6 +153,27 @@ class _PlayerSceneViewState extends State<PlayerSceneView> {
     super.dispose();
   }
 
+  Object? _lyricsInputs;
+  Widget? _lyricsView;
+
+  /// 同一首歌、同一组参数时复用同一个歌词组件实例：固定按钮、切视图等让本组件重建时，
+  /// Flutter 见到同一实例就跳过整首歌词的重建。
+  Widget _lyrics() {
+    final inputs = (widget.track, widget.remote, widget.lyricsLineCursor);
+    if (_lyricsView != null && _lyricsInputs == inputs) return _lyricsView!;
+    _lyricsInputs = inputs;
+    return _lyricsView = LyricsKeepAwake(
+      child: LyricsView(
+        appleMusicStyle: true,
+        key: ValueKey((widget.track.id, widget.remote)),
+        track: widget.track,
+        remote: widget.remote,
+        bottomInset: 24,
+        lineCursor: widget.lyricsLineCursor ?? SystemMouseCursors.click,
+      ),
+    );
+  }
+
   Widget _scaled(Widget child, {double gain = 0.14}) =>
       PlayerSceneExpandScale(scale: _expandN, gain: gain, child: child);
 
@@ -383,16 +404,7 @@ class _PlayerSceneViewState extends State<PlayerSceneView> {
             },
           ),
         ),
-        lyrics: LyricsKeepAwake(
-          child: LyricsView(
-            appleMusicStyle: true,
-            key: ValueKey((track.id, remote)),
-            track: track,
-            remote: remote,
-            bottomInset: 24,
-            lineCursor: widget.lyricsLineCursor ?? SystemMouseCursors.click,
-          ),
-        ),
+        lyrics: _lyrics(),
         translation: widget.controlsOnLeft
             ? const SizedBox.shrink()
             : Row(

@@ -1,6 +1,4 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:hyper_glass/hyper_glass.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../l10n/l10n.dart';
@@ -8,7 +6,6 @@ import '../../../../models/appearance.dart';
 import '../../../../providers/appearance_provider.dart';
 import '../widgets/glass_preview.dart';
 import '../widgets/hyper_glass_preview.dart';
-import '../widgets/settings_menu_field.dart';
 import '../widgets/settings_section.dart';
 import '../widgets/settings_segmented.dart';
 import '../widgets/settings_slider_tile.dart';
@@ -56,49 +53,6 @@ class _GlassSectionState extends State<GlassSection> {
             padding: EdgeInsets.all(12),
             child: HyperGlassPreview(),
           ),
-          if (defaultTargetPlatform == TargetPlatform.android) ...[
-            SettingsTile(
-              title: l10n.settingsHyperRenderMode,
-              below: SettingsMenuField<HyperRenderMode>(
-                semanticLabel: l10n.settingsHyperRenderMode,
-                icon: Icons.layers_rounded,
-                value: settings.hyperRenderMode,
-                options: [
-                  SettingsMenuOption(value: HyperRenderMode.xiaomiNative, label: l10n.settingsHyperRenderXiaomiNative),
-                  SettingsMenuOption(value: HyperRenderMode.xiaomiPort, label: l10n.settingsHyperRenderXiaomiPort),
-                  SettingsMenuOption(value: HyperRenderMode.flutterPort, label: l10n.settingsHyperRenderFlutterPort),
-                ],
-                onChanged: (m) => provider.update(settings.copyWith(hyperRenderMode: m)),
-              ),
-            ),
-            ListenableBuilder(
-              listenable: hyperRenderController,
-              builder: (context, _) {
-                final model = hyperRenderController.deviceModel;
-                final osVer = hyperRenderController.hyperOsVersion;
-                final nativeOk = hyperRenderController.xiaomiNativeSupported;
-                final portBackend = hyperRenderController.portBackend;
-                final parts = <String>[
-                  if (model.isNotEmpty) model,
-                  if (osVer > 0) 'HyperOS $osVer',
-                  nativeOk
-                      ? '${l10n.settingsHyperRenderXiaomiNative}: OK'
-                      : '${l10n.settingsHyperRenderXiaomiNative}: N/A',
-                  if (portBackend.isNotEmpty) portBackend,
-                ];
-                if (parts.isEmpty) return const SizedBox.shrink();
-                return Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                  child: Text(
-                    parts.join(' · '),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                  ),
-                );
-              },
-            ),
-          ],
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: Text(

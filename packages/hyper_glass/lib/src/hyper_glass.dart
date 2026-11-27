@@ -11,7 +11,6 @@ import 'package:flutter/widgets.dart';
 import 'blend_material.dart';
 import 'glass_filter.dart';
 import 'hyper_glass_renderer.dart';
-import 'native_rom.dart';
 import 'view_shadow.dart';
 
 /// Caps Skia's GPU resource cache (Skia backend only, e.g. Windows / Linux today; a no-op on Impeller).
@@ -35,6 +34,7 @@ class HyperGlassScene extends StatefulWidget {
     required this.background,
     required this.child,
     this.animate = true,
+    this.paused = false,
     this.captureScale = 1,
   });
 
@@ -43,6 +43,15 @@ class HyperGlassScene extends StatefulWidget {
 
   /// Re-snapshot every frame (animated backgrounds). When false, only on rebuild/resize.
   final bool animate;
+
+  /// Freeze the backdrop (Flutify): while true the scene captures the whole background once and then stops
+  /// re-capturing, even on rebuild, so every glass surface keeps refracting that one capture.
+  ///
+  /// For short transitions that move or resize glass every frame (the player switching to lyrics, a popup
+  /// over the scene): re-capturing and re-deriving every filter's textures each frame is what drops frames on
+  /// Impeller, and the background barely changes in a few hundred milliseconds. The full-size capture covers
+  /// wherever the surfaces move meanwhile. Capturing resumes as soon as it turns false.
+  final bool paused;
 
   /// Backdrop capture resolution relative to physical pixels for glass surfaces (Flutify).
   ///
@@ -93,8 +102,13 @@ class _HyperGlassSceneState extends State<HyperGlassScene> with SingleTickerProv
       _scheduleSnapshot();
     }
     _ticker = createTicker((_) => _scheduleSnapshot());
-    if (widget.animate) _ticker!.start();
+    if (_ticking) _ticker!.start();
   }
+
+  bool get _ticking => widget.animate && !widget.paused;
+
+  /// While [HyperGlassScene.paused]: whether the one full-size capture has landed.
+  bool _frozen = false;
 
   bool _shown = true;
   double _viewDpr = 1;
@@ -118,8 +132,9 @@ class _HyperGlassSceneState extends State<HyperGlassScene> with SingleTickerProv
   @override
   void didUpdateWidget(HyperGlassScene old) {
     super.didUpdateWidget(old);
-    if (widget.animate && !_ticker!.isActive) _ticker!.start();
-    if (!widget.animate && _ticker!.isActive) _ticker!.stop();
+    if (_ticking && !_ticker!.isActive) _ticker!.start();
+    if (!_ticking && _ticker!.isActive) _ticker!.stop();
+    if (!widget.paused) _frozen = false;
     _scheduleSnapshot();
   }
 
@@ -146,11 +161,38 @@ class _HyperGlassSceneState extends State<HyperGlassScene> with SingleTickerProv
   /// Logical px around each surface that refraction (reflectOffsetPx 110 physical) and blur may sample.
   static const _margin = 80.0;
 
+  /// How far (logical px) around its surfaces this scene's backdrop must reach (Flutify).
+  ///
+  /// Skia draws glass with the fused shader straight from the backdrop, and [_margin] covers it. Impeller first
+  /// LM-blurs the area around the surfaces ([refractFor]) and then refracts that blurred texture up to
+  /// reflectOffsetPx away: the blur itself reads about 3 sigma further (500 LM radius -> ~56 logical px), so the
+  /// two together reach ~93 logical px past the edge for the common materials, more than [_margin]. With less,
+  /// the ring next to every edge refracts blur run off the end of the texture (the broken edges seen on Android
+  /// in the player's glass buttons and the settings preview).
+  double get _reach {
+    if (!ui.ImageFilter.isShaderFilterSupported) return _margin;
+    var reach = _margin;
+    for (final s in _surfaces) {
+      final m = s.material;
+      if (m is GlassFilter) reach = math.max(reach, _reachOf(m, _viewDpr));
+    }
+    return reach;
+  }
+
+  static double _reachOf(GlassFilter g, double dpr) {
+    final scaled = g.blurScaled(dpr / 3);
+    final radius = math.max(scaled.refractBlur, scaled.baseBlur); // LM radius in physical px
+    final blur = 3 * radius * 0.25 * 0.45 / dpr; // 3 sigma, logical px (sigma = radius * 0.25 * 0.45)
+    final reflect = g.reflectOffsetPx / 3; // physical at lengthScale dpr / 3
+    return (reflect + blur) * 1.15 + 8;
+  }
+
   bool _pending = false;
   bool _inFlight = false;
   bool _dirty = false;
 
   void _scheduleSnapshot() {
+    if (widget.paused && _frozen) return;
     _dirty = true;
     if (_pending) return;
     _pending = true;
@@ -178,13 +220,18 @@ class _HyperGlassSceneState extends State<HyperGlassScene> with SingleTickerProv
 
   /// Only the area under glass surfaces (plus room for refraction / reflection offsets) is captured and processed.
   Rect? _captureRegion(RenderRepaintBoundary ro) {
+    if (widget.paused) {
+      // frozen capture: the whole background, since surfaces may move anywhere before capturing resumes
+      if (!_surfaces.any((g) => g.attached && g.hasSize)) return null;
+      return Offset.zero & Size(ro.size.width.floorToDouble(), ro.size.height.floorToDouble());
+    }
     Rect? region;
     for (final g in _surfaces) {
       if (!g.attached || !g.hasSize) continue;
       final r = MatrixUtils.transformRect(g.getTransformTo(ro), Offset.zero & g.size);
       region = region == null ? r : region.expandToInclude(r);
     }
-    region = region?.inflate(_margin).intersect(Offset.zero & ro.size);
+    region = region?.inflate(_reach).intersect(Offset.zero & ro.size);
     if (region == null || region.isEmpty) return null;
     // Snap outwards to whole logical px, but never past the boundary: its size is usually fractional
     // (e.g. 1265.33), and rounding up would add a transparent last column / row that glass touching
@@ -250,6 +297,7 @@ class _HyperGlassSceneState extends State<HyperGlassScene> with SingleTickerProv
     }
     _dirty = false;
     _inFlight = true;
+    final full = widget.paused;
     layer
         .toImage(snapped, pixelRatio: dpr * scale)
         .then(
@@ -259,6 +307,7 @@ class _HyperGlassSceneState extends State<HyperGlassScene> with SingleTickerProv
               img.dispose();
               return;
             }
+            if (full && widget.paused) _frozen = true;
             _backdrop?.dispose();
             _backdrop = img;
             _region = snapped;
@@ -267,7 +316,7 @@ class _HyperGlassSceneState extends State<HyperGlassScene> with SingleTickerProv
             _clearRefract();
             _frame.value++; // surfaces repaint with the new backdrop
             _releaseFirstFrame();
-            if (widget.animate || _dirty) _scheduleSnapshot();
+            if (_ticking || _dirty) _scheduleSnapshot();
           },
           onError: (Object _) {
             _inFlight = false;
@@ -314,16 +363,28 @@ class _HyperGlassSceneState extends State<HyperGlassScene> with SingleTickerProv
       if (!identical(s.material, g) || !s.attached || !s.hasSize) continue;
       area = area.expandToInclude(((s.localToGlobal(Offset.zero, ancestor: boundary) - _region.topLeft) * _dpr) & (s.size * _dpr));
     }
-    final image = Offset.zero & Size(b.width.toDouble(), b.height.toDouble());
-    final near = area.inflate(_margin * _dpr).intersect(image);
+    // Not clipped to the backdrop: where the surfaces sit near its edge (the screen edge, the end of a preview's
+    // bleed) the missing part is filled by mirroring the backdrop, so the blur and the refraction always read a
+    // continuous picture instead of whatever the sampler returns past the end of the texture.
+    final near = area.inflate(_reach * _dpr);
     final crop = Rect.fromLTRB(
       near.left.floorToDouble(),
       near.top.floorToDouble(),
       near.right.ceilToDouble(),
       near.bottom.ceilToDouble(),
-    ).intersect(image);
+    );
     final rec = ui.PictureRecorder();
-    Canvas(rec).drawImageRect(b, crop, Offset.zero & crop.size, Paint()..blendMode = BlendMode.src);
+    Canvas(rec).drawRect(
+      Offset.zero & crop.size,
+      Paint()
+        ..blendMode = BlendMode.src
+        ..shader = ui.ImageShader(
+          b,
+          ui.TileMode.mirror,
+          ui.TileMode.mirror,
+          Matrix4.translationValues(-crop.left, -crop.top, 0).storage,
+        ),
+    );
     final pic = rec.endRecording();
     final cut = pic.toImageSync(crop.width.toInt(), crop.height.toInt());
     pic.dispose();
@@ -426,39 +487,25 @@ class HyperGlass extends StatelessWidget {
     final scene = _SceneScope.of(context);
     // passthrough: the child gets this widget's own constraints (a fixed-size button stays centred,
     // a filling bar keeps filling, a shrink-wrapped menu stays shrink-wrapped).
-    return ListenableBuilder(
-      listenable: hyperRenderController,
-      builder: (context, _) {
-        final useAndroidNative = defaultTargetPlatform == TargetPlatform.android &&
-            hyperRenderController.mode != HyperRenderMode.flutterPort;
-        return Stack(
-          fit: StackFit.passthrough,
-          children: [
-            Positioned.fill(
-              child: useAndroidNative
-                  ? HyperNativeRomSurface(
-                      renderBackend: hyperRenderController.mode.id,
-                      glass: filter,
-                      borderRadius: borderRadius,
-                      bloom: bloom,
-                    )
-                  : _GlassSurface(
-                      scene: scene,
-                      material: filter,
-                      radius: borderRadius,
-                      opacity: opacity,
-                      fx: fx,
-                      bloom: bloom,
-                      press: press,
-                      pressAt: pressAt,
-                      pressOpacity: pressOpacity,
-                      mask: mask,
-                    ),
-            ),
-            if (child != null) child!,
-          ],
-        );
-      },
+    return Stack(
+      fit: StackFit.passthrough,
+      children: [
+        Positioned.fill(
+          child: _GlassSurface(
+            scene: scene,
+            material: filter,
+            radius: borderRadius,
+            opacity: opacity,
+            fx: fx,
+            bloom: bloom,
+            press: press,
+            pressAt: pressAt,
+            pressOpacity: pressOpacity,
+            mask: mask,
+          ),
+        ),
+        if (child != null) child!,
+      ],
     );
   }
 }
@@ -494,38 +541,22 @@ class HyperBlendBlur extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scene = _SceneScope.of(context);
-    return ListenableBuilder(
-      listenable: hyperRenderController,
-      builder: (context, _) {
-        final useAndroidNative = defaultTargetPlatform == TargetPlatform.android &&
-            hyperRenderController.mode != HyperRenderMode.flutterPort;
-        return Stack(
-          fit: StackFit.passthrough, // see HyperGlass.build
-          children: [
-            Positioned.fill(
-              child: useAndroidNative
-                  ? HyperNativeRomSurface(
-                      renderBackend: hyperRenderController.mode.id,
-                      blend: material,
-                      gradientBlur: gradientBlur,
-                      overlayMask: overlayMask,
-                      borderRadius: borderRadius,
-                      bloom: bloom,
-                    )
-                  : _GlassSurface(
-                      scene: scene,
-                      material: material,
-                      radius: borderRadius,
-                      opacity: opacity,
-                      bloom: bloom,
-                      gradientBlur: gradientBlur,
-                      overlayMask: overlayMask,
-                    ),
-            ),
-            if (child != null) child!,
-          ],
-        );
-      },
+    return Stack(
+      fit: StackFit.passthrough, // see HyperGlass.build
+      children: [
+        Positioned.fill(
+          child: _GlassSurface(
+            scene: scene,
+            material: material,
+            radius: borderRadius,
+            opacity: opacity,
+            bloom: bloom,
+            gradientBlur: gradientBlur,
+            overlayMask: overlayMask,
+          ),
+        ),
+        if (child != null) child!,
+      ],
     );
   }
 }

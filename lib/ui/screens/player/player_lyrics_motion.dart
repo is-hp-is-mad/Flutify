@@ -78,6 +78,14 @@ class PlayerLyricsController extends ChangeNotifier {
   bool _disposed = false;
 
   bool get controlsVisible => !_idle;
+
+  /// Whether a view switch, the frame / translation reveal or the idle fold is running.
+  bool get isAnimating =>
+      transition.isAnimating ||
+      queueTransition.isAnimating ||
+      frame.isAnimating ||
+      translationReveal.isAnimating ||
+      chrome.isAnimating;
   double get lyricsProgress =>
       (transition.value - queueTransition.value).clamp(0.0, 1.0);
 
