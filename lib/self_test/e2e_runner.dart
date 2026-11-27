@@ -679,12 +679,21 @@ class E2ERunner {
     );
     if (sortTrigger != null) {
       await _tapElement(sortTrigger);
-      await _pumpFrames(8);
-      final alphaOption = _findVisibleText(
+      // 菜单有弹出动画：等选项真正出现，而不是只等固定帧数（CI 的 macOS 机器慢时 8 帧不够）
+      Element? findAlpha() => _findVisibleText(
         l10n.librarySortAlphabetical,
         reverse: true,
         exact: true,
       );
+      try {
+        await _waitUntil(
+          () => findAlpha() != null,
+          timeout: const Duration(seconds: 5),
+        );
+      } on TimeoutException {
+        // 下面统一报错
+      }
+      final alphaOption = findAlpha();
       if (alphaOption == null) {
         throw StateError('Sort menu option "${l10n.librarySortAlphabetical}" not visible');
       }
