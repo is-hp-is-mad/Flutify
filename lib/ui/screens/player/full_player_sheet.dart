@@ -478,20 +478,7 @@ class _FullPlayerSheetState extends State<FullPlayerSheet> {
     );
     // 全屏时的下拉收回由外壳（PlayerExpansionTransition）接管：
     // 它在路由的 IgnorePointer 之外，收回途中也能重新抓住。
-    return _closeOnEscape(context, _deferPop(context, content));
-  }
-
-  /// 关闭按钮 / 系统返回 / Esc 都经 maybePop 到这里：交给路由做可中断的收回。
-  Widget _deferPop(BuildContext context, Widget child) {
-    final route = ModalRoute.of(context);
-    if (route is! _PlayerPageRoute) return child;
-    return PopScope<void>(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) route.dismiss();
-      },
-      child: child,
-    );
+    return _closeOnEscape(context, _DeferPop(child: content));
   }
 
   /// Esc 关闭播放器（桌面键盘）。放在最外层：焦点在内部任意按钮上时按键同样冒泡到这里，
@@ -504,6 +491,30 @@ class _FullPlayerSheetState extends State<FullPlayerSheet> {
         },
         child: Focus(autofocus: true, skipTraversal: true, child: child),
       );
+}
+
+/// 关闭按钮 / 系统返回 / Esc 都经 maybePop 到这里：交给路由做可中断的收回。
+///
+/// 单独成一个组件：`ModalRoute.of` 会在上面弹出 / 关掉菜单等路由时通知依赖方，放在
+/// [_FullPlayerSheetState] 里会让整个播放场景（含整首歌词）跟着重建一次；这里 [child] 是同一个实例，
+/// 只有这一层重建。
+class _DeferPop extends StatelessWidget {
+  const _DeferPop({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final route = ModalRoute.of(context);
+    if (route is! _PlayerPageRoute) return child;
+    return PopScope<void>(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) route.dismiss();
+      },
+      child: child,
+    );
+  }
 }
 
 /// 没有当前曲目时的占位（例如队列被清空后面板仍打开）。

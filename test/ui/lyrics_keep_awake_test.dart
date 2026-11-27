@@ -96,6 +96,43 @@ void main() {
     variant: TargetPlatformVariant.only(TargetPlatform.android),
   );
 
+  testWidgets(
+    'releases while the lyrics view is kept offstage with tickers off',
+    (tester) async {
+      prefs.update(prefs.prefs.copyWith(lyricsKeepScreenOn: true));
+      final shown = ValueNotifier(true);
+      await tester.pumpWidget(
+        app(
+          ValueListenableBuilder<bool>(
+            valueListenable: shown,
+            // 与 Android 播放页一致：收起后歌词视图不卸载，只关掉 TickerMode
+            builder: (_, visible, _) => Offstage(
+              offstage: !visible,
+              child: TickerMode(
+                enabled: visible,
+                child: const LyricsKeepAwake(child: Text('lyrics')),
+              ),
+            ),
+          ),
+        ),
+      );
+      expect(ScreenAwake.isHeld, isTrue);
+
+      shown.value = false;
+      await tester.pump();
+      expect(ScreenAwake.isHeld, isFalse, reason: '收起歌词即恢复自动熄屏');
+
+      shown.value = true;
+      await tester.pump();
+      expect(ScreenAwake.isHeld, isTrue);
+      expect(calls, [true, false, true]);
+
+      shown.value = false;
+      await tester.pump();
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.android),
+  );
+
   testWidgets('turning it on asks first and warns about OLED burn-in', (
     tester,
   ) async {

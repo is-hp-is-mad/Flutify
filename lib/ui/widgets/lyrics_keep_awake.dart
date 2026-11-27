@@ -6,7 +6,8 @@ import '../../services/screen_awake/screen_awake.dart';
 
 /// 歌词界面显示期间保持屏幕常亮（设置页「自定义功能」开启时）。
 ///
-/// 包在歌词视图外面：歌词视图只在歌词界面打开时挂载，卸载或关闭开关即恢复自动熄屏。
+/// 包在歌词视图外面：歌词视图卸载、或像 Android 播放页那样收起后常驻在 Offstage 里
+/// （外面的 TickerMode 关掉），以及关闭开关时，都恢复自动熄屏。
 class LyricsKeepAwake extends StatefulWidget {
   final Widget child;
 
@@ -22,7 +23,7 @@ class _LyricsKeepAwakeState extends State<LyricsKeepAwake> {
     final enabled = context.select<PreferencesProvider?, bool>(
       (p) => p?.prefs.lyricsKeepScreenOn ?? false,
     );
-    if (enabled) {
+    if (enabled && TickerMode.valuesOf(context).enabled) {
       ScreenAwake.acquire(this);
     } else {
       ScreenAwake.release(this);

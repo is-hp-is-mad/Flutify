@@ -25,6 +25,8 @@
 3. 场景不拥有渲染器：用 `HyperGlassRenderer.shared()`，`dispose` 时不释放（SDF 缓存全进程共用，进出场景不重建）。shader 加载失败只打日志。
 4. `HyperGlass` / `HyperBlendBlur` 的 Stack 用 `StackFit.passthrough`（上游是 `expand`）：`LiquidGlass` 包的是自适应内容，`expand` 会把它们撑满。
 5. `_captureInPaint`：上游在 `scale < 1` 时跳过同步截取；有了 `captureScale` 后改成「只有全是混色表面才跳过」，玻璃表面在第一帧就画完整。首帧保活的 3 秒定时器可取消（否则 widget 测试报定时器未触发）。
+5.1 `HyperGlassScene.paused`：为 true 时整屏截一次背景后停止重新截取（重建也不截），所有玻璃沿用这一张；恢复为 false 后照常截取。Android 播放页在切换歌词 / 队列、卡片收放和上面盖着弹出层时打开它：Impeller 下 `captureScale` 不生效，每帧全分辨率截图并重算每种玻璃的折射纹理是掉帧的主要来源。
+5.2 上游如带有 `native_rom.dart`（小米原生 / 小米移植两种 Android PlatformView 渲染）不再移植：2026-11-27 起 Android 与其他平台一样只用 Flutter 管线。
 
 ### `lib/src/view_shadow.dart`
 

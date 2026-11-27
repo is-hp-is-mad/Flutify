@@ -34,6 +34,7 @@ class HyperGlassScene extends StatefulWidget {
     required this.background,
     required this.child,
     this.animate = true,
+    this.paused = false,
     this.captureScale = 1,
   });
 
@@ -42,6 +43,15 @@ class HyperGlassScene extends StatefulWidget {
 
   /// Re-snapshot every frame (animated backgrounds). When false, only on rebuild/resize.
   final bool animate;
+
+  /// Freeze the backdrop (Flutify): while true the scene captures the whole background once and then stops
+  /// re-capturing, even on rebuild, so every glass surface keeps refracting that one capture.
+  ///
+  /// For short transitions that move or resize glass every frame (the player switching to lyrics, a popup
+  /// over the scene): re-capturing and re-deriving every filter's textures each frame is what drops frames on
+  /// Impeller, and the background barely changes in a few hundred milliseconds. The full-size capture covers
+  /// wherever the surfaces move meanwhile. Capturing resumes as soon as it turns false.
+  final bool paused;
 
   /// Backdrop capture resolution relative to physical pixels for glass surfaces (Flutify).
   ///
@@ -92,8 +102,13 @@ class _HyperGlassSceneState extends State<HyperGlassScene> with SingleTickerProv
       _scheduleSnapshot();
     }
     _ticker = createTicker((_) => _scheduleSnapshot());
-    if (widget.animate) _ticker!.start();
+    if (_ticking) _ticker!.start();
   }
+
+  bool get _ticking => widget.animate && !widget.paused;
+
+  /// While [HyperGlassScene.paused]: whether the one full-size capture has landed.
+  bool _frozen = false;
 
   bool _shown = true;
   double _viewDpr = 1;
@@ -117,8 +132,9 @@ class _HyperGlassSceneState extends State<HyperGlassScene> with SingleTickerProv
   @override
   void didUpdateWidget(HyperGlassScene old) {
     super.didUpdateWidget(old);
-    if (widget.animate && !_ticker!.isActive) _ticker!.start();
-    if (!widget.animate && _ticker!.isActive) _ticker!.stop();
+    if (_ticking && !_ticker!.isActive) _ticker!.start();
+    if (!_ticking && _ticker!.isActive) _ticker!.stop();
+    if (!widget.paused) _frozen = false;
     _scheduleSnapshot();
   }
 
@@ -150,6 +166,7 @@ class _HyperGlassSceneState extends State<HyperGlassScene> with SingleTickerProv
   bool _dirty = false;
 
   void _scheduleSnapshot() {
+    if (widget.paused && _frozen) return;
     _dirty = true;
     if (_pending) return;
     _pending = true;
@@ -177,6 +194,11 @@ class _HyperGlassSceneState extends State<HyperGlassScene> with SingleTickerProv
 
   /// Only the area under glass surfaces (plus room for refraction / reflection offsets) is captured and processed.
   Rect? _captureRegion(RenderRepaintBoundary ro) {
+    if (widget.paused) {
+      // frozen capture: the whole background, since surfaces may move anywhere before capturing resumes
+      if (!_surfaces.any((g) => g.attached && g.hasSize)) return null;
+      return Offset.zero & Size(ro.size.width.floorToDouble(), ro.size.height.floorToDouble());
+    }
     Rect? region;
     for (final g in _surfaces) {
       if (!g.attached || !g.hasSize) continue;
@@ -249,6 +271,7 @@ class _HyperGlassSceneState extends State<HyperGlassScene> with SingleTickerProv
     }
     _dirty = false;
     _inFlight = true;
+    final full = widget.paused;
     layer
         .toImage(snapped, pixelRatio: dpr * scale)
         .then(
@@ -258,6 +281,7 @@ class _HyperGlassSceneState extends State<HyperGlassScene> with SingleTickerProv
               img.dispose();
               return;
             }
+            if (full && widget.paused) _frozen = true;
             _backdrop?.dispose();
             _backdrop = img;
             _region = snapped;
@@ -266,7 +290,7 @@ class _HyperGlassSceneState extends State<HyperGlassScene> with SingleTickerProv
             _clearRefract();
             _frame.value++; // surfaces repaint with the new backdrop
             _releaseFirstFrame();
-            if (widget.animate || _dirty) _scheduleSnapshot();
+            if (_ticking || _dirty) _scheduleSnapshot();
           },
           onError: (Object _) {
             _inFlight = false;

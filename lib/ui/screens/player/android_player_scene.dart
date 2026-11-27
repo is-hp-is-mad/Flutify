@@ -120,6 +120,9 @@ class _AndroidPlayerSceneState extends State<AndroidPlayerScene>
   bool _tickerEnabled = true;
   bool _appActive = true;
   bool _queueMounted = false;
+  bool _lyricsMounted = false;
+
+  static bool get _android => defaultTargetPlatform == TargetPlatform.android;
   bool? _reportedVisible;
   Offset? _lastHover;
   final GlobalKey _miniKey = GlobalKey();
@@ -135,6 +138,7 @@ class _AndroidPlayerSceneState extends State<AndroidPlayerScene>
     _expand = AnimationController(vsync: this);
     _expand.addListener(_publishExpand);
     _queueMounted = widget.queueMode;
+    _lyricsMounted = widget.lyricsMode;
     _appActive =
         WidgetsBinding.instance.lifecycleState == null ||
         WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
@@ -203,6 +207,7 @@ class _AndroidPlayerSceneState extends State<AndroidPlayerScene>
   void didUpdateWidget(AndroidPlayerScene oldWidget) {
     super.didUpdateWidget(oldWidget);
     _queueMounted = _queueMounted || widget.queueMode;
+    _lyricsMounted = _lyricsMounted || widget.lyricsMode;
     _motion.setView(lyrics: widget.lyricsMode, queue: widget.queueMode);
     _motion.setInteractionSuspended(widget.interactionSuspended);
     _motion.setPinned(widget.pinned);
@@ -273,6 +278,28 @@ class _AndroidPlayerSceneState extends State<AndroidPlayerScene>
         child: IgnorePointer(
           ignoring: blocked,
           child: Opacity(opacity: fade, child: child),
+        ),
+      ),
+    );
+  }
+
+  /// Android：控制卡片渐显 / 渐隐途中只画材质自带的纯色退化（按 [progress] 调透明度），
+  /// 不在 Opacity 离屏层里叠背景模糊、三层混色、阴影和 bloom（Impeller 下每帧都要重做）；
+  /// 到位后（progress == 1）才换成完整的柔光表面。
+  Widget _cardFading(BuildContext context, double progress) {
+    final t = progress.clamp(0.0, 1.0);
+    final fallback = HyperBlendSurface.bar(context).fallback;
+    const tint = Color(0x33101216);
+    return _cardHitRegion(
+      ClipRRect(
+        key: const ValueKey('lyrics-control-card'),
+        borderRadius: context.tokens.radius(28),
+        child: ColoredBox(
+          color: fallback.withValues(alpha: fallback.a * t),
+          child: ColoredBox(
+            color: tint.withValues(alpha: tint.a * t),
+            child: const SizedBox.expand(),
+          ),
         ),
       ),
     );
@@ -386,18 +413,29 @@ class _AndroidPlayerSceneState extends State<AndroidPlayerScene>
                             footerHeightReduction: widget.footerHeightReduction,
                           ),
                           children: [
-                            if (hasLyrics)
+                            // Android：歌词第一次打开后常驻（像队列一样 Offstage + TickerMode），
+                            // 再次点「歌词」时不必在过渡第一帧从零构建、排版整首歌词
+                            if (hasLyrics || (_android && _lyricsMounted))
                               slot(
                                 PlayerSceneSlot.lyrics,
-                                ExcludeFocus(
-                                  excluding: !lyricsInteractive,
-                                  child: ExcludeSemantics(
-                                    excluding: !lyricsInteractive,
-                                    child: IgnorePointer(
-                                      ignoring: !lyricsInteractive,
-                                      child: Opacity(
-                                        opacity: lyricsProgress,
-                                        child: widget.lyrics,
+                                Offstage(
+                                  offstage: !hasLyrics,
+                                  child: TickerMode(
+                                    enabled: hasLyrics,
+                                    child: ExcludeFocus(
+                                      excluding: !lyricsInteractive,
+                                      child: ExcludeSemantics(
+                                        excluding: !lyricsInteractive,
+                                        child: IgnorePointer(
+                                          ignoring: !lyricsInteractive,
+                                          child: Opacity(
+                                            key: const ValueKey(
+                                              'player-lyrics-opacity',
+                                            ),
+                                            opacity: lyricsProgress,
+                                            child: widget.lyrics,
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -438,23 +476,25 @@ class _AndroidPlayerSceneState extends State<AndroidPlayerScene>
                                 context.tokens.hyperMaterial
                                     ? IgnorePointer(
                                         ignoring: progress == 0,
-                                        child: Opacity(
-                                          opacity: progress,
-                                          child: _cardHitRegion(
-                                            HyperBlendSurface(
-                                              key: const ValueKey(
-                                                'lyrics-control-card',
-                                              ),
-                                              material: HyperBlendSurface.bar(context),
-                                              borderRadius: context.tokens.radius(28),
-                                              bloom: HyperBlendSurface.barBloom(context),
-                                              shadow: true,
-                                              child: const ColoredBox(
-                                                color: Color(0x33101216),
+                                        child: _android && progress < 1
+                                            ? _cardFading(context, progress)
+                                            : Opacity(
+                                              opacity: progress,
+                                              child: _cardHitRegion(
+                                                HyperBlendSurface(
+                                                  key: const ValueKey(
+                                                    'lyrics-control-card',
+                                                  ),
+                                                  material: HyperBlendSurface.bar(context),
+                                                  borderRadius: context.tokens.radius(28),
+                                                  bloom: HyperBlendSurface.barBloom(context),
+                                                  shadow: true,
+                                                  child: const ColoredBox(
+                                                    color: Color(0x33101216),
+                                                  ),
+                                                ),
                                               ),
                                             ),
-                                          ),
-                                        ),
                                       )
                                     : _FrameReveal(
                                         t: _motion.frame.value,
@@ -651,6 +691,9 @@ class _AndroidPlayerSceneState extends State<AndroidPlayerScene>
       return HyperGlassScene(
         background: background,
         captureScale: 0.25,
+        // Android（Impeller）：切换歌词 / 队列、卡片收放、上面盖着菜单等弹出层时，
+        // 不再每帧重新截背景、重算每种玻璃的折射纹理，玻璃沿用过渡开始时的一次整屏截图
+        paused: _android && (_motion.isAnimating || !(ModalRoute.isCurrentOf(context) ?? true)),
         child: foreground,
       );
     }
