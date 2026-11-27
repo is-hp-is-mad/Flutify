@@ -20,9 +20,10 @@ class HyperGlassPreview extends StatefulWidget {
   /// 背景在可见区域外每边多画的宽度（logical px）。
   ///
   /// 玻璃的折射 / 反射会读卡片外约 37 logical px（reflectOffsetPx 110 物理像素 × dpr/3）的背景，
-  /// 而场景只截取自己范围内的背景。卡片离可见边只有 14，没有这圈余量时四边会读到截图外，
+  /// Android（Impeller）上还要先对卡片周围做 LM 模糊（半径 500，约再读出 56），合计约 100，
+  /// 而场景只截取自己范围内的背景。卡片离可见边只有 14，余量不够时四边会读到截图外，
   /// 被拉伸成一圈错位的折射。余量由外层 ClipRRect 裁掉，布局不变。
-  static const double bleed = 48;
+  static const double bleed = 96;
 
   @override
   State<HyperGlassPreview> createState() => _HyperGlassPreviewState();

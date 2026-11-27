@@ -161,6 +161,32 @@ class _HyperGlassSceneState extends State<HyperGlassScene> with SingleTickerProv
   /// Logical px around each surface that refraction (reflectOffsetPx 110 physical) and blur may sample.
   static const _margin = 80.0;
 
+  /// How far (logical px) around its surfaces this scene's backdrop must reach (Flutify).
+  ///
+  /// Skia draws glass with the fused shader straight from the backdrop, and [_margin] covers it. Impeller first
+  /// LM-blurs the area around the surfaces ([refractFor]) and then refracts that blurred texture up to
+  /// reflectOffsetPx away: the blur itself reads about 3 sigma further (500 LM radius -> ~56 logical px), so the
+  /// two together reach ~93 logical px past the edge for the common materials, more than [_margin]. With less,
+  /// the ring next to every edge refracts blur run off the end of the texture (the broken edges seen on Android
+  /// in the player's glass buttons and the settings preview).
+  double get _reach {
+    if (!ui.ImageFilter.isShaderFilterSupported) return _margin;
+    var reach = _margin;
+    for (final s in _surfaces) {
+      final m = s.material;
+      if (m is GlassFilter) reach = math.max(reach, _reachOf(m, _viewDpr));
+    }
+    return reach;
+  }
+
+  static double _reachOf(GlassFilter g, double dpr) {
+    final scaled = g.blurScaled(dpr / 3);
+    final radius = math.max(scaled.refractBlur, scaled.baseBlur); // LM radius in physical px
+    final blur = 3 * radius * 0.25 * 0.45 / dpr; // 3 sigma, logical px (sigma = radius * 0.25 * 0.45)
+    final reflect = g.reflectOffsetPx / 3; // physical at lengthScale dpr / 3
+    return (reflect + blur) * 1.15 + 8;
+  }
+
   bool _pending = false;
   bool _inFlight = false;
   bool _dirty = false;
@@ -205,7 +231,7 @@ class _HyperGlassSceneState extends State<HyperGlassScene> with SingleTickerProv
       final r = MatrixUtils.transformRect(g.getTransformTo(ro), Offset.zero & g.size);
       region = region == null ? r : region.expandToInclude(r);
     }
-    region = region?.inflate(_margin).intersect(Offset.zero & ro.size);
+    region = region?.inflate(_reach).intersect(Offset.zero & ro.size);
     if (region == null || region.isEmpty) return null;
     // Snap outwards to whole logical px, but never past the boundary: its size is usually fractional
     // (e.g. 1265.33), and rounding up would add a transparent last column / row that glass touching
@@ -337,16 +363,28 @@ class _HyperGlassSceneState extends State<HyperGlassScene> with SingleTickerProv
       if (!identical(s.material, g) || !s.attached || !s.hasSize) continue;
       area = area.expandToInclude(((s.localToGlobal(Offset.zero, ancestor: boundary) - _region.topLeft) * _dpr) & (s.size * _dpr));
     }
-    final image = Offset.zero & Size(b.width.toDouble(), b.height.toDouble());
-    final near = area.inflate(_margin * _dpr).intersect(image);
+    // Not clipped to the backdrop: where the surfaces sit near its edge (the screen edge, the end of a preview's
+    // bleed) the missing part is filled by mirroring the backdrop, so the blur and the refraction always read a
+    // continuous picture instead of whatever the sampler returns past the end of the texture.
+    final near = area.inflate(_reach * _dpr);
     final crop = Rect.fromLTRB(
       near.left.floorToDouble(),
       near.top.floorToDouble(),
       near.right.ceilToDouble(),
       near.bottom.ceilToDouble(),
-    ).intersect(image);
+    );
     final rec = ui.PictureRecorder();
-    Canvas(rec).drawImageRect(b, crop, Offset.zero & crop.size, Paint()..blendMode = BlendMode.src);
+    Canvas(rec).drawRect(
+      Offset.zero & crop.size,
+      Paint()
+        ..blendMode = BlendMode.src
+        ..shader = ui.ImageShader(
+          b,
+          ui.TileMode.mirror,
+          ui.TileMode.mirror,
+          Matrix4.translationValues(-crop.left, -crop.top, 0).storage,
+        ),
+    );
     final pic = rec.endRecording();
     final cut = pic.toImageSync(crop.width.toInt(), crop.height.toInt());
     pic.dispose();
