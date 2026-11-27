@@ -166,6 +166,28 @@ pub fn clear_session() {
     };
 }
 
+fn accept_language_slot() -> &'static RwLock<String> {
+    static SLOT: OnceLock<RwLock<String>> = OnceLock::new();
+    SLOT.get_or_init(|| RwLock::new(String::new()))
+}
+
+/// 设置鉴权请求默认的 Accept-Language（Dart 按界面语言推送，如 `zh-CN` / `zh-TW` / `en` / `ja`）。
+///
+/// 服务端据此本地化主页分区标题、电台名与副标题等文案；空串表示不带该头。
+/// 与会话凭证分开存放：登出 / 切换账号不影响界面语言。
+pub fn set_accept_language(language: String) {
+    *accept_language_slot()
+        .write()
+        .unwrap_or_else(|e| e.into_inner()) = language.trim().to_string();
+}
+
+fn accept_language() -> String {
+    accept_language_slot()
+        .read()
+        .unwrap_or_else(|e| e.into_inner())
+        .clone()
+}
+
 pub fn snapshot() -> SessionState {
     runtime_state()
         .state
@@ -503,12 +525,14 @@ async fn ensure_override_client_token(
 }
 
 /// 鉴权请求的请求头：默认以 Web 播放器身份发出，[extra] 中的同名头（不分大小写）**覆盖**默认值。
+/// [accept_language] 非空时作为默认的 Accept-Language（见 [set_accept_language]）。
 ///
 /// 不能用 `RequestBuilder::header` 逐个追加：同名头会变成两份（如 `app-platform: WebPlayer` 与
 /// `app-platform: Android` 并存），服务端按 WebPlayer 处理，Android 身份的 Watch Feed 接口因此返回空内容。
 fn request_headers(
     access_token: &str,
     client_token: Option<&str>,
+    accept_language: &str,
     extra: &[(&str, &str)],
 ) -> Result<reqwest::header::HeaderMap, String> {
     use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
@@ -525,6 +549,9 @@ fn request_headers(
     set("spotify-app-version", WEB_CLIENT_VERSION)?;
     if let Some(ct) = client_token.filter(|v| !v.is_empty()) {
         set("client-token", ct)?;
+    }
+    if !accept_language.is_empty() {
+        set("accept-language", accept_language)?;
     }
     for (k, v) in extra {
         set(k, v)?;
@@ -548,7 +575,12 @@ pub async fn authorized_request(
         let proxy = effective_proxy();
         let client = http_client::client_for(&proxy)?;
 
-        let headers = request_headers(&access.token, client_tok.as_deref(), extra_headers)?;
+        let headers = request_headers(
+            &access.token,
+            client_tok.as_deref(),
+            &accept_language(),
+            extra_headers,
+        )?;
         let mut req = client.request(method.clone(), url).headers(headers);
         if let Some(ref bytes) = body {
             req = req.body(bytes.clone());
@@ -684,6 +716,7 @@ mod tests {
         let h = request_headers(
             "tok",
             Some("ct"),
+            "zh-CN",
             &[("App-Platform", "Android"), ("user-agent", "Spotify/9 Android"), ("accept", "application/protobuf")],
         )
         .unwrap();
@@ -694,8 +727,14 @@ mod tests {
         assert_eq!(all("authorization"), ["Bearer tok"]);
         assert_eq!(all("client-token"), ["ct"]);
         assert_eq!(all("accept"), ["application/protobuf"]);
-        let no_ct = request_headers("tok", Some(""), &[]).unwrap();
+        assert_eq!(all("accept-language"), ["zh-CN"]);
+        let no_ct = request_headers("tok", Some(""), "", &[]).unwrap();
         assert!(no_ct.get("client-token").is_none());
+        assert!(no_ct.get("accept-language").is_none());
+        // 调用方显式给出的 Accept-Language 优先，且只有一份
+        let own = request_headers("tok", None, "zh-CN", &[("Accept-Language", "en")]).unwrap();
+        assert_eq!(own.get_all("accept-language").iter().count(), 1);
+        assert_eq!(own.get("accept-language").unwrap(), "en");
     }
 
     #[test]

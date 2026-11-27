@@ -14,6 +14,10 @@ void rustSessionConfigure({required RustSessionConfig config}) =>
 void rustSessionClear() =>
     RustLib.instance.api.crateApiBackendRustSessionClear();
 
+/// 界面语言对应的 Accept-Language（`zh-CN` / `zh-TW` / `en` / `ja`），Rust 发出的鉴权请求默认带上。
+void rustSetAcceptLanguage({required String language}) => RustLib.instance.api
+    .crateApiBackendRustSetAcceptLanguage(language: language);
+
 Future<RustTokenResult> rustMintWebToken({
   required String spDc,
   required String proxy,

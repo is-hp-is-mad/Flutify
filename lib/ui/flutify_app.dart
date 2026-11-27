@@ -57,6 +57,7 @@ import '../services/playback/playback_region_gate.dart';
 import '../services/playback_session_store.dart';
 import '../services/protocol/audio_cache_store.dart';
 import '../services/protocol/track_audio_loader.dart';
+import '../services/rust_backend_bridge.dart';
 import '../services/spotify_api_service.dart';
 import '../services/storage_service.dart';
 import '../services/taskbar_lyrics/taskbar_lyrics_controls.dart';
@@ -655,7 +656,9 @@ class _ThemedApp extends StatelessWidget {
         theme: appearance.theme(Brightness.light),
         themeAnimationDuration: Duration.zero,
         builder: (context, child) {
-          AppLocale.resolved(Localizations.localeOf(context));
+          if (AppLocale.resolved(Localizations.localeOf(context))) {
+            RustBackendBridge.syncLanguage();
+          }
           final media = MediaQuery.of(context);
           return M3ETheme(
             data: m3eThemeFrom(Theme.of(context)),

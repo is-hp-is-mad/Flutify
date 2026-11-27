@@ -1,4 +1,5 @@
 import '../core/rust_core.dart';
+import '../l10n/app_locale.dart';
 import '../models/album.dart';
 import '../models/artist.dart';
 import '../models/image.dart';
@@ -36,6 +37,7 @@ class RustBackendBridge {
 
   static void syncSession(AuthSessionStore auth, {String? deviceId}) {
     if (!RustCore.ready) return;
+    syncLanguage();
     rust.rustSessionConfigure(
       config: rust.RustSessionConfig(
         spDc: auth.spDc,
@@ -53,6 +55,13 @@ class RustBackendBridge {
   static void clearSession() {
     if (!RustCore.ready) return;
     rust.rustSessionClear();
+  }
+
+  /// 把界面语言（[AppLocale.spotifyLanguage]）同步给 Rust：Rust 发出的 Pathfinder / spclient
+  /// 请求据此带 Accept-Language，主页分区标题、电台名等服务端文案才会跟随界面语言。
+  static void syncLanguage() {
+    if (!RustCore.ready) return;
+    rust.rustSetAcceptLanguage(language: AppLocale.spotifyLanguage);
   }
 
   static SpotifyImage imageFromDto(rust.RustImageDto dto) =>
