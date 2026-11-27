@@ -210,6 +210,18 @@ class InstaBoxAndroidE2ETest(unittest.TestCase):
         self.assertIn("adb disconnect 127.0.0.1:5555", boot_cmd)
         self.assertIn("[[:space:]]device$", boot_cmd)
         self.assertNotIn("\\tdevice$", boot_cmd)
+        # 两条记录都离线时重启 adb 服务，而不是 wait-for-device 卡住或报 more than one device
+        self.assertIn("adb kill-server", boot_cmd)
+        self.assertIn("adb_heal", boot_cmd)
+        self.assertNotIn("wait-for-device", boot_cmd)
+
+    def test_push_and_install_heals_adb_and_retries(self) -> None:
+        runner = FakeRunner()
+        ib.push_and_install_apk(runner, "my-android", Path("/tmp/x.apk"), "x.apk")
+        install = [c for c in runner.calls if c[:2] == ["instabox", "exec"]][-1][-1]
+        self.assertIn("adb_heal || true", install)
+        self.assertIn("adb install -r /data/home/flutify_stage/x.apk", install)
+        self.assertIn("for attempt in 1 2 3", install)
 
     def test_apply_inapp_downloaded_apk_if_needed_installs_from_cache(self) -> None:
         def handle(cmd):
@@ -264,7 +276,9 @@ class InstaBoxAndroidE2ETest(unittest.TestCase):
             script = exec_calls[0][-1]
             self.assertIn("service check activity", script)
             self.assertIn("Retrying am start", script)
-            self.assertIn("adb wait-for-device", script)
+            # 设备掉线时用有上限的 adb_heal 恢复，不再用离线时永不返回的 wait-for-device
+            self.assertIn("adb_heal || true", script)
+            self.assertNotIn("wait-for-device", script)
 
 
 if __name__ == "__main__":

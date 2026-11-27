@@ -38,6 +38,59 @@ BOX_STAGE_DIR = "/data/home/flutify_stage"
 BOX_KEYSTORE_DIR = "/data/home/flutify-e2e-keystore"
 UI_DUMP_DEVICE_PATH = "/data/local/tmp/flutify_ui.xml"
 
+# Shell helpers prepended to every box script that talks to adb.
+#
+# The box's emulator shows up twice in adb: as `emulator-5554` (adb's local port scan) and as
+# `127.0.0.1:5555` (an explicit `adb connect`). Plain `adb` commands then fail with "more than one
+# device/emulator", and after the emulator drops its connection both entries sit `offline`, where
+# `adb wait-for-device` never returns (the run is only killed by the exec timeout) and `adb connect`
+# fails. `adb_heal` restarts the adb server until exactly one entry is listed and it is online, with every
+# wait bounded, so the plain `adb` calls after it address that single device.
+ADB_HEAL_SH = r"""
+command -v timeout >/dev/null 2>&1 || timeout() { shift; "$@"; }
+adb_entries() {
+  adb devices 2>/dev/null | grep -vE '^(List of devices|\*)' | grep -E '^[^[:space:]]+[[:space:]]+[a-z]' || true
+}
+adb_ready() {
+  entries="$(adb_entries)"
+  [ -n "$entries" ] || return 1
+  [ "$(printf '%s\n' "$entries" | wc -l)" -eq 1 ] || return 1
+  printf '%s\n' "$entries" | grep -qE '[[:space:]]device$' || return 1
+  timeout 20 adb shell true >/dev/null 2>&1
+}
+adb_drop_duplicate() {
+  if adb_entries | grep -qE '^emulator-[0-9]+[[:space:]]+device$'; then
+    adb disconnect 127.0.0.1:5555 >/dev/null 2>&1 || true
+  fi
+}
+adb_heal() {
+  adb_drop_duplicate
+  adb_ready && return 0
+  for attempt in 1 2 3 4; do
+    echo "[adb] device list not usable (attempt $attempt), restarting adb server:" >&2
+    adb devices >&2 || true
+    timeout 20 adb kill-server >/dev/null 2>&1 || true
+    timeout 20 adb start-server >/dev/null 2>&1 || true
+    # give the port scan a moment to find the emulator before connecting explicitly
+    for i in 1 2 3 4 5; do
+      adb_entries | grep -qE '^emulator-[0-9]+[[:space:]]+device$' && break
+      sleep 2
+    done
+    if ! adb_entries | grep -qE '[[:space:]]device$'; then
+      timeout 20 adb connect 127.0.0.1:5555 >/dev/null 2>&1 || true
+    fi
+    for i in $(seq 1 15); do
+      adb_drop_duplicate
+      adb_ready && return 0
+      sleep 2
+    done
+  done
+  echo "[adb] no single online device after restarting adb" >&2
+  adb devices >&2 || true
+  return 1
+}
+"""
+
 SELFTEST_TAG_RE = re.compile(r"^v(\d+)\.(\d+)\.(\d+)-selftest$")
 
 LABELS_SETTINGS = (
@@ -251,15 +304,10 @@ for i in $(seq 1 90); do
   sleep 2
 done
 [ "$(docker exec instabox-android getprop sys.boot_completed 2>/dev/null || true)" = "1" ]
-if adb devices | grep -qE '^emulator-[0-9]+[[:space:]]+device$'; then
-  adb disconnect 127.0.0.1:5555 >/dev/null 2>&1 || true
-elif ! adb devices | grep -qE '[[:space:]]device$'; then
-  adb connect 127.0.0.1:5555 || true
-  adb wait-for-device
-fi
+adb_heal
 adb devices
 """
-    runner.exec_box(box_name, boot_cmd, check=True, timeout=240)
+    runner.exec_box(box_name, ADB_HEAL_SH + boot_cmd, check=True, timeout=420)
     return state
 
 
@@ -788,7 +836,18 @@ def push_and_install_apk(runner: Runner, box_name: str, apk_path: Path, remote_n
         check=True,
         timeout=180,
     )
-    runner.exec_box(box_name, f"adb install -r {shlex.quote(remote_apk)}", check=True, timeout=180)
+    install = f"""
+for attempt in 1 2 3; do
+  adb_heal || true
+  if timeout 150 adb install -r {shlex.quote(remote_apk)}; then
+    exit 0
+  fi
+  echo "[adb] install failed (attempt $attempt), retrying after healing adb..." >&2
+  sleep 3
+done
+exit 1
+"""
+    runner.exec_box(box_name, ADB_HEAL_SH + install, check=True, timeout=600)
 
 
 def drive_settings_upgrade(
@@ -1126,11 +1185,12 @@ def run_mock_e2e_and_collect(
 ) -> None:
     """Launch Flutify in `--mock --self-test-e2e=auto` and pull screenshots & metrics."""
     out_dir.mkdir(parents=True, exist_ok=True)
-    run_cmd = f"""
+    run_cmd = ADB_HEAL_SH + f"""
 set -euo pipefail
+adb_heal
 for attempt in 1 2 3 4 5; do
-  if adb shell "service check activity" 2>/dev/null | grep -q "found" \\
-     && adb shell am force-stop {shlex.quote(PACKAGE_ID)}; then
+  if timeout 20 adb shell "service check activity" 2>/dev/null | grep -q "found" \\
+     && timeout 20 adb shell am force-stop {shlex.quote(PACKAGE_ID)}; then
     break
   fi
   if [ "$attempt" -eq 5 ]; then
@@ -1138,12 +1198,12 @@ for attempt in 1 2 3 4 5; do
     exit 1
   fi
   echo "Waiting for Android activity service before force-stop (attempt $attempt)..."
-  adb wait-for-device || true
+  adb_heal || true
   sleep 3
 done
 adb shell rm -rf {shlex.quote(DEVICE_E2E_DIR)}
 for attempt in 1 2 3 4 5; do
-  if adb shell am start -W -n {shlex.quote(MAIN_ACTIVITY)} --ez flutify_mock true --es flutify_e2e auto; then
+  if timeout 60 adb shell am start -W -n {shlex.quote(MAIN_ACTIVITY)} --ez flutify_mock true --es flutify_e2e auto; then
     break
   fi
   if [ "$attempt" -eq 5 ]; then
@@ -1151,7 +1211,7 @@ for attempt in 1 2 3 4 5; do
     exit 1
   fi
   echo "Retrying am start after transient activity service failure (attempt $attempt)..."
-  adb wait-for-device || true
+  adb_heal || true
   sleep 3
 done
 for i in $(seq 1 150); do
@@ -1165,7 +1225,7 @@ adb shell "test -f {DEVICE_E2E_DIR}/DONE"
 rm -rf {shlex.quote(BOX_OUT_DIR)}
 adb pull {shlex.quote(DEVICE_E2E_DIR)} {shlex.quote(BOX_OUT_DIR)}
 """
-    runner.exec_box(box_name, run_cmd, check=True, timeout=420)
+    runner.exec_box(box_name, run_cmd, check=True, timeout=600)
 
     # Preserve any upgrade_result.json created before E2E run.
     upgrade_receipt = out_dir / "upgrade_result.json"
