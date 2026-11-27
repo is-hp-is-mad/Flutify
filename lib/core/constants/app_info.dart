@@ -10,9 +10,9 @@ class AppInfo {
   static const String version = '0.0.22';
   static const int build = 22;
   static const String _buildReleaseTag = String.fromEnvironment(
-    'FLUTIFY_RELEASE_TAG', defaultValue: 'v0.18',
+    'FLUTIFY_RELEASE_TAG', defaultValue: 'v0.19',
   );
-  static const String releaseTag = _buildReleaseTag == '' ? 'v0.18' : _buildReleaseTag;
+  static const String releaseTag = _buildReleaseTag == '' ? 'v0.19' : _buildReleaseTag;
 
   /// 当前构建是否为 self-test 通道（仅 `-selftest` 标签为 true）。
   static bool get isSelfTest => isSelfTestTag(releaseTag);
