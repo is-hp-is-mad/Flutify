@@ -400,6 +400,7 @@ class FlutifyApp extends StatelessWidget {
                 tracks: tracks,
                 start: start,
                 username: ctx.read<SpotifyAuthService>().username,
+                shuffle: playback.shuffle,
               );
               if (request == null) return false;
               debugPrint(

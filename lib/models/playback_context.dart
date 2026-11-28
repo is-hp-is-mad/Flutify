@@ -6,7 +6,21 @@ class PlaybackContext {
   final String name;
   final String uri;
 
-  const PlaybackContext({required this.type, required this.name, this.uri = ''});
+  /// 曲目是按用户在歌单页选的排序排过的，与服务端展开 [uri] 得到的原顺序不同。
+  /// Connect 点歌时据此改为带上整个列表（见 `ConnectPlayRequest.from`），远程设备 / 本机播放端才会按这个顺序播。
+  final bool reordered;
+
+  const PlaybackContext({
+    required this.type,
+    required this.name,
+    this.uri = '',
+    this.reordered = false,
+  });
+
+  /// 复制一份并设置 [reordered]。
+  PlaybackContext withReordered(bool reordered) => reordered == this.reordered
+      ? this
+      : PlaybackContext(type: type, name: name, uri: uri, reordered: reordered);
 
   /// 只知道 URI 时（Connect 服务端的上下文）按 URI 推断类型。
   factory PlaybackContext.fromUri(String uri, {String name = ''}) {
@@ -21,11 +35,22 @@ class PlaybackContext {
 
   static const none = PlaybackContext(type: 'none', name: '');
 
-  const PlaybackContext.playlist(this.name, {this.uri = ''}) : type = 'playlist';
-  const PlaybackContext.album(this.name, {this.uri = ''}) : type = 'album';
-  const PlaybackContext.artist(this.name, {this.uri = ''}) : type = 'artist';
-  const PlaybackContext.search(this.name) : type = 'search', uri = 'spotify:search';
-  const PlaybackContext.collection(this.name, {this.uri = ''}) : type = 'collection';
+  const PlaybackContext.playlist(this.name, {this.uri = ''})
+    : type = 'playlist',
+      reordered = false;
+  const PlaybackContext.album(this.name, {this.uri = ''})
+    : type = 'album',
+      reordered = false;
+  const PlaybackContext.artist(this.name, {this.uri = ''})
+    : type = 'artist',
+      reordered = false;
+  const PlaybackContext.search(this.name)
+    : type = 'search',
+      uri = 'spotify:search',
+      reordered = false;
+  const PlaybackContext.collection(this.name, {this.uri = ''})
+    : type = 'collection',
+      reordered = false;
 
   bool get isNone => type == 'none';
 }

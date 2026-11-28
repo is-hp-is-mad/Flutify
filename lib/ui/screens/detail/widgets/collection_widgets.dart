@@ -83,15 +83,19 @@ class ContextPlayButton extends StatelessWidget {
 }
 
 /// 操作行。
-/// - 宽（≥ 600，桌面端）：大播放键 → 随机 → 自定义按钮（收藏 / 更多），全部靠左；
-/// - 窄（手机）：自定义按钮靠左，随机 + 大播放键靠右。
-class CollectionActionRow extends StatelessWidget {
+/// - 宽（≥ 600，桌面端）：大播放键 → 随机 → 自定义按钮（收藏 / 更多）靠左，工具靠右；
+/// - 窄（手机）：自定义按钮靠左、随机 + 大播放键靠右；工具收在按钮行中间的空位里，
+///   工具展开时（歌单内搜索输入中，见 [trailingExpanded]）单独占一整行。
+class CollectionActionRow extends StatefulWidget {
   final List<Widget> leading;
   final List<SpotifyTrack> tracks;
   final PlaybackContext playbackContext;
 
-  /// 靠右的工具（歌单页的搜索 / 排序）；可被压缩，空间不够时自身省略。
+  /// 工具（歌单页的搜索 / 排序）；可被压缩，空间不够时自身省略。
   final Widget? trailing;
+
+  /// 窄布局下工具已展开（歌单内搜索输入中）：单独占一整行，否则收在按钮行左侧。
+  final bool trailingExpanded;
 
   /// 紧跟在大播放键后的按钮（桌面布局的发现流入口，对齐官方桌面版位置）；窄布局不显示。
   final Widget? afterPlay;
@@ -103,14 +107,28 @@ class CollectionActionRow extends StatelessWidget {
     required this.playbackContext,
     this.trailing,
     this.afterPlay,
+    this.trailingExpanded = false,
   });
+
+  @override
+  State<CollectionActionRow> createState() => _CollectionActionRowState();
+}
+
+class _CollectionActionRowState extends State<CollectionActionRow> {
+  /// 工具挂在固定 key 下：换槽位（按钮行 ↔ 单独一行、过 600 分界）时保住其 State
+  ///（输入框的文字 / 焦点 / 展开状态）。
+  final _trailingKey = GlobalKey();
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final shuffle = ShuffleButton(size: 26, inactiveColor: colorScheme.onSurfaceVariant);
-    final play = ContextPlayButton(tracks: tracks, playbackContext: playbackContext);
-    final trailing = this.trailing;
+    final play = ContextPlayButton(tracks: widget.tracks, playbackContext: widget.playbackContext);
+    final trailing = widget.trailing == null
+        ? null
+        : KeyedSubtree(key: _trailingKey, child: widget.trailing!);
+    final afterPlay = widget.afterPlay;
+    final leading = widget.leading;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -118,7 +136,7 @@ class CollectionActionRow extends StatelessWidget {
           return Row(
             children: [
               play,
-              if (afterPlay != null) ...[const SizedBox(width: 14), afterPlay!],
+              if (afterPlay != null) ...[const SizedBox(width: 14), afterPlay],
               const SizedBox(width: 20),
               shuffle,
               const SizedBox(width: 4),
@@ -129,8 +147,25 @@ class CollectionActionRow extends StatelessWidget {
             ],
           );
         }
-        // 窄（手机竖屏）：按钮一行，工具（搜索 / 排序）单独一行铺满宽度——
-        // 挤在同一行时输入框只剩几十像素（前缀 / 后缀图标都不够放），手指点不进去
+        // 窄（手机竖屏）：收起的工具（🔍 + 排序键）和自定义按钮、随机、播放键同一行——
+        // 排在按钮中间的空位，与播放键纵向居中
+        if (trailing == null || !widget.trailingExpanded) {
+          return Row(
+            children: [
+              ...leading,
+              if (trailing != null)
+                Expanded(child: Align(alignment: Alignment.centerLeft, child: trailing))
+              else
+                const Spacer(),
+              const SizedBox(width: 8),
+              shuffle,
+              const SizedBox(width: 8),
+              play,
+            ],
+          );
+        }
+        // 工具展开（歌单内搜索输入中）：输入框单独一行铺满宽度——
+        // 挤在按钮行只剩几十像素（前缀 / 后缀图标都不够放），手指点不进去
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -143,10 +178,8 @@ class CollectionActionRow extends StatelessWidget {
                 play,
               ],
             ),
-            if (trailing != null) ...[
-              const SizedBox(height: 8),
-              Align(alignment: Alignment.centerLeft, child: trailing),
-            ],
+            const SizedBox(height: 8),
+            Align(alignment: Alignment.centerLeft, child: trailing),
           ],
         );
       },

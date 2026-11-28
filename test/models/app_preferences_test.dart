@@ -30,6 +30,8 @@ void main() {
       taskbarLyricsColor: TaskbarLyricsColor.custom,
       taskbarLyricsCustomColor: 0xFF336699,
       taskbarLyricsOpacity: 60,
+      librarySort: LibrarySort.alphabetical,
+      playlistTrackSorts: {'p1': 'title', 'p2': 'addedAt:desc'},
     );
     expect(AppPreferences.decode(prefs.encode()), prefs);
   });
@@ -67,6 +69,58 @@ void main() {
       );
     },
   );
+
+  test('library sort and per-playlist track sorts: defaults, sanitising, updating', () {
+    expect(AppPreferences.defaults.librarySort, LibrarySort.recent);
+    expect(AppPreferences.defaults.playlistTrackSorts, isEmpty);
+
+    expect(
+      AppPreferences.fromJson({'librarySort': 'nope'}).librarySort,
+      LibrarySort.recent,
+    );
+    expect(
+      AppPreferences.fromJson({'librarySort': 'alphabetical'}).librarySort,
+      LibrarySort.alphabetical,
+    );
+    expect(
+      AppPreferences.fromJson({'playlistTrackSorts': 'x'}).playlistTrackSorts,
+      isEmpty,
+    );
+    // 只保留键、值都是非空字符串的条目
+    expect(
+      AppPreferences.fromJson({
+        'playlistTrackSorts': {
+          'good': 'title',
+          '': 'title',
+          'badValue': 3,
+          'emptyValue': '',
+        },
+      }).playlistTrackSorts,
+      {'good': 'title'},
+    );
+
+    // withPlaylistTrackSort：新增 / 覆盖 / null 删除，其他条目不动
+    var prefs = AppPreferences.defaults.withPlaylistTrackSort('p1', 'title');
+    expect(prefs.playlistTrackSorts, {'p1': 'title'});
+    prefs = prefs
+        .withPlaylistTrackSort('p1', 'artist:desc')
+        .withPlaylistTrackSort('p2', 'addedAt');
+    expect(prefs.playlistTrackSorts, {'p1': 'artist:desc', 'p2': 'addedAt'});
+    prefs = prefs.withPlaylistTrackSort('p1', null);
+    expect(prefs.playlistTrackSorts, {'p2': 'addedAt'});
+
+    // map 相等按内容比较，不受实现类型影响
+    expect(
+      const AppPreferences(playlistTrackSorts: {'a': 'title'}),
+      AppPreferences.fromJson({
+        'playlistTrackSorts': {'a': 'title'},
+      }),
+    );
+    expect(
+      const AppPreferences(playlistTrackSorts: {'a': 'title'}),
+      isNot(const AppPreferences(playlistTrackSorts: {'a': 'artist'})),
+    );
+  });
 
   test('proxy fields: unknown mode falls back to system, bad port to 0', () {
     final prefs = AppPreferences.fromJson({
