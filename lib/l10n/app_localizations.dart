@@ -581,6 +581,12 @@ abstract class AppLocalizations {
   /// **'你喜欢的所有歌曲都在这里。'**
   String get likedSongsDescription;
 
+  /// No description provided for @playlistPlayingCachedCopy.
+  ///
+  /// In zh, this message translates to:
+  /// **'歌单没能刷新，先按本机缓存播放'**
+  String get playlistPlayingCachedCopy;
+
   /// No description provided for @likeAdd.
   ///
   /// In zh, this message translates to:

@@ -50,6 +50,25 @@ void main() {
       expect(names(TrackSort(TrackSortKey.addedAt).apply(tracks)), ['charlie', 'bravo', 'Alpha']);
     });
 
+    test('encode / decode round-trip; bad data falls back to custom', () {
+      for (final key in TrackSortKey.values) {
+        if (key == TrackSortKey.custom) continue;
+        for (final descending in const [false, true]) {
+          final sort = TrackSort(key, descending: descending);
+          expect(TrackSort.decode(sort.encode()), sort);
+        }
+      }
+      expect(TrackSort.custom.encode(), isNull);
+      expect(TrackSort.decode(null), TrackSort.custom);
+      expect(TrackSort.decode(''), TrackSort.custom);
+      expect(TrackSort.decode('bogus'), TrackSort.custom);
+      expect(TrackSort.decode('custom'), TrackSort.custom);
+      expect(
+        TrackSort.decode('title:whatever'),
+        const TrackSort(TrackSortKey.title),
+      );
+    });
+
     test('header taps cycle natural → reversed → custom', () {
       var sort = TrackSort.custom.tap(TrackSortKey.title);
       expect(sort, const TrackSort(TrackSortKey.title));

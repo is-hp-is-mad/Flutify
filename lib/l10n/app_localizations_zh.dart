@@ -283,6 +283,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get likedSongsDescription => '你喜欢的所有歌曲都在这里。';
 
   @override
+  String get playlistPlayingCachedCopy =>
+      '歌单没能刷新，先按本机缓存播放';
+
+  @override
   String get likeAdd => '添加到已点赞的歌曲';
 
   @override
@@ -2971,6 +2975,10 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get likedSongsDescription => '你喜歡的所有歌曲都在這裡。';
+
+  @override
+  String get playlistPlayingCachedCopy =>
+      '播放清單無法重新整理，先依本機快取播放';
 
   @override
   String get likeAdd => '新增到已按讚的歌曲';

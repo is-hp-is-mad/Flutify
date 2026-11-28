@@ -111,6 +111,19 @@ void main() {
     playback.dispose();
   });
 
+  test('排过序的上下文：重启后仍记得「排过序」，交接给 Connect 时不按歌单原顺序展开', () {
+    final sorted = ctx.withReordered(true);
+    final saved = PlaybackSession(tracks: const [c, a, b], index: 0, current: c, context: sorted);
+    final restored = PlaybackSession.fromJson(jsonDecode(jsonEncode(saved.toJson())))!;
+    expect(restored.context.uri, sorted.uri);
+    expect(restored.context.reordered, isTrue);
+
+    // 没排过序的不写这个字段，旧会话文件读回也是 false
+    final plain = PlaybackSession(tracks: const [a, b], index: 0, current: a, context: ctx);
+    expect((plain.toJson()['context'] as Map).containsKey('reordered'), isFalse);
+    expect(PlaybackSession.fromJson(jsonDecode(jsonEncode(plain.toJson())))!.context.reordered, isFalse);
+  });
+
   test('文件存储：写入后可读回；损坏的文件按没有会话处理', () async {
     final dir = await Directory.systemTemp.createTemp('flutify_session_');
     addTearDown(() => dir.delete(recursive: true));

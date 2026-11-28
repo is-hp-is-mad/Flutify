@@ -69,6 +69,7 @@
   "greetingEvening": "こんばんは",
   "likedSongs": "お気に入りの曲",
   "likedSongsDescription": "お気に入りの曲をまとめて楽しもう。",
+  "playlistPlayingCachedCopy": "プレイリストを更新できなかったため、保存済みの内容で再生します。",
   "likeAdd": "お気に入りの曲に追加",
   "likeRemove": "お気に入りの曲から削除",
   "libraryAdd": "マイライブラリに保存",

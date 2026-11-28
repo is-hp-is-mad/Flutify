@@ -99,6 +99,38 @@ void main() {
       expect(library.isFollowing(SampleCatalog.artistA.id), isTrue);
     });
 
+    test('whenLoaded：没在读取时立即完成；读取中等到这次读取结束', () async {
+      final source = FakeLibrarySource(likedTracks: [SampleCatalog.track1]);
+      final library = LibraryProvider((await StorageService.init()).library, source: source);
+
+      var idleDone = false;
+      await library.whenLoaded().then((_) => idleDone = true);
+      expect(idleDone, isTrue);
+
+      final pending = library.refresh();
+      var loaded = false;
+      final waiting = library.whenLoaded().then((_) => loaded = true);
+      expect(library.isLoading, isTrue);
+      await waiting;
+      expect(loaded, isTrue);
+      expect(library.isLoading, isFalse);
+      expect(library.likedTracks.map((t) => t.id), [SampleCatalog.track1.id]);
+      await pending;
+    });
+
+    test('whenLoaded：读取失败也会结束等待，缓存照常保留', () async {
+      final source = FakeLibrarySource(
+        likedTracks: [SampleCatalog.track1],
+      )..playlistsError = const LibrarySourceException('歌单读取失败', 500);
+      final library = LibraryProvider((await StorageService.init()).library, source: source);
+
+      final pending = library.refresh();
+      await library.whenLoaded();
+      expect(library.isLoading, isFalse);
+      expect(library.loadError, contains('歌单读取失败'));
+      await pending;
+    });
+
     test('某一类读取失败：记录原因，其他类照常显示', () async {
       final source = FakeLibrarySource(
         likedTracks: [SampleCatalog.track1],

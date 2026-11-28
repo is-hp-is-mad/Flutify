@@ -67,6 +67,7 @@ class LibraryProvider extends ChangeNotifier implements BackupLibraryPort {
   @override
   void dispose() {
     _disposed = true;
+    _finishLoading();
     super.dispose();
   }
 
@@ -83,6 +84,22 @@ class LibraryProvider extends ChangeNotifier implements BackupLibraryPort {
 
   /// 正在从账号读取媒体库。
   bool get isLoading => _isLoading;
+
+  Completer<void>? _loadedWaiter;
+
+  /// 正在从账号重新读取媒体库时，等到这次读取结束（成功或失败）；没在读取时立即完成。
+  /// 失败时 [loadError] 非空，缓存照常保留。
+  Future<void> whenLoaded() {
+    if (!_isLoading) return Future<void>.value();
+    return (_loadedWaiter ??= Completer<void>()).future;
+  }
+
+  void _finishLoading() {
+    _isLoading = false;
+    final waiter = _loadedWaiter;
+    _loadedWaiter = null;
+    if (waiter != null && !waiter.isCompleted) waiter.complete();
+  }
 
   /// 最近一次读取失败的说明（简体中文）；成功后为 null。失败时仍显示上次缓存的数据。
   String? get loadError => _loadError;
@@ -142,7 +159,7 @@ class LibraryProvider extends ChangeNotifier implements BackupLibraryPort {
 
     if (!source.isSignedIn) {
       _clearRemote();
-      _isLoading = false;
+      _finishLoading();
       _loadError = null;
       notifyListeners();
       return;
@@ -186,7 +203,7 @@ class LibraryProvider extends ChangeNotifier implements BackupLibraryPort {
     ]);
 
     if (!current()) return;
-    _isLoading = false;
+    _finishLoading();
     notifyListeners();
   }
 

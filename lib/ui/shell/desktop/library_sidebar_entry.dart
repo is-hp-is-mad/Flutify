@@ -2,14 +2,12 @@ import 'package:flutter/widgets.dart';
 
 import '../../../core/utils/pinyin_sort.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../models/app_preferences.dart';
 import '../../../providers/library_provider.dart';
 import '../../navigation/app_routes.dart';
 
 /// 音乐库栏的筛选类型。
 enum LibraryKind { playlist, album, artist }
-
-/// 音乐库栏的排序方式。
-enum LibrarySort { recent, alphabetical }
 
 /// 音乐库栏中一行的视图模型（歌单 / 专辑 / 艺人统一呈现）。
 class LibrarySidebarEntry {
