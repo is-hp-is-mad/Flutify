@@ -46,6 +46,11 @@ UI_DUMP_DEVICE_PATH = "/data/local/tmp/flutify_ui.xml"
 # `adb wait-for-device` never returns (the run is only killed by the exec timeout) and `adb connect`
 # fails. `adb_heal` restarts the adb server until exactly one entry is listed and it is online, with every
 # wait bounded, so the plain `adb` calls after it address that single device.
+#
+# Restarting the host adb server cannot help when adbd inside the emulator itself is stuck: both entries
+# then stay `offline` however often the server restarts (v0.18.289-selftest failed this way twice).
+# So the later attempts escalate on the box side: attempt 3 restarts adbd inside the Android container,
+# attempt 4 restarts the container and waits for Android to boot again before reconnecting.
 ADB_HEAL_SH = r"""
 command -v timeout >/dev/null 2>&1 || timeout() { shift; "$@"; }
 adb_entries() {
@@ -63,12 +68,35 @@ adb_drop_duplicate() {
     adb disconnect 127.0.0.1:5555 >/dev/null 2>&1 || true
   fi
 }
+adb_boot_completed() {
+  [ "$(timeout 20 docker exec instabox-android getprop sys.boot_completed 2>/dev/null || true)" = "1" ]
+}
+adb_kick_device() {
+  case "$1" in
+    3)
+      echo "[adb] restarting adbd inside the Android container" >&2
+      timeout 30 docker exec instabox-android sh -c 'setprop ctl.restart adbd || { stop adbd; start adbd; }' \
+        >/dev/null 2>&1 || true
+      sleep 3
+      ;;
+    4)
+      echo "[adb] restarting the Android container and waiting for boot" >&2
+      timeout 120 docker restart instabox-android >/dev/null 2>&1 || true
+      for i in $(seq 1 90); do
+        adb_boot_completed && break
+        sleep 2
+      done
+      adb_boot_completed || echo "[adb] Android did not finish booting after container restart" >&2
+      ;;
+  esac
+}
 adb_heal() {
   adb_drop_duplicate
   adb_ready && return 0
   for attempt in 1 2 3 4; do
     echo "[adb] device list not usable (attempt $attempt), restarting adb server:" >&2
     adb devices >&2 || true
+    adb_kick_device "$attempt"
     timeout 20 adb kill-server >/dev/null 2>&1 || true
     timeout 20 adb start-server >/dev/null 2>&1 || true
     # give the port scan a moment to find the emulator before connecting explicitly
@@ -307,7 +335,8 @@ done
 adb_heal
 adb devices
 """
-    runner.exec_box(box_name, ADB_HEAL_SH + boot_cmd, check=True, timeout=420)
+    # adb_heal may restart the container and wait for a second boot, so allow more than one boot's worth
+    runner.exec_box(box_name, ADB_HEAL_SH + boot_cmd, check=True, timeout=720)
     return state
 
 

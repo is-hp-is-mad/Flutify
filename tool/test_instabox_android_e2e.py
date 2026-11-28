@@ -214,6 +214,49 @@ class InstaBoxAndroidE2ETest(unittest.TestCase):
         self.assertIn("adb kill-server", boot_cmd)
         self.assertIn("adb_heal", boot_cmd)
         self.assertNotIn("wait-for-device", boot_cmd)
+        # 只重启宿主机 adb 救不回卡死的 adbd：后两轮在 box 里重启 adbd，再不行重启模拟器容器并等开机
+        self.assertIn("setprop ctl.restart adbd", boot_cmd)
+        self.assertIn("docker restart instabox-android", boot_cmd)
+        self.assertIn('adb_kick_device "$attempt"', boot_cmd)
+
+    def test_adb_heal_escalates_to_adbd_and_container_restart(self) -> None:
+        # 用假的 adb / docker 跑真实的 adb_heal：设备一直离线，直到容器重启后才上线
+        with tempfile.TemporaryDirectory() as tmp:
+            bin_dir = Path(tmp) / "bin"
+            bin_dir.mkdir()
+            state = Path(tmp) / "online"
+            log = Path(tmp) / "log"
+            (bin_dir / "adb").write_text(
+                "#!/bin/sh\n"
+                f'echo "adb $*" >> {log}\n'
+                'case "$1" in\n'
+                '  devices)\n'
+                '    echo "List of devices attached"\n'
+                f'    if [ -f {state} ]; then printf "emulator-5554\\tdevice\\n"; '
+                'else printf "127.0.0.1:5555\\toffline\\nemulator-5554\\toffline\\n"; fi ;;\n'
+                f'  shell) [ -f {state} ] ;;\n'
+                '  *) exit 0 ;;\n'
+                'esac\n'
+            )
+            (bin_dir / "docker").write_text(
+                "#!/bin/sh\n"
+                f'echo "docker $*" >> {log}\n'
+                f'if [ "$1" = restart ]; then touch {state}; fi\n'
+                'case "$*" in *getprop*) echo 1 ;; esac\n'
+            )
+            (bin_dir / "sleep").write_text("#!/bin/sh\nexit 0\n")
+            for f in bin_dir.iterdir():
+                f.chmod(0o755)
+            env = {"PATH": f"{bin_dir}:/usr/bin:/bin"}
+            proc = subprocess.run(
+                ["sh", "-c", ib.ADB_HEAL_SH + "\nadb_heal"],
+                env=env, capture_output=True, text=True, timeout=60,
+            )
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            calls = log.read_text()
+            self.assertIn("setprop ctl.restart adbd", calls)
+            self.assertIn("docker restart instabox-android", calls)
+            self.assertLess(calls.index("setprop ctl.restart adbd"), calls.index("docker restart instabox-android"))
 
     def test_push_and_install_heals_adb_and_retries(self) -> None:
         runner = FakeRunner()
