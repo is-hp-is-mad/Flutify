@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutify_app/core/utils/artwork_palette.dart';
 import 'package:flutify_app/l10n/app_localizations.dart';
 import 'package:flutify_app/main.dart';
@@ -61,6 +63,7 @@ void main() {
     Size size, {
     Map<String, Object> initialValues = const {},
     SpotifyPlaylist? target,
+    SpotifyApiService Function(StorageService storage)? api,
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1.0;
@@ -73,7 +76,7 @@ void main() {
         storageService: storage,
         audioEngine: FakeAudioPlayerService(),
         emePlayer: EmePlayer(),
-        spotifyApiService: SpotifyApiService(storage.auth),
+        spotifyApiService: api?.call(storage) ?? SpotifyApiService(storage.auth),
       ),
     );
     await settle(tester);
@@ -263,6 +266,56 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('remembered sort while tracks still stream in: play waits for the full list', (
+    tester,
+  ) async {
+    final seeded = AppPreferences.defaults.withPlaylistTrackSort(
+      'synthetic-table-playlist',
+      'title',
+    );
+    late _StreamingPlaylistApi streaming;
+    await open(
+      tester,
+      const Size(1600, 900),
+      initialValues: {'app_prefs': seeded.encode()},
+      api: (storage) => streaming = _StreamingPlaylistApi(storage),
+    );
+
+    // 首批只到两首（总共 3 首），还在拉取
+    streaming.pages.add(
+      playlist.copyWith(tracks: playlist.tracks.take(2).toList()),
+    );
+    await settle(tester);
+    expect(rows(tester), ['Alpha', 'Charlie']);
+
+    (PlaybackContext, List<SpotifyTrack>, SpotifyTrack?)? captured;
+    tester.element(find.byType(MainShell)).read<PlaybackProvider>().remotePlay =
+        (ctx, tracks, start) async {
+          captured = (ctx, tracks, start);
+          return true;
+        };
+
+    await tester.tap(
+      find.descendant(
+        of: find.byType(CollectionActionRow),
+        matching: find.byType(ContextPlayButton),
+      ),
+    );
+    await settle(tester);
+    // 没拉完不播：否则只排了已加载的两首
+    expect(captured, isNull);
+
+    streaming.pages.add(playlist);
+    await streaming.pages.close();
+    await settle(tester);
+
+    final (ctx, played, start) = captured!;
+    expect(played.map((t) => t.name), ['Alpha', 'Bravo', 'Charlie']);
+    expect(ctx.reordered, isTrue);
+    expect(start, isNull);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('in-playlist search filters rows and explains empty results', (tester) async {
     await open(tester, const Size(1600, 900));
     await tester.tap(find.byTooltip(zh.trackSearchHint));
@@ -380,4 +433,14 @@ void main() {
       expect(header(zh.trackColumnTitle), findsOneWidget);
     });
   }
+}
+
+/// 歌单曲目由测试分批推送（模拟长歌单分页拉取）。
+class _StreamingPlaylistApi extends SpotifyApiService {
+  _StreamingPlaylistApi(StorageService storage) : super(storage.auth);
+
+  final pages = StreamController<SpotifyPlaylist>();
+
+  @override
+  Stream<SpotifyPlaylist> watchPlaylist(String id) => pages.stream;
 }

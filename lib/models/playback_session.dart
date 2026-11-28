@@ -49,7 +49,13 @@ class PlaybackSession {
     'index': index,
     'current': current.toJson(),
     'queue': [for (final t in userQueue) t.toJson()],
-    'context': {'type': context.type, 'name': context.name, 'uri': context.uri},
+    'context': {
+      'type': context.type,
+      'name': context.name,
+      'uri': context.uri,
+      // 排过序的列表：重启后交接给 Connect 时仍带上整个列表，不让远程按歌单原顺序展开
+      if (context.reordered) 'reordered': true,
+    },
     'position_ms': position.inMilliseconds,
     'shuffle': shuffle,
     'repeat': repeatMode.name,
@@ -81,6 +87,7 @@ class PlaybackSession {
                 type: ctx['type'] as String? ?? 'none',
                 name: ctx['name'] as String? ?? '',
                 uri: ctx['uri'] as String? ?? '',
+                reordered: ctx['reordered'] == true,
               )
             : PlaybackContext.none,
         position: Duration(milliseconds: ((json['position_ms'] as num?)?.toInt() ?? 0).clamp(0, 1 << 31)),

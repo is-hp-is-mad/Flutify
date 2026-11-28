@@ -25,12 +25,17 @@ class ContextPlayButton extends StatelessWidget {
   /// 吸顶标题栏里的小号按钮不需要投影。
   final bool elevated;
 
+  /// 非空时「从头播放」改调它（暂停 / 继续不变），由页面自己决定播什么：
+  /// 歌单页在记下的排序还没拿到全部曲目时，先等曲目拉完再按完整列表播放。
+  final VoidCallback? onPlay;
+
   const ContextPlayButton({
     super.key,
     required this.tracks,
     required this.playbackContext,
     this.size = 56,
     this.elevated = true,
+    this.onPlay,
   });
 
   @override
@@ -67,6 +72,8 @@ class ContextPlayButton extends StatelessWidget {
                   final playback = context.read<PlaybackProvider>();
                   if (isPlayingThis || isThisContext) {
                     playback.togglePlayPause();
+                  } else if (onPlay != null) {
+                    onPlay!();
                   } else {
                     playback.playContext(tracks, playbackContext);
                   }
@@ -100,6 +107,9 @@ class CollectionActionRow extends StatefulWidget {
   /// 紧跟在大播放键后的按钮（桌面布局的发现流入口，对齐官方桌面版位置）；窄布局不显示。
   final Widget? afterPlay;
 
+  /// 交给大播放键的 [ContextPlayButton.onPlay]。
+  final VoidCallback? onPlay;
+
   const CollectionActionRow({
     super.key,
     required this.leading,
@@ -108,6 +118,7 @@ class CollectionActionRow extends StatefulWidget {
     this.trailing,
     this.afterPlay,
     this.trailingExpanded = false,
+    this.onPlay,
   });
 
   @override
@@ -123,7 +134,11 @@ class _CollectionActionRowState extends State<CollectionActionRow> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final shuffle = ShuffleButton(size: 26, inactiveColor: colorScheme.onSurfaceVariant);
-    final play = ContextPlayButton(tracks: widget.tracks, playbackContext: widget.playbackContext);
+    final play = ContextPlayButton(
+      tracks: widget.tracks,
+      playbackContext: widget.playbackContext,
+      onPlay: widget.onPlay,
+    );
     final trailing = widget.trailing == null
         ? null
         : KeyedSubtree(key: _trailingKey, child: widget.trailing!);
