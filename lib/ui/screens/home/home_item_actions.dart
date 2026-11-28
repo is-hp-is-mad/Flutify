@@ -94,6 +94,13 @@ class HomeItemActions {
     final library = context.read<LibraryProvider>();
     final prefs = context.read<PreferencesProvider?>();
 
+    // 已点赞的歌曲取自媒体库：媒体库正在从账号刷新时先等它读完，
+    // 免得按刷新前的旧列表播放（失败时照常用缓存）。歌单当场从服务端拉，本身就是最新的。
+    if (item.kind == HomeItemKind.likedSongs) {
+      await library.whenLoaded();
+      if (!context.mounted) return;
+    }
+
     final (
       List<SpotifyTrack> tracks,
       PlaybackContext playContext,

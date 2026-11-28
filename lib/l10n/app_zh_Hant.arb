@@ -177,6 +177,7 @@
   "greetingEvening": "晚安",
   "likedSongs": "已按讚的歌曲",
   "likedSongsDescription": "你喜歡的所有歌曲都在這裡。",
+  "playlistPlayingCachedCopy": "播放清單無法重新整理，先依本機快取播放",
   "likeAdd": "新增到已按讚的歌曲",
   "likeRemove": "從「已按讚的歌曲」中移除",
   "libraryAdd": "儲存至你的音樂庫",

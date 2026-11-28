@@ -273,6 +273,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get likedSongsDescription => 'お気に入りの曲をまとめて楽しもう。';
 
   @override
+  String get playlistPlayingCachedCopy =>
+      'プレイリストを更新できなかったため、保存済みの内容で再生します。';
+
+  @override
   String get likeAdd => 'お気に入りの曲に追加';
 
   @override

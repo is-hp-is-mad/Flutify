@@ -15,6 +15,7 @@ import '../../../widgets/skeleton.dart';
 
 /// 详情页大号播放按钮：
 /// 正在播放该上下文 → 暂停；该上下文已暂停 → 继续；否则从头播放整个上下文。
+/// 页面接管播放（[onPlay]）且在等歌单刷新时（[loading]）显示转圈。
 ///
 /// 与 Spotify 一致，深浅色主题下都是强调色底 + 自动黑 / 白图标（浅色主题的 primary 是加深色，不用它）。
 class ContextPlayButton extends StatelessWidget {
@@ -29,6 +30,9 @@ class ContextPlayButton extends StatelessWidget {
   /// 歌单页在记下的排序还没拿到全部曲目时，先等曲目拉完再按完整列表播放。
   final VoidCallback? onPlay;
 
+  /// 已点播放、正在等歌单刷新完：图标换成转圈，再点不重复播放（正在播的仍可暂停 / 继续）。
+  final bool loading;
+
   const ContextPlayButton({
     super.key,
     required this.tracks,
@@ -36,6 +40,7 @@ class ContextPlayButton extends StatelessWidget {
     this.size = 56,
     this.elevated = true,
     this.onPlay,
+    this.loading = false,
   });
 
   @override
@@ -47,6 +52,8 @@ class ContextPlayButton extends StatelessWidget {
     final (isPlayingThis, isThisContext) = context.select<PlaybackProvider, (bool, bool)>(
       (p) => (p.isPlayingContext(uri), p.playbackContext.uri == uri),
     );
+    final waiting = loading && !isPlayingThis && !isThisContext;
+    final iconColor = hyper ? scheme.onPrimary : tokens.onAccent;
 
     return Container(
       width: size,
@@ -72,17 +79,26 @@ class ContextPlayButton extends StatelessWidget {
                   final playback = context.read<PlaybackProvider>();
                   if (isPlayingThis || isThisContext) {
                     playback.togglePlayPause();
+                  } else if (waiting) {
+                    return;
                   } else if (onPlay != null) {
                     onPlay!();
                   } else {
                     playback.playContext(tracks, playbackContext);
                   }
                 },
-          child: Icon(
-            isPlayingThis ? Icons.pause_rounded : Icons.play_arrow_rounded,
-            color: hyper ? scheme.onPrimary : tokens.onAccent,
-            size: size * 0.6,
-          ),
+          child: waiting
+              ? Center(
+                  child: SizedBox.square(
+                    dimension: size * 0.4,
+                    child: CircularProgressIndicator(strokeWidth: 2.5, color: iconColor),
+                  ),
+                )
+              : Icon(
+                  isPlayingThis ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                  color: iconColor,
+                  size: size * 0.6,
+                ),
         ),
       ),
     );
@@ -110,6 +126,9 @@ class CollectionActionRow extends StatefulWidget {
   /// 交给大播放键的 [ContextPlayButton.onPlay]。
   final VoidCallback? onPlay;
 
+  /// 交给大播放键的 [ContextPlayButton.loading]。
+  final bool playLoading;
+
   const CollectionActionRow({
     super.key,
     required this.leading,
@@ -119,6 +138,7 @@ class CollectionActionRow extends StatefulWidget {
     this.afterPlay,
     this.trailingExpanded = false,
     this.onPlay,
+    this.playLoading = false,
   });
 
   @override
@@ -138,6 +158,7 @@ class _CollectionActionRowState extends State<CollectionActionRow> {
       tracks: widget.tracks,
       playbackContext: widget.playbackContext,
       onPlay: widget.onPlay,
+      loading: widget.playLoading,
     );
     final trailing = widget.trailing == null
         ? null

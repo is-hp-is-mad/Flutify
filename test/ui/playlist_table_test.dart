@@ -316,6 +316,113 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  Finder actionPlay() => find.descendant(
+    of: find.byType(CollectionActionRow),
+    matching: find.byType(ContextPlayButton),
+  );
+
+  (PlaybackContext, List<SpotifyTrack>, SpotifyTrack?)? Function() capturePlays(WidgetTester tester) {
+    (PlaybackContext, List<SpotifyTrack>, SpotifyTrack?)? captured;
+    tester.element(find.byType(MainShell)).read<PlaybackProvider>().remotePlay =
+        (ctx, tracks, start) async {
+          captured = (ctx, tracks, start);
+          return true;
+        };
+    return () => captured;
+  }
+
+  testWidgets('cached snapshot still refreshing: play waits and uses the refreshed playlist', (
+    tester,
+  ) async {
+    // 没记排序（自定义顺序）也要等：缓存的旧快照可能和服务端的歌单顺序、曲目不同
+    late _StreamingPlaylistApi streaming;
+    await open(
+      tester,
+      const Size(1600, 900),
+      api: (storage) => streaming = _StreamingPlaylistApi(storage),
+    );
+    expect(rows(tester), ['Charlie', 'Alpha', 'Bravo']);
+    final captured = capturePlays(tester);
+
+    await tester.tap(actionPlay());
+    await settle(tester);
+    expect(captured(), isNull);
+    // 等待中播放键转圈
+    expect(
+      find.descendant(of: actionPlay(), matching: find.byType(CircularProgressIndicator)),
+      findsOneWidget,
+    );
+
+    // 服务端的歌单换了顺序、多了一首
+    final refreshed = playlist.copyWith(
+      tracks: [playlist.tracks[2], track('Delta', 'Album Four'), playlist.tracks[0], playlist.tracks[1]],
+      totalTracks: 4,
+    );
+    streaming.pages.add(refreshed);
+    await streaming.pages.close();
+    await settle(tester);
+
+    final (ctx, played, start) = captured()!;
+    expect(played.map((t) => t.name), ['Bravo', 'Delta', 'Charlie', 'Alpha']);
+    expect(ctx.reordered, isFalse);
+    expect(start, isNull);
+    expect(
+      find.descendant(of: actionPlay(), matching: find.byType(CircularProgressIndicator)),
+      findsNothing,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('tapping a song while refreshing starts it in the refreshed queue', (tester) async {
+    late _StreamingPlaylistApi streaming;
+    await open(
+      tester,
+      const Size(1600, 900),
+      api: (storage) => streaming = _StreamingPlaylistApi(storage),
+    );
+    final captured = capturePlays(tester);
+
+    await tester.tap(find.text('Alpha'));
+    await settle(tester);
+    expect(captured(), isNull);
+
+    final refreshed = playlist.copyWith(
+      tracks: [playlist.tracks[1], playlist.tracks[2], playlist.tracks[0]],
+    );
+    streaming.pages.add(refreshed);
+    await streaming.pages.close();
+    await settle(tester);
+
+    final (_, played, start) = captured()!;
+    expect(played.map((t) => t.name), ['Alpha', 'Bravo', 'Charlie']);
+    expect(start?.name, 'Alpha');
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('refresh fails: play falls back to the cached snapshot with a notice', (tester) async {
+    late _StreamingPlaylistApi streaming;
+    await open(
+      tester,
+      const Size(1600, 900),
+      api: (storage) => streaming = _StreamingPlaylistApi(storage),
+    );
+    final captured = capturePlays(tester);
+
+    await tester.tap(actionPlay());
+    await settle(tester);
+    expect(captured(), isNull);
+
+    streaming.pages.addError(Exception('offline'));
+    await streaming.pages.close();
+    await settle(tester);
+
+    final (_, played, _) = captured()!;
+    expect(played.map((t) => t.name), ['Charlie', 'Alpha', 'Bravo']);
+    expect(find.text(zh.playlistPlayingCachedCopy), findsOneWidget);
+    await tester.pump(const Duration(seconds: 5));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('in-playlist search filters rows and explains empty results', (tester) async {
     await open(tester, const Size(1600, 900));
     await tester.tap(find.byTooltip(zh.trackSearchHint));

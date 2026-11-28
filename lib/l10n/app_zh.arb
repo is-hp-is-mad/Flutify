@@ -190,6 +190,7 @@
   "greetingEvening": "晚上好",
   "likedSongs": "已点赞的歌曲",
   "likedSongsDescription": "你喜欢的所有歌曲都在这里。",
+  "playlistPlayingCachedCopy": "歌单没能刷新，先按本机缓存播放",
   "likeAdd": "添加到已点赞的歌曲",
   "likeRemove": "从已点赞的歌曲中删除",
   "libraryAdd": "收藏至音乐库",

@@ -287,6 +287,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get likedSongsDescription => 'All your favorite songs in one place.';
 
   @override
+  String get playlistPlayingCachedCopy =>
+      'Could not refresh this playlist. Playing the saved copy.';
+
+  @override
   String get likeAdd => 'Save to Liked Songs';
 
   @override

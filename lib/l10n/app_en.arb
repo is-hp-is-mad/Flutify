@@ -117,6 +117,7 @@
   "greetingEvening": "Good evening",
   "likedSongs": "Liked Songs",
   "likedSongsDescription": "All your favorite songs in one place.",
+  "playlistPlayingCachedCopy": "Could not refresh this playlist. Playing the saved copy.",
   "likeAdd": "Save to Liked Songs",
   "likeRemove": "Remove from Liked Songs",
   "libraryAdd": "Save to Your Library",

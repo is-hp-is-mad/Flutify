@@ -59,6 +59,16 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
 
   /// 本次拉取结束（拉完或出错）时完成；没在拉取时为 null。
   Future<void>? _loadDone;
+
+  /// 正在从服务端刷新歌单（先显示的可能是本机缓存的旧快照，或只拉到了前几批）。
+  bool _refreshing = false;
+
+  /// 最近一次刷新失败：之后的播放按手头的缓存 / 已拿到的曲目播，并提示一句。
+  bool _refreshFailed = false;
+
+  /// 已点播放、正在等刷新结束（播放键转圈）；[_playRequest] 让后一次点击取代前一次。
+  bool _playPending = false;
+  int _playRequest = 0;
   StreamSubscription<SpotifyPlaylist>? _playlistSub;
   Object? _error;
   late bool _selecting = widget.initialSelecting;
@@ -118,6 +128,8 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       _loading = !quiet;
       _loadingMore = false;
       _error = null;
+      _refreshing = true;
+      _refreshFailed = false;
     });
     final completer = Completer<void>();
     _loadDone = completer.future;
@@ -144,6 +156,8 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                 if (_fetched == null && snapshot.isEmpty) _error = e;
                 _loading = false;
                 _loadingMore = false;
+                _refreshing = false;
+                _refreshFailed = true;
               });
             }
             if (!completer.isCompleted) completer.complete();
@@ -153,6 +167,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
               setState(() {
                 _loading = false;
                 _loadingMore = false;
+                _refreshing = false;
               });
             }
             if (!completer.isCompleted) completer.complete();
@@ -232,8 +247,13 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       isLikedSongs: isLikedSongs,
       sort: sort,
     );
-    // 记下的排序在曲目还没拉全时只排了已加载的部分：这时点播放先等曲目到齐再播（见 _playWhenLoaded）
-    final waitForAll = _loadingMore && sort != TrackSort.custom;
+    // 歌单还在刷新时（先显示的是本机缓存的旧快照，或只拉到了前几批）不按手头的列表播：
+    // 点播放先等刷新结束，再按最新的完整歌单排序后播放（见 _playWhenLoaded）。
+    // 「已点赞的歌曲」跟着媒体库刷新，等媒体库读完。
+    final likedRefreshing = context.select<LibraryProvider, bool>(
+      (l) => isLikedSongs && l.isLoading,
+    );
+    final waitForRefresh = _refreshing || likedRefreshing || _playPending;
     final desktop = ShellBreakpoints.isDesktop(
       MediaQuery.sizeOf(context).width,
     );
@@ -260,7 +280,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
           isOwn: isOwn,
           isSaved: isSaved,
           playbackContext: playbackContext,
-          waitForAll: waitForAll,
+          waitForRefresh: waitForRefresh,
           hasAddedAt: hasAddedAt,
           compact: desktop && compact,
           columns: desktop
@@ -291,7 +311,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
     required bool isOwn,
     required bool isSaved,
     required PlaybackContext playbackContext,
-    required bool waitForAll,
+    required bool waitForRefresh,
     required bool hasAddedAt,
     required bool compact,
     required TrackTableColumns? columns,
@@ -322,7 +342,8 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
               playbackContext: playbackContext,
               size: 44,
               elevated: false,
-              onPlay: waitForAll ? _playWhenLoaded : null,
+              onPlay: waitForRefresh ? _playWhenLoaded : null,
+              loading: _playPending,
             ),
           ),
 
@@ -333,7 +354,8 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                 child: CollectionActionRow(
                   tracks: sorted,
                   playbackContext: playbackContext,
-                  onPlay: waitForAll ? _playWhenLoaded : null,
+                  onPlay: waitForRefresh ? _playWhenLoaded : null,
+                  playLoading: _playPending,
                   trailingExpanded: _searchOpen || _query.isNotEmpty,
                   // 官方歌单（非「已点赞」、非自建）才可能有视频流；没有内容时按钮自己不显示。
                   afterPlay: isLikedSongs || isBackupLikedSongs || isOwn
@@ -499,7 +521,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                         index,
                         queue: sorted,
                         ctx: playbackContext,
-                        waitForAll: waitForAll,
+                        waitForRefresh: waitForRefresh,
                         columns: columns,
                         ownPlaylistId: isOwn ? playlist.id : null,
                       ),
@@ -539,17 +561,33 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                 ))
           .withReordered(sort != TrackSort.custom);
 
-  /// 曲目还在分批拉取、又记着排序时点播放：先等这次拉取结束，再按完整歌单重新排序后播放
-  ///（[start] 非空时从这首开始）。否则只排了已加载的部分，Connect 下只拿到这几百首。
-  /// 拉取中途失败时按已拿到的曲目播放。
+  /// 歌单还在刷新时点播放（[start] 非空时从这首开始）：先等这次刷新结束，再按最新的完整歌单
+  /// 重新排序后播放。手头的列表可能是本机缓存的旧快照或只拉到了前几批，拿它点歌会让播放队列
+  /// 和歌单对不上（顺序错乱、Connect 下只剩几百首）。
+  /// 刷新失败（如离线）时按手头的缓存播放，并提示一句。连续点击只播最后一次。
   Future<void> _playWhenLoaded({SpotifyTrack? start}) async {
     final playback = context.read<PlaybackProvider>();
-    await _loadDone;
-    if (!mounted) return;
+    final library = context.read<LibraryProvider>();
+    final request = ++_playRequest;
+    final isLikedSongs = widget.playlist.id == LibraryProvider.likedSongsId;
+    setState(() => _playPending = true);
+    if (_refreshing) await _loadDone;
+    if (isLikedSongs) await library.whenLoaded();
+    if (!mounted || request != _playRequest) return;
+    setState(() => _playPending = false);
+
     final playlist = _fetched ??
-        context.read<LibraryProvider>().findPlaylist(widget.playlist.id) ??
+        library.findPlaylist(widget.playlist.id) ??
         widget.playlist;
     final tracks = playlist.tracks;
+    if (tracks.isEmpty) return;
+    if (_refreshFailed || (isLikedSongs && library.loadError != null)) {
+      AppToast.show(
+        context,
+        context.l10n.playlistPlayingCachedCopy,
+        icon: Icons.cloud_off_rounded,
+      );
+    }
     final savedSort = context
         .read<PreferencesProvider?>()
         ?.prefs
@@ -557,7 +595,6 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
     final sort = (_unsavedSort ?? TrackSort.decode(savedSort)).availableFor(
       tracks,
     );
-    final isLikedSongs = playlist.id == LibraryProvider.likedSongsId;
     final ctx = _contextFor(
       playlist,
       title: isLikedSongs ? context.l10n.likedSongs : playlist.name,
@@ -568,7 +605,9 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
     if (start == null) {
       await playback.playContext(queue, ctx);
     } else {
-      await playback.playTrack(start, contextQueue: queue, context: ctx);
+      // 刷新后换成新列表里的同一首；新列表里已经没有这首时照样从它开始
+      final fresh = queue.firstWhere((t) => t.id == start.id, orElse: () => start);
+      await playback.playTrack(fresh, contextQueue: queue, context: ctx);
     }
   }
 
@@ -725,7 +764,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
     int index, {
     required List<SpotifyTrack> queue,
     required PlaybackContext ctx,
-    required bool waitForAll,
+    required bool waitForRefresh,
     required TrackTableColumns? columns,
     required String? ownPlaylistId,
   }) {
@@ -737,7 +776,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       contextQueue: queue,
       playbackContext: ctx,
       columns: columns,
-      onTap: waitForAll ? () => _playWhenLoaded(start: track) : null,
+      onTap: waitForRefresh ? () => _playWhenLoaded(start: track) : null,
     );
     if (_selecting) {
       final selected = _selectedTrackIds.contains(track.id);
