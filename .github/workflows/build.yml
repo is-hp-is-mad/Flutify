@@ -529,6 +529,11 @@ jobs:
 
       - run: flutter pub get
 
+      # 静态检查：只在 error 时失败（warning / info 照常打印在日志里，与 verify.yml 一致）。
+      # 不跟 run_tests 走：PR 构建不跑 flutter test，至少用一分钟左右的 analyze 拦住编译期错误。
+      - name: Analyze (fail on errors only)
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings lib test
+
       - if: needs.prepare.outputs.run_tests == 'true'
         run: flutter test
 
